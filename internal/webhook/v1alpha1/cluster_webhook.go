@@ -18,7 +18,6 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/webhook"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -31,7 +30,7 @@ import (
 func SetupClusterWebhookWithManager(mgr ctrl.Manager) error {
 	return webhook.SetupWebhook(mgr,
 		&greenhousev1alpha1.Cluster{},
-		webhook.WebhookFuncs{
+		webhook.WebhookFuncs[*greenhousev1alpha1.Cluster]{
 			DefaultFunc:        DefaultCluster,
 			ValidateCreateFunc: ValidateCreateCluster,
 			ValidateUpdateFunc: ValidateUpdateCluster,
@@ -42,12 +41,8 @@ func SetupClusterWebhookWithManager(mgr ctrl.Manager) error {
 
 //+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-cluster,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=clusters,verbs=create;update,versions=v1alpha1,name=mcluster.kb.io,admissionReviewVersions=v1
 
-func DefaultCluster(ctx context.Context, _ client.Client, obj runtime.Object) error {
+func DefaultCluster(ctx context.Context, _ client.Client, cluster *greenhousev1alpha1.Cluster) error {
 	logger := ctrl.LoggerFrom(ctx)
-	cluster, ok := obj.(*greenhousev1alpha1.Cluster)
-	if !ok {
-		return nil
-	}
 
 	// default the "greenhouse.sap/cluster" label to be able to select the cluster by label
 	labels := cluster.GetLabels()
@@ -91,12 +86,8 @@ func DefaultCluster(ctx context.Context, _ client.Client, obj runtime.Object) er
 //+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-cluster,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=clusters,verbs=create;update;delete,versions=v1alpha1,name=vcluster.kb.io,admissionReviewVersions=v1
 
 // ValidateCreateCluster disallows creating clusters with deletionMarked or deletionSchedule annotations
-func ValidateCreateCluster(ctx context.Context, c client.Client, obj runtime.Object) (admission.Warnings, error) {
+func ValidateCreateCluster(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster) (admission.Warnings, error) {
 	logger := ctrl.LoggerFrom(ctx)
-	cluster, ok := obj.(*greenhousev1alpha1.Cluster)
-	if !ok {
-		return nil, nil
-	}
 	if err := webhook.InvalidateDoubleDashesInName(cluster, logger); err != nil {
 		return nil, err
 	}
@@ -122,12 +113,8 @@ func ValidateCreateCluster(ctx context.Context, c client.Client, obj runtime.Obj
 }
 
 // ValidateUpdateCluster disallows cluster updates with invalid deletion schedules
-func ValidateUpdateCluster(ctx context.Context, c client.Client, _, currObj runtime.Object) (admission.Warnings, error) {
-	cluster, ok := currObj.(*greenhousev1alpha1.Cluster)
+func ValidateUpdateCluster(ctx context.Context, c client.Client, _, cluster *greenhousev1alpha1.Cluster) (admission.Warnings, error) {
 	logger := ctrl.LoggerFrom(ctx)
-	if !ok {
-		return nil, nil
-	}
 	_, _, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
 	if err != nil {
 		err = apierrors.NewBadRequest("invalid deletion schedule provided - expected format 2006-01-02 15:04:05")
@@ -142,13 +129,9 @@ func ValidateUpdateCluster(ctx context.Context, c client.Client, _, currObj runt
 }
 
 // ValidateDeleteCluster only allows deletion requests for clusters with a deletion schedule timestamp past now.
-func ValidateDeleteCluster(ctx context.Context, _ client.Client, obj runtime.Object) (admission.Warnings, error) {
+func ValidateDeleteCluster(ctx context.Context, _ client.Client, cluster *greenhousev1alpha1.Cluster) (admission.Warnings, error) {
 	now := time.Now()
 	logger := ctrl.LoggerFrom(ctx)
-	cluster, ok := obj.(*greenhousev1alpha1.Cluster)
-	if !ok {
-		return nil, nil
-	}
 	groupResource := schema.GroupResource{
 		Group:    cluster.GroupVersionKind().Group,
 		Resource: "clusters",

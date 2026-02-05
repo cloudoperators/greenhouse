@@ -24,58 +24,53 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
-func SetupWebhook(mgr ctrl.Manager, obj runtime.Object, webhookFuncs WebhookFuncs) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(obj).
+func SetupWebhook[T runtime.Object](mgr ctrl.Manager, obj T, webhookFuncs WebhookFuncs[T]) error {
+	return ctrl.NewWebhookManagedBy(mgr, obj).
 		WithDefaulter(setupCustomDefaulterWithManager(mgr, webhookFuncs)).
 		WithValidator(setupCustomValidatorWithManager(mgr, webhookFuncs)).
 		Complete()
 }
 
 type (
-	defaultFunc func(ctx context.Context, c client.Client, obj runtime.Object) error
-	genericFunc func(ctx context.Context, c client.Client, obj runtime.Object) (admission.Warnings, error)
-	updateFunc  func(ctx context.Context, c client.Client, oldObj, curObj runtime.Object) (admission.Warnings, error)
+	defaultFunc[T runtime.Object] func(ctx context.Context, c client.Client, obj T) error
+	genericFunc[T runtime.Object] func(ctx context.Context, c client.Client, obj T) (admission.Warnings, error)
+	updateFunc[T runtime.Object]  func(ctx context.Context, c client.Client, oldObj, curObj T) (admission.Warnings, error)
 
-	WebhookFuncs struct {
-		DefaultFunc        defaultFunc
-		ValidateCreateFunc genericFunc
-		ValidateUpdateFunc updateFunc
-		ValidateDeleteFunc genericFunc
+	WebhookFuncs[T runtime.Object] struct {
+		DefaultFunc        defaultFunc[T]
+		ValidateCreateFunc genericFunc[T]
+		ValidateUpdateFunc updateFunc[T]
+		ValidateDeleteFunc genericFunc[T]
 	}
 )
 
-var _ admission.CustomDefaulter = &customDefaulter{}
-
-type customDefaulter struct {
+type customDefaulter[T runtime.Object] struct {
 	client.Client
-	defaultFunc defaultFunc
+	defaultFunc defaultFunc[T]
 }
 
-func setupCustomDefaulterWithManager(mgr ctrl.Manager, webhookFuncs WebhookFuncs) *customDefaulter {
-	return &customDefaulter{
+func setupCustomDefaulterWithManager[T runtime.Object](mgr ctrl.Manager, webhookFuncs WebhookFuncs[T]) *customDefaulter[T] {
+	return &customDefaulter[T]{
 		Client:      mgr.GetClient(),
 		defaultFunc: webhookFuncs.DefaultFunc,
 	}
 }
 
-func (c *customDefaulter) Default(ctx context.Context, obj runtime.Object) error {
+func (c *customDefaulter[T]) Default(ctx context.Context, obj T) error {
 	if c.defaultFunc == nil {
 		return nil
 	}
 	return c.defaultFunc(ctx, c.Client, obj)
 }
 
-var _ admission.CustomValidator = &customValidator{}
-
-type customValidator struct {
+type customValidator[T runtime.Object] struct {
 	client.Client
-	validateCreate, validateDelete genericFunc
-	validateUpdate                 updateFunc
+	validateCreate, validateDelete genericFunc[T]
+	validateUpdate                 updateFunc[T]
 }
 
-func setupCustomValidatorWithManager(mgr ctrl.Manager, webhookFuncs WebhookFuncs) *customValidator {
-	return &customValidator{
+func setupCustomValidatorWithManager[T runtime.Object](mgr ctrl.Manager, webhookFuncs WebhookFuncs[T]) *customValidator[T] {
+	return &customValidator[T]{
 		Client:         mgr.GetClient(),
 		validateCreate: webhookFuncs.ValidateCreateFunc,
 		validateUpdate: webhookFuncs.ValidateUpdateFunc,
@@ -83,7 +78,7 @@ func setupCustomValidatorWithManager(mgr ctrl.Manager, webhookFuncs WebhookFuncs
 	}
 }
 
-func (c *customValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (c *customValidator[T]) ValidateCreate(ctx context.Context, obj T) (admission.Warnings, error) {
 	logAdmissionRequest(ctx)
 	if c.validateCreate == nil {
 		return nil, nil
@@ -91,7 +86,7 @@ func (c *customValidator) ValidateCreate(ctx context.Context, obj runtime.Object
 	return c.validateCreate(ctx, c.Client, obj)
 }
 
-func (c *customValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+func (c *customValidator[T]) ValidateUpdate(ctx context.Context, oldObj, newObj T) (admission.Warnings, error) {
 	logAdmissionRequest(ctx)
 	if c.validateUpdate == nil {
 		return nil, nil
@@ -99,7 +94,7 @@ func (c *customValidator) ValidateUpdate(ctx context.Context, oldObj, newObj run
 	return c.validateUpdate(ctx, c.Client, oldObj, newObj)
 }
 
-func (c *customValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (c *customValidator[T]) ValidateDelete(ctx context.Context, obj T) (admission.Warnings, error) {
 	logAdmissionRequest(ctx)
 	if c.validateDelete == nil {
 		return nil, nil

@@ -7,7 +7,6 @@ import (
 	"context"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -24,7 +23,7 @@ import (
 func SetupPluginDefinitionWebhookWithManager(mgr ctrl.Manager) error {
 	return webhook.SetupWebhook(mgr,
 		&greenhousev1alpha1.PluginDefinition{},
-		webhook.WebhookFuncs{
+		webhook.WebhookFuncs[*greenhousev1alpha1.PluginDefinition]{
 			DefaultFunc:        DefaultPluginDefinition,
 			ValidateCreateFunc: ValidateCreatePluginDefinition,
 			ValidateUpdateFunc: ValidateUpdatePluginDefinition,
@@ -36,8 +35,8 @@ func SetupPluginDefinitionWebhookWithManager(mgr ctrl.Manager) error {
 func SetupClusterPluginDefinitionWebhookWithManager(mgr ctrl.Manager) error {
 	return webhook.SetupWebhook(mgr,
 		&greenhousev1alpha1.ClusterPluginDefinition{},
-		webhook.WebhookFuncs{
-			DefaultFunc:        DefaultPluginDefinition,
+		webhook.WebhookFuncs[*greenhousev1alpha1.ClusterPluginDefinition]{
+			DefaultFunc:        DefaultClusterPluginDefinition,
 			ValidateCreateFunc: ValidateCreateClusterPluginDefinition,
 			ValidateUpdateFunc: ValidateUpdateClusterPluginDefinition,
 			ValidateDeleteFunc: ValidateDeleteClusterPluginDefinition,
@@ -46,30 +45,27 @@ func SetupClusterPluginDefinitionWebhookWithManager(mgr ctrl.Manager) error {
 }
 
 //+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-plugindefinition,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=plugindefinitions,verbs=create;update,versions=v1alpha1,name=mplugindefinition.kb.io,admissionReviewVersions=v1
+
+func DefaultPluginDefinition(_ context.Context, _ client.Client, _ *greenhousev1alpha1.PluginDefinition) error {
+	return nil
+}
+
 //+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-clusterplugindefinition,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=clusterplugindefinitions,verbs=create;update,versions=v1alpha1,name=mclusterplugindefinition.kb.io,admissionReviewVersions=v1
 
-func DefaultPluginDefinition(_ context.Context, _ client.Client, _ runtime.Object) error {
+func DefaultClusterPluginDefinition(_ context.Context, _ client.Client, _ *greenhousev1alpha1.ClusterPluginDefinition) error {
 	return nil
 }
 
 //+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-plugindefinition,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=plugindefinitions,verbs=create;update;delete,versions=v1alpha1,name=vplugindefinition.kb.io,admissionReviewVersions=v1
 
-func ValidateCreatePluginDefinition(_ context.Context, _ client.Client, o runtime.Object) (admission.Warnings, error) {
-	pluginDefinition, ok := o.(*greenhousev1alpha1.PluginDefinition)
-	if !ok {
-		return nil, nil
-	}
-	return nil, validateCreate(pluginDefinition.Spec, pluginDefinition.GroupVersionKind(), pluginDefinition.GetName())
+func ValidateCreatePluginDefinition(_ context.Context, _ client.Client, pd *greenhousev1alpha1.PluginDefinition) (admission.Warnings, error) {
+	return nil, validateCreate(pd.Spec, pd.GroupVersionKind(), pd.GetName())
 }
 
 //+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-clusterplugindefinition,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=clusterplugindefinitions,verbs=create;update;delete,versions=v1alpha1,name=vclusterplugindefinition.kb.io,admissionReviewVersions=v1
 
-func ValidateCreateClusterPluginDefinition(_ context.Context, _ client.Client, o runtime.Object) (admission.Warnings, error) {
-	pluginDefinition, ok := o.(*greenhousev1alpha1.ClusterPluginDefinition)
-	if !ok {
-		return nil, nil
-	}
-	return nil, validateCreate(pluginDefinition.Spec, pluginDefinition.GroupVersionKind(), pluginDefinition.GetName())
+func ValidateCreateClusterPluginDefinition(_ context.Context, _ client.Client, cpd *greenhousev1alpha1.ClusterPluginDefinition) (admission.Warnings, error) {
+	return nil, validateCreate(cpd.Spec, cpd.GroupVersionKind(), cpd.GetName())
 }
 
 func validateCreate(pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec, gvk schema.GroupVersionKind, name string) error {
@@ -82,20 +78,12 @@ func validateCreate(pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec
 	return validatePluginDefinitionOptionValueAndType(pluginDefinitionSpec, gvk, name)
 }
 
-func ValidateUpdatePluginDefinition(_ context.Context, _ client.Client, _, o runtime.Object) (admission.Warnings, error) {
-	pluginDefinition, ok := o.(*greenhousev1alpha1.PluginDefinition)
-	if !ok {
-		return nil, nil
-	}
-	return nil, validateUpdate(pluginDefinition.Spec, pluginDefinition.GroupVersionKind(), pluginDefinition.GetName())
+func ValidateUpdatePluginDefinition(_ context.Context, _ client.Client, _, pd *greenhousev1alpha1.PluginDefinition) (admission.Warnings, error) {
+	return nil, validateUpdate(pd.Spec, pd.GroupVersionKind(), pd.GetName())
 }
 
-func ValidateUpdateClusterPluginDefinition(_ context.Context, _ client.Client, _, o runtime.Object) (admission.Warnings, error) {
-	pluginDefinition, ok := o.(*greenhousev1alpha1.ClusterPluginDefinition)
-	if !ok {
-		return nil, nil
-	}
-	return nil, validateUpdate(pluginDefinition.Spec, pluginDefinition.GroupVersionKind(), pluginDefinition.GetName())
+func ValidateUpdateClusterPluginDefinition(_ context.Context, _ client.Client, _, cpd *greenhousev1alpha1.ClusterPluginDefinition) (admission.Warnings, error) {
+	return nil, validateUpdate(cpd.Spec, cpd.GroupVersionKind(), cpd.GetName())
 }
 
 func validateUpdate(pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec, gvk schema.GroupVersionKind, name string) error {
@@ -108,20 +96,12 @@ func validateUpdate(pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec
 	return validatePluginDefinitionOptionValueAndType(pluginDefinitionSpec, gvk, name)
 }
 
-func ValidateDeletePluginDefinition(ctx context.Context, c client.Client, o runtime.Object) (admission.Warnings, error) {
-	pluginDefinition, ok := o.(*greenhousev1alpha1.PluginDefinition)
-	if !ok {
-		return nil, nil
-	}
-	return validateDelete(ctx, c, greenhouseapis.LabelKeyPluginDefinition, pluginDefinition.GetName(), pluginDefinition.GetNamespace())
+func ValidateDeletePluginDefinition(ctx context.Context, c client.Client, pd *greenhousev1alpha1.PluginDefinition) (admission.Warnings, error) {
+	return validateDelete(ctx, c, greenhouseapis.LabelKeyPluginDefinition, pd.GetName(), pd.GetNamespace())
 }
 
-func ValidateDeleteClusterPluginDefinition(ctx context.Context, c client.Client, o runtime.Object) (admission.Warnings, error) {
-	pluginDefinition, ok := o.(*greenhousev1alpha1.ClusterPluginDefinition)
-	if !ok {
-		return nil, nil
-	}
-	return validateDelete(ctx, c, greenhouseapis.LabelKeyClusterPluginDefinition, pluginDefinition.GetName(), "")
+func ValidateDeleteClusterPluginDefinition(ctx context.Context, c client.Client, cpd *greenhousev1alpha1.ClusterPluginDefinition) (admission.Warnings, error) {
+	return validateDelete(ctx, c, greenhouseapis.LabelKeyClusterPluginDefinition, cpd.GetName(), "")
 }
 
 func validateDelete(ctx context.Context, c client.Client, labelKey, name, namespace string) (admission.Warnings, error) {
