@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -40,7 +40,7 @@ type CatalogReconciler struct {
 	client.Client
 	Scheme      *runtime.Scheme
 	Log         logr.Logger
-	recorder    record.EventRecorder
+	recorder    events.EventRecorder
 	StoragePath string
 	HttpRetry   int
 }
@@ -48,7 +48,7 @@ type CatalogReconciler struct {
 func (r *CatalogReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
 	r.Scheme = mgr.GetScheme()
-	r.recorder = mgr.GetEventRecorderFor(name)
+	r.recorder = mgr.GetEventRecorder(name)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).

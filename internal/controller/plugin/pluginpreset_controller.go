@@ -14,7 +14,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -44,7 +44,7 @@ var presetExposedConditions = []greenhousemetav1alpha1.ConditionType{
 // PluginPresetReconciler reconciles a PluginPreset object
 type PluginPresetReconciler struct {
 	client.Client
-	recorder record.EventRecorder
+	recorder events.EventRecorder
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=pluginpresets,verbs=get;list;watch;update
@@ -56,7 +56,7 @@ type PluginPresetReconciler struct {
 // SetupWithManager sets up the controller with the Manager.
 func (r *PluginPresetReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
-	r.recorder = mgr.GetEventRecorderFor(name)
+	r.recorder = mgr.GetEventRecorder(name)
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&greenhousev1alpha1.PluginPreset{}).
@@ -428,7 +428,7 @@ func (r *PluginPresetReconciler) cleanupPlugins(ctx context.Context, pb *greenho
 			if err := r.Delete(ctx, &p); err != nil && !apierrors.IsNotFound(err) {
 				return err
 			}
-			r.recorder.Eventf(&p, corev1.EventTypeNormal, "PluginDeleted", "Dangling Plugin %s deleted by PluginPreset %s", p.Name, pb.Name)
+			r.recorder.Eventf(&p, pb, corev1.EventTypeNormal, "PluginDeleted", "cleaning up Plugins", "Dangling Plugin %s deleted by PluginPreset %s", p.Name, pb.Name)
 			ctrl.LoggerFrom(ctx).Info("Dangling Plugin deleted", "plugin", p.Name, "pluginPreset", pb.Name)
 		}
 	}

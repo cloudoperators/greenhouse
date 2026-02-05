@@ -20,7 +20,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -34,7 +34,7 @@ import (
 // RemoteClusterReconciler reconciles a Cluster object with accessMode=direct set.
 type RemoteClusterReconciler struct {
 	client.Client
-	recorder                           record.EventRecorder
+	recorder                           events.EventRecorder
 	RemoteClusterBearerTokenValidity   time.Duration
 	RenewRemoteClusterBearerTokenAfter time.Duration
 }
@@ -51,7 +51,7 @@ type RemoteClusterReconciler struct {
 // SetupWithManager sets up the controller with the Manager.
 func (r *RemoteClusterReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
-	r.recorder = mgr.GetEventRecorderFor(name)
+	r.recorder = mgr.GetEventRecorder(name)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
@@ -64,7 +64,7 @@ func (r *RemoteClusterReconciler) SetupWithManager(name string, mgr ctrl.Manager
 		Complete(r)
 }
 
-func (r *RemoteClusterReconciler) GetEventRecorder() record.EventRecorder {
+func (r *RemoteClusterReconciler) GetEventRecorder() events.EventRecorder {
 	return r.recorder
 }
 

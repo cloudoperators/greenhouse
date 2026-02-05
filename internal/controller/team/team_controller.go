@@ -12,7 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -41,7 +41,7 @@ var (
 
 type TeamController struct {
 	client.Client
-	recorder record.EventRecorder
+	recorder events.EventRecorder
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teams,verbs=get;list;watch;create;update;patch;delete
@@ -53,7 +53,7 @@ type TeamController struct {
 // SetupWithManager sets up the controller with the Manager.
 func (r *TeamController) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
-	r.recorder = mgr.GetEventRecorderFor(name)
+	r.recorder = mgr.GetEventRecorder(name)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
