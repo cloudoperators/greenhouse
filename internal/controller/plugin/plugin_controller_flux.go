@@ -156,7 +156,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 		return fmt.Errorf("failed to generate HelmRelease values for Plugin %s: %w", plugin.Name, err)
 	}
 
-	result, err := ctrl.CreateOrUpdate(ctx, r.Client, release, func() error {
+	result, err := controllerutil.CreateOrPatch(ctx, r.Client, release, func() error {
 		builder := flux.NewHelmReleaseSpecBuilder().
 			WithChart(helmv2.HelmChartTemplateSpec{
 				Chart:    pluginDefinitionSpec.HelmChart.Name,
