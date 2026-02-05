@@ -45,7 +45,7 @@ type RemoteClusterReconciler struct {
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update;patch;create
 //+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;update;patch;create
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;update;patch;create;delete
-//+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups="events.k8s.io",resources=events,verbs=get;list;watch;update;patch
 //+kubebuilder:rbac:groups="rbac",resources=clusterrolebindings,verbs=get;list;watch;update;patch;create
 
 // SetupWithManager sets up the controller with the Manager.

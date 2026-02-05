@@ -48,7 +48,7 @@ type TeamController struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teams/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teams/finalizers,verbs=update
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get
-//+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups="events.k8s.io",resources=events,verbs=get;list;watch;update;patch
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *TeamController) SetupWithManager(name string, mgr ctrl.Manager) error {

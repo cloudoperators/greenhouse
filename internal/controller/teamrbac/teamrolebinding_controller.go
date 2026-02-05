@@ -50,7 +50,7 @@ type TeamRoleBindingReconciler struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teamroles,verbs=get;list;watch;
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teamrolebindings/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teamrolebindings/finalizers,verbs=update
-//+kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+//+kubebuilder:rbac:groups="events.k8s.io",resources=events,verbs=create;patch
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *TeamRoleBindingReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {

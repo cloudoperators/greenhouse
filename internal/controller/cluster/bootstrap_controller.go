@@ -40,7 +40,7 @@ type BootstrapReconciler struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=clusters,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=clusters/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=clusters/finalizers,verbs=update
-//+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups="events.k8s.io",resources=events,verbs=get;list;watch;update;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update;patch
 
 // SetupWithManager sets up the controller with the Manager.
