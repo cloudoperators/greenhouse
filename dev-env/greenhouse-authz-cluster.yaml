@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
 
 kind: Cluster
@@ -16,8 +16,9 @@ nodes:
         apiServer:
           extraArgs:
             "anonymous-auth": "true"
-            "service-account-issuer": "https://greenhouse-admin-control-plane:6443"
-            "service-account-jwks-uri": "https://greenhouse-admin-control-plane:6443/openid/v1/jwks"
+            "service-account-issuer": "https://greenhouse-authz-control-plane:6443"
+            "service-account-jwks-uri": "https://greenhouse-authz-control-plane:6443/openid/v1/jwks"
+            "authorization-config": "/etc/kubernetes/webhook/structured-authz-insecure.yaml"
           extraVolumes:
             - name: authz-webhook
               hostPath: /etc/kubernetes/webhook

@@ -30,7 +30,6 @@ authzDeployment:
   volumeMounts:
     - name: serving-certs
       mountPath: /tmp/k8s-webhook-server/serving-certs
-      readOnly: true
   containerPorts:
     - name: authz-server
       containerPort: 9443
