@@ -7,7 +7,6 @@ import (
 	"context"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -24,7 +23,7 @@ import (
 func SetupTeamRoleBindingWebhookWithManager(mgr ctrl.Manager) error {
 	return webhook.SetupWebhook(mgr,
 		&greenhousev1alpha2.TeamRoleBinding{},
-		webhook.WebhookFuncs{
+		webhook.WebhookFuncs[*greenhousev1alpha2.TeamRoleBinding]{
 			DefaultFunc:        DefaultRoleBinding,
 			ValidateCreateFunc: ValidateCreateRoleBinding,
 			ValidateUpdateFunc: ValidateUpdateRoleBinding,
@@ -35,18 +34,13 @@ func SetupTeamRoleBindingWebhookWithManager(mgr ctrl.Manager) error {
 
 //+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha2-teamrolebinding,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=teamrolebindings,verbs=create;update,versions=v1alpha2,name=mrolebinding-v1alpha2.kb.io,admissionReviewVersions=v1
 
-func DefaultRoleBinding(_ context.Context, _ client.Client, _ runtime.Object) error {
+func DefaultRoleBinding(_ context.Context, _ client.Client, _ *greenhousev1alpha2.TeamRoleBinding) error {
 	return nil
 }
 
 //+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha2-teamrolebinding,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=teamrolebindings,verbs=create;update;delete,versions=v1alpha2,name=vrolebinding-v1alpha2.kb.io,admissionReviewVersions=v1
 
-func ValidateCreateRoleBinding(ctx context.Context, c client.Client, o runtime.Object) (admission.Warnings, error) {
-	rb, ok := o.(*greenhousev1alpha2.TeamRoleBinding)
-	if !ok {
-		return nil, nil
-	}
-
+func ValidateCreateRoleBinding(ctx context.Context, c client.Client, rb *greenhousev1alpha2.TeamRoleBinding) (admission.Warnings, error) {
 	// check if the referenced role exists
 	var r greenhousev1alpha1.TeamRole
 	if err := c.Get(ctx, client.ObjectKey{Namespace: rb.Namespace, Name: rb.Spec.TeamRoleRef}, &r); err != nil {
@@ -76,15 +70,7 @@ func ValidateCreateRoleBinding(ctx context.Context, c client.Client, o runtime.O
 	return nil, nil
 }
 
-func ValidateUpdateRoleBinding(ctx context.Context, c client.Client, old, cur runtime.Object) (admission.Warnings, error) {
-	oldRB, ok := old.(*greenhousev1alpha2.TeamRoleBinding)
-	if !ok {
-		return nil, nil
-	}
-	curRB, ok := cur.(*greenhousev1alpha2.TeamRoleBinding)
-	if !ok {
-		return nil, nil
-	}
+func ValidateUpdateRoleBinding(ctx context.Context, c client.Client, oldRB, curRB *greenhousev1alpha2.TeamRoleBinding) (admission.Warnings, error) {
 	switch {
 	case validateClusterSelector(curRB) != nil:
 		return nil, apierrors.NewForbidden(
@@ -125,7 +111,7 @@ func ValidateUpdateRoleBinding(ctx context.Context, c client.Client, old, cur ru
 	return nil, nil
 }
 
-func ValidateDeleteRoleBinding(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
+func ValidateDeleteRoleBinding(_ context.Context, _ client.Client, _ *greenhousev1alpha2.TeamRoleBinding) (admission.Warnings, error) {
 	return nil, nil
 }
 

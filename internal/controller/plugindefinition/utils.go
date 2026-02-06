@@ -13,7 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -37,7 +37,7 @@ type GenericPluginDefinition interface {
 
 type helmer struct {
 	k8sClient     client.Client
-	recorder      record.EventRecorder
+	recorder      events.EventRecorder
 	pluginDef     GenericPluginDefinition
 	namespaceName string
 }
@@ -175,10 +175,10 @@ func (h *helmer) createUpdateHelmRepository(ctx context.Context) (*sourcev1.Helm
 	switch result {
 	case controllerutil.OperationResultCreated:
 		log.FromContext(ctx).Info("Created helmRepository", "namespace", h.namespaceName, "name", helmRepository.Name)
-		h.recorder.Eventf(h.pluginDef, corev1.EventTypeNormal, "Created", "Created HelmRepository %s", helmRepository.Name)
+		h.recorder.Eventf(h.pluginDef, helmRepository, corev1.EventTypeNormal, "Created", "reconciling (Cluster-)PluginDefinition", "Created HelmRepository %s", helmRepository.Name)
 	case controllerutil.OperationResultUpdated:
 		log.FromContext(ctx).Info("Updated helmRepository", "namespace", h.namespaceName, "name", helmRepository.Name)
-		h.recorder.Eventf(h.pluginDef, corev1.EventTypeNormal, "Updated", "Updated HelmRepository %s", helmRepository.Name)
+		h.recorder.Eventf(h.pluginDef, helmRepository, corev1.EventTypeNormal, "Updated", "reconciling (Cluster-)PluginDefinition", "Updated HelmRepository %s", helmRepository.Name)
 	case controllerutil.OperationResultNone:
 		log.FromContext(ctx).Info("No changes to helmRepository", "namespace", h.namespaceName, "name", helmRepository.Name)
 	}
@@ -209,10 +209,10 @@ func (h *helmer) createUpdateHelmChart(ctx context.Context, helmRepo *sourcev1.H
 	switch result {
 	case controllerutil.OperationResultCreated:
 		log.FromContext(ctx).Info("Created helmChart", "namespace", h.namespaceName, "name", helmChart.Name)
-		h.recorder.Eventf(h.pluginDef, corev1.EventTypeNormal, "Created", "Created HelmRChart %s", helmChart.Name)
+		h.recorder.Eventf(h.pluginDef, helmChart, corev1.EventTypeNormal, "Created", "reconciling (Cluster-)PluginDefinition", "Created HelmChart %s", helmChart.Name)
 	case controllerutil.OperationResultUpdated:
 		log.FromContext(ctx).Info("Updated helmChart", "namespace", h.namespaceName, "name", helmChart.Name)
-		h.recorder.Eventf(h.pluginDef, corev1.EventTypeNormal, "Updated", "Updated HelmChart %s", helmChart.Name)
+		h.recorder.Eventf(h.pluginDef, helmChart, corev1.EventTypeNormal, "Updated", "reconciling (Cluster-)PluginDefinition", "Updated HelmChart %s", helmChart.Name)
 	case controllerutil.OperationResultNone:
 		log.FromContext(ctx).Info("No changes to helmChart", "namespace", h.namespaceName, "name", helmChart.Name)
 	}

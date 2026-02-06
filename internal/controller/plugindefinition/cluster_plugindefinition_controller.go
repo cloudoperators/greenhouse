@@ -8,7 +8,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -22,13 +22,13 @@ import (
 type ClusterPluginDefinitionReconciler struct {
 	client.Client
 	Scheme   *runtime.Scheme
-	recorder record.EventRecorder
+	recorder events.EventRecorder
 }
 
 func (r *ClusterPluginDefinitionReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
 	r.Scheme = mgr.GetScheme()
-	r.recorder = mgr.GetEventRecorderFor(name)
+	r.recorder = mgr.GetEventRecorder(name)
 	return setupManagerBuilder(
 		mgr,
 		name,
@@ -41,7 +41,7 @@ func (r *ClusterPluginDefinitionReconciler) SetupWithManager(name string, mgr ct
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmrepositories,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmrepositories/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmrepositories/finalizers,verbs=get;create;update;patch;delete
-// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+// +kubebuilder:rbac:groups="events.k8s.io",resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups=greenhouse.sap,resources=clusterplugindefinitions,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=greenhouse.sap,resources=clusterplugindefinitions/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=greenhouse.sap,resources=clusterplugindefinitions/finalizers,verbs=get;create;update;patch;delete
@@ -68,7 +68,7 @@ func (r *ClusterPluginDefinitionReconciler) EnsureCreated(ctx context.Context, o
 
 	if clusterDef.Spec.HelmChart == nil {
 		log.FromContext(ctx).Info("No HelmChart defined in ClusterPluginDefinition, skipping HelmRepository creation")
-		r.recorder.Event(clusterDef, corev1.EventTypeNormal, "Skipped", "Skipped HelmRepository creation")
+		r.recorder.Eventf(clusterDef, nil, corev1.EventTypeNormal, "Skipped", "reconciling ClusterPluginDefinition", "Skipped HelmRepository creation")
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 

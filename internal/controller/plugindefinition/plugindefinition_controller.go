@@ -8,7 +8,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -22,14 +22,14 @@ import (
 type PluginDefinitionReconciler struct {
 	client.Client
 	Scheme   *runtime.Scheme
-	recorder record.EventRecorder
+	recorder events.EventRecorder
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *PluginDefinitionReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
 	r.Scheme = mgr.GetScheme()
-	r.recorder = mgr.GetEventRecorderFor(name)
+	r.recorder = mgr.GetEventRecorder(name)
 
 	return setupManagerBuilder(
 		mgr,
@@ -43,7 +43,7 @@ func (r *PluginDefinitionReconciler) SetupWithManager(name string, mgr ctrl.Mana
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmrepositories,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmrepositories/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmrepositories/finalizers,verbs=get;create;update;patch;delete
-// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+// +kubebuilder:rbac:groups="events.k8s.io",resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch
 // +kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions/finalizers,verbs=get;create;update;patch;delete
@@ -70,7 +70,7 @@ func (r *PluginDefinitionReconciler) EnsureCreated(ctx context.Context, obj life
 
 	if pluginDef.Spec.HelmChart == nil {
 		log.FromContext(ctx).Info("No HelmChart defined in PluginDefinition, skipping HelmRepository creation", "name", pluginDef.Name)
-		r.recorder.Event(pluginDef, corev1.EventTypeNormal, "Skipped", "Skipped HelmRepository creation")
+		r.recorder.Eventf(pluginDef, nil, corev1.EventTypeNormal, "Skipped", "reconciling PluginDefinition", "Skipped HelmRepository creation")
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 
