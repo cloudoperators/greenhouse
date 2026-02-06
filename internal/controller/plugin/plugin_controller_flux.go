@@ -85,7 +85,9 @@ func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, plugin *greenh
 
 	helmRepository, err := flux.FindHelmRepositoryByURL(ctx, r.Client, pluginDefinitionSpec.HelmChart.Repository, namespace)
 	if err != nil {
-		return ctrl.Result{}, lifecycle.Failed, errors.New("helm repository not found")
+		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.HelmReconcileFailedCondition, "", fmt.Sprintf("Failed to load helm repository for %s/%s", plugin.Spec.PluginDefinitionRef.Kind, plugin.Spec.PluginDefinitionRef.Name)))
+		return ctrl.Result{}, lifecycle.Failed, errors.New("helm repository not found for " + plugin.Spec.PluginDefinitionRef.Kind + "/" + plugin.Spec.PluginDefinitionRef.Name)
 	}
 
 	optionValues, err := computeReleaseValues(ctx, r.Client, plugin, r.ExpressionEvaluationEnabled, r.IntegrationEnabled)
