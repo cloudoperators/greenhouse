@@ -13,7 +13,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -55,7 +55,7 @@ const (
 // OrganizationReconciler reconciles an Organization object
 type OrganizationReconciler struct {
 	client.Client
-	recorder       record.EventRecorder
+	recorder       events.EventRecorder
 	DexStorageType string
 	dex            storage.Storage
 	Namespace      string
@@ -69,7 +69,7 @@ type OrganizationReconciler struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teamroles,verbs=get;list;watch;create;update;patch
-//+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
+//+kubebuilder:rbac:groups="events.k8s.io",resources=events,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=dex.coreos.com,resources=connectors;oauth2clients,verbs=get;list;watch;create;update;patch
@@ -79,7 +79,7 @@ type OrganizationReconciler struct {
 // SetupWithManager sets up the controller with the Manager.
 func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
-	r.recorder = mgr.GetEventRecorderFor(name)
+	r.recorder = mgr.GetEventRecorder(name)
 	l := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	dexter, err := dexstore.NewDexStorage(l.With("component", "storage"), r.DexStorageType)
 	if err != nil {
@@ -225,10 +225,10 @@ func (r *OrganizationReconciler) reconcileNamespace(ctx context.Context, org *gr
 	switch result {
 	case clientutil.OperationResultCreated:
 		log.FromContext(ctx).Info("created namespace", "name", namespace.Name)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedNamespace", "Created namespace %s", namespace.Name)
+		r.recorder.Eventf(org, namespace, corev1.EventTypeNormal, "CreatedNamespace", "reconciling namespace", "Created namespace %s", namespace.Name)
 	case clientutil.OperationResultUpdated:
 		log.FromContext(ctx).Info("updated namespace", "name", namespace.Name)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedNamespace", "Updated namespace %s", namespace.Name)
+		r.recorder.Eventf(org, namespace, corev1.EventTypeNormal, "UpdatedNamespace", "reconciling namespace", "Updated namespace %s", namespace.Name)
 	}
 	return nil
 }
@@ -252,10 +252,10 @@ func (r *OrganizationReconciler) reconcileAdminTeam(ctx context.Context, org *gr
 	switch result {
 	case clientutil.OperationResultCreated:
 		log.FromContext(ctx).Info("created org admin team", "name", team.Name, "teamNamespace", namespace)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedTeam", "Created Team %s in namespace %s", team.Name, namespace)
+		r.recorder.Eventf(org, team, corev1.EventTypeNormal, "CreatedTeam", "reconciling admin team", "Created Team %s in namespace %s", team.Name, namespace)
 	case clientutil.OperationResultUpdated:
 		log.FromContext(ctx).Info("updated org admin team", "name", team.Name, "teamNamespace", namespace)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedTeam", "Updated Team %s in namespace %s", team.Name, namespace)
+		r.recorder.Eventf(org, team, corev1.EventTypeNormal, "UpdatedTeam", "reconciling admin team", "Updated Team %s in namespace %s", team.Name, namespace)
 	}
 	return nil
 }

@@ -9,7 +9,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/scim"
@@ -34,8 +33,8 @@ var _ = Describe("Validate Organization Defaulting Webhook", func() {
 })
 
 var _ = Describe("Validate Organization Webhook", func() {
-	DescribeTable("Create Organization Webhook", func(obj runtime.Object, expectedError bool) {
-		warnings, err := ValidateCreateOrganization(context.Background(), nil, obj)
+	DescribeTable("Create Organization Webhook", func(org *greenhousev1alpha1.Organization, expectedError bool) {
+		warnings, err := ValidateCreateOrganization(context.Background(), nil, org)
 
 		Expect(warnings).To(BeEmpty())
 		if expectedError {
@@ -44,7 +43,6 @@ var _ = Describe("Validate Organization Webhook", func() {
 			Expect(err).NotTo(HaveOccurred())
 		}
 	},
-		Entry("with incorrect type of object", &greenhousev1alpha1.Team{}, false),
 		Entry("without mapped admin group", &greenhousev1alpha1.Organization{}, true),
 		Entry("with mapped admin group", &greenhousev1alpha1.Organization{
 			Spec: greenhousev1alpha1.OrganizationSpec{MappedOrgAdminIDPGroup: "MAPPER_ADMIN_ID_GROUP"},
@@ -154,8 +152,8 @@ var _ = Describe("Validate Organization Webhook", func() {
 		}, true),
 	)
 
-	DescribeTable("Update Organization Webhook", func(obj runtime.Object, expectedError bool) {
-		warnings, err := ValidateUpdateOrganization(context.Background(), nil, nil, obj)
+	DescribeTable("Update Organization Webhook", func(org *greenhousev1alpha1.Organization, expectedError bool) {
+		warnings, err := ValidateUpdateOrganization(context.Background(), nil, nil, org)
 
 		Expect(warnings).To(BeEmpty())
 		if expectedError {
@@ -164,7 +162,6 @@ var _ = Describe("Validate Organization Webhook", func() {
 			Expect(err).NotTo(HaveOccurred())
 		}
 	},
-		Entry("with incorrect type of object", &greenhousev1alpha1.Team{}, false),
 		Entry("without mapped admin group", &greenhousev1alpha1.Organization{}, true),
 		Entry("with mapped admin group", &greenhousev1alpha1.Organization{
 			Spec: greenhousev1alpha1.OrganizationSpec{MappedOrgAdminIDPGroup: "MAPPER_ADMIN_ID_GROUP"},

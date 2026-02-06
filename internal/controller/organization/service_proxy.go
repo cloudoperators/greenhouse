@@ -226,10 +226,10 @@ func (r *OrganizationReconciler) reconcileServiceProxyPlugin(ctx context.Context
 	switch result {
 	case clientutil.OperationResultCreated:
 		log.FromContext(ctx).Info("created service-proxy Plugin", "name", plugin.Name)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedPlugin", "Created Plugin %s", plugin.Name)
+		r.recorder.Eventf(org, plugin, corev1.EventTypeNormal, "CreatedPlugin", "reconciling Organization", "Created Plugin %s", plugin.Name)
 	case clientutil.OperationResultUpdated:
 		log.FromContext(ctx).Info("updated service-proxy Plugin", "name", plugin.Name)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedPlugin", "Updated Plugin %s", plugin.Name)
+		r.recorder.Eventf(org, plugin, corev1.EventTypeNormal, "UpdatedPlugin", "reconciling Organization", "Updated Plugin %s", plugin.Name)
 	}
 	return nil
 }

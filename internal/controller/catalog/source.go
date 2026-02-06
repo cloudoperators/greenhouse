@@ -21,7 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -63,7 +63,7 @@ type source struct {
 	client.Client
 	scheme                   *runtime.Scheme
 	log                      logr.Logger
-	recorder                 record.EventRecorder
+	recorder                 events.EventRecorder
 	commonLabels             map[string]string
 	catalog                  *greenhousev1alpha1.Catalog
 	source                   greenhousev1alpha1.CatalogSource
