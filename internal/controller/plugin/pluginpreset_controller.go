@@ -64,7 +64,9 @@ func (r *PluginPresetReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 			predicate.Or(
 				predicate.GenerationChangedPredicate{},
 				clientutil.PredicatePluginWithStatusReadyChange(),
-			))).
+			),
+			clientutil.PredicateIgnoreDeletingResources(),
+		)).
 		// Clusters and teams are passed as values to each Helm operation. Reconcile on change.
 		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginPresetsInNamespace),
 			builder.WithPredicates(predicate.LabelChangedPredicate{})).
