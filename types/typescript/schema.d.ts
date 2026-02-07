@@ -539,6 +539,12 @@ export interface components {
                             /** @description Name of the secret in the same namespace. */
                             name: string;
                         };
+                        /**
+                         * @description InsecureSkipEmailVerified allows to skip the verification of the "email_verified" claim in ID tokens.
+                         * @default false
+                         * @enum {boolean}
+                         */
+                        insecureSkipEmailVerified: true | false;
                         /** @description Issuer is the URL of the identity service. */
                         issuer: string;
                         /**
@@ -551,6 +557,11 @@ export interface components {
                          *     If none is specified, the Greenhouse ID proxy will be used.
                          */
                         redirectURI?: string;
+                        /**
+                         * @description UserIDClaim is the claim to be used as user ID.
+                         * @default login_name
+                         */
+                        userIDClaim: string;
                     };
                     /** @description SCIMConfig configures the SCIM client. */
                     scim?: {
