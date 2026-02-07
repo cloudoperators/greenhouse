@@ -18,6 +18,7 @@ import (
 	sourcev2 "github.com/fluxcd/source-watcher/api/v2/v1beta1"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -191,8 +192,28 @@ func (s *source) getSourceSecret(ctx context.Context) (*corev1.Secret, error) {
 	secret.SetNamespace(s.catalog.Namespace)
 	err := s.Get(ctx, client.ObjectKeyFromObject(secret), secret)
 	if err != nil {
+		// Track missing secret in metrics if it's a NotFound error
+		if apierrors.IsNotFound(err) {
+			UpdateCatalogMissingSecretMetric(
+				s.catalog,
+				s.source.Repository,
+				s.getGitRepoName(),
+				s.source.GetRefValue(),
+				*s.source.SecretName,
+				true,
+			)
+		}
 		return nil, fmt.Errorf("failed to get secret %s/%s: %w", s.catalog.Namespace, *s.source.SecretName, err)
 	}
+	// Secret found, update metric to show it's present
+	UpdateCatalogMissingSecretMetric(
+		s.catalog,
+		s.source.Repository,
+		s.getGitRepoName(),
+		s.source.GetRefValue(),
+		*s.source.SecretName,
+		false,
+	)
 	return secret, nil
 }
 
@@ -544,7 +565,6 @@ func (s *source) objectReadiness(ctx context.Context, obj client.Object) (ready 
 		msg = err.Error()
 		return
 	}
-
 	conditions := cObj.GetConditions()
 	readyCondition := meta.FindStatusCondition(conditions, fluxmeta.ReadyCondition)
 
@@ -555,5 +575,44 @@ func (s *source) objectReadiness(ctx context.Context, obj client.Object) (ready 
 	}
 	ready = readyCondition.Status
 	msg = readyCondition.Message
+
+	// Update metrics based on object conditions
+	s.updateCatalogObjectMetrics(cObj)
 	return
+}
+
+// updateCatalogObjectMetrics updates metrics based on the object's conditions
+// This is a helper method to track specific error conditions for different Flux resource types
+func (s *source) updateCatalogObjectMetrics(obj lifecycle.CatalogObject) {
+	kind := obj.GetObjectKind().GroupVersionKind().Kind
+	conditions := obj.GetConditions()
+
+	// TODO: use switch for future object type metrics
+	if kind == sourcev1.GitRepositoryKind {
+		// Check for authentication errors in GitRepository
+		s.checkGitRepositoryAuthError(conditions)
+	}
+}
+
+// checkGitRepositoryAuthError checks if a GitRepository has an authentication error
+// and updates the authentication error metric accordingly
+func (s *source) checkGitRepositoryAuthError(conditions []metav1.Condition) {
+	hasAuthError := false
+
+	// Check for FetchFailed condition with AuthenticationFailed reason
+	fetchFailedCondition := meta.FindStatusCondition(conditions, sourcev1.FetchFailedCondition)
+	if fetchFailedCondition != nil &&
+		fetchFailedCondition.Status == metav1.ConditionTrue &&
+		fetchFailedCondition.Reason == sourcev1.AuthenticationFailedReason {
+		hasAuthError = true
+	}
+
+	// Update the authentication error metric
+	UpdateCatalogAuthErrorMetric(
+		s.catalog,
+		s.source.Repository,
+		s.getGitRepoName(),
+		s.source.GetRefValue(),
+		hasAuthError,
+	)
 }
