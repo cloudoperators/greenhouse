@@ -76,13 +76,16 @@ func (r *CatalogReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.Catalog{}, r, func(_ context.Context, _ lifecycle.RuntimeObject) {})
 }
 
-func (r *CatalogReconciler) EnsureDeleted(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+func (r *CatalogReconciler) EnsureDeleted(_ context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	catalog := obj.(*greenhousev1alpha1.Catalog) //nolint:errcheck
+	// Clean up metrics for this catalog
+	deleteCatalogReadyMetric(catalog)
 	// owner references on child resources will handle deletion
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 
 func (r *CatalogReconciler) EnsureSuspended(ctx context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, error) {
-	catalog := obj.(*greenhousev1alpha1.Catalog)
+	catalog := obj.(*greenhousev1alpha1.Catalog) //nolint:errcheck
 	allErrors := make([]error, 0)
 	for _, s := range catalog.Status.Inventory {
 		for _, inv := range s {
@@ -213,7 +216,8 @@ func (r *CatalogReconciler) suspendArtifactGenerator(ctx context.Context, name, 
 }
 
 func (r *CatalogReconciler) EnsureCreated(ctx context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	catalog := obj.(*greenhousev1alpha1.Catalog)
+	catalog := obj.(*greenhousev1alpha1.Catalog) //nolint:errcheck
+	defer updateCatalogReadyMetric(catalog)
 	catalog.SetUnknownCondition()
 
 	if len(catalog.Spec.Sources) == 0 {
@@ -375,6 +379,7 @@ func (r *CatalogReconciler) deleteOrphanedResource(ctx context.Context, obj clie
 	return nil
 }
 
+//nolint:unparam
 func (r *CatalogReconciler) verifyStatus(ctx context.Context, catalog *greenhousev1alpha1.Catalog, allErrors []catalogError) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	existingNotReady := catalog.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 	if existingNotReady != nil && existingNotReady.Status == metav1.ConditionFalse {
