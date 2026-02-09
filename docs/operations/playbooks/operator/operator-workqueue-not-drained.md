@@ -31,17 +31,20 @@ The alert label `name` identifies the controller workqueue that is not draining.
 
 ### Check Workqueue Metrics
 
-View the current workqueue depth and rates. Either on the Prometheus instance monitoring your Greenhouse controller or directly in cluster:
+Access the Prometheus instance monitoring your Greenhouse cluster and query the workqueue metrics using the following PromQL queries:
 
-```bash
-# Port-forward to the metrics service
-kubectl port-forward -n greenhouse svc/greenhouse-controller-manager-metrics-service 8080:8080
+```promql
+# Current workqueue depth
+workqueue_depth{name="<controller-name>"}
 
-# Query the workqueue metrics (in another terminal)
-curl -k http://localhost:8080/metrics | grep "workqueue_depth{name=\"<controller-name>\"}"
-curl -k http://localhost:8080/metrics | grep "workqueue_adds_total{name=\"<controller-name>\"}"
-curl -k http://localhost:8080/metrics | grep "workqueue_work_duration_seconds.*name=\"<controller-name>\""
+# Rate of items being added to the queue
+rate(workqueue_adds_total{name="<controller-name>"}[5m])
+
+# Work duration
+workqueue_work_duration_seconds{name="<controller-name>"}
 ```
+
+Replace `<controller-name>` with the actual controller name from the alert.
 
 ### Check Controller Logs
 
@@ -59,10 +62,10 @@ Look for:
 
 ### Check Reconciliation Duration
 
-If reconciliations are slow, this may prevent the queue from draining:
+If reconciliations are slow, this may prevent the queue from draining. Query Prometheus:
 
-```bash
-curl -k http://localhost:8080/metrics | grep "controller_runtime_reconcile_time_seconds.*controller=\"<controller-name>\""
+```promql
+controller_runtime_reconcile_time_seconds{controller="<controller-name>"}
 ```
 
 ### Check Controller Resource Usage

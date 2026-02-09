@@ -31,15 +31,13 @@ The alert label `controller` identifies which controller has slow reconciliation
 
 ### Check Controller Metrics
 
-View the current error rate. Either on the Prometheus instance monitoring your Greenhouse controller or directly in cluster:
+Access the Prometheus instance monitoring your Greenhouse cluster and query the reconciliation duration metrics using the following PromQL query:
 
-```bash
-# Port-forward to the metrics service
-kubectl port-forward -n greenhouse svc/greenhouse-controller-manager-metrics-service 8080:8443
-
-# Query the metrics (in another terminal)
-curl -k https://localhost:8080/metrics | grep "controller_runtime_reconcile_time_seconds.*controller=\"<controller-name>\""
+```promql
+controller_runtime_reconcile_time_seconds{controller="<controller-name>"}
 ```
+
+Replace `<controller-name>` with the actual controller name from the alert.
 
 ### Check Controller Logs for Slow Operations
 

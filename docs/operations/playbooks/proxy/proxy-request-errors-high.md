@@ -38,17 +38,26 @@ The placeholder `<proxy-name>` from here on is the above without the `greenhouse
 
 ### Check Proxy Metrics
 
-View the current error rate. Either on the Prometheus instance monitoring your Greenhouse or directly in cluster:
+Access the Prometheus instance monitoring your Greenhouse cluster and query the proxy request metrics using the following PromQL queries:
 
-```bash
-# Port-forward to the metrics service of the affected proxy
-kubectl port-forward -n greenhouse svc/greenhouse-controller-manager-metrics-service 8080:8080
+```promql
+# Total HTTP requests by status code
+http_requests_total{service="<proxy-name>"}
 
-# Query the metrics (in another terminal)
-curl -k http://localhost:8080/metrics | grep "http_requests_total{service=\"<proxy>\"}"
+# Successful requests (2xx)
+http_requests_total{service="<proxy-name>",status=~"2.."}
+
+# Client errors (4xx, excluding 401/403)
+http_requests_total{service="<proxy-name>",status=~"4..",status!~"40[13]"}
+
+# Server errors (5xx)
+http_requests_total{service="<proxy-name>",status=~"5.."}
+
+# Error rate
+(rate(http_requests_total{service="<proxy-name>",status=~"4..",status!~"40[13]"}[5m]) + rate(http_requests_total{service="<proxy-name>",status=~"5.."}[5m])) / rate(http_requests_total{service="<proxy-name>"}[5m])
 ```
 
-Look at the distribution of HTTP status codes to understand what types of errors are occurring.
+Replace `<proxy-name>` with the actual proxy service name from the alert (e.g., `greenhouse-service-proxy`, `greenhouse-cors-proxy`, `greenhouse-idproxy`).
 
 ### Check Proxy Logs
 

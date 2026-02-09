@@ -38,15 +38,20 @@ The placeholder `<proxy-name>` from here on is the above without the `greenhouse
 
 ### Check Proxy Metrics
 
-View the current request duration metrics. Either on the Prometheus instance monitoring your Greenhouse or directly in cluster:
+Access the Prometheus instance monitoring your Greenhouse cluster and query the proxy request duration metrics using the following PromQL queries:
 
-```bash
-# Port-forward to the metrics service of the affected proxy
-kubectl port-forward -n greenhouse svc/greenhouse-controller-manager-metrics-service 8080:8080
+```promql
+# Request duration distribution
+request_duration_seconds{service="<proxy-name>"}
 
-# Query the metrics (in another terminal)
-curl -k http://localhost:8080/metrics | grep "request_duration_seconds.*service=\"<proxy>\""
+# 90th percentile latency
+histogram_quantile(0.90, rate(request_duration_seconds_bucket{service="<proxy-name>"}[5m]))
+
+# 99th percentile latency
+histogram_quantile(0.99, rate(request_duration_seconds_bucket{service="<proxy-name>"}[5m]))
 ```
+
+Replace `<proxy-name>` with the actual proxy service name from the alert (e.g., `greenhouse-service-proxy`, `greenhouse-cors-proxy`, `greenhouse-idproxy`).
 
 ### Check Proxy Logs
 

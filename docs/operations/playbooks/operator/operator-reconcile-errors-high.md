@@ -32,16 +32,20 @@ The alert label `controller` identifies which controller is failing.
 
 ### Check Controller Metrics
 
-View the current error rate. Either on the Prometheus instance monitoring your Greenhouse controller or directly in cluster:
+Access the Prometheus instance monitoring your Greenhouse cluster and query the controller error metrics using the following PromQL queries:
 
-```bash
-# Port-forward to the metrics service
-kubectl port-forward -n greenhouse svc/greenhouse-controller-manager-metrics-service 8080:8080
+```promql
+# Total reconciliation errors
+controller_runtime_reconcile_errors_total{controller="<controller-name>"}
 
-# Query the metrics (in another terminal)
-curl -k http://localhost:8080/metrics | grep "controller_runtime_reconcile_errors_total{controller=\"<controller-name>\"}"
-curl -k http://localhost:8080/metrics | grep "controller_runtime_reconcile_total{controller=\"<controller-name>\"}"
+# Total reconciliations
+controller_runtime_reconcile_total{controller="<controller-name>"}
+
+# Error rate
+rate(controller_runtime_reconcile_errors_total{controller="<controller-name>"}[5m]) / rate(controller_runtime_reconcile_total{controller="<controller-name>"}[5m])
 ```
+
+Replace `<controller-name>` with the actual controller name from the alert.
 
 ### Check Controller Logs
 

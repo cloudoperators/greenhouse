@@ -28,17 +28,23 @@ This could be due to:
 
 ### Check IDProxy Metrics
 
-View the current error rate. Either on the Prometheus instance monitoring your Greenhouse or directly in cluster:
+Access the Prometheus instance monitoring your Greenhouse cluster and query the IDProxy request metrics using the following PromQL queries:
 
-```bash
-# Port-forward to the metrics service
-kubectl port-forward -n greenhouse svc/greenhouse-controller-manager-metrics-service 8080:8080
+```promql
+# Total HTTP requests by status code
+http_requests_total{service="greenhouse-idproxy"}
 
-# Query the metrics (in another terminal)
-curl -k http://localhost:8080/metrics | grep "http_requests_total.*service=\"greenhouse-idproxy\""
+# Successful requests (2xx)
+http_requests_total{service="greenhouse-idproxy",status=~"2.."}
+
+# Error requests (4xx and 5xx)
+http_requests_total{service="greenhouse-idproxy",status=~"[45].."}
+
+# Error rate
+rate(http_requests_total{service="greenhouse-idproxy",status=~"[45].."}[5m]) / rate(http_requests_total{service="greenhouse-idproxy"}[5m])
 ```
 
-Look at the distribution of HTTP status codes to understand what types of errors are occurring.
+Analyze the distribution of HTTP status codes to understand what types of errors are occurring.
 
 ### Check IDProxy Logs
 

@@ -39,17 +39,23 @@ Common webhook paths:
 
 ### Check Webhook Metrics
 
-View the current webhook error rate. Either on the Prometheus instance monitoring your Greenhouse controller or directly in cluster:
+Access the Prometheus instance monitoring your Greenhouse cluster and query the webhook request metrics using the following PromQL queries:
 
-```bash
-# Port-forward to the metrics service
-kubectl port-forward -n greenhouse svc/greenhouse-controller-manager-metrics-service 8080:8080
+```promql
+# Total webhook requests by status code
+controller_runtime_webhook_requests_total{webhook="<webhook-path>"}
 
-# Query the webhook metrics (in another terminal)
-curl -k http://localhost:8080/metrics | grep "controller_runtime_webhook_requests_total{webhook=\"<webhook-path>\"}"
+# Successful requests (200)
+controller_runtime_webhook_requests_total{webhook="<webhook-path>",code="200"}
+
+# Failed requests (non-200)
+controller_runtime_webhook_requests_total{webhook="<webhook-path>",code!="200"}
+
+# Error rate
+rate(controller_runtime_webhook_requests_total{webhook="<webhook-path>",code!="200"}[5m]) / rate(controller_runtime_webhook_requests_total{webhook="<webhook-path>"}[5m])
 ```
 
-Look at both successful (code="200") and failed (code!="200") requests.
+Replace `<webhook-path>` with the actual webhook path from the alert.
 
 ### Check Webhook Logs
 

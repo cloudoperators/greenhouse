@@ -39,22 +39,25 @@ Extract the resource type from the webhook path (e.g., `Plugin`, `Cluster`, `Org
 
 ### Check Webhook Metrics
 
-View the current webhook latency distribution. Either on the Prometheus instance monitoring your Greenhouse controller or directly in cluster:
+Access the Prometheus instance monitoring your Greenhouse cluster and query the webhook latency metrics using the following PromQL queries:
 
-```bash
-# Port-forward to the metrics service
-kubectl port-forward -n greenhouse svc/greenhouse-controller-manager-metrics-service 8080:8080
+```promql
+# Webhook latency distribution
+controller_runtime_webhook_latency_seconds{webhook="<webhook-path>"}
 
-# Query the webhook metrics (in another terminal)
-curl -k http://localhost:8080/metrics | grep "controller_runtime_webhook_latency_seconds.*webhook=\"<webhook-path>\""
+# 90th percentile latency
+histogram_quantile(0.90, rate(controller_runtime_webhook_latency_seconds_bucket{webhook="<webhook-path>"}[5m]))
 ```
+
+Replace `<webhook-path>` with the actual webhook path from the alert.
 
 ### Check Webhook Request Rate
 
-High request rates can contribute to latency:
+High request rates can contribute to latency. Query Prometheus:
 
-```bash
-curl -k http://localhost:8080/metrics | grep "controller_runtime_webhook_requests_total{webhook=\"<webhook-path>\"}"
+```promql
+# Request rate
+rate(controller_runtime_webhook_requests_total{webhook="<webhook-path>"}[5m])
 ```
 
 ### Check Webhook Logs
