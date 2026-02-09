@@ -9,6 +9,7 @@ groups:
         service: greenhouse
         organization: '{{ $labels.organization }}'
         support_group: '{{ $labels.organization }}-admin'  # routed to the org-admin team
+        playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/organization/organization-not-ready/
     annotations:
         summary: "Greenhouse Organization is not ready"
         description: "The Greenhouse Organization {{ $labels.organization }} has not been ready for more than 15 minutes."
@@ -20,6 +21,7 @@ groups:
         service: greenhouse
         organization: '{{ $labels.organization }}'
         support_group: '{{ $labels.organization }}-admin'  # routed to the org-admin team
+        playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/organization/scim-access-not-ready/
     annotations:
         summary: "Greenhouse SCIM Access is not ready"
         description: "The SCIM access for organization '{{ $labels.organization }}' is not ready for more than 15 minutes. Team member sync may not be operational."

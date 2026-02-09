@@ -14,6 +14,7 @@ groups:
         organization: '{{ $labels.namespace }}'
         controller: '{{ $labels.controller }}'
         support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
+        playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/operator/operator-reconcile-errors-high/
     - alert: GreenhouseOperatorReconcileDurationHigher10Min
       annotations:
         description: "Greenhouse Operator reconciliation takes longer than ({{ $value | humanizeDuration }})."
@@ -27,6 +28,7 @@ groups:
         organization: '{{ $labels.namespace }}'
         controller: '{{ $labels.controller }}'
         support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
+        playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/operator/operator-reconcile-duration-higher-10min/
     - alert: GreenhouseOperatorWorkqueueNotDrained
       annotations:
         description:  The workqueue backlog of Greenhouse Operator controller - {{ $labels.controller }} is not getting drained.
@@ -40,6 +42,7 @@ groups:
         organization: '{{ $labels.namespace }}'
         controller: '{{ $labels.controller }}'
         support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
+        playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/operator/operator-workqueue-not-drained/
   - name: greenhouse-webhooks.rules
     rules:
     - alert: GreenhouseWebhookLatencyHigh
@@ -55,6 +58,7 @@ groups:
         organization: '{{ $labels.namespace }}'
         webhook: '{{ $labels.webhook}}'
         support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
+        playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/operator/webhook-latency-high/
     - alert: GreenhouseWebhookErrorsHigh
       annotations:
         description: '{{ $value | humanizePercentage }} of webhook operations failed for {{ $labels.webhook }} webhook'
@@ -68,3 +72,4 @@ groups:
         organization: '{{ $labels.namespace }}'
         webhook: '{{ $labels.webhook}}'
         support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
+        playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/operator/webhook-errors-high/

@@ -11,6 +11,7 @@ groups:
         organization: '{{ $labels.namespace }}'
         cluster: '{{ $labels.clusterName }}'
         support_group: '{{ $labels.owned_by }}'
+        playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/plugin/plugin-not-ready/
       annotations:
         summary: "Plugin not ready for over 15 minutes"
         description: "The plugin {{ $labels.plugin }} in organization {{ $labels.namespace }} on cluster {{ $labels.clusterName }} has not been ready for more than 15 minutes."
@@ -27,5 +28,6 @@ groups:
         organization: '{{ $labels.namespace }}'
         cluster: '{{ $labels.clusterName }}'
         support_group: '{{ $labels.owned_by }}'
+        playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/plugin/plugin-constantly-failing/
       
 
