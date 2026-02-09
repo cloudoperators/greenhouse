@@ -9,16 +9,7 @@ description: >
 
 ## Alert Description
 
-**Severity:** Warning  
-**Alert Name:** GreenhouseWebhookLatencyHigh
-
 This alert fires when the 90th percentile latency of a Greenhouse webhook exceeds 200ms for 15 minutes.
-
-**Alert Message:**
-
-```
-The 90th percentile latency of Greenhouse Operator webhook - {{ $labels.webhook }} is {{ $value | humanizeDuration }}
-```
 
 ## What does this alert mean?
 

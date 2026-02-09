@@ -9,16 +9,7 @@ description: >
 
 ## Alert Description
 
-**Severity:** Warning  
-**Alert Name:** GreenhouseProxyRequestErrorsHigh
-
 This alert fires when more than 10% of HTTP requests result in 4xx (excluding 401/403) or 5xx errors for a proxy service for 15 minutes.
-
-**Alert Message:**
-
-```
-{{ $value | humanizePercentage }} of {{ $labels.method }} requests failed for {{ $labels.service }}
-```
 
 ## What does this alert mean?
 

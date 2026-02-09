@@ -9,16 +9,7 @@ description: >
 
 ## Alert Description
 
-**Severity:** Warning  
-**Alert Name:** GreenhouseProxyRequestDurationHigh
-
 This alert fires when the 90th percentile latency of a proxy service exceeds 500ms for 15 minutes.
-
-**Alert Message:**
-
-```
-The 90th percentile latency of Greenhouse proxy - {{ $labels.service }} is {{ $value | humanizeDuration }}
-```
 
 ## What does this alert mean?
 

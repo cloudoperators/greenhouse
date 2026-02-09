@@ -11,16 +11,7 @@ description: >
 <!-- TODO: understand difference to PluginNotReady -->
 ## Alert Description
 
-**Severity:** Warning  
-**Alert Name:** GreenhousePluginConstantlyFailing
-
 This alert fires when a Plugin reconciliation is constantly failing for 15 minutes.
-
-**Alert Message:**
-
-```
-Plugin {{ $labels.plugin }} in organization {{ $labels.namespace }} keeps failing with reason: {{ $labels.reason }}
-```
 
 ## What does this alert mean?
 

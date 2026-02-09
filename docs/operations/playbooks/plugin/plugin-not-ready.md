@@ -9,16 +9,7 @@ description: >
 
 ## Alert Description
 
-**Severity:** Warning  
-**Alert Name:** GreenhousePluginNotReady
-
 This alert fires when a Plugin has not been ready for more than 15 minutes.
-
-**Alert Message:**
-
-```
-The plugin {{ $labels.plugin }} in organization {{ $labels.namespace }} on cluster {{ $labels.clusterName }} has not been ready for more than 15 minutes.
-```
 
 ## What does this alert mean?
 

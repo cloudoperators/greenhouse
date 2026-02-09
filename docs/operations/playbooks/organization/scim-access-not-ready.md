@@ -9,16 +9,7 @@ description: >
 
 ## Alert Description
 
-**Severity:** Warning  
-**Alert Name:** GreenhouseSCIMAccessNotReady
-
 This alert fires when the SCIM access for an organization is not ready for more than 15 minutes.
-
-**Alert Message:**
-
-```
-The SCIM access for organization '{{ $labels.organization }}' is not ready for more than 15 minutes. Team member sync may not be operational.
-```
 
 ## What does this alert mean?
 

@@ -9,16 +9,7 @@ description: >
 
 ## Alert Description
 
-**Severity:** Warning  
-**Alert Name:** GreenhouseOperatorWorkqueueNotDrained
-
 This alert fires when a controller's workqueue backlog is not getting drained for 15 minutes.
-
-**Alert Message:**
-
-```
-The workqueue backlog of Greenhouse Operator controller - {{ $labels.name }} is not getting drained.
-```
 
 ## What does this alert mean?
 

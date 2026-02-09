@@ -9,16 +9,7 @@ description: >
 
 ## Alert Description
 
-**Severity:** Warning  
-**Alert Name:** GreenhouseClusterTokenExpiry
-
 This alert fires when the kubeconfig token for a cluster will expire in less than 20 hours.
-
-**Alert Message:**
-
-```
-The kubeconfig token for {{ $labels.cluster }} in {{ $labels.namespace }} will expire in less than 20 hours.
-```
 
 ## What does this alert mean?
 

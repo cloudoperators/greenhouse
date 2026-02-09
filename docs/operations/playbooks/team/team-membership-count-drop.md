@@ -9,16 +9,7 @@ description: >
 
 ## Alert Description
 
-**Severity:** Warning  
-**Alert Name:** GreenhouseTeamMembershipCountDrop
-
 This alert fires when the number of members for a team has dropped by more than 5 in the last 5 minutes.
-
-**Alert Message:**
-
-```
-The number of members for team {{ $labels.teams }} in organization {{ $labels.namespace }} has dropped by more than 5 in the last 5 minutes.
-```
 
 ## What does this alert mean?
 

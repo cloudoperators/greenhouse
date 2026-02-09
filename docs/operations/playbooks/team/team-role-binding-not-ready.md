@@ -9,16 +9,7 @@ description: >
 
 ## Alert Description
 
-**Severity:** Warning  
-**Alert Name:** GreenhouseTeamRoleBindingNotReady
-
 This alert fires when a TeamRoleBinding has not been ready for more than 15 minutes.
-
-**Alert Message:**
-
-```
-The TeamRoleBinding {{ $labels.team_role_binding }} in organization {{ $labels.namespace }} for team {{ $labels.team}} has not been ready for more than 15 minutes.
-```
 
 ## What does this alert mean?
 

@@ -9,16 +9,7 @@ description: >
 
 ## Alert Description
 
-**Severity:** Warning  
-**Alert Name:** GreenhouseWebhookErrorsHigh
-
 This alert fires when more than 10% of webhook operations fail for a webhook for 15 minutes.
-
-**Alert Message:**
-
-```
-{{ $value | humanizePercentage }} of webhook operations failed for {{ $labels.webhook }} webhook
-```
 
 ## What does this alert mean?
 

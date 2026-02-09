@@ -9,16 +9,7 @@ description: >
 
 ## Alert Description
 
-**Severity:** Warning  
-**Alert Name:** GreenhouseOperatorReconcileDurationHigher10Min
-
 This alert fires when the average reconciliation duration exceeds 10 minutes for a controller for 15 minutes.
-
-**Alert Message:**
-
-```
-Greenhouse Operator reconciliation takes longer than ({{ $value | humanizeDuration }}) while reconciling {{ $labels.controller }}
-```
 
 ## What does this alert mean?
 

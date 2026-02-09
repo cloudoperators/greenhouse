@@ -9,16 +9,7 @@ description: >
 
 ## Alert Description
 
-**Severity:** Warning  
-**Alert Name:** GreenhouseClusterKubernetesVersionOutOfMaintenance
-
 This alert fires when a cluster is running a Kubernetes version that is out of maintenance.
-
-**Alert Message:**
-
-```
-Cluster {{ $labels.cluster }} in namespace {{ $labels.namespace }} is running Kubernetes version {{ $labels.version }} which is out of maintenance.
-```
 
 ## What does this alert mean?
 

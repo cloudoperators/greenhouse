@@ -9,16 +9,7 @@ description: >
 
 ## Alert Description
 
-**Severity:** Warning  
-**Alert Name:** GreenhouseClusterNotReady
-
 This alert fires when a Greenhouse-managed cluster has not been ready for more than 15 minutes.
-
-**Alert Message:**
-
-```
-Cluster {{ $labels.cluster }} in namespace {{ $labels.namespace }} has not been ready for more than 15 minutes.
-```
 
 ## What does this alert mean?
 

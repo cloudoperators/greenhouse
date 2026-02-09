@@ -9,16 +9,7 @@ description: >
 
 ## Alert Description
 
-**Severity:** Warning  
-**Alert Name:** GreenhouseResourceOwnedByLabelMissing
-
 This alert fires when resources exist without the required `greenhouse.sap/owned-by` label for 15 minutes.
-
-**Alert Message:**
-
-```
-{{ $labels.resource }} in {{ $labels.namespace }} is missing the greenhouse.sap/owned-by label
-```
 
 ## What does this alert mean?
 

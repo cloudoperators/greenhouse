@@ -9,16 +9,7 @@ description: >
 
 ## Alert Description
 
-**Severity:** Warning  
-**Alert Name:** GreenhouseOperatorReconcileErrorsHigh
-
 This alert fires when more than 10% of reconciling operations fail for a controller for 15 minutes.
-
-**Alert Message:**
-
-```
-{{ $value | humanizePercentage }} of reconciling operations failed for {{ $labels.controller }} controller
-```
 
 ## What does this alert mean?
 

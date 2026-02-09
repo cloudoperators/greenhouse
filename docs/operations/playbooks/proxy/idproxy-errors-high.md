@@ -9,16 +9,7 @@ description: >
 
 ## Alert Description
 
-**Severity:** Warning  
-**Alert Name:** GreenhouseIDProxyErrorsHigh
-
 This alert fires when more than 10% of IDProxy operations result in errors for 15 minutes.
-
-**Alert Message:**
-
-```
-{{ $value | humanizePercentage }} of IDProxy operations failed
-```
 
 ## What does this alert mean?
 

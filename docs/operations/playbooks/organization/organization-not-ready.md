@@ -9,16 +9,7 @@ description: >
 
 ## Alert Description
 
-**Severity:** Warning  
-**Alert Name:** GreenhouseOrganizationNotReady
-
 This alert fires when a Greenhouse Organization has not been ready for more than 15 minutes.
-
-**Alert Message:**
-
-```
-The Greenhouse Organization {{ $labels.organization }} has not been ready for more than 15 minutes.
-```
 
 ## What does this alert mean?
 
