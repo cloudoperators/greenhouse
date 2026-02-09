@@ -70,7 +70,7 @@ Common failure reasons to look for:
 kubectl get plugindefinition <plugin-definition-name> -n <namespace>
 
 # Or check ClusterPluginDefinition
-kubectl get clusterpluginefinition <plugin-definition-name> -n greenhouse
+kubectl get clusterpluginefinition <plugin-definition-name> -n greenhouse # requires permissions on the greenhouse namespace
 ```
 
 #### OptionValueResolutionFailed

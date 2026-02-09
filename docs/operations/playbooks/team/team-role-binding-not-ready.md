@@ -92,8 +92,10 @@ See the [ClusterNotReady playbook](../cluster/cluster-not-ready.md) for cluster 
 Review the Greenhouse controller logs for detailed error messages:
 
 ```bash
-kubectl logs -n greenhouse -l app=greenhouse --tail=200 | grep "<trb-name>" | grep "error"
+kubectl logs -n greenhouse -l app=greenhouse --tail=200 | grep "<trb-name>" | grep "error" # requires permissions on the greenhouse namespace
 ```
+
+Or access your logs sink for Greenhouse logs.
 
 ## Additional Resources
 

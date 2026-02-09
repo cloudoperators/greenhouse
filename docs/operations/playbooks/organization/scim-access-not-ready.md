@@ -70,8 +70,10 @@ kubectl get secret <scim-secret-name> -n <organization-name> -o jsonpath='{.data
 Review the Greenhouse controller logs for SCIM-related errors:
 
 ```bash
-kubectl logs -n greenhouse -l app=greenhouse --tail=100 | grep "<organization-name>" | grep -i "scim\|error"
+kubectl logs -n greenhouse -l app=greenhouse --tail=100 | grep "<organization-name>" | grep -i "scim\|error" # requires permissions on the greenhouse namespace
 ```
+
+Or access your logs sink for Greenhouse logs.
 
 ## Additional Resources
 

@@ -60,8 +60,10 @@ Verify the current membership in the IdP group directly to confirm if the drop i
 Review the Greenhouse controller logs for SCIM synchronization errors:
 
 ```bash
-kubectl logs -n greenhouse -l app=greenhouse --tail=200 | grep "<team-name>" | grep -E "scim|member|error"
+kubectl logs -n greenhouse -l app=greenhouse --tail=200 | grep "<team-name>" | grep -E "scim|member|error" # requires permissions on the greenhouse namespace
 ```
+
+Or access your logs sink for Greenhouse logs.
 
 ## Additional Resources
 

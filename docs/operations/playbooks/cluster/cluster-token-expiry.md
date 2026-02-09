@@ -102,8 +102,10 @@ Review the Greenhouse controller and webhook logs for more detailed error messag
 
 ```bash
 kubectl logs -n greenhouse -l app=greenhouse
- --tail=100 | grep "<cluster-name>"
+ --tail=100 | grep "<cluster-name>" # requires permissions on the greenhouse namespace
 ```
+
+Or access your logs sink for Greenhouse logs.
 
 Look for messages about token refresh operations or authentication issues.
 

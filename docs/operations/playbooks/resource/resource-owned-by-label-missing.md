@@ -76,11 +76,13 @@ Check if webhook validation is functioning properly:
 
 ```bash
 # Check webhook pod status
-kubectl get pods -n greenhouse -l app.kubernetes.io/component=webhook
+kubectl get pods -n greenhouse -l app.kubernetes.io/component=webhook # requires permissions on the greenhouse namespace
 
 # Check webhook logs for errors
-kubectl logs -n greenhouse -l app.kubernetes.io/component=webhook --tail=100 | grep -i "owned-by"
+kubectl logs -n greenhouse -l app.kubernetes.io/component=webhook --tail=100 | grep -i "owned-by" # requires permissions on the greenhouse namespace
 ```
+
+Or access your logs sink for Greenhouse logs.
 
 ### Prevent Future Occurrences
 

@@ -18,7 +18,6 @@ Webhooks validate or mutate resources before they are persisted. When a webhook'
 This could be due to:
 
 - Invalid resource configurations being submitted
-- Webhook validation logic rejecting malformed resources
 - External dependencies being unavailable (e.g., clusters, teams, secrets)
 - Permission issues in webhook operations
 - Bugs in the webhook logic
