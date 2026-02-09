@@ -29,7 +29,7 @@ groups:
         support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
     - alert: GreenhouseOperatorWorkqueueNotDrained
       annotations:
-        description:  The workqueue backlog of Greenhouse Operator controller - {{ $labels.name }} is not getting drained.
+        description:  The workqueue backlog of Greenhouse Operator controller - {{ $labels.controller }} is not getting drained.
         summary: Greenhouse Operator controller - {{ $labels.name }}'s backlog is not being drained.
       expr: |
         sum by (name) (rate(workqueue_depth{job="greenhouse-controller-manager-metrics-service"}[5m])) > 0
@@ -38,7 +38,7 @@ groups:
         severity: warning
         service: greenhouse
         organization: '{{ $labels.namespace }}'
-        name: '{{ $labels.name }}'
+        controller: '{{ $labels.controller }}'
         support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
   - name: greenhouse-webhooks.rules
     rules:

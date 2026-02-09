@@ -27,7 +27,7 @@ This could be due to:
 
 ### Identify the Affected Controller
 
-The alert label `name` identifies the controller workqueue that is not draining.
+The alert label `controller` identifies the controller workqueue that is not draining.
 
 ### Check Workqueue Metrics
 
@@ -35,13 +35,13 @@ Access the Prometheus instance monitoring your Greenhouse cluster and query the 
 
 ```promql
 # Current workqueue depth
-workqueue_depth{name="<controller-name>"}
+workqueue_depth{controller="<controller-name>"}
 
 # Rate of items being added to the queue
-rate(workqueue_adds_total{name="<controller-name>"}[5m])
+rate(workqueue_adds_total{controller="<controller-name>"}[5m])
 
 # Work duration
-workqueue_work_duration_seconds{name="<controller-name>"}
+workqueue_work_duration_seconds{controller="<controller-name>"}
 ```
 
 Replace `<controller-name>` with the actual controller name from the alert.
