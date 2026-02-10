@@ -45,6 +45,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 
 		By("creating a TeamRole on the central cluster")
 		teamRoleUT = setup.CreateTeamRole(test.Ctx, "test-role", test.WithLabels(map[string]string{"aggregate": "true"}))
+		test.EventuallyCreated(test.Ctx, setup.Client, teamRoleUT)
 	})
 
 	AfterEach(func() {
