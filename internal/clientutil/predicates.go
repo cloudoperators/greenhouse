@@ -78,7 +78,6 @@ func PredicatePluginWithStatusReadyChange() predicate.Predicate {
 			}
 			return oldReadyCondition.Status != newReadyCondition.Status
 		},
-		DeleteFunc:  func(_ event.DeleteEvent) bool { return false },
 		GenericFunc: func(_ event.GenericEvent) bool { return false },
 	}
 }
@@ -104,5 +103,13 @@ func PredicateOrganizationSCIMStatusChange() predicate.Predicate {
 		},
 		DeleteFunc:  func(_ event.DeleteEvent) bool { return false },
 		GenericFunc: func(_ event.GenericEvent) bool { return false },
+	}
+}
+
+func PredicateIgnoreDeletingResources() predicate.Predicate {
+	return predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return e.ObjectNew.GetDeletionTimestamp().IsZero()
+		},
 	}
 }

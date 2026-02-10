@@ -11,7 +11,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	"github.com/cloudoperators/greenhouse/internal/cel"
+	"github.com/cloudoperators/greenhouse/pkg/cel"
 )
 
 type CELResolver struct {

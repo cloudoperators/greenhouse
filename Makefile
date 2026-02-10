@@ -134,10 +134,10 @@ $(CLI): $(LOCALBIN)
 
 ##@ Build
 .PHONY: action-build
-action-build: build-greenhouse build-idproxy build-cors-proxy build-greenhousectl build-service-proxy
+action-build: build-greenhouse build-idproxy build-cors-proxy build-greenhousectl build-service-proxy build-authz
 
 .PHONY: build
-build: generate build-greenhouse build-idproxy build-cors-proxy build-greenhousectl build-service-proxy
+build: generate build-greenhouse build-idproxy build-cors-proxy build-greenhousectl build-service-proxy build-authz
 
 build-%: GIT_BRANCH  = $(shell git rev-parse --abbrev-ref HEAD)
 build-%: GIT_COMMIT  = $(shell git rev-parse --short HEAD)
@@ -184,8 +184,8 @@ HELMIFY ?= $(LOCALBIN)/helmify
 KUSTOMIZE_VERSION ?= 5.8.0
 CERT_MANAGER_VERSION ?= v1.17.1
 CONTROLLER_TOOLS_VERSION ?= 0.19.0
-GOLINT_VERSION ?= 2.7.2
-GINKGOLINTER_VERSION ?= 0.21.2
+GOLINT_VERSION ?= 2.8.0
+GINKGOLINTER_VERSION ?= 0.22.0
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION ?= 1.34.1
 
@@ -258,6 +258,12 @@ INTERNAL ?= -int
 WITH_CONTROLLER ?= true
 E2E_RESULT_DIR ?= $(shell pwd)/bin
 
+# Include authz-related targets from hack/authz/authz.mk
+include hack/authz/authz.mk
+
+.PHONY: setup-authz
+setup-authz: setup-manager-authz setup-dashboard setup-demo
+
 .PHONY: setup
 setup: setup-manager setup-dashboard setup-demo
 
@@ -272,6 +278,10 @@ setup-controller-dev:
 .PHONY: setup-manager
 setup-manager: cli
 	CONTROLLER_ENABLED=$(WITH_CONTROLLER) PLUGIN_PATH=$(PLUGIN_DIR) $(CLI) dev setup -f dev-env/dev.config.yaml d=$(DEV_MODE)
+
+.PHONY: setup-manager-authz
+setup-manager-authz: cli authz-certs
+	CONTROLLER_ENABLED=$(WITH_CONTROLLER) PLUGIN_PATH=$(PLUGIN_DIR) $(CLI) dev setup -f dev-env/authz.config.yaml d=$(DEV_MODE)
 
 .PHONY: setup-dashboard
 setup-dashboard: cli
@@ -315,7 +325,7 @@ clean-e2e:
 
 .PHONY: e2e
 e2e:
-	GOMEGA_DEFAULT_EVENTUALLY_TIMEOUT="2m" \
+	GOMEGA_DEFAULT_EVENTUALLY_TIMEOUT="5m" \
 		go test -tags="$(SCENARIO)E2E" ${PWD}/e2e/$(SCENARIO) -mod=readonly -test.v -ginkgo.v --ginkgo.json-report=$(E2E_REPORT_PATH)
 
 .PHONY: e2e-local
@@ -355,12 +365,17 @@ cert-manager: kustomize
 	-$(KUSTOMIZE) build config/samples/cert-manager | kubectl apply -f -
 
 .PHONY: flux
-flux: kustomize
+flux: kustomize registry
 	-$(KUSTOMIZE) build config/samples/flux | kubectl apply -f -
 
 .PHONY: license
 license:
 	docker run --rm -v $(shell pwd):/github/workspace $(IMG_LICENSE_EYE) -c .github/licenserc.yaml header fix
+
+.PHONY: registry
+registry: kustomize
+	kubectl create namespace flux-system --dry-run=client -o yaml | kubectl apply -f -
+	-$(KUSTOMIZE) build config/samples/registry | kubectl apply -f -
 
 .PHONY: show-e2e-logs
 show-e2e-logs:
@@ -376,3 +391,4 @@ show-e2e-logs:
 			cat "$$f"; \
 		fi; \
 	done
+

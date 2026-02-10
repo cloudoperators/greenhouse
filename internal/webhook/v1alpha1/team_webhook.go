@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -24,7 +23,7 @@ import (
 func SetupTeamWebhookWithManager(mgr ctrl.Manager) error {
 	return webhook.SetupWebhook(mgr,
 		&greenhousev1alpha1.Team{},
-		webhook.WebhookFuncs{
+		webhook.WebhookFuncs[*greenhousev1alpha1.Team]{
 			DefaultFunc:        DefaultTeam,
 			ValidateCreateFunc: ValidateCreateTeam,
 			ValidateUpdateFunc: ValidateUpdateTeam,
@@ -35,35 +34,27 @@ func SetupTeamWebhookWithManager(mgr ctrl.Manager) error {
 
 //+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-team,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=teams,verbs=create;update,versions=v1alpha1,name=mteam.kb.io,admissionReviewVersions=v1
 
-func DefaultTeam(_ context.Context, _ client.Client, _ runtime.Object) error {
+func DefaultTeam(_ context.Context, _ client.Client, _ *greenhousev1alpha1.Team) error {
 	return nil
 }
 
 //+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-team,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=teams,verbs=create;update;delete,versions=v1alpha1,name=vteam.kb.io,admissionReviewVersions=v1
 
-func ValidateCreateTeam(ctx context.Context, c client.Client, o runtime.Object) (admission.Warnings, error) {
-	team, ok := o.(*greenhousev1alpha1.Team)
-	if !ok {
-		return nil, nil
-	}
+func ValidateCreateTeam(ctx context.Context, c client.Client, team *greenhousev1alpha1.Team) (admission.Warnings, error) {
 	if err := validateGreenhouseLabels(team, ctx, c); err != nil {
 		return nil, err
 	}
 	return nil, validateJoinURL(team)
 }
 
-func ValidateUpdateTeam(ctx context.Context, c client.Client, _, o runtime.Object) (admission.Warnings, error) {
-	team, ok := o.(*greenhousev1alpha1.Team)
-	if !ok {
-		return nil, nil
-	}
+func ValidateUpdateTeam(ctx context.Context, c client.Client, _, team *greenhousev1alpha1.Team) (admission.Warnings, error) {
 	if err := validateGreenhouseLabels(team, ctx, c); err != nil {
 		return nil, err
 	}
 	return nil, validateJoinURL(team)
 }
 
-func ValidateDeleteTeam(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
+func ValidateDeleteTeam(_ context.Context, _ client.Client, _ *greenhousev1alpha1.Team) (admission.Warnings, error) {
 	return nil, nil
 }
 

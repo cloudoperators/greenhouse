@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
 
 ---
@@ -238,12 +238,6 @@ spec:
                   - name
                   type: object
                 type: array
-              pluginDefinition:
-                description: |-
-                  PluginDefinition is the name of the PluginDefinition this instance is for.
-
-                  Deprecated: Use PluginDefinitionRef instead. Future releases of greenhouse will remove this field.
-                type: string
               pluginDefinitionRef:
                 description: PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition.
                 properties:
@@ -297,7 +291,6 @@ spec:
                   type: object
                 type: array
             required:
-            - pluginDefinition
             - pluginDefinitionRef
             type: object
           status:

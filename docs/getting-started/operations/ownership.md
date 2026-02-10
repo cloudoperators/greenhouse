@@ -44,7 +44,7 @@ The owner label is also expected on k8s resources (e.g. Deployments, Pods, ...) 
 
 #### On Greenhouse central cluster
 
-The Greenhouse controller [transports labels from a source resource to a target resource](https://github.com/cloudoperators/greenhouse/blob/main/internal/lifecycle/propagation.go) on the Greenhouse cluster.
+The Greenhouse controller [transports labels from a source resource to a target resource](https://github.com/cloudoperators/greenhouse/blob/main/pkg/lifecycle/propagation.go) on the Greenhouse cluster.
 This is currently active for:
 
 - Secrets that are used to bootstrap a Cluster
@@ -77,6 +77,8 @@ metadata:
     greenhouse.sap/owned_by: foo-team
    ...
 ```
+
+It also supports wildcards to propagate multiple labels that share a common prefix, e.g. `greenhouse.sap/propagate-labels: "metadata.greenhouse.sap/*"`.
 
 #### On Resources on Remote Clusters
 

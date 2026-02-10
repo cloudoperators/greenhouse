@@ -21,7 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -30,8 +30,8 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/helm"
-	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/rbac"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 const (
@@ -53,11 +53,17 @@ const (
 	kustomizeArtifactPrefix = "kustomize"
 )
 
+type catalogError struct {
+	InventoryType string
+	Name          string
+	Error         error
+}
+
 type source struct {
 	client.Client
 	scheme                   *runtime.Scheme
 	log                      logr.Logger
-	recorder                 record.EventRecorder
+	recorder                 events.EventRecorder
 	commonLabels             map[string]string
 	catalog                  *greenhousev1alpha1.Catalog
 	source                   greenhousev1alpha1.CatalogSource
@@ -77,12 +83,12 @@ type source struct {
 func (r *CatalogReconciler) validateSources(catalog *greenhousev1alpha1.Catalog) error {
 	sourceHashes := make(map[string]bool)
 	for _, source := range catalog.Spec.Sources {
-		host, owner, repo, err := lifecycle.GetOwnerRepoInfo(source.Repository)
+		host, owner, repo, err := GetOwnerRepoInfo(source.Repository)
 		if err != nil {
 			return err
 		}
 		ref := source.GetRefValue()
-		hash, err := lifecycle.HashValue(fmt.Sprintf("%s-%s-%s-%s-%s", catalog.Name, host, owner, repo, ref))
+		hash, err := HashValue(fmt.Sprintf("%s-%s-%s-%s-%s", catalog.Name, host, owner, repo, ref))
 		if err != nil {
 			return err
 		}
@@ -96,12 +102,12 @@ func (r *CatalogReconciler) validateSources(catalog *greenhousev1alpha1.Catalog)
 
 // newCatalogSource - prepares a source struct for Catalog.Spec.Sources entry with necessary metadata
 func (r *CatalogReconciler) newCatalogSource(catalogSource greenhousev1alpha1.CatalogSource, catalog *greenhousev1alpha1.Catalog) (*source, error) {
-	host, owner, repo, err := lifecycle.GetOwnerRepoInfo(catalogSource.Repository)
+	host, owner, repo, err := GetOwnerRepoInfo(catalogSource.Repository)
 	if err != nil {
 		return nil, err
 	}
 	ref := catalogSource.GetRefValue()
-	hash, err := lifecycle.HashValue(fmt.Sprintf("%s-%s-%s-%s-%s", catalog.Name, host, owner, repo, ref))
+	hash, err := HashValue(fmt.Sprintf("%s-%s-%s-%s-%s", catalog.Name, host, owner, repo, ref))
 	if err != nil {
 		return nil, err
 	}
@@ -130,6 +136,12 @@ func (r *CatalogReconciler) newCatalogSource(catalogSource greenhousev1alpha1.Ca
 	if lastReconciledAt, ok := lifecycle.ReconcileAnnotationValue(catalog); ok {
 		s.lastReconciledAt = lastReconciledAt
 	}
+
+	// Add owned-by label from Catalog to commonLabels
+	if ownedBy, exists := catalog.Labels[greenhouseapis.LabelKeyOwnedBy]; exists {
+		s.commonLabels[greenhouseapis.LabelKeyOwnedBy] = ownedBy
+	}
+
 	return s, nil
 }
 

@@ -4,6 +4,8 @@
 package v1alpha1
 
 import (
+	"slices"
+
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -14,11 +16,6 @@ const PluginKind = "Plugin"
 
 // PluginSpec defines the desired state of Plugin
 type PluginSpec struct {
-	// PluginDefinition is the name of the PluginDefinition this instance is for.
-	//
-	// Deprecated: Use PluginDefinitionRef instead. Future releases of greenhouse will remove this field.
-	PluginDefinition string `json:"pluginDefinition"`
-
 	// PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition.
 	PluginDefinitionRef PluginDefinitionReference `json:"pluginDefinitionRef"`
 
@@ -303,4 +300,14 @@ func (o *Plugin) GetReleaseName() string {
 		return o.Spec.ReleaseName
 	}
 	return o.Name
+}
+
+func (o *Plugin) RemoveCondition(conditionType greenhousemetav1alpha1.ConditionType) {
+	o.Status.Conditions = slices.DeleteFunc(o.Status.Conditions, func(cond greenhousemetav1alpha1.Condition) bool {
+		return cond.Type == conditionType
+	})
+}
+
+func (o *Plugin) CanBeSuspended() bool {
+	return true
 }

@@ -24,7 +24,7 @@ import (
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/e2e/shared"
-	"github.com/cloudoperators/greenhouse/internal/lifecycle"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 type IScenario interface {
@@ -197,7 +197,7 @@ func (s *scenario) expectExternalArtifactNotFound(ctx context.Context, groupKey 
 	}).Should(Succeed(), "flux ExternalArtifact should not exist for the Catalog source")
 }
 
-func (s *scenario) expectKustomizationReady(ctx context.Context, groupKey string, overrides []greenhousev1alpha1.CatalogOverrides) {
+func (s *scenario) expectKustomizationReady(ctx context.Context, groupKey string, overrides []greenhousev1alpha1.CatalogOverrides, expectedLabels map[string]string) {
 	GinkgoHelper()
 	By("checking if Kustomization has Ready=True condition")
 	kustomization := s.getKustomizationObject(groupKey)
@@ -208,9 +208,9 @@ func (s *scenario) expectKustomizationReady(ctx context.Context, groupKey string
 		g.Expect(readyCond).ToNot(BeNil(), "the Kustomization should have a Ready condition")
 		g.Expect(readyCond.Status).To(Equal(metav1.ConditionTrue), "the Kustomization Ready condition status should be True - "+kustomization.Name)
 		inventory = kustomization.Status.Inventory
-		Expect(inventory).ToNot(BeNil(), "the Kustomization status inventory should not be nil")
+		g.Expect(inventory).ToNot(BeNil(), "the Kustomization status inventory should not be nil")
 	}).Should(Succeed(), "flux Kustomization should be created for the Catalog source")
-	s.verifyPluginDefinitions(ctx, inventory, overrides)
+	s.verifyPluginDefinitions(ctx, inventory, overrides, expectedLabels)
 }
 
 func (s *scenario) expectKustomizationNotFound(ctx context.Context, groupKey string) {
@@ -291,11 +291,13 @@ func getKindIndexFromInventory(inventory []greenhousev1alpha1.SourceStatus, kind
 	})
 }
 
-func (s *scenario) verifyPluginDefinitions(ctx context.Context, kuzInventory *kustomizev1.ResourceInventory, overrides []greenhousev1alpha1.CatalogOverrides) {
+func (s *scenario) verifyPluginDefinitions(ctx context.Context, kuzInventory *kustomizev1.ResourceInventory, overrides []greenhousev1alpha1.CatalogOverrides, expectedLabels map[string]string) {
 	GinkgoHelper()
 	By("checking if PluginDefinitions are created")
 	for _, resource := range kuzInventory.Entries {
 		resourceMeta := strings.Split(resource.ID, "_")
+		var labels map[string]string
+		var name string
 		if len(resourceMeta) == 4 && resourceMeta[0] != "" && resourceMeta[0] == s.catalog.Namespace {
 			key := types.NamespacedName{
 				Namespace: resourceMeta[0],
@@ -305,12 +307,24 @@ func (s *scenario) verifyPluginDefinitions(ctx context.Context, kuzInventory *ku
 			if len(overrides) > 0 {
 				checkIfRepositoryIsOverridden(pluginDef.Spec, overrides, pluginDef.Name)
 			}
+			labels = pluginDef.GetLabels()
+			name = pluginDef.Name
 		} else {
 			key := types.NamespacedName{
 				Name: resourceMeta[1],
 			}
 			clusterPluginDef := checkIfCPDExists(ctx, s.k8sClient, key)
 			checkIfRepositoryIsOverridden(clusterPluginDef.Spec, overrides, clusterPluginDef.Name)
+			labels = clusterPluginDef.GetLabels()
+			name = clusterPluginDef.Name
+		}
+
+		if expectedLabels != nil {
+			By("checking if PluginDefinition " + name + " has expected labels")
+			for k, v := range expectedLabels {
+				Expect(labels).To(HaveKeyWithValue(k, v),
+					"PluginDefinition should have label %s=%s", k, v)
+			}
 		}
 	}
 }
@@ -343,12 +357,12 @@ func checkIfRepositoryIsOverridden(spec greenhousev1alpha1.PluginDefinitionSpec,
 	}
 }
 
-func (s *scenario) expectStatusPropagationInCatalogInventory(ctx context.Context, groupKey string, ignoreNotFound bool) {
+func (s *scenario) expectStatusPropagationInCatalogInventory(ctx context.Context, g Gomega, groupKey string, ignoreNotFound bool) {
 	GinkgoHelper()
 	catalog := &greenhousev1alpha1.Catalog{}
-	Expect(s.k8sClient.Get(ctx, client.ObjectKeyFromObject(s.catalog), catalog)).ToNot(HaveOccurred(), "there should be no error getting the Catalog")
+	g.Expect(s.k8sClient.Get(ctx, client.ObjectKeyFromObject(s.catalog), catalog)).ToNot(HaveOccurred(), "there should be no error getting the Catalog")
 	groupInventory := catalog.Status.Inventory[groupKey]
-	Expect(groupInventory).ToNot(BeEmpty(), "the Catalog status inventory for the source should not be empty")
+	g.Expect(groupInventory).ToNot(BeEmpty(), "the Catalog status inventory for the source should not be empty")
 	for _, resource := range groupInventory {
 		kindInventoryStatus := resource.Ready
 		var fluxObj lifecycle.CatalogObject
@@ -365,16 +379,14 @@ func (s *scenario) expectStatusPropagationInCatalogInventory(ctx context.Context
 			Fail("unsupported kind for propagation check: " + resource.Kind)
 		}
 		By("checking if Catalog inventory contains the flux resource status for " + resource.Kind + "/" + resource.Name)
-		Eventually(func(g Gomega) {
-			err := s.k8sClient.Get(ctx, client.ObjectKeyFromObject(fluxObj), fluxObj)
-			if apierrors.IsNotFound(err) && ignoreNotFound {
-				// ignore not found errors
-				return
-			}
-			g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the catalog flux resource: "+fluxObj.GetName())
-			fluxCondition := meta.FindStatusCondition(fluxObj.GetConditions(), fluxmeta.ReadyCondition)
-			g.Expect(fluxCondition).ToNot(BeNil(), "the underlying resource should have a Ready condition: "+fluxObj.GetName())
-			g.Expect(kindInventoryStatus).To(Equal(fluxCondition.Status), "the Catalog inventory status should contain the flux resource condition status")
-		}).Should(Succeed(), "the flux resource condition should be propagated to the Catalog inventory status")
+		err := s.k8sClient.Get(ctx, client.ObjectKeyFromObject(fluxObj), fluxObj)
+		if apierrors.IsNotFound(err) && ignoreNotFound {
+			// ignore not found errors
+			return
+		}
+		g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the catalog flux resource: "+fluxObj.GetName())
+		fluxCondition := meta.FindStatusCondition(fluxObj.GetConditions(), fluxmeta.ReadyCondition)
+		g.Expect(fluxCondition).ToNot(BeNil(), "the underlying resource should have a Ready condition: "+fluxObj.GetName())
+		g.Expect(kindInventoryStatus).To(Equal(fluxCondition.Status), "the Catalog inventory status should contain the flux resource condition status - "+fluxObj.GetName())
 	}
 }

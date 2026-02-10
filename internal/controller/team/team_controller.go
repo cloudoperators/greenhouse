@@ -12,7 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -23,9 +23,9 @@ import (
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
-	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/scim"
 	"github.com/cloudoperators/greenhouse/internal/util"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 const RequeueInterval = 10 * time.Minute
@@ -41,19 +41,19 @@ var (
 
 type TeamController struct {
 	client.Client
-	recorder record.EventRecorder
+	recorder events.EventRecorder
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teams,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teams/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teams/finalizers,verbs=update
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get
-//+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups="events.k8s.io",resources=events,verbs=get;list;watch;update;patch
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *TeamController) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
-	r.recorder = mgr.GetEventRecorderFor(name)
+	r.recorder = mgr.GetEventRecorder(name)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).

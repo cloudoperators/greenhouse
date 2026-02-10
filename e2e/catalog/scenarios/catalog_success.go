@@ -14,17 +14,29 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	"github.com/cloudoperators/greenhouse/internal/lifecycle"
+	catalogcontroller "github.com/cloudoperators/greenhouse/internal/controller/catalog"
 )
 
 func (s *scenario) ExecuteSuccessScenario(ctx context.Context, namespace string) {
 	GinkgoHelper()
+	const ownedBy = "e2e-test"
+
+	// Add labels and propagation annotation to the catalog
+	labels := s.catalog.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+	labels[greenhouseapis.LabelKeyOwnedBy] = ownedBy
+	s.catalog.SetLabels(labels)
 	s.catalog.SetNamespace(namespace)
 	err := s.createCatalogIfNotExists(ctx)
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the Catalog for multi-source scenario")
-	s.verifySuccess(ctx)
+	s.verifySuccess(ctx, map[string]string{
+		greenhouseapis.LabelKeyOwnedBy: ownedBy,
+	})
 	By("cleaning up Catalog")
 	for _, source := range s.catalog.Spec.Sources {
 		groupKey, err := getSourceGroupHash(source, s.catalog.Name)
@@ -34,7 +46,7 @@ func (s *scenario) ExecuteSuccessScenario(ctx context.Context, namespace string)
 	s.deleteCatalog(ctx)
 }
 
-func (s *scenario) verifySuccess(ctx context.Context) {
+func (s *scenario) verifySuccess(ctx context.Context, expectedLabels map[string]string) {
 	for _, source := range s.catalog.Spec.Sources {
 		groupKey, err := getSourceGroupHash(source, s.catalog.Name)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error getting the source group hash")
@@ -47,7 +59,7 @@ func (s *scenario) verifySuccess(ctx context.Context) {
 		s.expectGitRepositoryReady(ctx, groupKey)
 		s.expectGeneratorReady(ctx, groupKey)
 		s.expectExternalArtifactReady(ctx, groupKey)
-		s.expectKustomizationReady(ctx, groupKey, source.Overrides)
+		s.expectKustomizationReady(ctx, groupKey, source.Overrides, expectedLabels)
 	}
 
 	By("checking if Catalog has Ready=True condition")
@@ -59,7 +71,7 @@ func (s *scenario) verifySuccess(ctx context.Context) {
 		g.Expect(inventory).To(HaveLen(len(catalog.Spec.Sources)), "number of Catalog status inventory map should be equal to catalog sources length")
 		for groupKey, items := range inventory {
 			g.Expect(items).To(HaveLen(4), "each Catalog status inventory entry should have 4 items")
-			s.expectStatusPropagationInCatalogInventory(ctx, groupKey, false)
+			s.expectStatusPropagationInCatalogInventory(ctx, g, groupKey, false)
 		}
 		catalogReady := catalog.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 		g.Expect(catalogReady).ToNot(BeNil(), "the Catalog should have a Ready condition")
@@ -70,12 +82,12 @@ func (s *scenario) verifySuccess(ctx context.Context) {
 
 func getSourceGroupHash(source greenhousev1alpha1.CatalogSource, catalogName string) (groupKey string, err error) {
 	var host, owner, repo string
-	host, owner, repo, err = lifecycle.GetOwnerRepoInfo(source.Repository)
+	host, owner, repo, err = catalogcontroller.GetOwnerRepoInfo(source.Repository)
 	if err != nil {
 		return
 	}
 	ref := source.GetRefValue()
-	hash, err := lifecycle.HashValue(fmt.Sprintf("%s-%s-%s-%s-%s", catalogName, host, owner, repo, ref))
+	hash, err := catalogcontroller.HashValue(fmt.Sprintf("%s-%s-%s-%s-%s", catalogName, host, owner, repo, ref))
 	if err != nil {
 		return
 	}

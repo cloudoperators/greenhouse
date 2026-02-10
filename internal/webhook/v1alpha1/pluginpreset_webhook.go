@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -24,7 +23,7 @@ import (
 func SetupPluginPresetWebhookWithManager(mgr ctrl.Manager) error {
 	return webhook.SetupWebhook(mgr,
 		&greenhousev1alpha1.PluginPreset{},
-		webhook.WebhookFuncs{
+		webhook.WebhookFuncs[*greenhousev1alpha1.PluginPreset]{
 			DefaultFunc:        DefaultPluginPreset,
 			ValidateCreateFunc: ValidateCreatePluginPreset,
 			ValidateUpdateFunc: ValidateUpdatePluginPreset,
@@ -35,25 +34,13 @@ func SetupPluginPresetWebhookWithManager(mgr ctrl.Manager) error {
 
 //+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-pluginpreset,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=pluginpresets,verbs=create;update,versions=v1alpha1,name=mpluginpreset.kb.io,admissionReviewVersions=v1
 
-func DefaultPluginPreset(ctx context.Context, c client.Client, o runtime.Object) error {
-	pluginPreset, ok := o.(*greenhousev1alpha1.PluginPreset)
-	if !ok {
-		return nil
-	}
-
+func DefaultPluginPreset(ctx context.Context, c client.Client, pluginPreset *greenhousev1alpha1.PluginPreset) error {
 	// prevent deletion on plugin preset creation
 	if pluginPreset.Annotations == nil {
 		pluginPreset.Annotations = map[string]string{}
 	}
 	if pluginPreset.CreationTimestamp.IsZero() {
 		pluginPreset.Annotations[greenhousev1alpha1.PreventDeletionAnnotation] = "true"
-	}
-
-	deprecatedDefName := pluginPreset.Spec.Plugin.PluginDefinition //nolint:staticcheck
-
-	// Migrate PluginDefinition reference name.
-	if pluginPreset.Spec.Plugin.PluginDefinitionRef.Name == "" && deprecatedDefName != "" {
-		pluginPreset.Spec.Plugin.PluginDefinitionRef.Name = deprecatedDefName
 	}
 
 	if pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind == "" {
@@ -65,11 +52,7 @@ func DefaultPluginPreset(ctx context.Context, c client.Client, o runtime.Object)
 
 //+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-pluginpreset,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=pluginpresets,verbs=create;update;delete,versions=v1alpha1,name=vpluginpreset.kb.io,admissionReviewVersions=v1
 
-func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.Object) (admission.Warnings, error) {
-	pluginPreset, ok := o.(*greenhousev1alpha1.PluginPreset)
-	if !ok {
-		return nil, nil
-	}
+func ValidateCreatePluginPreset(ctx context.Context, c client.Client, pluginPreset *greenhousev1alpha1.PluginPreset) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 	var allWarns admission.Warnings
 
@@ -158,16 +141,7 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 	return allWarns, nil
 }
 
-func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, curObj runtime.Object) (admission.Warnings, error) {
-	oldPluginPreset, ok := oldObj.(*greenhousev1alpha1.PluginPreset)
-	if !ok {
-		return nil, nil
-	}
-	pluginPreset, ok := curObj.(*greenhousev1alpha1.PluginPreset)
-	if !ok {
-		return nil, nil
-	}
-
+func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldPluginPreset, pluginPreset *greenhousev1alpha1.PluginPreset) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 	var allWarns admission.Warnings
 
@@ -196,12 +170,7 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, cu
 	return allWarns, nil
 }
 
-func ValidateDeletePluginPreset(_ context.Context, _ client.Client, obj runtime.Object) (admission.Warnings, error) {
-	pluginPreset, ok := obj.(*greenhousev1alpha1.PluginPreset)
-	if !ok {
-		return nil, nil
-	}
-
+func ValidateDeletePluginPreset(_ context.Context, _ client.Client, pluginPreset *greenhousev1alpha1.PluginPreset) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 	if _, ok := pluginPreset.Annotations[greenhousev1alpha1.PreventDeletionAnnotation]; ok {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("metadata").Child("annotation").Child(greenhousev1alpha1.PreventDeletionAnnotation),

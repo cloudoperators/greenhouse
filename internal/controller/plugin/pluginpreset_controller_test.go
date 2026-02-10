@@ -22,8 +22,8 @@ import (
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
-	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 const (
@@ -644,7 +644,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(pluginPreset), pluginPreset)
 			g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
 			pluginPreset.Annotations = map[string]string{}
-			Expect(test.K8sClient.Update(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
+			g.Expect(test.K8sClient.Update(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
 		}).Should(Succeed(), "failed to update PluginPreset")
 		Expect(test.K8sClient.Delete(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
@@ -714,6 +714,45 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
 	})
 
+	It("should recreate the Plugin when it gets deleted", func() {
+		By("creating a PluginPreset")
+		testPluginPreset := test.NewPluginPreset(pluginPresetName, test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(pluginPresetPluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
+				},
+			}))
+
+		err := test.K8sClient.Create(test.Ctx, testPluginPreset)
+		Expect(err).ToNot(HaveOccurred(), "failed to create test PluginPreset")
+
+		By("ensuring a Plugin has been created")
+		expPluginName := types.NamespacedName{Name: pluginPresetName + "-" + clusterA, Namespace: test.TestNamespace}
+		expPlugin := &greenhousev1alpha1.Plugin{}
+		Eventually(func() error {
+			return test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
+		}).Should(Succeed(), "the Plugin should be created")
+
+		Expect(expPlugin.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyPluginPreset, pluginPresetName), "the Plugin should be labeled as managed by the PluginPreset")
+
+		By("deleting the Plugin and ensuring it is reconciled")
+		originalUID := expPlugin.UID
+		result, err := clientutil.Delete(test.Ctx, test.K8sClient, expPlugin)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error deleting the Plugin")
+		Expect(result).To(Equal(clientutil.DeletionResultDeleted), "the Plugin should be deleted")
+
+		By("ensuring the Plugin is recreated")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
+			g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Plugin")
+			g.Expect(expPlugin.UID).ToNot(Equal(originalUID), "Recreated Plugin should have a new UID")
+		}).Should(Succeed(), "the Plugin should be reconciled")
+
+		By("deleting the PluginPreset")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
+	})
 })
 
 var _ = Describe("overridesPluginOptionValues", Ordered, func() {

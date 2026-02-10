@@ -14,7 +14,6 @@ import (
 	"helm.sh/helm/v3/pkg/chartutil"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/validation"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -46,7 +45,7 @@ const (
 func SetupPluginWebhookWithManager(mgr ctrl.Manager) error {
 	return webhook.SetupWebhook(mgr,
 		&greenhousev1alpha1.Plugin{},
-		webhook.WebhookFuncs{
+		webhook.WebhookFuncs[*greenhousev1alpha1.Plugin]{
 			DefaultFunc:        DefaultPlugin,
 			ValidateCreateFunc: ValidateCreatePlugin,
 			ValidateUpdateFunc: ValidateUpdatePlugin,
@@ -57,19 +56,7 @@ func SetupPluginWebhookWithManager(mgr ctrl.Manager) error {
 
 //+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-plugin,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=plugins,verbs=create;update,versions=v1alpha1,name=mplugin.kb.io,admissionReviewVersions=v1
 
-func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) error {
-	plugin, ok := obj.(*greenhousev1alpha1.Plugin)
-	if !ok {
-		return nil
-	}
-
-	deprecatedDefName := plugin.Spec.PluginDefinition //nolint:staticcheck
-
-	// Migrate PluginDefinition reference name.
-	if plugin.Spec.PluginDefinitionRef.Name == "" && deprecatedDefName != "" {
-		plugin.Spec.PluginDefinitionRef.Name = deprecatedDefName
-	}
-
+func DefaultPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) error {
 	// Validate before ValidateCreatePlugin is called. Because defaulting PluginOptionValues & ReleaseName requires the PluginDefinition to be set.
 	if plugin.Spec.PluginDefinitionRef.Name == "" {
 		return field.Required(field.NewPath("spec", "pluginDefinitionRef", "name"), "PluginDefinition name must be set")
@@ -147,11 +134,7 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 
 //+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-plugin,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=plugins,verbs=create;update;delete,versions=v1alpha1,name=vplugin.kb.io,admissionReviewVersions=v1
 
-func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Object) (admission.Warnings, error) {
-	plugin, ok := obj.(*greenhousev1alpha1.Plugin)
-	if !ok {
-		return nil, nil
-	}
+func ValidateCreatePlugin(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 	var allWarns admission.Warnings
 
@@ -208,15 +191,7 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 	return allWarns, nil
 }
 
-func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime.Object) (admission.Warnings, error) {
-	oldPlugin, ok := old.(*greenhousev1alpha1.Plugin)
-	if !ok {
-		return nil, nil
-	}
-	plugin, ok := obj.(*greenhousev1alpha1.Plugin)
-	if !ok {
-		return nil, nil
-	}
+func ValidateUpdatePlugin(ctx context.Context, c client.Client, oldPlugin, plugin *greenhousev1alpha1.Plugin) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 	var allWarns admission.Warnings
 
@@ -282,7 +257,7 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 	return allWarns, nil
 }
 
-func ValidateDeletePlugin(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
+func ValidateDeletePlugin(_ context.Context, _ client.Client, _ *greenhousev1alpha1.Plugin) (admission.Warnings, error) {
 	return nil, nil
 }
 

@@ -3,7 +3,7 @@
   "assigneesFromCodeOwners": true,
   "extends": [
     "config:recommended",
-    "helpers:pinGitHubActionDigests"
+    "helpers:pinGitHubActionDigestsToSemver"
   ],
   "constraints": {
     "go": "1.25"
@@ -96,14 +96,10 @@
   ],
   "packageRules": [
     {
-      "groupName": "github actions",
+      "groupName": "Github Actions updates",
+      "groupSlug": "github-actions",
       "matchManagers": [
         "github-actions"
-      ],
-      "matchUpdateTypes": [
-        "major",
-        "minor",
-        "patch"
       ],
       "extends": [
         "helpers:pinGitHubActionDigests"
@@ -183,6 +179,7 @@
         "k8s.io/sample-apiserver{/,}**",
         "k8s.io/sample-cli-plugin{/,}**",
         "k8s.io/sample-controller{/,}**",
+        "k8s.io/utils{/,}**",
         "sigs.k8s.io/controller-runtime{/,}**"
       ]
     },
@@ -209,6 +206,57 @@
         "cloudoperators/greenhouse"
       ],
       "ignoreUnstable": false
+    },
+    {
+      "groupName": "controller-tools (Makefile)",
+      "groupSlug": "controller-tools-regex",
+      "matchManagers": [
+        "custom.regex"
+      ],
+      "matchDatasources": [
+        "github-tags"
+      ],
+      "matchDepNames": [
+        "kubernetes-sigs/controller-tools"
+      ],
+      "minimumReleaseAge": "14 days"
+    },
+    {
+      "groupName": "golangci-lint (Makefile)",
+      "groupSlug": "golangci-lint",
+      "matchManagers": [
+        "custom.regex"
+      ],
+      "matchDatasources": [
+        "github-tags"
+      ],
+      "matchDepNames": [
+        "golangci/golangci-lint",
+        "nunnatsa/ginkgolinter"
+      ],
+      "minimumReleaseAge": "14 days"
+    },
+    {
+      "groupName": "ginkgo & gomega updates",
+      "groupSlug": "ginkgo-gomega",
+      "matchDatasources": [
+        "go"
+      ],
+      "minimumReleaseAge": "14 days",
+      "matchPackageNames": [
+        "github.com/onsi{/,}**"
+      ]
+    },
+    {
+      "groupName": "golang.org/x packages",
+      "groupSlug": "golang-x-go",
+      "matchDatasources": [
+        "go"
+      ],
+      "minimumReleaseAge": "14 days",
+      "matchPackageNames": [
+        "golang.org/x{/,}**"
+      ]
     }
   ],
   "postUpdateOptions": [

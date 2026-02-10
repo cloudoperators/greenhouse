@@ -4,6 +4,8 @@
 package v1alpha1
 
 import (
+	"slices"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
@@ -26,7 +28,8 @@ type ClusterPluginDefinitionStatus struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:scope=Cluster,shortName=cpd
 //+kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.spec.version`
-//+kubebuilder:printcolumn:name="Description",type=string,JSONPath=`.spec.description`
+//+kubebuilder:printcolumn:name="Catalog",type=string,JSONPath=`.metadata.labels.greenhouse\.sap/catalog`
+//+kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // ClusterPluginDefinition is the Schema for the clusterplugindefinitions API.
@@ -47,12 +50,33 @@ type ClusterPluginDefinitionList struct {
 	Items           []ClusterPluginDefinition `json:"items"`
 }
 
+func (c *ClusterPluginDefinition) GetPluginDefinitionSpec() *PluginDefinitionSpec {
+	return &c.Spec
+}
+
+func (c *ClusterPluginDefinition) FluxHelmChartResourceName() string {
+	if c.Spec.HelmChart == nil {
+		return ""
+	}
+	return c.Name + "-" + c.Spec.HelmChart.Version
+}
+
 func (c *ClusterPluginDefinition) GetConditions() greenhousemetav1alpha1.StatusConditions {
 	return c.Status.StatusConditions
 }
 
 func (c *ClusterPluginDefinition) SetCondition(condition greenhousemetav1alpha1.Condition) {
 	c.Status.SetConditions(condition)
+}
+
+func (c *ClusterPluginDefinition) RemoveCondition(conditionType greenhousemetav1alpha1.ConditionType) {
+	c.Status.Conditions = slices.DeleteFunc(c.Status.Conditions, func(cond greenhousemetav1alpha1.Condition) bool {
+		return cond.Type == conditionType
+	})
+}
+
+func (c *ClusterPluginDefinition) CanBeSuspended() bool {
+	return false
 }
 
 func init() {

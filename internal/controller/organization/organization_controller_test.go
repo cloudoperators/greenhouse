@@ -338,14 +338,10 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 			if DexStorageType == dex.K8s {
 				By("checking dex connector resource")
 				connectors := &dexapi.ConnectorList{}
-				oAuthClients := &dexapi.OAuth2ClientList{}
 
 				err := setup.List(test.Ctx, connectors)
 				Expect(err).ToNot(HaveOccurred(), "there should be no error listing dex connectors")
 				Expect(len(connectors.Items)).To(BeNumerically(">", 1), "there should be at least one dex connector")
-				err = setup.List(test.Ctx, oAuthClients)
-				Expect(err).ToNot(HaveOccurred(), "there should be no error listing dex oauth clients")
-				Expect(len(oAuthClients.Items)).To(BeNumerically(">", 1), "there should be at least one dex oauth client")
 
 				filteredOrgConnector := slices.DeleteFunc(connectors.Items, func(c dexapi.Connector) bool {
 					return c.ID != oidcOrg.Name
@@ -354,24 +350,34 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 				Expect(filteredOrgConnector[0].ID).To(Equal(oidcOrg.Name), "the connector ID should be equal to organization name")
 
 				By("checking dex oauth client resource")
-				filteredOAuthClients := slices.DeleteFunc(oAuthClients.Items, func(c dexapi.OAuth2Client) bool {
-					return c.ID != oidcOrg.Name && c.ID != defaultOrg.Name
-				})
-				Expect(filteredOAuthClients).To(HaveLen(2), "there should be two dex oauth clients")
-				for _, orgClient := range filteredOAuthClients {
-					switch orgClient.ID {
-					case oidcOrg.Name:
-						Expect(orgClient.ID).To(Equal(oidcOrg.Name), "the oauth client ID should be equal to organization name")
-						Expect(orgClient.RedirectURIs).To(HaveLen(5), "the oauth client redirect URIs should have the default 3 elements + 2 additionalRedirects")
-						Expect(orgClient.RedirectURIs).To(ContainElements("https://example.com/app", "http://localhost:33768/auth/callback"), "the oauth client redirect URIs should be equal to organization redirect URIs")
-					case defaultOrg.Name:
-						Expect(orgClient.ID).To(Equal(defaultOrg.Name), "the oauth client ID should be equal to organization name")
-						Expect(orgClient.RedirectURIs).To(ContainElements("https://test-oidc-org.dashboard."), "the greenhouse client should contain the org's dashboard redirect uri")
-						Expect(len(orgClient.RedirectURIs)).To(BeNumerically(">=", 5), "the oauth client redirect URIs should have 4 elements (default 3 + 1 org + 1 additional)")
-					default:
-						Fail("unexpected oauth client ID")
+				oAuthClients := &dexapi.OAuth2ClientList{}
+
+				Eventually(func(g Gomega) {
+					err = setup.List(test.Ctx, oAuthClients)
+					g.Expect(err).ToNot(HaveOccurred(), "there should be no error listing dex oauth clients")
+					g.Expect(len(oAuthClients.Items)).To(BeNumerically(">=", 2), "there should be at least two dex oauth clients")
+
+					filteredOAuthClients := slices.DeleteFunc(oAuthClients.Items, func(c dexapi.OAuth2Client) bool {
+						return c.ID != oidcOrg.Name && c.ID != defaultOrg.Name
+					})
+					g.Expect(filteredOAuthClients).To(HaveLen(2), "there should be exactly two dex oauth clients for current Organization")
+					for _, orgClient := range filteredOAuthClients {
+						switch orgClient.ID {
+						case oidcOrg.Name:
+							g.Expect(orgClient.ID).To(Equal(oidcOrg.Name), "the oauth client ID should be equal to organization name")
+							g.Expect(orgClient.RedirectURIs).To(HaveLen(5), "the oauth client redirect URIs should have the default 3 elements + 2 additionalRedirects")
+							g.Expect(orgClient.RedirectURIs).To(ContainElements("https://example.com/app", "http://localhost:33768/auth/callback"), "the oauth client redirect URIs should be equal to organization redirect URIs")
+						case defaultOrg.Name:
+							g.Expect(orgClient.ID).To(Equal(defaultOrg.Name), "the oauth client ID should be equal to organization name")
+							g.Expect(orgClient.RedirectURIs).To(HaveLen(5), "the oauth client redirect URIs should have 5 elements (default 3 + 1 org + 1 additional)")
+							g.Expect(orgClient.RedirectURIs).To(ContainElement("https://test-oidc-org.dashboard."), "the greenhouse client should contain the org's dashboard redirect uri")
+							g.Expect(orgClient.RedirectURIs).To(ContainElement("https://foo.bar/app"), "the greenhouse client should contain the additional redirect uri")
+						default:
+							Fail("unexpected oauth client ID")
+						}
 					}
-				}
+				}).Should(Succeed(), "unexpected status of dex oauth client resource")
+
 				By("deleting the organizations")
 				test.EventuallyDeleted(test.Ctx, test.K8sClient, &greenhousev1alpha1.Organization{ObjectMeta: metav1.ObjectMeta{Name: oidcOrg.Name}})
 				By("checking if the dex resources are deleted")

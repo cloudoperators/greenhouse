@@ -37,14 +37,14 @@ func PluginControllerHelmRollback(ctx context.Context, adminClient, remoteClient
 	By("Setting the HELM_RELEASE_TIMEOUT to 5 seconds")
 	Expect(os.Setenv("HELM_RELEASE_TIMEOUT", "5")).To(Succeed(), "there should be no error setting HELM_RELEASE_TIMEOUT env")
 
-	By("Preparing the plugin")
-	// Creating plugin with release name
+	By("Preparing the plugin with release name")
 	plugin := fixtures.PreparePlugin(certManagerPluginTest, env.TestNamespace,
 		test.WithClusterPluginDefinition(pluginDefinition.Name),
 		test.WithCluster(remoteClusterName),
 		test.WithReleaseNamespace(env.TestNamespace),
 		test.WithReleaseName(certManagerPluginTest),
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, teamName),
+		test.WithPluginLabel(greenhouseapis.GreenhouseHelmDeliveryToolLabel, "helm"),
 	)
 
 	By("Installing release manually on the remote cluster")

@@ -15,11 +15,10 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - events
-  - secrets
-  - serviceaccounts
+  - namespaces
   verbs:
   - create
+  - delete
   - get
   - list
   - patch
@@ -28,10 +27,10 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - namespaces
+  - secrets
+  - serviceaccounts
   verbs:
   - create
-  - delete
   - get
   - list
   - patch
@@ -48,6 +47,17 @@ rules:
   resources:
   - connectors
   - oauth2clients
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - events.k8s.io
+  resources:
+  - events
   verbs:
   - create
   - get

@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -29,14 +29,18 @@ import (
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	"github.com/cloudoperators/greenhouse/internal/lifecycle"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
+)
+
+const (
+	Source = "CatalogSource"
 )
 
 type CatalogReconciler struct {
 	client.Client
 	Scheme      *runtime.Scheme
 	Log         logr.Logger
-	recorder    record.EventRecorder
+	recorder    events.EventRecorder
 	StoragePath string
 	HttpRetry   int
 }
@@ -44,7 +48,7 @@ type CatalogReconciler struct {
 func (r *CatalogReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
 	r.Scheme = mgr.GetScheme()
-	r.recorder = mgr.GetEventRecorderFor(name)
+	r.recorder = mgr.GetEventRecorder(name)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
@@ -66,10 +70,10 @@ func (r *CatalogReconciler) SetupWithManager(name string, mgr ctrl.Manager) erro
 // +kubebuilder:rbac:groups=kustomize.toolkit.fluxcd.io,resources=kustomizations,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=source.extensions.fluxcd.io,resources=artifactgenerators,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
-// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+// +kubebuilder:rbac:groups="events.k8s.io",resources=events,verbs=create;patch
 
 func (r *CatalogReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.Catalog{}, r, r.setStatus())
+	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.Catalog{}, r, func(_ context.Context, _ lifecycle.RuntimeObject) {})
 }
 
 func (r *CatalogReconciler) EnsureDeleted(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
@@ -238,44 +242,44 @@ func (r *CatalogReconciler) EnsureCreated(ctx context.Context, obj lifecycle.Run
 
 	catalog.SetProgressingReason()
 
-	var allErrors []error
+	var allErrors []catalogError
 	for _, s := range catalog.Spec.Sources {
 		sourcer, err := r.newCatalogSource(s, catalog)
 		if err != nil {
 			r.Log.Error(err, "failed to create source reconciler for catalog", "namespace", catalog.Namespace, "name", catalog.Name)
-			allErrors = append(allErrors, err)
+			allErrors = append(allErrors, catalogError{InventoryType: Source, Name: s.Repository + "-" + s.GetRefValue(), Error: err})
 			continue
 		}
 
 		if err = sourcer.reconcileGitRepository(ctx); err != nil {
 			r.Log.Error(err, "failed to reconcile git repository for catalog source", "namespace", catalog.Namespace, "name", sourcer.getGitRepoName())
-			allErrors = append(allErrors, err)
+			sourcer.setInventory(sourcev1.GitRepositoryKind, sourcer.getGitRepoName(), err.Error(), metav1.ConditionFalse)
+			allErrors = append(allErrors, catalogError{InventoryType: sourcev1.GitRepositoryKind, Name: sourcer.getGitRepoName(), Error: err})
 			continue
 		}
 
 		var externalArtifact *sourcev1.ExternalArtifact
 		if externalArtifact, err = sourcer.reconcileArtifactGeneration(ctx); err != nil {
 			r.Log.Error(err, "failed to reconcile artifact generation for catalog source", "namespace", catalog.Namespace, "name", sourcer.getArtifactName())
-			allErrors = append(allErrors, err)
+			allErrors = append(allErrors, catalogError{InventoryType: sourcev2.ArtifactGeneratorKind, Name: sourcer.getGeneratorName(), Error: err})
 			continue
 		}
 
-		ready, _ := sourcer.objectReadiness(ctx, externalArtifact)
+		ready, msg := sourcer.objectReadiness(ctx, externalArtifact)
 		if ready != metav1.ConditionTrue {
 			r.Log.Info("external artifact not ready yet, retry in next reconciliation loop", "namespace", catalog.Namespace, "name", sourcer.getArtifactName())
+			allErrors = append(allErrors, catalogError{InventoryType: sourcev1.ExternalArtifactKind, Name: sourcer.getArtifactName(), Error: errors.New(msg)})
 			continue
 		}
 
 		if err = sourcer.reconcileKustomization(ctx, externalArtifact); err != nil {
 			r.Log.Error(err, "failed to reconcile kustomization for catalog source", "namespace", catalog.Namespace, "name", sourcer.getKustomizationName())
-			allErrors = append(allErrors, err)
+			allErrors = append(allErrors, catalogError{InventoryType: kustomizev1.KustomizationKind, Name: sourcer.getKustomizationName(), Error: err})
 			continue
 		}
 	}
-	if len(allErrors) > 0 {
-		return ctrl.Result{}, lifecycle.Failed, utilerrors.NewAggregate(allErrors)
-	}
-	return ctrl.Result{}, lifecycle.Success, nil
+
+	return r.verifyStatus(ctx, catalog, allErrors)
 }
 
 // checkAndCleanInventory compares the current inventory in status with the desired inventory based on spec sources
@@ -371,71 +375,86 @@ func (r *CatalogReconciler) deleteOrphanedResource(ctx context.Context, obj clie
 	return nil
 }
 
-func (r *CatalogReconciler) setStatus() lifecycle.Conditioner {
-	return func(ctx context.Context, object lifecycle.RuntimeObject) {
-		catalog := object.(*greenhousev1alpha1.Catalog) //nolint:errcheck
-		existingNotReady := catalog.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
-		if existingNotReady != nil && existingNotReady.Status == metav1.ConditionFalse {
-			if existingNotReady.Reason == greenhousev1alpha1.CatalogSourceValidationFail ||
-				existingNotReady.Reason == greenhousev1alpha1.OrphanedObjectCleanUpFail ||
-				existingNotReady.Reason == greenhousev1alpha1.CatalogEmptySources {
-				return
-			}
+func (r *CatalogReconciler) verifyStatus(ctx context.Context, catalog *greenhousev1alpha1.Catalog, allErrors []catalogError) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	existingNotReady := catalog.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
+	if existingNotReady != nil && existingNotReady.Status == metav1.ConditionFalse {
+		var err error
+		switch existingNotReady.Reason {
+		case greenhousev1alpha1.CatalogSourceValidationFail:
+			err = errors.New("catalog source validation failed")
+		case greenhousev1alpha1.OrphanedObjectCleanUpFail:
+			err = errors.New("orphaned object cleanup failed")
+		case greenhousev1alpha1.CatalogEmptySources:
+			err = errors.New("no sources specified for catalog")
 		}
-		var allInventoryReady []metav1.ConditionStatus
-		var srcErrs []error
-		for _, source := range catalog.Spec.Sources {
-			sourcer, srcErr := r.newCatalogSource(source, catalog)
-			if srcErr != nil {
-				srcErrs = append(srcErrs, srcErr)
-				continue
-			}
-			gitRepo := &sourcev1.GitRepository{}
-			gitRepo.SetName(sourcer.getGitRepoName())
-			gitRepo.SetNamespace(catalog.Namespace)
-			ready, msg := sourcer.objectReadiness(ctx, gitRepo)
-			allInventoryReady = append(allInventoryReady, ready)
-			sourcer.setInventory(sourcev1.GitRepositoryKind, gitRepo.Name, msg, ready)
-
-			artifactGen := &sourcev2.ArtifactGenerator{}
-			artifactGen.SetName(sourcer.getGeneratorName())
-			artifactGen.SetNamespace(catalog.Namespace)
-			ready, msg = sourcer.objectReadiness(ctx, artifactGen)
-			allInventoryReady = append(allInventoryReady, ready)
-			sourcer.setInventory(sourcev2.ArtifactGeneratorKind, artifactGen.Name, msg, ready)
-
-			extArtifact := &sourcev1.ExternalArtifact{}
-			extArtifact.SetName(sourcer.getArtifactName())
-			extArtifact.SetNamespace(catalog.Namespace)
-			ready, msg = sourcer.objectReadiness(ctx, extArtifact)
-			allInventoryReady = append(allInventoryReady, ready)
-			sourcer.setInventory(sourcev1.ExternalArtifactKind, extArtifact.Name, msg, ready)
-
-			kustomization := &kustomizev1.Kustomization{}
-			kustomization.SetName(sourcer.getKustomizationName())
-			kustomization.SetNamespace(catalog.Namespace)
-			ready, msg = sourcer.objectReadiness(ctx, kustomization)
-			allInventoryReady = append(allInventoryReady, ready)
-			sourcer.setInventory(kustomizev1.KustomizationKind, kustomization.Name, msg, ready)
+		if err != nil {
+			return ctrl.Result{}, lifecycle.Failed, err
 		}
-
-		if len(srcErrs) > 0 {
-			err := utilerrors.NewAggregate(srcErrs)
-			msg := "inventory readiness check incomplete: " + err.Error()
-			r.Log.Error(err, "inventory readiness check incomplete", "namespace", catalog.Namespace, "name", catalog.Name)
-			catalog.SetFalseCondition(greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.CatalogNotReadyReason, msg)
-			return
-		}
-
-		notReady := slices.ContainsFunc(allInventoryReady, func(status metav1.ConditionStatus) bool {
-			return status != metav1.ConditionTrue // the status can contain Unknown as well
-		})
-		if notReady {
-			r.Log.Info("not all catalog objects are ready", "namespace", catalog.Namespace, "name", catalog.Name)
-			catalog.SetFalseCondition(greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.CatalogNotReadyReason, "not all catalog objects are ready")
-			return
-		}
-		r.Log.Info("all catalog objects are ready", "namespace", catalog.Namespace, "name", catalog.Name)
-		catalog.SetTrueCondition(greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.CatalogReadyReason, "all catalog objects are ready")
 	}
+
+	var allInventoryReady []metav1.ConditionStatus
+	for _, source := range catalog.Spec.Sources {
+		sourcer, srcErr := r.newCatalogSource(source, catalog)
+		if srcErr != nil {
+			allErrors = append(allErrors, catalogError{InventoryType: Source, Name: source.Repository + "-" + source.GetRefValue(), Error: srcErr})
+			continue
+		}
+		gitRepo := &sourcev1.GitRepository{}
+		gitRepo.SetName(sourcer.getGitRepoName())
+		gitRepo.SetNamespace(catalog.Namespace)
+		ready, msg := sourcer.objectReadiness(ctx, gitRepo)
+		allInventoryReady = append(allInventoryReady, ready)
+		sourcer.setInventory(sourcev1.GitRepositoryKind, gitRepo.Name, msg, ready)
+
+		artifactGen := &sourcev2.ArtifactGenerator{}
+		artifactGen.SetName(sourcer.getGeneratorName())
+		artifactGen.SetNamespace(catalog.Namespace)
+		ready, msg = sourcer.objectReadiness(ctx, artifactGen)
+		allInventoryReady = append(allInventoryReady, ready)
+		sourcer.setInventory(sourcev2.ArtifactGeneratorKind, artifactGen.Name, msg, ready)
+
+		extArtifact := &sourcev1.ExternalArtifact{}
+		extArtifact.SetName(sourcer.getArtifactName())
+		extArtifact.SetNamespace(catalog.Namespace)
+		ready, msg = sourcer.objectReadiness(ctx, extArtifact)
+		allInventoryReady = append(allInventoryReady, ready)
+		sourcer.setInventory(sourcev1.ExternalArtifactKind, extArtifact.Name, msg, ready)
+
+		kustomization := &kustomizev1.Kustomization{}
+		kustomization.SetName(sourcer.getKustomizationName())
+		kustomization.SetNamespace(catalog.Namespace)
+		ready, msg = sourcer.objectReadiness(ctx, kustomization)
+		allInventoryReady = append(allInventoryReady, ready)
+		sourcer.setInventory(kustomizev1.KustomizationKind, kustomization.Name, msg, ready)
+	}
+
+	notReady := slices.ContainsFunc(allInventoryReady, func(status metav1.ConditionStatus) bool {
+		return status != metav1.ConditionTrue
+	})
+
+	aggErr := formatCatalogErrors(allErrors)
+	if aggErr != nil || notReady {
+		errMsg := "not all catalog objects are ready"
+		if aggErr != nil {
+			errMsg = errMsg + ": " + aggErr.Error()
+		}
+		r.Log.Info(errMsg, "namespace", catalog.Namespace, "name", catalog.Name)
+		catalog.SetFalseCondition(greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.CatalogNotReadyReason, errMsg)
+		return ctrl.Result{}, lifecycle.Failed, errors.New(errMsg)
+	}
+
+	r.Log.Info("all catalog objects are ready", "namespace", catalog.Namespace, "name", catalog.Name)
+	catalog.SetTrueCondition(greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.CatalogReadyReason, "all catalog objects are ready")
+	return ctrl.Result{}, lifecycle.Success, nil
+}
+
+func formatCatalogErrors(allErrors []catalogError) error {
+	if len(allErrors) == 0 {
+		return nil
+	}
+	var errs []error
+	for _, err := range allErrors {
+		errs = append(errs, fmt.Errorf("%s/%s: %w", err.InventoryType, err.Name, err.Error))
+	}
+	return utilerrors.NewAggregate(errs)
 }
