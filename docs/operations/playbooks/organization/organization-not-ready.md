@@ -56,8 +56,10 @@ Look at the `status.statusConditions` section in the organization resource. Pay 
 Review the Greenhouse controller logs for more detailed error messages:
 
 ```bash
-kubectl logs -n greenhouse -l app=greenhouse --tail=100 | grep "<organization-name>" | grep "error"
+kubectl logs -n greenhouse -l app=greenhouse --tail=100 | grep "<organization-name>" | grep "error" # requires permissions on the greenhouse namespace
 ```
+
+Or access your logs sink for Greenhouse logs.
 
 ## Additional Resources
 
