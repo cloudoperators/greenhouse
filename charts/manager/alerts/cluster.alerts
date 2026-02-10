@@ -13,6 +13,7 @@ groups:
         organization: '{{ $labels.namespace }}'
         cluster: '{{ $labels.cluster }}'
         support_group: '{{ $labels.owned_by }}'
+        playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/cluster/cluster-not-ready/
     - alert: GreenhouseClusterTokenExpiry
       annotations:
         description: The kubeconfig token for {{ $labels.cluster }} in {{ $labels.namespace }} will expire less than 20 hours.
@@ -25,6 +26,7 @@ groups:
         organization: '{{ $labels.namespace }}'
         cluster: '{{ $labels.cluster }}'
         support_group: '{{ $labels.owned_by }}'
+        playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/cluster/cluster-token-expiry/
     - alert: GreenhouseClusterKubernetesVersionOutOfMaintenance
       annotations:
         summary: "Kubernetes version out of maintenance"
@@ -36,3 +38,4 @@ groups:
         organization: '{{ $labels.namespace }}'
         cluster: '{{ $labels.cluster }}'
         support_group: '{{ $labels.owned_by }}'
+        playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/cluster/cluster-kubernetes-version-out-of-maintenance/

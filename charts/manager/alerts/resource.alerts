@@ -14,3 +14,4 @@ groups:
         resource_name: '{{ $labels.resource_name }}'
         organization: '{{ $labels.organization }}'
         support_group: '{{ $labels.organization }}-admin'  # routed to the org-admin team
+        playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/resource/resource-owned-by-label-missing/
