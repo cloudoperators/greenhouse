@@ -11,7 +11,7 @@ groups:
       labels:
         severity: warning
         service: greenhouse
-        proxy: {{ $labels.service }}
+        proxy: '{{ $labels.service }}'
         organization: greenhouse # default greenhouse organization
         support_group: greenhouse-admin  # routed to the greenhouse-admin team
         playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/proxy/proxy-request-errors-high/
@@ -25,7 +25,7 @@ groups:
       labels:
         severity: warning
         service: greenhouse
-        proxy: {{ $labels.service }}
+        proxy: '{{ $labels.service }}'
         organization: greenhouse # default greenhouse organization
         support_group: greenhouse-admin  # routed to the greenhouse-admin team
         playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/proxy/proxy-request-duration-high/
