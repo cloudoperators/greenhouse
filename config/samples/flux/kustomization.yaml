@@ -31,6 +31,27 @@ patches:
             matchLabels:
               app.kubernetes.io/name: greenhouse
 
+  - target:
+      kind: Deployment
+      name: source-controller
+    patch: |
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: registry-ca
+          secret:
+            secretName: local-registry-tls-certs
+            items:
+              - key: ca.crt
+                path: ca-certificates.crt
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value:
+          name: registry-ca
+          mountPath: /etc/ssl/certs/ca-certificates.crt
+          subPath: ca-certificates.crt
+          readOnly: true          
+
   # do not apply image-reflector-controller and image-automation-controller
   - target:
       kind: Deployment
@@ -42,7 +63,7 @@ patches:
 
   - target:
       kind: Deployment
-      name: (image-reflector-controller|image-automation-controller)
+      name: (image-automation-controller|image-reflector-controller)
     patch: |
       apiVersion: apps/v1
       kind: Deployment

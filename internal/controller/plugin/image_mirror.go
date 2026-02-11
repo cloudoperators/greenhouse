@@ -6,6 +6,7 @@ package plugin
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
@@ -90,6 +91,7 @@ func extractUniqueImages(manifests string) []string {
 	for img := range seen {
 		images = append(images, img)
 	}
+	slices.Sort(images)
 	return images
 }
 

@@ -156,7 +156,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 		return fmt.Errorf("failed to generate HelmRelease values for Plugin %s: %w", plugin.Name, err)
 	}
 
-	result, err := ctrl.CreateOrUpdate(ctx, r.Client, release, func() error {
+	result, err := controllerutil.CreateOrPatch(ctx, r.Client, release, func() error {
 		builder := flux.NewHelmReleaseSpecBuilder().
 			WithChart(helmv2.HelmChartTemplateSpec{
 				Chart:    pluginDefinitionSpec.HelmChart.Name,
@@ -228,8 +228,8 @@ func (r *PluginReconciler) ensureHelmRelease(
 		return controllerutil.SetControllerReference(plugin, release, r.Scheme())
 	})
 	if err != nil {
-		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
-			greenhousev1alpha1.StatusUpToDateCondition, "", "failed to create/update Helm release: "+err.Error()))
+		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.HelmReconcileFailedCondition, "", "Failed to create/update Helm release: "+err.Error()))
 		return err
 	}
 	switch result {

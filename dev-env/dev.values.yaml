@@ -6,8 +6,9 @@ global:
   dex:
     backend: kubernetes
   plugin:
-    expressionEvaluationEnabled: false
+    expressionEvaluationEnabled: true
     integrationEnabled: false
+    defaultDeploymentTool: flux
 alerts:
   enabled: false
 certManager:
@@ -29,7 +30,6 @@ authzDeployment:
   volumeMounts:
     - name: serving-certs
       mountPath: /tmp/k8s-webhook-server/serving-certs
-      readOnly: true
   containerPorts:
     - name: authz-server
       containerPort: 9443

@@ -1,0 +1,42 @@
+# SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+config:
+  - cluster:
+      name: greenhouse-authz
+      namespace: greenhouse
+      version: v1.33.4
+      configPath: dev-env/greenhouse-authz-cluster.yaml
+      postSetup:
+        - command: kubectl config use-context kind-greenhouse-authz | sleep 7
+        - command: kubectl --kubeconfig "${kubeconfig}" get cm kube-root-ca.crt -n default -o json | jq -r '.data."ca.crt"' | tee bin/greenhouse-authz-ca.crt
+          vars:
+            kubeconfig: kubeconfig
+        - command: cp ./dev-env/structured-auth.yaml ./bin/structured-auth.yaml
+        - command: yq eval --inplace '.jwt[0].issuer.certificateAuthority = load_str("./bin/greenhouse-authz-ca.crt")' ./bin/structured-auth.yaml
+        - command: kubectl create clusterrolebinding ${clusterRoleBinding} --clusterrole=${clusterRole} --group=${group} --dry-run=client -o yaml | kubectl apply --kubeconfig "${kubeconfig}" -f -
+          vars:
+            kubeconfig: kubeconfig
+            clusterRoleBinding: oidc-reviewer-binding
+            clusterRole: system:service-account-issuer-discovery
+            group: system:unauthenticated
+        - command: make cert-manager
+        - command: make flux
+    dependencies:
+      - manifest:
+          release: greenhouse
+          chartPath: charts/manager
+          valuesPath: dev-env/dev.values.yaml
+          excludeKinds:
+            - Job # exclude kube-webhook-cert-gen Job (managed by cert-manager)
+          crdOnly: false
+          webhook:
+            dockerFile: "./"
+      - manifest:
+          release: greenhouse-authz
+          chartPath: charts/authz
+          crdOnly: false
+          valuesPath: dev-env/dev.values.yaml
+  - cluster:
+      name: greenhouse-remote
+      configPath: dev-env/greenhouse-remote-cluster.yaml

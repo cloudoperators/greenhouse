@@ -59,10 +59,10 @@ func (r *OrganizationReconciler) reconcileClusterRole(ctx context.Context, org *
 	switch result {
 	case clientutil.OperationResultCreated:
 		log.FromContext(ctx).Info("created cluster role ", "name", clusterRole.Name)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedClusterRole", "Created ClusterRole %s", clusterRole.Name)
+		r.recorder.Eventf(org, clusterRole, corev1.EventTypeNormal, "CreatedClusterRole", "reconciling Organization", "Created ClusterRole %s", clusterRole.Name)
 	case clientutil.OperationResultUpdated:
 		log.FromContext(ctx).Info("updated cluster role ", "name", clusterRole.Name)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedClusterRole", "Updated ClusterRole %s", clusterRole.Name)
+		r.recorder.Eventf(org, clusterRole, corev1.EventTypeNormal, "UpdatedClusterRole", "reconciling Organization", "Updated ClusterRole %s", clusterRole.Name)
 	}
 	return nil
 }
@@ -104,10 +104,10 @@ func (r *OrganizationReconciler) reconcileClusterRoleBinding(ctx context.Context
 	switch result {
 	case clientutil.OperationResultCreated:
 		log.FromContext(ctx).Info("created cluster role binding", "name", clusterRoleBinding.Name)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedClusterRoleBinding", "Created ClusterRoleBinding %s", clusterRoleBinding.Name)
+		r.recorder.Eventf(org, clusterRoleBinding, corev1.EventTypeNormal, "CreatedClusterRoleBinding", "reconciling Organization", "Created ClusterRoleBinding %s", clusterRoleBinding.Name)
 	case clientutil.OperationResultUpdated:
 		log.FromContext(ctx).Info("updated cluster role binding", "name", clusterRoleBinding.Name)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedClusterRoleBinding", "Updated ClusterRoleBinding %s", clusterRoleBinding.Name)
+		r.recorder.Eventf(org, clusterRoleBinding, corev1.EventTypeNormal, "UpdatedClusterRoleBinding", "reconciling Organization", "Updated ClusterRoleBinding %s", clusterRoleBinding.Name)
 	}
 	return nil
 }
@@ -147,10 +147,10 @@ func (r *OrganizationReconciler) reconcileRole(ctx context.Context, org *greenho
 	switch result {
 	case clientutil.OperationResultCreated:
 		log.FromContext(ctx).Info("created role ", "namespace", role.Namespace, "name", role.Name)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedRole", "Created Role %s/%s", role.Namespace, role.Name)
+		r.recorder.Eventf(org, role, corev1.EventTypeNormal, "CreatedRole", "reconciling Organization", "Created Role %s/%s", role.Namespace, role.Name)
 	case clientutil.OperationResultUpdated:
 		log.FromContext(ctx).Info("updated role ", "namespace", role.Namespace, "name", role.Name)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedRole", "Updated Role %s/%s", role.Namespace, role.Name)
+		r.recorder.Eventf(org, role, corev1.EventTypeNormal, "UpdatedRole", "reconciling Organization", "Updated Role %s/%s", role.Namespace, role.Name)
 	}
 	return nil
 }
@@ -192,10 +192,10 @@ func (r *OrganizationReconciler) reconcileRoleBinding(ctx context.Context, org *
 	switch result {
 	case clientutil.OperationResultCreated:
 		log.FromContext(ctx).Info("created role binding", "namespace", roleBinding.Namespace, "name", roleBinding.Name)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedRoleBinding", "Created RoleBinding %s/%s", roleBinding.Namespace, roleBinding.Name)
+		r.recorder.Eventf(org, roleBinding, corev1.EventTypeNormal, "CreatedRoleBinding", "reconciling Organization", "Created RoleBinding %s/%s", roleBinding.Namespace, roleBinding.Name)
 	case clientutil.OperationResultUpdated:
 		log.FromContext(ctx).Info("updated role binding", "namespace", roleBinding.Namespace, "name", roleBinding.Name)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedRoleBinding", "Updated RoleBinding %s/%s", roleBinding.Namespace, roleBinding.Name)
+		r.recorder.Eventf(org, roleBinding, corev1.EventTypeNormal, "UpdatedRoleBinding", "reconciling Organization", "Updated RoleBinding %s/%s", roleBinding.Namespace, roleBinding.Name)
 	}
 	return nil
 }
@@ -213,17 +213,17 @@ func (r *OrganizationReconciler) reconcileCatalogServiceAccount(ctx context.Cont
 		return controllerutil.SetOwnerReference(org, serviceAccount, r.Scheme())
 	})
 	if err != nil {
-		r.recorder.Eventf(serviceAccount, corev1.EventTypeWarning, "FailedCatalogSA", "Failed to create or update ServiceAccount %s/%s: %s", serviceAccount.Namespace, serviceAccount.Name, err.Error())
+		r.recorder.Eventf(serviceAccount, org, corev1.EventTypeWarning, "FailedCatalogSA", "reconciling ServiceAccount for Catalog", "Failed to create or update ServiceAccount %s/%s: %s", serviceAccount.Namespace, serviceAccount.Name, err.Error())
 		return err
 	}
 
 	switch result {
 	case clientutil.OperationResultCreated:
 		log.FromContext(ctx).Info("created catalog service account", "name", serviceAccount.Name, "namespace", serviceAccount.Namespace)
-		r.recorder.Eventf(serviceAccount, corev1.EventTypeNormal, "CreatedCatalogSA", "Created ServiceAccount %s/%s", serviceAccount.Namespace, serviceAccount.Name)
+		r.recorder.Eventf(serviceAccount, org, corev1.EventTypeNormal, "CreatedCatalogSA", "reconciling ServiceAccount for Catalog", "Created ServiceAccount %s/%s", serviceAccount.Namespace, serviceAccount.Name)
 	case clientutil.OperationResultUpdated:
 		log.FromContext(ctx).Info("updated catalog service account", "name", serviceAccount.Name, "namespace", serviceAccount.Namespace)
-		r.recorder.Eventf(serviceAccount, corev1.EventTypeNormal, "UpdatedCatalogSA", "Updated ServiceAccount %s/%s", serviceAccount.Namespace, serviceAccount.Name)
+		r.recorder.Eventf(serviceAccount, org, corev1.EventTypeNormal, "UpdatedCatalogSA", "reconciling ServiceAccount for Catalog", "Updated ServiceAccount %s/%s", serviceAccount.Namespace, serviceAccount.Name)
 	case clientutil.OperationResultNone:
 		log.FromContext(ctx).Info("no changes made to catalog service account", "name", serviceAccount.Name, "namespace", serviceAccount.Namespace)
 	default:
@@ -246,17 +246,17 @@ func (r *OrganizationReconciler) reconcileCatalogClusterRole(ctx context.Context
 		return controllerutil.SetOwnerReference(org, clusterRole, r.Scheme())
 	})
 	if err != nil {
-		r.recorder.Eventf(org, corev1.EventTypeWarning, "FailedCatalogCRole", "Failed to create or update ClusterRole %s: %s", clusterRole.Name, err.Error())
+		r.recorder.Eventf(org, clusterRole, corev1.EventTypeWarning, "FailedCatalogCRole", "reconciling Organization", "Failed to create or update ClusterRole %s: %s", clusterRole.Name, err.Error())
 		return err
 	}
 
 	switch result {
 	case clientutil.OperationResultCreated:
 		log.FromContext(ctx).Info("created catalog cluster role", "org", org.Name, "name", clusterRole.Name)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedCatalogCRole", "Created ClusterRole %s", clusterRole.Name)
+		r.recorder.Eventf(org, clusterRole, corev1.EventTypeNormal, "CreatedCatalogCRole", "reconciling Organization", "Created ClusterRole %s", clusterRole.Name)
 	case clientutil.OperationResultUpdated:
 		log.FromContext(ctx).Info("updated catalog cluster role", "org", org.Name, "name", clusterRole.Name)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedCatalogCRole", "Updated ClusterRole %s", clusterRole.Name)
+		r.recorder.Eventf(org, clusterRole, corev1.EventTypeNormal, "UpdatedCatalogCRole", "reconciling Organization", "Updated ClusterRole %s", clusterRole.Name)
 	case clientutil.OperationResultNone:
 		log.FromContext(ctx).Info("no changes made to catalog cluster role", "org", org.Name, "name", clusterRole.Name)
 	default:
@@ -290,17 +290,17 @@ func (r *OrganizationReconciler) reconcileCatalogClusterRoleBinding(ctx context.
 		return controllerutil.SetOwnerReference(org, clusterRoleBinding, r.Scheme())
 	})
 	if err != nil {
-		r.recorder.Eventf(org, corev1.EventTypeWarning, "FailedCatalogCRoleBinding", "Failed to create or update ClusterRoleBinding %s: %s", clusterRoleBinding.Name, err.Error())
+		r.recorder.Eventf(org, clusterRoleBinding, corev1.EventTypeWarning, "FailedCatalogCRoleBinding", "reconciling Organization", "Failed to create or update ClusterRoleBinding %s: %s", clusterRoleBinding.Name, err.Error())
 		return err
 	}
 
 	switch result {
 	case clientutil.OperationResultCreated:
 		log.FromContext(ctx).Info("created catalog cluster roleBinding", "name", clusterRoleBinding.Name)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedCatalogCRoleBinding", "Created ClusterRoleBinding %s", clusterRoleBinding.Name)
+		r.recorder.Eventf(org, clusterRoleBinding, corev1.EventTypeNormal, "CreatedCatalogCRoleBinding", "reconciling Organization", "Created ClusterRoleBinding %s", clusterRoleBinding.Name)
 	case clientutil.OperationResultUpdated:
 		log.FromContext(ctx).Info("updated catalog cluster roleBinding", "name", clusterRoleBinding.Name)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedCatalogCRoleBinding", "Updated ClusterRoleBinding %s", clusterRoleBinding.Name)
+		r.recorder.Eventf(org, clusterRoleBinding, corev1.EventTypeNormal, "UpdatedCatalogCRoleBinding", "reconciling Organization", "Updated ClusterRoleBinding %s", clusterRoleBinding.Name)
 	case clientutil.OperationResultNone:
 		log.FromContext(ctx).Info("no changes made to catalog cluster roleBinding", "name", clusterRoleBinding.Name)
 	default:
@@ -324,17 +324,17 @@ func (r *OrganizationReconciler) reconcileCatalogRole(ctx context.Context, org *
 		return controllerutil.SetOwnerReference(org, role, r.Scheme())
 	})
 	if err != nil {
-		r.recorder.Eventf(org, corev1.EventTypeWarning, "FailedCatalogRole", "Failed to create or update Role %s/%s: %s", role.Namespace, role.Name, err.Error())
+		r.recorder.Eventf(org, role, corev1.EventTypeWarning, "FailedCatalogRole", "reconciling Organization", "Failed to create or update Role %s/%s: %s", role.Namespace, role.Name, err.Error())
 		return err
 	}
 
 	switch result {
 	case clientutil.OperationResultCreated:
 		log.FromContext(ctx).Info("created catalog role", "org", org.Name, "name", role.Name, "namespace", role.Namespace)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedCatalogRole", "Created Role %s/%s", role.Namespace, role.Name)
+		r.recorder.Eventf(org, role, corev1.EventTypeNormal, "CreatedCatalogRole", "reconciling Organization", "Created Role %s/%s", role.Namespace, role.Name)
 	case clientutil.OperationResultUpdated:
 		log.FromContext(ctx).Info("updated catalog role", "org", org.Name, "name", role.Name, "namespace", role.Namespace)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedCatalogRole", "Updated Role %s/%s", role.Namespace, role.Name)
+		r.recorder.Eventf(org, role, corev1.EventTypeNormal, "UpdatedCatalogRole", "reconciling Organization", "Updated Role %s/%s", role.Namespace, role.Name)
 	case clientutil.OperationResultNone:
 		log.FromContext(ctx).Info("no changes made to catalog role", "org", org.Name, "name", role.Name, "namespace", role.Namespace)
 	default:
@@ -369,17 +369,17 @@ func (r *OrganizationReconciler) reconcileCatalogRoleBinding(ctx context.Context
 		return controllerutil.SetOwnerReference(org, roleBinding, r.Scheme())
 	})
 	if err != nil {
-		r.recorder.Eventf(org, corev1.EventTypeWarning, "FailedCatalogRoleBinding", "Failed to create or update RoleBinding %s/%s: %s", roleBinding.Namespace, roleBinding.Name, err.Error())
+		r.recorder.Eventf(org, roleBinding, corev1.EventTypeWarning, "FailedCatalogRoleBinding", "reconciling Organization", "Failed to create or update RoleBinding %s/%s: %s", roleBinding.Namespace, roleBinding.Name, err.Error())
 		return err
 	}
 
 	switch result {
 	case clientutil.OperationResultCreated:
 		log.FromContext(ctx).Info("created catalog roleBinding", "name", roleBinding.Name, "namespace", roleBinding.Namespace)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedCatalogRoleBinding", "Created RoleBinding %s/%s", roleBinding.Namespace, roleBinding.Name)
+		r.recorder.Eventf(org, roleBinding, corev1.EventTypeNormal, "CreatedCatalogRoleBinding", "reconciling Organization", "Created RoleBinding %s/%s", roleBinding.Namespace, roleBinding.Name)
 	case clientutil.OperationResultUpdated:
 		log.FromContext(ctx).Info("updated catalog roleBinding", "name", roleBinding.Name, "namespace", roleBinding.Namespace)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedCatalogRoleBinding", "Updated RoleBinding %s/%s", roleBinding.Namespace, roleBinding.Name)
+		r.recorder.Eventf(org, roleBinding, corev1.EventTypeNormal, "UpdatedCatalogRoleBinding", "reconciling Organization", "Updated RoleBinding %s/%s", roleBinding.Namespace, roleBinding.Name)
 	case clientutil.OperationResultNone:
 		log.FromContext(ctx).Info("no changes made to catalog roleBinding", "name", roleBinding.Name, "namespace", roleBinding.Namespace)
 	default:

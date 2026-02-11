@@ -412,6 +412,7 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 
 			By("creating plugin definition with exposed service")
 			Expect(test.K8sClient.Create(test.Ctx, pluginDefinitionWithExposedService)).To(Succeed(), "should create plugin definition")
+			test.EventuallyCreated(test.Ctx, test.K8sClient, pluginDefinitionWithExposedService)
 
 			testPluginWithExposedService1 := testPluginWithExposedService.DeepCopy()
 

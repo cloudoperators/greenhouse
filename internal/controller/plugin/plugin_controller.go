@@ -60,13 +60,13 @@ type PluginReconciler struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins/finalizers,verbs=update
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=clusters;teams,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
-//+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;patch;update
+//+kubebuilder:rbac:groups="events.k8s.io",resources=events,verbs=get;list;watch;create;patch;update
 // +kubebuilder:rbac:groups=helm.toolkit.fluxcd.io,resources=helmreleases,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=helm.toolkit.fluxcd.io,resources=helmreleases/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=helm.toolkit.fluxcd.io,resources=helmreleases/finalizers,verbs=get;create;update;patch;delete
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmcharts,verbs=get;list;watch
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=ocirepositories,verbs=get;list;watch
-// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+// +kubebuilder:rbac:groups="events.k8s.io",resources=events,verbs=create;patch
 
 // These broad permissions are required as the controller manages Helm charts which contain arbitrary Kubernetes resources.
 //+kubebuilder:rbac:groups=*,resources=*,verbs=*

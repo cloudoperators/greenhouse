@@ -11,23 +11,10 @@ groups:
         organization: '{{ $labels.namespace }}'
         cluster: '{{ $labels.clusterName }}'
         support_group: '{{ $labels.owned_by }}'
+        playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/plugin/plugin-not-ready/
       annotations:
         summary: "Plugin not ready for over 15 minutes"
         description: "The plugin {{ $labels.plugin }} in organization {{ $labels.namespace }} on cluster {{ $labels.clusterName }} has not been ready for more than 15 minutes."
-    - alert: GreenhousePluginHelmChartTestFailures
-      expr: |
-        sum by(plugin, cluster, namespace)(rate(greenhouse_plugin_chart_test_runs_total{result="Error"}[15m])) > 0
-      for: 30m
-      labels:
-        severity: warning
-        service: '{{ $labels.plugin }}'
-        plugin: '{{ $labels.plugin }}'
-        organization: '{{ $labels.namespace }}'
-        cluster: '{{ $labels.cluster }}'
-        support_group: '{{ $labels.owned_by }}'
-      annotations:
-        summary: "Helm Chart test failing for plugin {{ $labels.plugin }}"
-        description: "Helm Chart test for plugin {{ $labels.plugin }} in organization {{ $labels.namespace }} on cluster {{ $labels.clusterName }} has been failing for the last 30 minutes"
     - alert: GreenhousePluginConstantlyFailing
       annotations:
         summary: "Plugin reconciliation is constantly failing"
@@ -41,19 +28,6 @@ groups:
         organization: '{{ $labels.namespace }}'
         cluster: '{{ $labels.clusterName }}'
         support_group: '{{ $labels.owned_by }}'
-    - alert: GreenhousePluginWorkloadNotReady
-      annotations:
-        summary: "Plugin workload not ready for over 15 minutes"
-        description: "The workload for plugin {{ $labels.plugin }} in organization {{ $labels.namespace }} on cluster {{ $labels.clusterName }} has not been ready for more than 15 minutes."
-      expr: |
-        greenhouse_plugin_workload_status_up == 0
-      for: 15m
-      labels:
-        severity: warning
-        service: '{{ $labels.plugin }}'
-        plugin: '{{ $labels.plugin }}'
-        organization: '{{ $labels.namespace }}'
-        cluster: '{{ $labels.clusterName }}'
-        support_group: '{{ $labels.owned_by }}'
+        playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/plugin/plugin-constantly-failing/
       
 

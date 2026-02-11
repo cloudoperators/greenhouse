@@ -13,6 +13,7 @@ groups:
         service: greenhouse
         organization: '{{ $labels.namespace }}'
         support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
+        playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/team/team-membership-count-drop/
     - alert: GreenhouseTeamRoleBindingNotReady
       expr: greenhouse_team_rbac_ready == 0
       for: 15m
@@ -20,7 +21,8 @@ groups:
         severity: warning
         service: greenhouse
         organization: '{{ $labels.namespace }}'
-        support_group: '{{ $labels.owned_by }}'  
+        support_group: '{{ $labels.owned_by }}'
+        playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/team/team-role-binding-not-ready/
       annotations:
         summary: "TeamRoleBinding not ready for over 15 minutes"
         description: "The TeamRoleBinding {{ $labels.team_role_binding }} in organization {{ $labels.namespace }} for team {{ $labels.team}} has not been ready for more than 15 minutes."

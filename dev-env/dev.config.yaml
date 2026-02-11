@@ -32,11 +32,6 @@ config:
           crdOnly: false
           webhook:
             dockerFile: "./"
-      - manifest:
-          release: greenhouse-authz
-          chartPath: charts/authz
-          crdOnly: false
-          valuesPath: dev-env/dev.values.yaml
   - cluster:
       name: greenhouse-remote
       configPath: dev-env/greenhouse-remote-cluster.yaml
