@@ -26,7 +26,8 @@ Greenhouse provides a couple of cli commands based on `make` to run a local Gree
   - [Running Greenhouse Dashboard in-cluster](#running-greenhouse-dashboard-in-cluster)
   - [Run Greenhouse Core for UI development](#run-greenhouse-core-for-ui-development)
 - Greenhouse Extensions
-  - [Test Plugin / Greenhouse Extension charts locally](#test-plugin--greenhouse-extension-charts-locally)
+  - DEPRECATED: [Test Plugin / Greenhouse Extension charts locally](#test-plugin--greenhouse-extension-charts-locally)
+  - [Test Greenhouse Extensions with local registry](#test-greenhouse-extensions-with-local-registry)
 - [Additional information](#additional-information)
 
 This handy CLI tool will help you to setup your development environment in no time.
@@ -149,7 +150,10 @@ The Greenhouse UI consists of a [Juno application](https://github.com/cloudopera
 - Start the dashboard locally (more information on how to run the dashboard locally can be found in
   the [Juno Repository](https://github.com/cloudoperators/juno/blob/main/apps/greenhouse/README.md))
 
-### Test Plugin / Greenhouse Extension charts locally
+### Test Plugin / Greenhouse Extension charts locally (Deprecated)
+
+> [!NOTE]
+> This setup is deprecated and will be removed in the future. Please refer to [Test Greenhouse Extensions with local registry](#test-greenhouse-extensions-with-local-registry)
 
 ```shell
 PLUGIN_DIR=<absolute-path-to-charts-dir> make setup
@@ -186,13 +190,136 @@ spec:
     repository: '' # <- has to be empty
     version: '' # <- has to be empty
 ...
-
 ```
 
 Apply the `plugindefinition.yaml` to the `admin` cluster
 
 ```shell
 kubectl --kubeconfig=<your-kind-config> apply -f plugindefinition.yaml
+```
+
+## Test Greenhouse Extensions with local registry
+
+Greenhouse controllers use FluxCD under the hood to deploy plugins (Helm charts). In order to test your local helm chart, you can push it to a local registry that is provided during the setup.
+
+```shell
+make setup
+```
+
+- This will install a full running setup of operator, dashboard, sample organization with an onboarded remote cluster
+- This will also install flux and a local registry.
+
+### Clone the Greenhouse Extensions repository
+
+```shell
+git clone https://github.com/cloudoperators/greenhouse-extensions
+cd greenhouse-extensions
+```
+
+### Prepare Environment Variables
+
+```shell
+export PKG=$(helm package $PWD/perses/charts -d ./bin | awk '{print $NF}')
+export REGISTRY_CA=$PWD/bin/ca.crt
+export OCI=oci://127.0.0.1:5000/cloudoperators/greenhouse-extensions/charts
+```
+
+> [!NOTE]
+> The bin folder is ignored by git, so it is safe to temporarily store the packaged chart and the registry CA there.
+
+### Extract Registry CA
+
+```shell
+kubectl --context=kind-greenhouse-admin get secret local-registry-tls-certs \
+-n flux-system -o jsonpath='{.data.ca\.crt}' | base64 -d > "$REGISTRY_CA"
+```
+
+### Port-Forward Registry Service
+
+```shell
+kubectl --context=kind-greenhouse-admin port-forward svc/registry -n flux-system 5000:5000&
+```
+
+> [!NOTE] 
+> use `&` to run the command in the background, so you can continue using the terminal with environment variables set.
+
+### Push Package to Local Registry
+
+```shell
+helm push $PKG $OCI --ca-file "$REGISTRY_CA" --plain-http=false
+```
+
+### Apply Perses PluginDefinition
+
+Before applying the plugin definition, change the registry in `.spec.helmChart.repository` from `ghcr.io` to `registry.flux-system.svc.cluster.local:5000`
+
+The below command should replace **ghcr.io** with the local registry address in the `.spec.helmChart.repository` field of the `plugindefinition.yaml` and save the modified file to `bin/perses.yaml`
+
+```shell
+yq eval '.spec.helmChart.repository |= sub("ghcr.io", "registry.flux-system.svc.cluster.local:5000")' perses/plugindefinition.yaml > ./bin/$(yq eval '.metadata.name' perses/plugindefinition.yaml).yaml
+```
+
+Apply the plugin definition to the admin cluster
+```shell
+kubectl --context=kind-greenhouse-admin apply -f bin/perses.yaml -n demo
+```
+
+> [!NOTE]
+> demo is the organization namespace in greenhouse local setup.
+
+### Verify PluginDefinition is `Ready`
+
+```shell
+kubectl --context=kind-greenhouse-admin get plugindefinition -n demo perses
+
+NAME     VERSION   CATALOG   READY   AGE
+perses   0.10.4              True    52m
+```
+
+### Test the Plugin
+
+now you can proceed with applying the below `Plugin` to test your changes.
+
+```shell
+cat <<EOF | kubectl apply -f -
+apiVersion: greenhouse.sap/v1alpha1
+kind: Plugin
+metadata:
+  name: perses
+  namespace: demo
+spec:
+  clusterName: kind-greenhouse-remote # demo onboarded kind cluster
+  displayName: perses test
+  optionValues:
+    - name: perses.sidecar.enabled
+      value: true
+  pluginDefinitionRef: 
+    name: perses
+    kind: PluginDefinition
+  releaseNamespace: kube-monitoring
+EOF
+```
+
+Watch the plugin deployment in real time
+
+```shell
+kubectl --context=kind-greenhouse-admin get plugin perses -n demo -w                            
+NAME     DISPLAY NAME   PLUGIN DEFINITION   CLUSTER                  RELEASE NAME   RELEASE NAMESPACE   READY   VERSION   AGE
+perses   perses test    perses              kind-greenhouse-remote   perses         kube-monitoring     False             2s
+perses   perses test    perses              kind-greenhouse-remote   perses         kube-monitoring     False             14s
+perses   perses test    perses              kind-greenhouse-remote   perses         kube-monitoring     True    0.10.4    14s
+```
+
+Verify the perses helm chart is successfully deployed in the `kind-greenhouse-remote` cluster by checking the `perses` release in the `kube-monitoring` namespace
+
+```shell
+helm status perses -n kube-monitoring --kube-context kind-greenhouse-remote 
+
+NAME: perses
+LAST DEPLOYED: Thu Feb 12 13:45:46 2026
+NAMESPACE: kube-monitoring
+STATUS: deployed
+REVISION: 1
 ```
 
 ## Additional information
@@ -218,74 +345,3 @@ if `DevMode` is enabled for webhooks then depending on the OS the webhook manife
 - webhook certs are generated by `cert-manager` in-cluster, and they are
   extracted and saved to `/tmp/k8s-webhook-server/serving-certs`
 - `kubeconfig` of the created cluster(s) are saved to `/tmp/greenhouse/<clusterName>.kubeconfig`
-
----
-
-
-## greenhousectl dev setup
-
-setup dev environment with a configuration file
-
-```
-greenhousectl dev setup [flags]
-```
-
-### Examples
-
-```
-
-# Setup Greenhouse dev environment with a configuration file
-greenhousectl dev setup -f dev-env/dev.config.yaml
-
-- This will create an admin and a remote cluster
-- Install CRDs, Webhook definitions, RBACs, Certs, etc... for Greenhouse into the admin cluster
-- Depending on the devMode, it will install the webhook in-cluster or enable it for local development
-
-Overriding certain values in dev.config.yaml:
-
-- Override devMode for webhook development with d=true or devMode=true
-- Override helm chart installation with c=true or crdOnly=true
-
-e.g. greenhousectl dev setup -f dev-env/dev.config.yaml d=true
-
-```
-
-### Options
-
-```
-  -f, --config string   configuration file path - e.g. -f dev-env/dev.config.yaml
-  -h, --help            help for setup
-```
-
-## greenhousectl dev setup dashboard
-
-setup dashboard for local development with a configuration file
-
-```
-greenhousectl dev setup dashboard [flags]
-```
-
-### Examples
-
-```
-
-# Setup Greenhouse dev environment with a configuration file
-greenhousectl dev setup dashboard -f dev-env/ui.config.yaml
-
-- Installs the Greenhouse dashboard and CORS proxy into the admin cluster
-
-```
-
-### Options
-
-```
-  -f, --config string   configuration file path - e.g. -f dev-env/ui.config.yaml
-  -h, --help            help for dashboard
-```
-
-
-## Generating Docs
-To generate the markdown documentation, run the following command:
-```shell
-make dev-docs
-```
