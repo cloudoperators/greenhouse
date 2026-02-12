@@ -15,9 +15,10 @@ import (
 
 func TestHelmReleaseBuilder_CreatesValidHelmRelease(t *testing.T) {
 	builder := NewHelmReleaseSpecBuilder().
-		WithChart(helmv2.HelmChartTemplateSpec{
-			Chart:   "nginx",
-			Version: "1.2.3",
+		WithHelmChartRef(&helmv2.CrossNamespaceSourceReference{
+			Kind:      "HelmChart",
+			Name:      "nginx",
+			Namespace: "flux-system",
 		}).
 		WithMaxHistory(5).
 		WithInterval(10 * time.Minute).
@@ -28,43 +29,29 @@ func TestHelmReleaseBuilder_CreatesValidHelmRelease(t *testing.T) {
 
 	spec, err := builder.Build()
 	assert.NoError(t, err)
-	assert.Equal(t, "nginx", spec.Chart.Spec.Chart)
-	assert.Equal(t, "1.2.3", spec.Chart.Spec.Version)
+	assert.Equal(t, "HelmChart", spec.ChartRef.Kind)
+	assert.Equal(t, "nginx", spec.ChartRef.Name)
+	assert.Equal(t, "flux-system", spec.ChartRef.Namespace)
 	assert.Equal(t, 5, *spec.MaxHistory)
 	assert.Equal(t, "custom-release", spec.ReleaseName)
 	assert.Equal(t, "target-ns", spec.StorageNamespace)
 	assert.Equal(t, "target-ns", spec.TargetNamespace)
 }
 
-func TestHelmReleaseBuilder_ChartNameRequired(t *testing.T) {
-	builder := NewHelmReleaseSpecBuilder().
-		WithChart(helmv2.HelmChartTemplateSpec{
-			Chart:   "",
-			Version: "1.0.0",
-		})
+func TestHelmReleaseBuilder_ChartRefRequired(t *testing.T) {
+	builder := NewHelmReleaseSpecBuilder()
 
 	_, err := builder.Build()
 	assert.Error(t, err)
-	assert.Equal(t, "chart name is required", err.Error())
-}
-
-func TestHelmReleaseBuilder_ChartVersionRequired(t *testing.T) {
-	builder := NewHelmReleaseSpecBuilder().
-		WithChart(helmv2.HelmChartTemplateSpec{
-			Chart:   "nginx",
-			Version: "",
-		})
-
-	_, err := builder.Build()
-	assert.Error(t, err)
-	assert.Equal(t, "chart version is required", err.Error())
+	assert.Equal(t, "chartRef must be set", err.Error())
 }
 
 func TestHelmReleaseBuilder_WithMaxHistoryNegativeValueIgnored(t *testing.T) {
 	builder := NewHelmReleaseSpecBuilder().
-		WithChart(helmv2.HelmChartTemplateSpec{
-			Chart:   "nginx",
-			Version: "1.0.0",
+		WithHelmChartRef(&helmv2.CrossNamespaceSourceReference{
+			Kind:      "HelmChart",
+			Name:      "nginx",
+			Namespace: "flux-system",
 		}).
 		WithMaxHistory(-1)
 
@@ -75,9 +62,10 @@ func TestHelmReleaseBuilder_WithMaxHistoryNegativeValueIgnored(t *testing.T) {
 
 func TestHelmReleaseBuilder_WithIntervalZeroOrNegativeIgnored(t *testing.T) {
 	builder := NewHelmReleaseSpecBuilder().
-		WithChart(helmv2.HelmChartTemplateSpec{
-			Chart:   "nginx",
-			Version: "1.0.0",
+		WithHelmChartRef(&helmv2.CrossNamespaceSourceReference{
+			Kind:      "HelmChart",
+			Name:      "nginx",
+			Namespace: "flux-system",
 		}).
 		WithInterval(0)
 
@@ -88,9 +76,10 @@ func TestHelmReleaseBuilder_WithIntervalZeroOrNegativeIgnored(t *testing.T) {
 
 func TestHelmReleaseBuilder_WithTimeoutZeroOrNegativeIgnored(t *testing.T) {
 	builder := NewHelmReleaseSpecBuilder().
-		WithChart(helmv2.HelmChartTemplateSpec{
-			Chart:   "nginx",
-			Version: "1.0.0",
+		WithHelmChartRef(&helmv2.CrossNamespaceSourceReference{
+			Kind:      "HelmChart",
+			Name:      "nginx",
+			Namespace: "flux-system",
 		}).
 		WithTimeout(-5 * time.Second)
 
@@ -101,9 +90,10 @@ func TestHelmReleaseBuilder_WithTimeoutZeroOrNegativeIgnored(t *testing.T) {
 
 func TestHelmReleaseBuilder_WithValuesNilIgnored(t *testing.T) {
 	builder := NewHelmReleaseSpecBuilder().
-		WithChart(helmv2.HelmChartTemplateSpec{
-			Chart:   "nginx",
-			Version: "1.0.0",
+		WithHelmChartRef(&helmv2.CrossNamespaceSourceReference{
+			Kind:      "HelmChart",
+			Name:      "nginx",
+			Namespace: "flux-system",
 		}).
 		WithValues(nil)
 
@@ -114,9 +104,10 @@ func TestHelmReleaseBuilder_WithValuesNilIgnored(t *testing.T) {
 
 func TestHelmReleaseBuilder_WithValuesFromEmptyIgnored(t *testing.T) {
 	builder := NewHelmReleaseSpecBuilder().
-		WithChart(helmv2.HelmChartTemplateSpec{
-			Chart:   "nginx",
-			Version: "1.0.0",
+		WithHelmChartRef(&helmv2.CrossNamespaceSourceReference{
+			Kind:      "HelmChart",
+			Name:      "nginx",
+			Namespace: "flux-system",
 		}).
 		WithValuesFrom([]helmv2.ValuesReference{})
 
@@ -127,9 +118,10 @@ func TestHelmReleaseBuilder_WithValuesFromEmptyIgnored(t *testing.T) {
 
 func TestHelmReleaseBuilder_WithReleaseNameEmptyIgnored(t *testing.T) {
 	builder := NewHelmReleaseSpecBuilder().
-		WithChart(helmv2.HelmChartTemplateSpec{
-			Chart:   "nginx",
-			Version: "1.0.0",
+		WithHelmChartRef(&helmv2.CrossNamespaceSourceReference{
+			Kind:      "HelmChart",
+			Name:      "nginx",
+			Namespace: "flux-system",
 		}).
 		WithReleaseName("")
 
@@ -140,9 +132,10 @@ func TestHelmReleaseBuilder_WithReleaseNameEmptyIgnored(t *testing.T) {
 
 func TestHelmReleaseBuilder_WithTargetNamespaceEmptyIgnored(t *testing.T) {
 	builder := NewHelmReleaseSpecBuilder().
-		WithChart(helmv2.HelmChartTemplateSpec{
-			Chart:   "nginx",
-			Version: "1.0.0",
+		WithHelmChartRef(&helmv2.CrossNamespaceSourceReference{
+			Kind:      "HelmChart",
+			Name:      "nginx",
+			Namespace: "flux-system",
 		}).
 		WithTargetNamespace("")
 
@@ -153,9 +146,10 @@ func TestHelmReleaseBuilder_WithTargetNamespaceEmptyIgnored(t *testing.T) {
 
 func TestHelmReleaseBuilder_WithDependsOnEmptyIgnored(t *testing.T) {
 	builder := NewHelmReleaseSpecBuilder().
-		WithChart(helmv2.HelmChartTemplateSpec{
-			Chart:   "nginx",
-			Version: "1.0.0",
+		WithHelmChartRef(&helmv2.CrossNamespaceSourceReference{
+			Kind:      "HelmChart",
+			Name:      "nginx",
+			Namespace: "flux-system",
 		}).
 		WithDependsOn([]helmv2.DependencyReference{})
 
@@ -166,9 +160,10 @@ func TestHelmReleaseBuilder_WithDependsOnEmptyIgnored(t *testing.T) {
 
 func TestHelmReleaseBuilder_WithKubeConfigEmptyIgnored(t *testing.T) {
 	builder := NewHelmReleaseSpecBuilder().
-		WithChart(helmv2.HelmChartTemplateSpec{
-			Chart:   "nginx",
-			Version: "1.0.0",
+		WithHelmChartRef(&helmv2.CrossNamespaceSourceReference{
+			Kind:      "HelmChart",
+			Name:      "nginx",
+			Namespace: "flux-system",
 		}).
 		WithKubeConfig(&meta.SecretKeyReference{})
 
@@ -179,9 +174,10 @@ func TestHelmReleaseBuilder_WithKubeConfigEmptyIgnored(t *testing.T) {
 
 func TestHelmReleaseBuilder_WithKubeConfigFromSecret(t *testing.T) {
 	builder := NewHelmReleaseSpecBuilder().
-		WithChart(helmv2.HelmChartTemplateSpec{
-			Chart:   "nginx",
-			Version: "1.0.0",
+		WithHelmChartRef(&helmv2.CrossNamespaceSourceReference{
+			Kind:      "HelmChart",
+			Name:      "nginx",
+			Namespace: "flux-system",
 		}).
 		WithKubeConfig(&meta.SecretKeyReference{
 			Name: "kubeconfig-secret",

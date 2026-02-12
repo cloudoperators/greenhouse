@@ -12,7 +12,7 @@ import (
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	fluxmeta "github.com/fluxcd/pkg/apis/meta"
-	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
+	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -132,6 +132,26 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 		err := test.K8sClient.Create(test.Ctx, testPluginDefinition)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the pluginDefinition")
 
+		By("mocking HelmChart Ready condition for testPluginDefinition")
+		Eventually(func(g Gomega) {
+			helmChart := &sourcev1.HelmChart{}
+			helmChart.SetName(testPluginDefinition.FluxHelmChartResourceName())
+			helmChart.SetNamespace(flux.HelmRepositoryDefaultNamespace)
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(helmChart), helmChart)
+			g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the HelmChart")
+			newHelmChart := &sourcev1.HelmChart{}
+			*newHelmChart = *helmChart
+			helmChartReadyCondition := metav1.Condition{
+				Type:               fluxmeta.ReadyCondition,
+				Status:             metav1.ConditionTrue,
+				LastTransitionTime: metav1.Now(),
+				Reason:             "Succeeded",
+				Message:            "Helm chart is ready",
+			}
+			newHelmChart.Status.Conditions = []metav1.Condition{helmChartReadyCondition}
+			g.Expect(test.K8sClient.Status().Patch(test.Ctx, newHelmChart, client.MergeFrom(helmChart))).To(Succeed(), "there should be no error patching HelmChart status")
+		}).Should(Succeed(), "HelmChart should be mocked as ready")
+
 		err = test.K8sClient.Create(test.Ctx, uiPluginDefinition)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the UI pluginDefinition")
 
@@ -214,7 +234,7 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 
 	It("should create HelmRelease for Plugin", func() {
 		By("ensuring HelmRepository has been created for ClusterPluginDefinition")
-		helmRepository := &sourcecontroller.HelmRepository{}
+		helmRepository := &sourcev1.HelmRepository{}
 		repoName := flux.ChartURLToName(testPluginDefinition.Spec.HelmChart.Repository)
 		repoNamespace := flux.HelmRepositoryDefaultNamespace
 		Eventually(func(g Gomega) {
