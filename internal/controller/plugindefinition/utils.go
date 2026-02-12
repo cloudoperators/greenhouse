@@ -57,7 +57,7 @@ func setupManagerBuilder(
 			&sourcev1.HelmRepository{},
 			handler.EnqueueRequestsFromMapFunc(enqueueFunc),
 			builder.WithPredicates(
-				predicate.Or(
+				predicate.And(
 					predicate.GenerationChangedPredicate{},
 					clientutil.PredicateIgnoreDeletingResources(),
 				),
@@ -66,7 +66,7 @@ func setupManagerBuilder(
 		Owns(
 			&sourcev1.HelmChart{},
 			builder.WithPredicates(
-				predicate.Or(
+				predicate.And(
 					predicate.GenerationChangedPredicate{},
 					clientutil.PredicateIgnoreDeletingResources(),
 				),
