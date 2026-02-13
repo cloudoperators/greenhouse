@@ -239,3 +239,50 @@ var _ = DescribeTable("Annotation propagation scenarios",
 		true,
 		[]string{"team", "owner"}),
 )
+
+var _ = DescribeTable("Label copy scenarios",
+	func(srcLabels map[string]string, dstLabels map[string]string, labelKeys []string, expected map[string]string) {
+		src := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "src",
+				Namespace: "default",
+				Labels:    srcLabels,
+			},
+		}
+		dst := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "dst",
+				Namespace: "default",
+				Labels:    dstLabels,
+			},
+		}
+
+		updated := lifecycle.NewPropagator(src, dst).CopyLabels(labelKeys)
+
+		Expect(updated.GetLabels()).To(Equal(expected))
+	},
+	Entry("It should copy over the specified label and not change existing ones",
+		map[string]string{"region": "bar"},
+		map[string]string{"test1": "value1"},
+		[]string{"region"},
+		map[string]string{"test1": "value1", "region": "bar"},
+	),
+	Entry("It should not change existing labels",
+		map[string]string{"region": "foo"},
+		map[string]string{"region": "bar"},
+		[]string{"test"},
+		map[string]string{"region": "bar"},
+	),
+	Entry("It should overwrite the specified label to copy",
+		map[string]string{"region": "bar"},
+		map[string]string{"region": "foo"},
+		[]string{"region"},
+		map[string]string{"region": "bar"},
+	),
+	Entry("It should copy over all labels matching the specified key with wildcard",
+		map[string]string{"region": "bar", "test/test1": "value1", "test/test2": "value2"},
+		map[string]string{"region": "foo"},
+		[]string{"test/*"},
+		map[string]string{"region": "foo", "test/test1": "value1", "test/test2": "value2"},
+	),
+)
