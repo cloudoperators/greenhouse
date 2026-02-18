@@ -147,6 +147,11 @@ func clientGetter(kubeconfigEnv string) *clientutil.RestClientGetter {
 	return clientutil.NewRestClientGetterFromRestConfig(config, "")
 }
 
+// FromEnv retrieves an environment variable value or returns an error if not set
+func FromEnv(key string) (string, error) {
+	return fromEnv(key)
+}
+
 func fromEnv(key string) (string, error) {
 	val, ok := os.LookupEnv(key)
 	if !ok {

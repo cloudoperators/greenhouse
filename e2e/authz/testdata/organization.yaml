@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: greenhouse.sap/v1alpha1
+kind: Organization
+metadata:
+  name: authz-e2e
+spec:
+  description: e2e organization for authz
+  displayName: AuthzE2E
+  mappedOrgAdminIdPGroup: TEST_ORG_ADMIN
