@@ -22,7 +22,6 @@ global:
   plugin:
     expressionEvaluationEnabled: false
     integrationEnabled: false
-    defaultDeploymentTool: helm
 
 postgresqlng:
   enabled: true

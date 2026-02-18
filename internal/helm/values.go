@@ -182,8 +182,9 @@ func stringSliceToHelmValue(theSlice []string) (*apiextensionsv1.JSON, error) {
 // For example, "metadata.greenhouse.sap/region" becomes "region".
 // Returns empty string if the label doesn't match the metadata pattern.
 func extractMetadataKey(labelKey string) string {
-	if strings.HasPrefix(labelKey, greenhouseapis.LabelKeyMetadataPrefix) {
-		return strings.TrimPrefix(labelKey, greenhouseapis.LabelKeyMetadataPrefix)
+	result, ok := strings.CutPrefix(labelKey, greenhouseapis.LabelKeyMetadataPrefix)
+	if ok {
+		return result
 	}
 	return ""
 }

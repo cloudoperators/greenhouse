@@ -11,11 +11,8 @@ import (
 	. "github.com/onsi/gomega"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
-	"helm.sh/helm/v3/pkg/release"
 	corev1 "k8s.io/api/core/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
@@ -84,43 +81,6 @@ var _ = Describe("helm package test", func() {
 	})
 
 	When("handling a helm chart from a pluginDefinition", func() {
-		It("should correctly error on missing helm chart reference", func() {
-			plugin.Spec.OptionValues = []greenhousev1alpha1.PluginOptionValue{*optionValue}
-			err := helm.InstallOrUpgradeHelmChartFromPlugin(context.Background(), test.K8sClient, test.RestClientGetter, testPluginWithoutHelmChart.Spec, plugin)
-			Expect(err).Should(HaveOccurred(),
-				"there should be an error for pluginDefinitions without helm chart")
-
-			Expect(err.Error()).To(ContainSubstring("no helm chart defined in .Spec.HelmChart for ClusterPluginDefinition"), "the error should contain the correct message")
-		})
-
-		It("should correctly install a helm chart from a pluginDefinition", func() {
-			err := helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChart.Spec, plugin)
-			Expect(err).ShouldNot(HaveOccurred(),
-				"there should be no error for plugindefinitions with helm chart")
-
-			cfg, err := helm.ExportNewHelmAction(test.RestClientGetter, plugin.Spec.ReleaseNamespace)
-			Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating helm config")
-			listAction := action.NewList(cfg)
-			releases, err := listAction.Run()
-			Expect(err).ShouldNot(HaveOccurred(), "there should be no error listing helm releases")
-			Expect(containsReleaseByName(releases, "test-plugin")).To(BeTrue(), "there should be a helm release with the name of the plugin")
-		})
-
-		It("should correctly uninstall a helm chart from a pluginDefinition", func() {
-			releaseNotFound, err := helm.UninstallHelmRelease(test.Ctx, test.RestClientGetter, plugin)
-			Expect(err).ShouldNot(HaveOccurred(),
-				"there should be no error uninstalling")
-			// We expect the release from the previous test to be found
-			Expect(releaseNotFound).To(BeFalse(), "the release should have been found before deleting")
-
-			cfg, err := helm.ExportNewHelmAction(test.RestClientGetter, plugin.Spec.ReleaseNamespace)
-			Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating helm config")
-			listAction := action.NewList(cfg)
-			releases, err := listAction.Run()
-			Expect(err).ShouldNot(HaveOccurred(), "there should be no error listing helm releases")
-			Expect(containsReleaseByName(releases, plugin.ObjectMeta.Name)).To(BeFalse(), "there should be no helm release with the name of the plugin")
-		})
-
 		It("should configure the chartPathOptions correctly for OCI repositories", func() {
 			cpo := action.ChartPathOptions{}
 			chartName := helm.ExportConfigureChartPathOptions(&cpo, testPluginWithHelmChartOCI.Spec.HelmChart)
@@ -136,113 +96,6 @@ var _ = Describe("helm package test", func() {
 			Expect(chartName).Should(Equal(testPluginWithHelmChart.Spec.HelmChart.Name))
 			Expect(cpo.RepoURL).Should(Equal(testPluginWithHelmChart.Spec.HelmChart.Repository))
 			Expect(cpo.Version).Should(Equal(testPluginWithHelmChart.Spec.HelmChart.Version))
-		})
-	})
-
-	When("handling a helm chart with CRDs", Ordered, func() {
-		It("should re-create CRDs from Helm chart when CRD is missing on upgrade", func() {
-			By("installing helm chart")
-			err := helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs.Spec, plugin)
-			Expect(err).ShouldNot(HaveOccurred(),
-				"there should be no error installing helm chart")
-
-			By("getting the Team CRD")
-			var teamCRD = &apiextensionsv1.CustomResourceDefinition{}
-			teamCRDName := "teams.greenhouse.fixtures"
-			teamCRDKey := types.NamespacedName{Name: teamCRDName, Namespace: ""}
-			err = test.K8sClient.Get(test.Ctx, teamCRDKey, teamCRD)
-			Expect(err).ToNot(HaveOccurred(), "there must be no error getting Team CRD")
-
-			By("deleting the Team CRD")
-			test.EventuallyDeleted(test.Ctx, test.K8sClient, teamCRD)
-
-			By("upgrading helm chart")
-			err = helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs.Spec, plugin)
-			Expect(err).ShouldNot(HaveOccurred(),
-				"there should be no error upgrading helm chart")
-
-			Eventually(func(g Gomega) {
-				By("getting Team CRD")
-				var teamCRD = &apiextensionsv1.CustomResourceDefinition{}
-				g.Expect(test.K8sClient.Get(test.Ctx, teamCRDKey, teamCRD)).To(Succeed(), "there must be no error getting the Team CRD")
-				g.Expect(teamCRD.Name).To(Equal(teamCRDName), "re-created Team CRD should have the correct name")
-			}).Should(Succeed(), "should re-create CRDs from Helm chart")
-
-			By("cleaning up test")
-			_, err = helm.UninstallHelmRelease(test.Ctx, test.RestClientGetter, plugin)
-			Expect(err).ToNot(HaveOccurred(), "there must be no error uninstalling helm release")
-		})
-
-		It("should not create CRDs from Helm chart when CRD is missing on templating", func() {
-			By("installing helm chart")
-			err := helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs.Spec, plugin)
-			Expect(err).ShouldNot(HaveOccurred(),
-				"there should be no error installing helm chart")
-
-			By("getting the Team CRD")
-			var teamCRD = &apiextensionsv1.CustomResourceDefinition{}
-			teamCRDName := "teams.greenhouse.fixtures"
-			teamCRDKey := types.NamespacedName{Name: teamCRDName, Namespace: ""}
-			err = test.K8sClient.Get(test.Ctx, teamCRDKey, teamCRD)
-			Expect(err).ToNot(HaveOccurred(), "there must be no error getting Team CRD")
-
-			By("deleting the Team CRD")
-			test.EventuallyDeleted(test.Ctx, test.K8sClient, teamCRD)
-
-			By("templating the Helm Chart from the Plugin")
-			_, err = helm.TemplateHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs.Spec, plugin)
-			Expect(err).NotTo(HaveOccurred(), "there should be no error templating the helm chart")
-
-			By("getting the Team CRD")
-			err = test.K8sClient.Get(test.Ctx, teamCRDKey, teamCRD)
-			Expect(err).To(HaveOccurred(), "Team CRD should not be re-created")
-
-			By("cleaning up test")
-			_, err = helm.UninstallHelmRelease(test.Ctx, test.RestClientGetter, plugin)
-			Expect(err).ToNot(HaveOccurred(), "there must be no error uninstalling helm release")
-		})
-	})
-
-	When("helm install fails at initial release", func() {
-		It("should rollback to the same initial version", func() {
-			By("installing a helm chart from a pluginDefinition")
-			err := helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs.Spec, plugin)
-			Expect(err).ShouldNot(HaveOccurred(),
-				"there should be no error for installing helm chart from plugin")
-
-			By("getting the deployed helm release")
-			cfg, err := helm.ExportNewHelmAction(test.RestClientGetter, plugin.Spec.ReleaseNamespace)
-			Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating helm config")
-			getAction := action.NewGet(cfg)
-			helmRelease, err := getAction.Run(plugin.Name)
-			Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the helm release")
-			Expect(helmRelease.Info.Status).To(Equal(release.StatusDeployed), "helm release should be set to deployed")
-
-			By("fake failing helm install by setting the deployed helm release to failed")
-			helmRelease.SetStatus(release.StatusFailed, "release set to failed manually from a test")
-			err = cfg.Releases.Update(helmRelease)
-			Expect(err).ToNot(HaveOccurred(), "there should be no error updating the helm release")
-
-			By("checking that the helm release status is set to failed")
-			getAction = action.NewGet(cfg)
-			helmRelease, err = getAction.Run(plugin.Name)
-			Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the helm release")
-			Expect(helmRelease.Info.Status).To(Equal(release.StatusFailed), "helm release should be set to failed")
-
-			By("running install or upgrade again")
-			err = helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs.Spec, plugin)
-			Expect(err).ShouldNot(HaveOccurred(),
-				"there should be no error for upgrading the helm chart")
-
-			By("checking that the helm release has been fixed")
-			getAction = action.NewGet(cfg)
-			helmRelease, err = getAction.Run(plugin.Name)
-			Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the helm release")
-			Expect(helmRelease.Info.Status).To(Equal(release.StatusDeployed), "helm release should be set to deployed")
-
-			By("cleaning up test")
-			_, err = helm.UninstallHelmRelease(test.Ctx, test.RestClientGetter, plugin)
-			Expect(err).ToNot(HaveOccurred(), "there must be no error uninstalling helm release")
 		})
 	})
 })
@@ -284,15 +137,6 @@ func namedValueSliceValueByName(valuesMap map[string]any, valueName string) (any
 		}
 	}
 	return nil, false
-}
-
-func containsReleaseByName(releases []*release.Release, releaseName string) bool {
-	for _, r := range releases {
-		if r.Name == releaseName {
-			return true
-		}
-	}
-	return false
 }
 
 var _ = Describe("Plugin option checksum", Ordered, func() {

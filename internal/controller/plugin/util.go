@@ -7,13 +7,10 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"strings"
 	"time"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	"github.com/pkg/errors"
-	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,8 +35,6 @@ var exposedConditions = []greenhousemetav1alpha1.ConditionType{
 	greenhousev1alpha1.HelmDriftDetectedCondition,
 	greenhousev1alpha1.HelmReconcileFailedCondition,
 	greenhousev1alpha1.StatusUpToDateCondition,
-	greenhousev1alpha1.HelmChartTestSucceededCondition,
-	greenhousev1alpha1.WorkloadReadyCondition,
 	greenhousemetav1alpha1.OwnerLabelSetCondition,
 	greenhousev1alpha1.WaitingForDependenciesCondition,
 	greenhousev1alpha1.RetriesExhaustedCondition,
@@ -201,123 +196,6 @@ func convertRuntimeObject[T any](o any) (*T, error) {
 	default:
 		return nil, fmt.Errorf("unsupported runtime.Object type: %T", obj)
 	}
-}
-
-// isPayloadReadyRunning checking if the payload is ready and running
-func isPayloadReadyRunning(o any) bool {
-	switch obj := o.(type) {
-	case *appsv1.Deployment:
-		if (obj.Status.ReadyReplicas == obj.Status.Replicas) && (obj.Status.Replicas == obj.Status.AvailableReplicas) {
-			return true
-		}
-	case *appsv1.StatefulSet:
-		if (obj.Status.ReadyReplicas == obj.Status.Replicas) && (obj.Status.Replicas == obj.Status.AvailableReplicas) {
-			return true
-		}
-	case *appsv1.DaemonSet:
-		if (obj.Status.NumberReady == obj.Status.DesiredNumberScheduled) && (obj.Status.DesiredNumberScheduled == obj.Status.NumberAvailable) {
-			return true
-		}
-	case *appsv1.ReplicaSet:
-		if (obj.Status.ReadyReplicas == obj.Status.Replicas) && (obj.Status.Replicas == obj.Status.AvailableReplicas) {
-			return true
-		}
-	case *batchv1.Job:
-		if obj.Status.CompletionTime != nil {
-			return true
-		}
-	case *batchv1.CronJob:
-		// CronJob does not have a status field just for the job, so we need to check the last successful time
-		if obj.Status.LastSuccessfulTime == obj.Status.LastScheduleTime {
-			return true
-		}
-	case *corev1.Pod:
-		if obj.Status.Phase != corev1.PodRunning {
-			return false
-		}
-		return true
-	case *corev1.PodList:
-		// Check if all pods are running, if one of them is not running, return false
-		for _, pod := range obj.Items {
-			if pod.Status.Phase != corev1.PodRunning {
-				return false
-			}
-		}
-		return true
-	}
-	return false
-}
-
-// allResourceReady checks if all resources are ready
-func allResourceReady(payloadStatus []PayloadStatus) bool {
-	for _, status := range payloadStatus {
-		if !status.Ready {
-			return false
-		}
-	}
-	return true
-}
-
-// computeWorkloadCondition computes the ReadyCondition for the Plugin and sets the workload metrics and condition message.
-func computeWorkloadCondition(plugin *greenhousev1alpha1.Plugin, release *ReleaseStatus) error {
-	if !allResourceReady(release.PayloadStatus) {
-		UpdatePluginWorkloadMetrics(plugin, 0)
-		errorMessage := "Following workload resources are not ready: [ "
-		b := strings.Builder{}
-		for _, status := range release.PayloadStatus {
-			if !status.Ready {
-				if _, err := b.WriteString(", " + status.Message); err != nil {
-					return err
-				}
-			}
-		}
-		errorMessage += b.String()
-		errorMessage = strings.TrimPrefix(errorMessage, ", ")
-		errorMessage += " ]"
-		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.WorkloadReadyCondition, "", errorMessage))
-		return nil
-	}
-
-	UpdatePluginWorkloadMetrics(plugin, 1)
-	plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.WorkloadReadyCondition, "", "Workload is running"))
-	return nil
-}
-
-// computeReadyCondition computes the ReadyCondition for the Plugin based on various status conditions
-func computeReadyCondition(
-	conditions greenhousemetav1alpha1.StatusConditions,
-) (readyCondition greenhousemetav1alpha1.Condition) {
-
-	readyCondition = *conditions.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
-
-	// If the Cluster is not ready, the Plugin could not be ready
-	if conditions.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition).IsFalse() {
-		readyCondition.Status = metav1.ConditionFalse
-		readyCondition.Message = "cluster access not ready"
-		return readyCondition
-	}
-	// If the Helm reconcile failed, the Plugin is not up to date / ready
-	if conditions.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition).IsTrue() {
-		readyCondition.Status = metav1.ConditionFalse
-		readyCondition.Message = "Helm reconcile failed"
-		return readyCondition
-	}
-	if conditions.GetConditionByType(greenhousev1alpha1.HelmChartTestSucceededCondition).IsFalse() {
-		readyCondition.Status = metav1.ConditionFalse
-		readyCondition.Message = "Helm Chart Test failed"
-		return readyCondition
-	}
-	// If the Workload deployed by the Plugin is not ready, the Plugin is not ready
-	workloadCondition := conditions.GetConditionByType(greenhousev1alpha1.WorkloadReadyCondition)
-	if workloadCondition.IsFalse() {
-		readyCondition.Status = metav1.ConditionFalse
-		readyCondition.Message = workloadCondition.Message
-		return readyCondition
-	}
-	// In other cases, the Plugin is ready
-	readyCondition.Status = metav1.ConditionTrue
-	readyCondition.Message = "ready"
-	return readyCondition
 }
 
 func shouldReconcileOrRequeue(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) (*reconcileResult, error) {

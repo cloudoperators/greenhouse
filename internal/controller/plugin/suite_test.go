@@ -10,7 +10,6 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousecluster "github.com/cloudoperators/greenhouse/internal/controller/cluster"
 	greenhouseDef "github.com/cloudoperators/greenhouse/internal/controller/plugindefinition"
-	"github.com/cloudoperators/greenhouse/internal/features"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -40,8 +39,7 @@ func TestHelmController(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	test.RegisterController("plugin", (&PluginReconciler{
-		KubeRuntimeOpts:       clientutil.RuntimeOptions{QPS: 5, Burst: 10},
-		DefaultDeploymentTool: &features.DefaultDeploymentToolValue,
+		KubeRuntimeOpts: clientutil.RuntimeOptions{QPS: 5, Burst: 10},
 	}).SetupWithManager)
 	test.RegisterController("pluginPreset", (&PluginPresetReconciler{}).SetupWithManager)
 	test.RegisterController("pluginDefinition", (&greenhouseDef.PluginDefinitionReconciler{}).SetupWithManager)

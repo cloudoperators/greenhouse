@@ -4,11 +4,8 @@
 package helm
 
 var (
-	ExportGetValuesForHelmChart     = getValuesForHelmChart
-	ExportNewHelmAction             = newHelmAction
-	ExportDiffAgainstLiveObjects    = diffAgainstLiveObjects
-	ExportConfigureChartPathOptions = configureChartPathOptions
-	ExportGreenhouseFieldManager    = greenhouseFieldManager
-	ExportDiffAgainstRelease        = diffAgainstRelease
-	ExportInstallHelmRelease        = installRelease
+// ExportGetValuesForHelmChart     = getValuesForHelmChart
+// ExportNewHelmAction             = newHelmAction
+// ExportConfigureChartPathOptions = configureChartPathOptions
+// ExportInstallHelmRelease        = installRelease
 )
