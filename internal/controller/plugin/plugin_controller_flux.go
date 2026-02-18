@@ -324,7 +324,7 @@ func (r *PluginReconciler) reconcilePluginStatus(ctx context.Context,
 			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 				greenhousev1alpha1.StatusUpToDateCondition, "", "failed to get Helm SDK release: "+err.Error()))
 		} else {
-			serviceList, err := getExposedServicesForPluginFromHelmRelease(restClientGetter, helmSDKRelease, plugin)
+			serviceList, err := getAllExposedServicesForPlugin(restClientGetter, helmSDKRelease, plugin)
 			if err != nil {
 				plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 					greenhousev1alpha1.StatusUpToDateCondition, "", "failed to get exposed services: "+err.Error()))
