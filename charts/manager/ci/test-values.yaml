@@ -12,7 +12,6 @@ global:
   plugin:
     expressionEvaluationEnabled: false
     integrationEnabled: false
-    defaultDeploymentTool: helm
 
 controllerManager:
   args:
