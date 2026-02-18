@@ -134,34 +134,22 @@ func (v *PluginOptionValue) ValueJSON() string {
 
 const (
 
-	// ClusterAccessReadyCondition reflects if we can access the cluster a Plugin is to be deployed to.
-	ClusterAccessReadyCondition greenhousemetav1alpha1.ConditionType = "ClusterAccessReady"
+	// HelmReleaseCreatedCondition reflects that the Flux HelmRelease has been successfully created.
+	HelmReleaseCreatedCondition greenhousemetav1alpha1.ConditionType = "HelmReleaseCreated"
 
-	// HelmReconcileFailedCondition reflects the failed reconciliation of the corresponding helm release.
-	HelmReconcileFailedCondition greenhousemetav1alpha1.ConditionType = "HelmReconcileFailed"
+	// ExposedServicesSyncedCondition reflects that the list of exposed services is up to date with the services defined in the Helm chart.
+	ExposedServicesSyncedCondition greenhousemetav1alpha1.ConditionType = "ExposedServicesSynced"
 
-	// HelmDriftDetectedCondition reflects the last time a drift between Release and Deployed Resources was detected.
-	HelmDriftDetectedCondition greenhousemetav1alpha1.ConditionType = "HelmDriftDetected"
+	// HelmReleaseDeployedCondition reflects that the HelmRelease has been successfully released on the target cluster.
+	HelmReleaseDeployedCondition greenhousemetav1alpha1.ConditionType = "HelmReleaseDeployed"
 
-	// WorkloadReadyCondition reflects the readiness of the workload resources belonging to the Plugin.
-	WorkloadReadyCondition greenhousemetav1alpha1.ConditionType = "WorkloadReady"
+	// PluginDefinitionNotAvailableReason is set when the PluginDefinition is not found.
+	PluginDefinitionNotAvailableReason greenhousemetav1alpha1.ConditionReason = "PluginDefinitionNotAvailable"
 
-	// StatusUpToDateCondition reflects the failed reconciliation of the Plugin.
-	StatusUpToDateCondition greenhousemetav1alpha1.ConditionType = "StatusUpToDate"
+	// PluginDefinitionNotBackedByHelmChartReason is set when the PluginDefinition is not backed by a Helm chart.
+	PluginDefinitionNotBackedByHelmChartReason greenhousemetav1alpha1.ConditionReason = "PluginDefinitionNotBackedByHelmChart"
 
-	// HelmChartTestSucceededCondition reflects the status of the HelmChart tests.
-	HelmChartTestSucceededCondition greenhousemetav1alpha1.ConditionType = "HelmChartTestSucceeded"
-
-	// WaitingForDependenciesCondition reflects if HelmRelease is waiting for other releases to be ready.
-	WaitingForDependenciesCondition greenhousemetav1alpha1.ConditionType = "WaitingForDependencies"
-
-	// RetriesExhaustedCondition reflects if the HelmRelease has exhausted all retries.
-	RetriesExhaustedCondition greenhousemetav1alpha1.ConditionType = "RetriesExhausted"
-
-	// PluginDefinitionNotFoundReason is set when the pluginDefinition is not found.
-	PluginDefinitionNotFoundReason greenhousemetav1alpha1.ConditionReason = "PluginDefinitionNotFound"
-
-	// HelmUninstallFailedReason is set when the helm release could not be uninstalled.
+	// HelmUninstallFailedReason is set when the Helm release could not be uninstalled.
 	HelmUninstallFailedReason greenhousemetav1alpha1.ConditionReason = "HelmUninstallFailed"
 
 	// OptionValueResolutionFailedReason is set when option values could not be resolved
@@ -169,6 +157,15 @@ const (
 
 	// PluginOptionValueInvalidReason is set when option values could not be converted to Helm values
 	PluginOptionValueInvalidReason greenhousemetav1alpha1.ConditionReason = "PluginOptionValueInvalid"
+
+	// FluxHelmReleaseConfigInvalidReason is set when the generated Flux HelmRelease manifest is invalid and cannot be applied to the cluster.
+	FluxHelmReleaseConfigInvalidReason greenhousemetav1alpha1.ConditionReason = "FluxHelmReleaseConfigInvalid"
+
+	// FluxHelmReleaseStalledReason is set when the Flux HelmRelease is stalled.
+	FluxHelmReleaseStalledReason greenhousemetav1alpha1.ConditionReason = "FluxHelmReleaseStalled"
+
+	// ClusterAccessFailedReason is set when the controller cannot access the target cluster.
+	ClusterAccessFailedReason greenhousemetav1alpha1.ConditionReason = "ClusterAccessFailed"
 )
 
 // PluginStatus defines the observed state of Plugin
