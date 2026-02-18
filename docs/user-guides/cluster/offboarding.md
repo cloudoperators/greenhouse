@@ -127,4 +127,4 @@ You can also annotate the `Cluster` resource with `greenhouse.sap/delete-cluster
 If the cluster deletion has failed, you can troubleshoot the issue by inspecting -
 
 1. `Cluster` resource status conditions, specifically the `KubeConfigValid` condition.
-2. status conditions of the `Plugin` resources associated with the `Cluster` resource. There will be a clear indication of the issue in `HelmReconcileFailed` condition.
+2. status conditions of the `Plugin` resources associated with the `Cluster` resource. There will be a clear indication of the issue in the `HelmReleaseDeployed` condition (set to `false` when Helm reconciliation fails).
