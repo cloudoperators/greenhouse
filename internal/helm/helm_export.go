@@ -4,8 +4,8 @@
 package helm
 
 var (
-// ExportGetValuesForHelmChart     = getValuesForHelmChart
-// ExportNewHelmAction             = newHelmAction
-// ExportConfigureChartPathOptions = configureChartPathOptions
-// ExportInstallHelmRelease        = installRelease
+	ExportGetValuesForHelmChart     = getValuesForHelmChart
+	ExportNewHelmAction             = newHelmAction
+	ExportConfigureChartPathOptions = configureChartPathOptions
+	ExportInstallHelmRelease        = installRelease
 )

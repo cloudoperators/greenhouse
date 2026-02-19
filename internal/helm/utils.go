@@ -14,10 +14,10 @@ import (
 // Default Greenhouse helm timeout duration in seconds for install, upgrade and rollback actions.
 const helmReleaseTimeoutSeconds int = 300
 
-// GetHelmTimeout gets a timeout duration for helm release install, upgrade and rollback actions.
+// getHelmTimeout gets a timeout duration for helm release install, upgrade and rollback actions.
 // Tries to get the value from HELM_RELEASE_TIMEOUT evironment variable, otherwise gets the default value.
 // Mainly used for E2E tests, because in deployment mode this should always be set to the default 5 minutes.
-func GetHelmTimeout() time.Duration {
+func getHelmTimeout() time.Duration {
 	val := clientutil.GetIntEnvWithDefault("HELM_RELEASE_TIMEOUT", helmReleaseTimeoutSeconds)
 	return time.Duration(val) * time.Second
 }
