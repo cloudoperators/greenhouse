@@ -2,6 +2,36 @@
 # This file contains all authz-related make targets for generating and managing
 # certificates required by the authorization webhook.
 
+AUTHZ_CLUSTER ?= greenhouse-authz
+
+.PHONY: setup-e2e-authz
+setup-e2e-authz: cli authz-certs
+	CONTROLLER_ENABLED=$(WITH_CONTROLLER) $(CLI) dev setup -f e2e/authz.config.yaml
+	make prepare-e2e-authz
+
+.PHONY: clean-e2e-authz
+clean-e2e-authz:
+	kind delete cluster --name $(REMOTE_CLUSTER)
+	kind delete cluster --name $(AUTHZ_CLUSTER)
+	rm -rf $(LOCALBIN)/*.kubeconfig
+
+.PHONY: e2e-local-authz
+e2e-local-authz: SCENARIO := authz
+e2e-local-authz: prepare-e2e-authz
+	GREENHOUSE_ADMIN_KUBECONFIG="$(E2E_RESULT_DIR)/$(AUTHZ_CLUSTER).kubeconfig" \
+    	GREENHOUSE_REMOTE_KUBECONFIG="$(E2E_RESULT_DIR)/$(REMOTE_CLUSTER).kubeconfig" \
+    	GREENHOUSE_REMOTE_INT_KUBECONFIG="$(E2E_RESULT_DIR)/$(REMOTE_CLUSTER)-int.kubeconfig" \
+    	CONTROLLER_LOGS_PATH="$(E2E_RESULT_DIR)/$(SCENARIO)-e2e-pod-logs.txt" \
+    	EXECUTION_ENV=$(EXECUTION_ENV) \
+		GOMEGA_DEFAULT_EVENTUALLY_TIMEOUT="2m" \
+		go test -tags="$(SCENARIO)E2E" $(shell pwd)/e2e/$(SCENARIO) -test.v -ginkgo.v --ginkgo.json-report=$(E2E_REPORT_PATH)
+
+.PHONY: prepare-e2e-authz
+prepare-e2e-authz:
+	kind get kubeconfig --name $(AUTHZ_CLUSTER) > $(shell pwd)/bin/$(AUTHZ_CLUSTER).kubeconfig
+	kind get kubeconfig --name $(REMOTE_CLUSTER) > $(shell pwd)/bin/$(REMOTE_CLUSTER).kubeconfig
+	kind get kubeconfig --name $(REMOTE_CLUSTER) --internal > ${PWD}/bin/$(REMOTE_CLUSTER)-int.kubeconfig
+
 # Certs for Authorization Webhook
 AUTHZ_CERTS_DIR := bin/authz-certs
 AUTHZ_CA_KEY := $(AUTHZ_CERTS_DIR)/ca.key
