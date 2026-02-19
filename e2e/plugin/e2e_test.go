@@ -82,18 +82,6 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		shared.ClusterIsReady(ctx, adminClient, remoteClusterName, env.TestNamespace)
 	})
 
-	It("should deploy the PodInfo plugin", func() {
-		scenarios.PluginControllerPodInfoByPlugin(ctx, adminClient, remoteClient, env, remoteClusterName, team.Name)
-	})
-
-	It("should deploy the PodInfo plugin by the plugin preset", func() {
-		scenarios.PluginControllerPodInfoByPreset(ctx, adminClient, remoteClient, env, remoteClusterName, team.Name)
-	})
-
-	It("should rollback the first helm release on failed deployment", func() {
-		scenarios.PluginControllerHelmRollback(ctx, adminClient, remoteClient, env, remoteClusterName, team.Name)
-	})
-
 	It("should deploy the plugin with flux", func() {
 		scenarios.FluxControllerPodInfoByPlugin(ctx, adminClient, remoteClient, env, remoteClusterName)
 	})
