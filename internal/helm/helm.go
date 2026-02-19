@@ -54,7 +54,6 @@ func UninstallHelmRelease(ctx context.Context, restClientGetter genericclioption
 	if err != nil {
 		return false, err
 	}
-	settings.RESTClientGetter()
 	if !isReleaseExists {
 		return true, nil
 	}
@@ -219,7 +218,7 @@ func newHelmInstallAction(restClientGetter genericclioptions.RESTClientGetter, r
 	installAction := action.NewInstall(cfg)
 	installAction.ReleaseName = releaseName
 	installAction.Namespace = releaseNamespace
-	installAction.Timeout = GetHelmTimeout() // set a timeout for the installation to not be stuck in pending state
+	installAction.Timeout = getHelmTimeout() // set a timeout for the installation to not be stuck in pending state
 	installAction.CreateNamespace = true
 	installAction.DependencyUpdate = true
 	installAction.DryRun = isDryRun
@@ -263,14 +262,14 @@ func ConvertFlatValuesToHelmValues(values []greenhousev1alpha1.PluginOptionValue
 }
 
 // Taken from: https://github.com/helm/helm/blob/v3.10.3/pkg/cli/values/options.go#L99-L116
-func MergeMaps(a, b map[string]any) map[string]any {
+func mergeMaps(a, b map[string]any) map[string]any {
 	out := make(map[string]any, len(a))
 	maps.Copy(out, a)
 	for k, v := range b {
 		if v, ok := v.(map[string]any); ok {
 			if bv, ok := out[k]; ok {
 				if bv, ok := bv.(map[string]any); ok {
-					out[k] = MergeMaps(bv, v)
+					out[k] = mergeMaps(bv, v)
 					continue
 				}
 			}
@@ -284,7 +283,7 @@ func MergeMaps(a, b map[string]any) map[string]any {
 // The order is important as the values defined in the Helm chart can be overridden by the values defined in the Plugin.
 func getValuesForHelmChart(ctx context.Context, c client.Client, helmChart *chart.Chart, plugin *greenhousev1alpha1.Plugin) (map[string]any, error) {
 	// Copy the values from the Helm chart ensuring a non-nil map.
-	helmValues := MergeMaps(make(map[string]any), helmChart.Values)
+	helmValues := mergeMaps(make(map[string]any), helmChart.Values)
 	// Get values defined in plugin.
 	optionValues, err := resolvePluginOptionValueFrom(ctx, c, plugin.Namespace, plugin.Spec.OptionValues)
 	if err != nil {
@@ -299,7 +298,7 @@ func mergeChartAndPluginOptionValues(helmValues map[string]any, optionValues []g
 	if err != nil {
 		return nil, err
 	}
-	helmValues = MergeMaps(helmValues, helmPluginValues)
+	helmValues = mergeMaps(helmValues, helmPluginValues)
 	return helmValues, nil
 }
 
