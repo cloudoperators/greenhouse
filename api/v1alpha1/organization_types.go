@@ -85,6 +85,18 @@ type OIDCConfig struct {
 	// OAuth2ClientRedirectURIs are a registered set of redirect URIs. When redirecting from the idproxy to
 	// the client application, the URI requested to redirect to must be contained in this list.
 	OAuth2ClientRedirectURIs []string `json:"oauth2ClientRedirectURIs,omitempty"`
+	// ExtraClaims contains additional configuration for extra claims.
+	ExtraConfig *OIDCExtraConfig `json:"extraConfig,omitempty"`
+}
+
+type OIDCExtraConfig struct {
+	// InsecureSkipEmailVerified allows to skip the verification of the "email_verified" claim in ID tokens.
+	// +kubebuilder:default:=false
+	// +kubebuilder:validation:Enum:=true;false
+	InsecureSkipEmailVerified bool `json:"insecureSkipEmailVerified,omitempty"`
+	// UserIDClaim is the claim to be used as user ID.
+	// +kubebuilder:default:="login_name"
+	UserIDClaim string `json:"userIDClaim,omitempty"`
 }
 
 type SCIMConfig struct {
