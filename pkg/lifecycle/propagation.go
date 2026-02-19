@@ -88,6 +88,26 @@ func (p *Propagator) Apply() client.Object {
 	return p.dst
 }
 
+// CopyLabels - copies labels from src to dst, only labels with the keys specified in the parameter. Supports wildcards.
+// Does not track applied state.
+func (p *Propagator) CopyLabels(labelKeys []string) client.Object {
+	srcLabels := p.src.GetLabels()
+	if srcLabels == nil {
+		srcLabels = map[string]string{}
+	}
+	dstLabels := p.dst.GetLabels()
+	if dstLabels == nil {
+		dstLabels = map[string]string{}
+	}
+
+	p.copyLabels(labelKeys, srcLabels, dstLabels)
+
+	// Persist the mutated map
+	p.dst.SetLabels(dstLabels)
+
+	return p.dst
+}
+
 // applyLabels applies label propagation independently and performs label-only cleanup if needed.
 // Returns the list of label keys applied during this run.
 func (p *Propagator) applyLabels(labelKeys []string, srcLabels, dstLabels map[string]string) []string {
@@ -309,5 +329,34 @@ func (p *Propagator) cleanupTargetAnnotations(dstAnn map[string]string) {
 	state := p.getAppliedState()
 	for _, k := range state.AnnotationKeys {
 		delete(dstAnn, k)
+	}
+}
+
+func (p *Propagator) copyLabels(keysToPropagate []string, srcLabels, dstLabels map[string]string) {
+	// Precompute exact keys and wildcard prefixes to propagate.
+	exact := make([]string, 0, len(keysToPropagate))
+	wildPrefixes := make([]string, 0, len(keysToPropagate))
+	for _, k := range keysToPropagate {
+		if before, ok := strings.CutSuffix(k, "/*"); ok {
+			wildPrefixes = append(wildPrefixes, before+"/")
+		} else {
+			exact = append(exact, k)
+		}
+	}
+
+	// Apply labels matching exactly.
+	for _, k := range exact {
+		if v, ok := srcLabels[k]; ok {
+			dstLabels[k] = v
+		}
+	}
+	// Apply labels matching the wildcards.
+	for k, v := range srcLabels {
+		for _, prefix := range wildPrefixes {
+			if strings.HasPrefix(k, prefix) {
+				dstLabels[k] = v
+				break
+			}
+		}
 	}
 }
