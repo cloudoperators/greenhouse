@@ -214,6 +214,7 @@ func (r *CatalogReconciler) suspendArtifactGenerator(ctx context.Context, name, 
 
 func (r *CatalogReconciler) EnsureCreated(ctx context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	catalog := obj.(*greenhousev1alpha1.Catalog) //nolint:errcheck
+	defer UpdateCatalogReadyMetric(catalog)
 	catalog.SetUnknownCondition()
 
 	if len(catalog.Spec.Sources) == 0 {
@@ -375,6 +376,7 @@ func (r *CatalogReconciler) deleteOrphanedResource(ctx context.Context, obj clie
 	return nil
 }
 
+//nolint:unparam
 func (r *CatalogReconciler) verifyStatus(ctx context.Context, catalog *greenhousev1alpha1.Catalog, allErrors []catalogError) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	existingNotReady := catalog.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 	if existingNotReady != nil && existingNotReady.Status == metav1.ConditionFalse {
