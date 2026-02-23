@@ -69,8 +69,25 @@ func MustRemoveAnnotation(ctx context.Context, c client.Client, o client.Object,
 func MustDeleteCluster(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster) {
 	GinkgoHelper()
 	UpdateClusterWithDeletionAnnotation(ctx, c, cluster)
-	Expect(c.Delete(ctx, cluster)).
-		To(Succeed(), "there must be no error deleting object", "key", client.ObjectKeyFromObject(cluster))
+
+	// Retry delete on conflict - the cluster may have been modified between annotation update and delete
+	Eventually(func() error {
+		err := c.Get(ctx, client.ObjectKeyFromObject(cluster), cluster)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil // Already deleted
+			}
+			return err
+		}
+
+		// Verify deletion annotations are present (required by admission webhook)
+		annotations := cluster.GetAnnotations()
+		if annotations == nil || annotations[greenhouseapis.MarkClusterDeletionAnnotation] != "true" {
+			return errors.New("deletion annotation not yet present on cluster")
+		}
+
+		return c.Delete(ctx, cluster)
+	}).Should(Succeed(), "there must be no error deleting object", "key", client.ObjectKeyFromObject(cluster))
 
 	Eventually(func() bool {
 		err := c.Get(ctx, client.ObjectKeyFromObject(cluster), cluster)
