@@ -88,12 +88,17 @@ func (p *Propagator) Apply() client.Object {
 	return p.dst
 }
 
-// CopyLabels - copies labels from src to dst, only labels with the keys specified in the parameter. Supports wildcards.
-// Does not track applied state.
+// CopyLabels - copies labels from src to dst, only labels with the keys specified in the parameter.
+// Supports wildcards (e.g., "metadata.greenhouse.sap/*" matches all labels with that prefix).
+// Does not track applied state. If a label key exists in both src and dst, the src value overwrites dst.
+// If a specified label key doesn't exist in src, dst remains unchanged for that key.
 func (p *Propagator) CopyLabels(labelKeys []string) client.Object {
+	if len(labelKeys) == 0 {
+		return p.dst
+	}
 	srcLabels := p.src.GetLabels()
 	if srcLabels == nil {
-		srcLabels = map[string]string{}
+		return p.dst
 	}
 	dstLabels := p.dst.GetLabels()
 	if dstLabels == nil {
