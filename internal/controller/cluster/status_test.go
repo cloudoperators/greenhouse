@@ -264,11 +264,14 @@ var _ = Describe("Cluster status", Ordered, func() {
 
 	It("should set the deletion condition when the cluster is marked for deletion", func() {
 		By("marking the cluster for deletion")
-		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
-		validCluster.SetAnnotations(map[string]string{
-			greenhouseapis.MarkClusterDeletionAnnotation: "true",
-		})
-		Expect(test.K8sClient.Update(test.Ctx, &validCluster)).To(Succeed(), "there must be no error updating the object", "key", client.ObjectKeyFromObject(&validCluster))
+		Eventually(func(g Gomega) {
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).
+				ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
+			validCluster.SetAnnotations(map[string]string{
+				greenhouseapis.MarkClusterDeletionAnnotation: "true",
+			})
+			g.Expect(test.K8sClient.Update(test.Ctx, &validCluster)).To(Succeed(), "there must be no error updating the object")
+		}).Should(Succeed(), "marking cluster for deletion should eventually succeed")
 
 		By("checking the deletion condition")
 		Eventually(func(g Gomega) {

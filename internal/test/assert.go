@@ -44,10 +44,11 @@ func EventuallyDeleted(ctx context.Context, c client.Client, obj client.Object) 
 	}).Should(Succeed(), "deletion should succeed or object should already be deleted")
 
 	// Wait for object to be gone (with extended timeout for objects with finalizers)
+	// Use longer polling interval to reduce conflicts with controller status updates
 	Eventually(func() bool {
 		err := c.Get(ctx, client.ObjectKeyFromObject(obj), obj)
 		return apierrors.IsNotFound(err)
-	}).WithTimeout(2*time.Minute).WithPolling(1*time.Second).Should(BeTrue(), "the object should be deleted eventually")
+	}).WithTimeout(2*time.Minute).WithPolling(500*time.Millisecond).Should(BeTrue(), "the object should be deleted eventually")
 }
 
 // EventuallyCreated verifies if the object is created
