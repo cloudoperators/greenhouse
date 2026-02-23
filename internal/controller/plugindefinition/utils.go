@@ -12,89 +12,27 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/events"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
-type GenericPluginDefinition interface {
-	lifecycle.RuntimeObject
-	GetPluginDefinitionSpec() *greenhousev1alpha1.PluginDefinitionSpec
-	FluxHelmChartResourceName() string
-}
-
 type helmer struct {
 	k8sClient     client.Client
 	recorder      events.EventRecorder
-	pluginDef     GenericPluginDefinition
+	pluginDef     common.GenericPluginDefinition
 	namespaceName string
 }
 
-// setupManagerBuilder returns a common controller builder configured for (Cluster)PluginDefinition controllers
-func setupManagerBuilder(
-	mgr ctrl.Manager,
-	name string,
-	resourceType client.Object,
-	enqueueFunc handler.MapFunc,
-) *builder.Builder {
-
-	return ctrl.NewControllerManagedBy(mgr).
-		Named(name).
-		For(resourceType).
-		Watches(
-			&sourcev1.HelmRepository{},
-			handler.EnqueueRequestsFromMapFunc(enqueueFunc),
-			builder.WithPredicates(
-				predicate.And(
-					predicate.GenerationChangedPredicate{},
-					clientutil.PredicateIgnoreDeletingResources(),
-				),
-			),
-		).
-		Owns(
-			&sourcev1.HelmChart{},
-			builder.WithPredicates(
-				predicate.And(
-					predicate.GenerationChangedPredicate{},
-					clientutil.PredicateIgnoreDeletingResources(),
-				),
-			),
-		)
-}
-
-// enqueueOwnersForHelmRepository returns reconcile requests for all PluginDefinitions || ClusterPluginDefinitions
-// that own the given HelmChart / HelmRepository, depending on the reconciler type.
-func enqueueOwnersForHelmRepository(obj client.Object, ownerKind string) []ctrl.Request {
-	var requests []ctrl.Request
-
-	for _, ownerRef := range obj.GetOwnerReferences() {
-		if ownerRef.Kind == ownerKind {
-			req := ctrl.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      ownerRef.Name,
-					Namespace: obj.GetNamespace(), // namespace is ignored for ClusterPluginDefinitions as they are cluster-scoped
-				},
-			}
-			requests = append(requests, req)
-		}
-	}
-	return requests
-}
-
 // initializeConditions sets the provided conditions to Unknown if they do not already exist.
-func initializeConditions(resource GenericPluginDefinition, conditionTypes ...greenhousemetav1alpha1.ConditionType) {
+func initializeConditions(resource common.GenericPluginDefinition, conditionTypes ...greenhousemetav1alpha1.ConditionType) {
 	conditions := resource.GetConditions()
 	for _, condType := range conditionTypes {
 		if cond := conditions.GetConditionByType(condType); cond == nil {
@@ -106,7 +44,7 @@ func initializeConditions(resource GenericPluginDefinition, conditionTypes ...gr
 }
 
 // setReadyCondition sets the Ready condition for a (Cluster-)PluginDefinition based on HelmChartReady condition status.
-func setReadyCondition(resource GenericPluginDefinition) {
+func setReadyCondition(resource common.GenericPluginDefinition) {
 	pluginDefSpec := resource.GetPluginDefinitionSpec()
 	if pluginDefSpec.HelmChart == nil {
 		// No HelmChart defined, set Ready to True (possible UI application)
