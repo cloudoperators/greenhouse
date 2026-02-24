@@ -27,7 +27,7 @@ Greenhouse provides a couple of cli commands based on `make` to run a local Gree
   - [Run Greenhouse Core for UI development](#run-greenhouse-core-for-ui-development)
 - Greenhouse Extensions
   - DEPRECATED: [Test Plugin / Greenhouse Extension charts locally](#test-plugin--greenhouse-extension-charts-locally)
-  - [Test Greenhouse Extensions with local registry](#test-greenhouse-extensions-with-local-registry)
+  - [Test Greenhouse Extensions with local registry](#test-greenhouse-extensions-with-local-oci-registry)
 - [Additional information](#additional-information)
 
 This handy CLI tool will help you to setup your development environment in no time.
@@ -153,7 +153,7 @@ The Greenhouse UI consists of a [Juno application](https://github.com/cloudopera
 ### Test Plugin / Greenhouse Extension charts locally (Deprecated)
 
 > [!NOTE]
-> This setup is deprecated and will be removed in the future. Please refer to [Test Greenhouse Extensions with local registry](#test-greenhouse-extensions-with-local-registry)
+> This setup is deprecated and will be removed in the future. Please refer to [Test Greenhouse Extensions with local OCI registry](#test-greenhouse-extensions-with-local-oci-registry)
 
 ```shell
 PLUGIN_DIR=<absolute-path-to-charts-dir> make setup
@@ -198,16 +198,16 @@ Apply the `plugindefinition.yaml` to the `admin` cluster
 kubectl --kubeconfig=<your-kind-config> apply -f plugindefinition.yaml
 ```
 
-## Test Greenhouse Extensions with local registry
+## Test Greenhouse Extensions with local OCI registry
 
-Greenhouse controllers use FluxCD under the hood to deploy plugins (Helm charts). In order to test your local helm chart, you can push it to a local registry that is provided during the setup.
+Greenhouse controllers use FluxCD under the hood to deploy Plugins (Helm charts). In order to test your local Helm chart, you can push it to a local registry that is provided during the setup.
 
 ```shell
 make setup
 ```
 
 - This will install a full running setup of operator, dashboard, sample organization with an onboarded remote cluster
-- This will also install flux and a local registry.
+- This will also install Flux and a local OCI registry.
 
 ### Clone the Greenhouse Extensions repository
 
@@ -251,21 +251,21 @@ helm push $PKG $OCI --ca-file "$REGISTRY_CA" --plain-http=false
 
 ### Apply Perses PluginDefinition
 
-Before applying the plugin definition, change the registry in `.spec.helmChart.repository` from `ghcr.io` to `registry.flux-system.svc.cluster.local:5000`
+Before applying the PluginDefinition, change the registry in `.spec.helmChart.repository` from `ghcr.io` to `registry.flux-system.svc.cluster.local:5000`
 
-The below command should replace **ghcr.io** with the local registry address in the `.spec.helmChart.repository` field of the `plugindefinition.yaml` and save the modified file to `bin/perses.yaml`
+The below command replaces **ghcr.io** with the local registry address in the `.spec.helmChart.repository` field of the `plugindefinition.yaml` and save the modified file to `bin/perses.yaml`
 
 ```shell
 yq eval '.spec.helmChart.repository |= sub("ghcr.io", "registry.flux-system.svc.cluster.local:5000")' perses/plugindefinition.yaml > ./bin/$(yq eval '.metadata.name' perses/plugindefinition.yaml).yaml
 ```
 
-Apply the plugin definition to the admin cluster
+Apply the PluginDefinition to the admin cluster
 ```shell
 kubectl --context=kind-greenhouse-admin apply -f bin/perses.yaml -n demo
 ```
 
 > [!NOTE]
-> demo is the organization namespace in greenhouse local setup.
+> demo is the organization namespace in Greenhouse local setup.
 
 ### Verify PluginDefinition is `Ready`
 
@@ -278,7 +278,7 @@ perses   0.10.4              True    52m
 
 ### Test the Plugin
 
-now you can proceed with applying the below `Plugin` to test your changes.
+now you can proceed with applying the below Plugin to test your changes.
 
 ```shell
 cat <<EOF | kubectl apply -f -
@@ -300,7 +300,7 @@ spec:
 EOF
 ```
 
-Watch the plugin deployment in real time
+Watch the Plugin deployment in real time
 
 ```shell
 kubectl --context=kind-greenhouse-admin get plugin perses -n demo -w                            
@@ -310,7 +310,7 @@ perses   perses test    perses              kind-greenhouse-remote   perses     
 perses   perses test    perses              kind-greenhouse-remote   perses         kube-monitoring     True    0.10.4    14s
 ```
 
-Verify the perses helm chart is successfully deployed in the `kind-greenhouse-remote` cluster by checking the `perses` release in the `kube-monitoring` namespace
+Verify the Perses Helm chart is successfully deployed in the `kind-greenhouse-remote` cluster by checking the `perses` release in the `kube-monitoring` namespace
 
 ```shell
 helm status perses -n kube-monitoring --kube-context kind-greenhouse-remote 
