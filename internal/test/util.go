@@ -25,6 +25,7 @@ import (
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/internal/common"
 )
 
 func UpdateClusterWithDeletionAnnotation(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster) *greenhousev1alpha1.Cluster {
@@ -129,4 +130,31 @@ func KubeconfigFromEnvVar(envVar string) ([]byte, error) {
 		return nil, err
 	}
 	return kubeconfig, nil
+}
+
+
+// MockHelmChartReady mocks the HelmChart status for a PluginDefinition as ready.
+// This is useful in tests where the Flux source controller is not running.
+// The function uses Eventually to wait for the HelmChart to be created and then patches its status.
+// Works with both ClusterPluginDefinition and PluginDefinition via the common.GenericPluginDefinition interface.
+func MockHelmChartReady(ctx context.Context, k8sClient client.Client, pluginDefinition common.GenericPluginDefinition, helmChartNamespace string) {
+	GinkgoHelper()
+	Eventually(func(g Gomega) {
+		helmChart := &sourcev1.HelmChart{}
+		helmChart.SetName(pluginDefinition.FluxHelmChartResourceName())
+		helmChart.SetNamespace(helmChartNamespace)
+		err := k8sClient.Get(ctx, client.ObjectKeyFromObject(helmChart), helmChart)
+		g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the HelmChart")
+		newHelmChart := &sourcev1.HelmChart{}
+		*newHelmChart = *helmChart
+		helmChartReadyCondition := metav1.Condition{
+			Type:               fluxmeta.ReadyCondition,
+			Status:             metav1.ConditionTrue,
+			LastTransitionTime: metav1.Now(),
+			Reason:             "Succeeded",
+			Message:            "Helm chart is ready",
+		}
+		newHelmChart.Status.Conditions = []metav1.Condition{helmChartReadyCondition}
+		g.Expect(k8sClient.Status().Patch(ctx, newHelmChart, client.MergeFrom(helmChart))).To(Succeed(), "there should be no error patching HelmChart status")
+	}).Should(Succeed(), "HelmChart should be mocked as ready")
 }

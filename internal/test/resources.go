@@ -7,6 +7,7 @@ import (
 	"context"
 
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"k8s.io/utils/ptr"
 
 	corev1 "k8s.io/api/core/v1"
@@ -190,8 +191,9 @@ func NewClusterPluginDefinition(ctx context.Context, name string, opts ...func(d
 			Description: "TestPluginDefinition",
 			Version:     "1.0.0",
 			HelmChart: &greenhousev1alpha1.HelmChartReference{
-				Name:    "./../../test/fixtures/myChart",
-				Version: "1.0.0",
+				Name:       "dummy",
+				Repository: "oci://greenhouse/helm-charts",
+				Version:    "1.0.0",
 			},
 		},
 	}
