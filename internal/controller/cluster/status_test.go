@@ -193,12 +193,15 @@ var _ = Describe("Cluster status", Ordered, func() {
 		}).Should(Succeed(), "we should see the condition change on the remote node")
 
 		By("Triggering a cluster reconcile by adding a label to speed up things. Requeue interval is set to 2min")
-		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
-		if validCluster.Labels == nil {
-			validCluster.Labels = make(map[string]string)
-		}
-		validCluster.Labels["reconcile-me"] = "true"
-		Expect(test.K8sClient.Update(test.Ctx, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error updating the cluster resource")
+		Eventually(func(g Gomega) {
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).
+				ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
+			if validCluster.Labels == nil {
+				validCluster.Labels = make(map[string]string)
+			}
+			validCluster.Labels["reconcile-me"] = "true"
+			g.Expect(test.K8sClient.Update(test.Ctx, &validCluster)).To(Succeed(), "there must be no error updating the cluster")
+		}).Should(Succeed(), "updating cluster with label should eventually succeed")
 
 		Eventually(func(g Gomega) {
 			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
@@ -232,7 +235,6 @@ var _ = Describe("Cluster status", Ordered, func() {
 			g.Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
 			g.Expect(validCluster.Status.KubernetesVersion).ToNot(BeNil())
 		}).Should(Succeed())
-
 	})
 
 	It("should reconcile the status of a cluster without a secret", func() {
