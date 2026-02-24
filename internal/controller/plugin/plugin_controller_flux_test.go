@@ -62,7 +62,6 @@ var (
 		test.WithClusterPluginDefinition("test-flux-plugindefinition"),
 		test.WithReleaseName("release-test-flux"),
 		test.WithReleaseNamespace(test.TestNamespace),
-		test.WithPluginLabel(greenhouseapis.GreenhouseHelmDeliveryToolLabel, greenhouseapis.GreenhouseHelmDeliveryToolFlux),
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testPluginTeam.Name),
 		test.WithPluginOptionValue("flatOption", test.MustReturnJSONFor("flatValue")),
 		test.WithPluginOptionValue("nested.option", test.MustReturnJSONFor("nestedValue")),
@@ -122,7 +121,6 @@ var (
 	uiPlugin = test.NewPlugin(test.Ctx, "test-flux-ui-plugin", test.TestNamespace,
 		test.WithClusterPluginDefinition(uiPluginDefinition.Name),
 		test.WithReleaseName("release-test-flux"),
-		test.WithPluginLabel(greenhouseapis.GreenhouseHelmDeliveryToolLabel, greenhouseapis.GreenhouseHelmDeliveryToolFlux),
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testPluginTeam.Name),
 	)
 )
