@@ -18,7 +18,6 @@ import (
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
-	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
@@ -72,16 +71,6 @@ func (r *PluginDefinitionReconciler) EnsureCreated(ctx context.Context, obj life
 	if pluginDef.Spec.HelmChart == nil {
 		log.FromContext(ctx).Info("No HelmChart defined in PluginDefinition, skipping HelmRepository creation", "name", pluginDef.Name)
 		r.recorder.Eventf(pluginDef, nil, corev1.EventTypeNormal, "Skipped", "reconciling PluginDefinition", "Skipped HelmRepository creation")
-		return ctrl.Result{}, lifecycle.Success, nil
-	}
-
-	// Check if this is a local file path (used in tests) - skip Flux HelmRepository creation
-	if flux.IsLocalFilePath(pluginDef.Spec.HelmChart.Repository) {
-		log.FromContext(ctx).Info("Local file path detected for HelmChart, skipping Flux resource creation", "path", pluginDef.Spec.HelmChart.Repository)
-		r.recorder.Eventf(pluginDef, nil, corev1.EventTypeNormal, "Skipped", "reconciling PluginDefinition", "Skipped Flux resources for local chart path: %s", pluginDef.Spec.HelmChart.Repository)
-		// Set HelmChartReady condition to True since local paths are always available
-		pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
-			greenhousev1alpha1.HelmChartReadyCondition, "", "Local chart path is available"))
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 

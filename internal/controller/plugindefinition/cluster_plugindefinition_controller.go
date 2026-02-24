@@ -72,16 +72,6 @@ func (r *ClusterPluginDefinitionReconciler) EnsureCreated(ctx context.Context, o
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 
-	// Check if this is a local file path (used in tests) - skip Flux HelmRepository creation
-	if flux.IsLocalFilePath(clusterDef.Spec.HelmChart.Repository) {
-		log.FromContext(ctx).Info("Local file path detected for HelmChart, skipping Flux resource creation", "path", clusterDef.Spec.HelmChart.Repository)
-		r.recorder.Eventf(clusterDef, nil, corev1.EventTypeNormal, "Skipped", "reconciling ClusterPluginDefinition", "Skipped Flux resources for local chart path: %s", clusterDef.Spec.HelmChart.Repository)
-		// Set HelmChartReady condition to True since local paths are always available
-		clusterDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
-			greenhousev1alpha1.HelmChartReadyCondition, "", "Local chart path is available"))
-		return ctrl.Result{}, lifecycle.Success, nil
-	}
-
 	h := &helmer{
 		k8sClient:     r.Client,
 		recorder:      r.recorder,

@@ -31,11 +31,6 @@ func GetSourceRepositoryType(repositoryURL string) string {
 	return sourcev1.HelmRepositoryTypeDefault
 }
 
-// IsLocalFilePath returns true if the path is a local file path (not a remote URL)
-func IsLocalFilePath(path string) bool {
-	return strings.HasPrefix(path, "./") || strings.HasPrefix(path, "../") || strings.HasPrefix(path, "/")
-}
-
 func ChartURLToName(repositoryURL string) (repositoryName string) {
 	// remove prefixes
 	var prefixes = []string{
