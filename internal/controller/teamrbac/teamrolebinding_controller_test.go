@@ -45,7 +45,6 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 
 		By("creating a TeamRole on the central cluster")
 		teamRoleUT = setup.CreateTeamRole(test.Ctx, "test-role", test.WithLabels(map[string]string{"aggregate": "true"}))
-		test.EventuallyCreated(test.Ctx, setup.Client, teamRoleUT)
 	})
 
 	AfterEach(func() {
@@ -850,10 +849,12 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			Expect(clusterAKubeClient.Create(test.Ctx, namespace)).To(Succeed(), "there should be no error creating the second additional namespace on the remote cluster")
 
 			By("Adding namespaces to TRB")
-			err := setup.Get(test.Ctx, types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}, trb)
-			Expect(err).ToNot(HaveOccurred(), "There should be no error getting the TeamRoleBinding")
-			trb.Spec.Namespaces = append(trb.Spec.Namespaces, firstAdditionalNamespace, secondAdditionalNamespace)
-			Expect(setup.Update(test.Ctx, trb)).To(Succeed(), "There should be no error updating the Namespaces in TeamRoleBinding")
+			Eventually(func(g Gomega) {
+				err := setup.Get(test.Ctx, types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}, trb)
+				g.Expect(err).ToNot(HaveOccurred(), "There should be no error getting the TeamRoleBinding")
+				trb.Spec.Namespaces = append(trb.Spec.Namespaces, firstAdditionalNamespace, secondAdditionalNamespace)
+				g.Expect(setup.Update(test.Ctx, trb)).To(Succeed(), "There should be no error updating the Namespaces in TeamRoleBinding")
+			}).To(Succeed(), "TeamRoleBinding namespaces should be updated eventually")
 
 			By("Checking that additional RoleBindings have been deployed")
 			Eventually(func(g Gomega) {
@@ -872,10 +873,12 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			}).Should(Succeed(), "Two additional RoleBindings should be deployed to remote cluster")
 
 			By("Removing some namespaces from TRB")
-			err = setup.Get(test.Ctx, types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}, trb)
-			Expect(err).ToNot(HaveOccurred(), "There should be no error getting the TeamRoleBinding")
-			trb.Spec.Namespaces = []string{firstAdditionalNamespace}
-			Expect(setup.Update(test.Ctx, trb)).To(Succeed(), "There should be no error updating the Namespaces in TeamRoleBinding")
+			Eventually(func(g Gomega) {
+				err := setup.Get(test.Ctx, types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}, trb)
+				g.Expect(err).ToNot(HaveOccurred(), "There should be no error getting the TeamRoleBinding")
+				trb.Spec.Namespaces = []string{firstAdditionalNamespace}
+				g.Expect(setup.Update(test.Ctx, trb)).To(Succeed(), "There should be no error updating the Namespaces in TeamRoleBinding")
+			}).To(Succeed(), "TeamRoleBinding namespaces should be updated eventually")
 
 			By("Checking that RoleBindings have been removed from remote cluster")
 			Eventually(func(g Gomega) {
