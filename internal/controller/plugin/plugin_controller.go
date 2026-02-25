@@ -9,21 +9,18 @@ import (
 	"fmt"
 	"maps"
 	"strings"
-	"time"
 
 	"helm.sh/helm/v3/pkg/release"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 
@@ -86,7 +83,6 @@ func (r *PluginReconciler) SetupWithManager(name string, mgr ctrl.Manager) error
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(controller.Options{
-			RateLimiter:             workqueue.NewTypedItemFastSlowRateLimiter[reconcile.Request](1*time.Millisecond, 1*time.Second, 5),
 			MaxConcurrentReconciles: 10,
 		}).
 		For(&greenhousev1alpha1.Plugin{}).
