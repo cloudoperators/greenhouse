@@ -69,13 +69,23 @@ func MustRemoveAnnotation(ctx context.Context, c client.Client, o client.Object,
 func MustDeleteCluster(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster) {
 	GinkgoHelper()
 	UpdateClusterWithDeletionAnnotation(ctx, c, cluster)
-	Expect(c.Delete(ctx, cluster)).
-		To(Succeed(), "there must be no error deleting object", "key", client.ObjectKeyFromObject(cluster))
 
+	// Retry delete until the cluster is gone - handles conflicts and waits for deletion to complete
 	Eventually(func() bool {
 		err := c.Get(ctx, client.ObjectKeyFromObject(cluster), cluster)
+		if err != nil {
+			return apierrors.IsNotFound(err)
+		}
+
+		err = c.Delete(ctx, cluster)
+		if err != nil && !apierrors.IsNotFound(err) {
+			return false // Delete failed, will retry
+		}
+
+		// Make sure that the cluster is gone
+		err = c.Get(ctx, client.ObjectKeyFromObject(cluster), cluster)
 		return apierrors.IsNotFound(err)
-	}).Should(BeTrue(), "the object should be deleted eventually")
+	}).Should(BeTrue(), "the cluster should be deleted eventually", "key", client.ObjectKeyFromObject(cluster))
 }
 
 // SetClusterReadyCondition sets the ready condition of the cluster resource.

@@ -5,6 +5,7 @@ package test
 
 import (
 	"context"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -20,24 +21,36 @@ func EventuallyDeleted(ctx context.Context, c client.Client, obj client.Object) 
 		return // Return early for consistent cleanup when the test setup partially failed
 	}
 	GinkgoHelper()
-	Eventually(func() bool {
-		cluster, ok := obj.(*greenhousev1alpha1.Cluster)
-		if ok {
-			UpdateClusterWithDeletionAnnotation(ctx, c, cluster)
-		}
-		pluginPreset, ok := obj.(*greenhousev1alpha1.PluginPreset)
-		if ok {
-			MustRemoveAnnotation(ctx, c, pluginPreset, greenhousev1alpha1.PreventDeletionAnnotation)
-		}
-		if err := c.Delete(ctx, obj); err != nil {
-			return apierrors.IsNotFound(err)
-		}
-		return true
-	}).Should(BeTrue(), "there should be no error deleting the object")
 
+	// Prepare object for deletion
+	cluster, ok := obj.(*greenhousev1alpha1.Cluster)
+	if ok {
+		UpdateClusterWithDeletionAnnotation(ctx, c, cluster)
+	}
+	pluginPreset, ok := obj.(*greenhousev1alpha1.PluginPreset)
+	if ok {
+		MustRemoveAnnotation(ctx, c, pluginPreset, greenhousev1alpha1.PreventDeletionAnnotation)
+	}
+
+	// Retry delete on conflict - the object may have been modified by controllers
+	Eventually(func(g Gomega) {
+		err := c.Get(ctx, client.ObjectKeyFromObject(obj), obj)
+		if apierrors.IsNotFound(err) {
+			return // Already deleted
+		}
+		g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the object for deletion")
+		err = c.Delete(ctx, obj)
+		if apierrors.IsNotFound(err) {
+			return // Deleted between Get and Delete
+		}
+		g.Expect(err).ToNot(HaveOccurred(), "there should be no error deleting the object")
+	}).Should(Succeed(), "deletion should succeed or object should already be deleted")
+
+	// Wait for object to be gone (use longer polling interval to reduce conflicts with controller status updates)
 	Eventually(func() bool {
-		return apierrors.IsNotFound(c.Get(ctx, client.ObjectKeyFromObject(obj), obj))
-	}).Should(BeTrue(), "there should be no error deleting the object")
+		err := c.Get(ctx, client.ObjectKeyFromObject(obj), obj)
+		return apierrors.IsNotFound(err)
+	}).WithPolling(500*time.Millisecond).Should(BeTrue(), "the object should be deleted eventually")
 }
 
 // EventuallyCreated verifies if the object is created

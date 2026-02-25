@@ -202,6 +202,8 @@ func (t *TestSetup) CreateTeamRole(ctx context.Context, name string, opts ...fun
 	GinkgoHelper()
 	tr := NewTeamRole(ctx, t.RandomizeName(name), t.namespace, opts...)
 	Expect(t.Create(ctx, tr)).Should(Succeed(), "there should be no error creating the TeamRole")
+	// Double-check that the TeamRole exists before it can be referenced by a TeamRoleBinding
+	EventuallyCreated(ctx, t.Client, tr)
 	return tr
 }
 
