@@ -70,29 +70,22 @@ func MustDeleteCluster(ctx context.Context, c client.Client, cluster *greenhouse
 	GinkgoHelper()
 	UpdateClusterWithDeletionAnnotation(ctx, c, cluster)
 
-	// Retry delete on conflict - the cluster may have been modified between annotation update and delete
-	Eventually(func() error {
-		err := c.Get(ctx, client.ObjectKeyFromObject(cluster), cluster)
-		if err != nil {
-			if apierrors.IsNotFound(err) {
-				return nil // Already deleted
-			}
-			return err
-		}
-
-		// Verify deletion annotations are present (required by admission webhook)
-		annotations := cluster.GetAnnotations()
-		if annotations == nil || annotations[greenhouseapis.MarkClusterDeletionAnnotation] != "true" {
-			return errors.New("deletion annotation not yet present on cluster")
-		}
-
-		return c.Delete(ctx, cluster)
-	}).Should(Succeed(), "there must be no error deleting object", "key", client.ObjectKeyFromObject(cluster))
-
+	// Retry delete until the cluster is gone - handles conflicts and waits for deletion to complete
 	Eventually(func() bool {
 		err := c.Get(ctx, client.ObjectKeyFromObject(cluster), cluster)
+		if err != nil {
+			return apierrors.IsNotFound(err)
+		}
+
+		err = c.Delete(ctx, cluster)
+		if err != nil && !apierrors.IsNotFound(err) {
+			return false // Delete failed, will retry
+		}
+
+		// Make sure that the cluster is gone
+		err = c.Get(ctx, client.ObjectKeyFromObject(cluster), cluster)
 		return apierrors.IsNotFound(err)
-	}).Should(BeTrue(), "the object should be deleted eventually")
+	}).Should(BeTrue(), "the cluster should be deleted eventually", "key", client.ObjectKeyFromObject(cluster))
 }
 
 // SetClusterReadyCondition sets the ready condition of the cluster resource.

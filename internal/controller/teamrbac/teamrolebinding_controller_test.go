@@ -45,7 +45,6 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 
 		By("creating a TeamRole on the central cluster")
 		teamRoleUT = setup.CreateTeamRole(test.Ctx, "test-role", test.WithLabels(map[string]string{"aggregate": "true"}))
-		test.EventuallyCreated(test.Ctx, setup.Client, teamRoleUT)
 	})
 
 	AfterEach(func() {
@@ -711,7 +710,6 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 					ClusterRoleSelectors: []metav1.LabelSelector{
 						{MatchLabels: map[string]string{"aggregate": "true"}}},
 				}))
-			test.EventuallyCreated(test.Ctx, setup.Client, trAggregate)
 			trbAggregate := setup.CreateTeamRoleBinding(test.Ctx, "test-aggregation-teamrolebinding",
 				test.WithTeamRef(teamUT.Name),
 				test.WithTeamRoleRef(trAggregate.Name),
