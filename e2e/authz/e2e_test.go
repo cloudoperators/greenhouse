@@ -65,14 +65,10 @@ var _ = BeforeSuite(func() {
 	By("creating test Teams")
 	teamObservability = test.NewTeam(ctx, "observability", env.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 	err = adminClient.Create(ctx, teamObservability)
-	if err != nil && !apierrors.IsAlreadyExists(err) {
-		Expect(err).ToNot(HaveOccurred(), "should create Team observability")
-	}
+	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred(), "should create Team observability")
 	teamDemo = test.NewTeam(ctx, "demo", env.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 	err = adminClient.Create(ctx, teamDemo)
-	if err != nil && !apierrors.IsAlreadyExists(err) {
-		Expect(err).ToNot(HaveOccurred(), "should create Team demo")
-	}
+	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred(), "should create Team demo")
 
 	By("onboarding remote cluster")
 	shared.OnboardRemoteCluster(ctx, adminClient, env.RemoteKubeConfigBytes, remoteClusterName, env.TestNamespace, teamDemo.Name)
@@ -80,9 +76,7 @@ var _ = BeforeSuite(func() {
 	By("creating plugindefinition-podinfo")
 	pluginDefPodInfo = fixtures.PreparePodInfoPluginDefinition(ctx, env.TestNamespace, "6.10.1")
 	err = adminClient.Create(ctx, pluginDefPodInfo)
-	if err != nil && !apierrors.IsAlreadyExists(err) {
-		Expect(err).ToNot(HaveOccurred(), "should create plugindefinition-podinfo")
-	}
+	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred(), "should create plugindefinition-podinfo")
 
 	By("creating plugin-podinfo-obs")
 	pluginPodInfoObs = test.NewPlugin(ctx, "podinfo-obs", env.TestNamespace,
@@ -91,9 +85,7 @@ var _ = BeforeSuite(func() {
 		test.WithCluster(remoteClusterName),
 	)
 	err = adminClient.Create(ctx, pluginPodInfoObs)
-	if err != nil && !apierrors.IsAlreadyExists(err) {
-		Expect(err).ToNot(HaveOccurred(), "should create plugin-podinfo-obs")
-	}
+	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred(), "should create plugin-podinfo-obs")
 	test.EventuallyCreated(ctx, adminClient, pluginPodInfoObs)
 
 	By("creating plugin-podinfo-demo")
@@ -103,32 +95,20 @@ var _ = BeforeSuite(func() {
 		test.WithCluster(remoteClusterName),
 	)
 	err = adminClient.Create(ctx, pluginPodInfoDemo)
-	if err != nil && !apierrors.IsAlreadyExists(err) {
-		Expect(err).ToNot(HaveOccurred(), "should create plugin-podinfo-demo")
-	}
+	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred(), "should create plugin-podinfo-demo")
 	test.EventuallyCreated(ctx, adminClient, pluginPodInfoDemo)
 })
 
 var _ = AfterSuite(func() {
 	By("cleaning up test resources")
-	if pluginPodInfoDemo != nil {
-		test.EventuallyDeleted(ctx, adminClient, pluginPodInfoDemo)
-	}
-	if pluginPodInfoObs != nil {
-		test.EventuallyDeleted(ctx, adminClient, pluginPodInfoObs)
-	}
-	if pluginDefPodInfo != nil {
-		test.EventuallyDeleted(ctx, adminClient, pluginDefPodInfo)
-	}
+	test.EventuallyDeleted(ctx, adminClient, pluginPodInfoDemo)
+	test.EventuallyDeleted(ctx, adminClient, pluginPodInfoObs)
+	test.EventuallyDeleted(ctx, adminClient, pluginDefPodInfo)
 
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterName, env.TestNamespace)
 
-	if teamObservability != nil {
-		test.EventuallyDeleted(ctx, adminClient, teamObservability)
-	}
-	if teamDemo != nil {
-		test.EventuallyDeleted(ctx, adminClient, teamDemo)
-	}
+	test.EventuallyDeleted(ctx, adminClient, teamObservability)
+	test.EventuallyDeleted(ctx, adminClient, teamDemo)
 
 	env.GenerateGreenhouseControllerLogs(ctx, testStartTime)
 })

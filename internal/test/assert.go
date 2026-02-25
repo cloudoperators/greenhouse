@@ -16,6 +16,9 @@ import (
 
 // EventuallyDeleted deletes the object and waits until it is gone. Early return if the delete fails with NotFound
 func EventuallyDeleted(ctx context.Context, c client.Client, obj client.Object) {
+	if obj == nil {
+		return // Return early for consistent cleanup when the test setup partially failed
+	}
 	GinkgoHelper()
 	Eventually(func() bool {
 		cluster, ok := obj.(*greenhousev1alpha1.Cluster)
