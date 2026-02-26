@@ -330,6 +330,8 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 	It("should re-create CRD if CRD was deleted", func() {
 		By("creating plugin definition with CRDs")
 		Expect(test.K8sClient.Create(test.Ctx, testPluginWithHelmChartCRDs)).To(Succeed(), "should create plugin definition")
+		// Ensure the PluginDefinition is retrievable before creating the Plugin which references it
+		test.EventuallyCreated(test.Ctx, test.K8sClient, testPluginWithHelmChartCRDs)
 
 		remoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(remoteKubeConfig, testPluginWithCRDs.Spec.ReleaseNamespace, clientutil.WithPersistentConfig())
 
@@ -381,12 +383,14 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 		}).Should(Succeed(), "there must be no error deleting Team CRD")
 
 		By("setting label on plugin to trigger reconciliation")
-		// Get up-to-date version of plugin.
-		err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPluginWithCRDs.Name, Namespace: testPluginWithCRDs.Namespace}, testPluginWithCRDs)
-		Expect(err).ToNot(HaveOccurred(), "there should be no error getting plugin")
-		// Set a label on the plugin to trigger reconciliation.
-		testPluginWithCRDs.Labels = map[string]string{"test": "label"}
-		Expect(test.K8sClient.Update(test.Ctx, testPluginWithCRDs)).Should(Succeed(), "there should be no error updating the plugin")
+		Eventually(func(g Gomega) {
+			// Get up-to-date version of plugin.
+			err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPluginWithCRDs.Name, Namespace: testPluginWithCRDs.Namespace}, testPluginWithCRDs)
+			g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting plugin")
+			// Set a label on the plugin to trigger reconciliation.
+			testPluginWithCRDs.Labels = map[string]string{"test": "label"}
+			g.Expect(test.K8sClient.Update(test.Ctx, testPluginWithCRDs)).Should(Succeed(), "there should be no error updating the plugin")
+		}).Should(Succeed(), "updating the plugin should eventually succeed")
 
 		By("ensuring Team CRD was re-created in the remote cluster")
 		Eventually(func(g Gomega) {
