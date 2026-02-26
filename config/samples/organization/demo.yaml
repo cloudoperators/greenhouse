@@ -53,5 +53,6 @@ spec:
         name: demo-oidc
       issuer: https://global.accounts.dev
       redirectURI: https://bogus.accounts.foo
-      insecureSkipEmailVerified: true
-      userIDClaim: email
+      extraConfig:
+        insecureSkipEmailVerified: true
+        userIDClaim: email
