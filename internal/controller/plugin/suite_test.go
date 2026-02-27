@@ -13,6 +13,7 @@ import (
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -326,7 +327,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			Eventually(func(g Gomega) {
 				helmRelease := &helmv2.HelmRelease{}
 				err := test.K8sClient.Get(test.Ctx, helmReleaseID, helmRelease)
-				g.Expect(err).To(HaveOccurred(), "HelmRelease should be deleted")
+				g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "HelmRelease should be deleted")
 			}).Should(Succeed())
 		})
 	})
