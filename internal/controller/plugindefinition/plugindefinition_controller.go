@@ -5,6 +5,7 @@ package plugindefinition
 
 import (
 	"context"
+	"time"
 
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -13,6 +14,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
@@ -48,6 +50,9 @@ func (r *PluginDefinitionReconciler) SetupWithManager(name string, mgr ctrl.Mana
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmcharts/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmcharts/finalizers,verbs=get;create;update;patch;delete
 // +kubebuilder:rbac:groups="events.k8s.io",resources=events,verbs=create;patch
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
+// +kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get
 // +kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch
 // +kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions/finalizers,verbs=get;create;update;patch;delete
@@ -66,7 +71,7 @@ func (r *PluginDefinitionReconciler) setConditions() lifecycle.Conditioner {
 func (r *PluginDefinitionReconciler) EnsureCreated(ctx context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	pluginDef := obj.(*greenhousev1alpha1.PluginDefinition)
 
-	initializeConditions(pluginDef, greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.HelmChartReadyCondition)
+	initializeConditions(pluginDef, greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.HelmChartReadyCondition, greenhousev1alpha1.ImageReplicationReadyCondition)
 
 	if pluginDef.Spec.HelmChart == nil {
 		log.FromContext(ctx).Info("No HelmChart defined in PluginDefinition, skipping HelmRepository creation", "name", pluginDef.Name)
@@ -86,12 +91,24 @@ func (r *PluginDefinitionReconciler) EnsureCreated(ctx context.Context, obj life
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	helmChart, err := h.createUpdateHelmChart(ctx, helmRepo)
+	helmChart, chartResult, err := h.createUpdateHelmChart(ctx, helmRepo)
 	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
+	if chartResult == controllerutil.OperationResultCreated || chartResult == controllerutil.OperationResultUpdated {
+		pluginDef.SetReplicatedImages(nil)
+	}
+
 	h.setHelmChartReadyCondition(ctx, helmChart)
+
+	conditions := pluginDef.GetConditions()
+	helmChartCond := conditions.GetConditionByType(greenhousev1alpha1.HelmChartReadyCondition)
+	if helmChartCond != nil && helmChartCond.IsTrue() {
+		if replicationErr := ensureImageReplication(ctx, r.Client, pluginDef, pluginDef.Namespace); replicationErr != nil {
+			return ctrl.Result{RequeueAfter: 1 * time.Minute}, lifecycle.Success, nil //nolint:nilerr
+		}
+	}
 
 	return ctrl.Result{}, lifecycle.Success, nil
 }

@@ -69,6 +69,15 @@ const (
 	// PluginDefinitionProgressingReason is the reason when PluginDefinition reconciliation is in progress
 	PluginDefinitionProgressingReason greenhousemetav1alpha1.ConditionReason = "ReconcileProgressing"
 
+	// ImageReplicationReadyCondition reflects if image replication to the mirror registry is complete.
+	ImageReplicationReadyCondition greenhousemetav1alpha1.ConditionType = "ImageReplicationReady"
+	// ImageReplicationFailedReason is the reason when image replication has failed.
+	ImageReplicationFailedReason greenhousemetav1alpha1.ConditionReason = "ImageReplicationFailed"
+	// ImageReplicationSucceededReason is the reason when all images have been replicated successfully.
+	ImageReplicationSucceededReason greenhousemetav1alpha1.ConditionReason = "ImageReplicationSucceeded"
+	// ImageReplicationNotConfiguredReason is the reason when no mirror registry is configured.
+	ImageReplicationNotConfiguredReason greenhousemetav1alpha1.ConditionReason = "ImageReplicationNotConfigured"
+
 	// PluginOptionTypeString is a valid value for PluginOptionType.
 	PluginOptionTypeString PluginOptionType = "string"
 	// PluginOptionTypeSecret is a valid value for PluginOptionType.
@@ -230,6 +239,8 @@ func (p *PluginDefinition) FluxHelmChartResourceName() string {
 type PluginDefinitionStatus struct {
 	// StatusConditions contain the different conditions that constitute the status of the Plugin.
 	greenhousemetav1alpha1.StatusConditions `json:"statusConditions,omitempty"`
+	// ReplicatedImages is the list of images that have been replicated to the mirror registry.
+	ReplicatedImages []string `json:"replicatedImages,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -278,6 +289,14 @@ func (p *PluginDefinition) RemoveCondition(conditionType greenhousemetav1alpha1.
 
 func (p *PluginDefinition) CanBeSuspended() bool {
 	return false
+}
+
+func (p *PluginDefinition) GetReplicatedImages() []string {
+	return p.Status.ReplicatedImages
+}
+
+func (p *PluginDefinition) SetReplicatedImages(images []string) {
+	p.Status.ReplicatedImages = images
 }
 
 func init() {

@@ -22,6 +22,8 @@ const (
 type ClusterPluginDefinitionStatus struct {
 	// StatusConditions contain the different conditions that constitute the status of the Plugin.
 	greenhousemetav1alpha1.StatusConditions `json:"statusConditions,omitempty"`
+	// ReplicatedImages is the list of images that have been replicated to the mirror registry.
+	ReplicatedImages []string `json:"replicatedImages,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -77,6 +79,14 @@ func (c *ClusterPluginDefinition) RemoveCondition(conditionType greenhousemetav1
 
 func (c *ClusterPluginDefinition) CanBeSuspended() bool {
 	return false
+}
+
+func (c *ClusterPluginDefinition) GetReplicatedImages() []string {
+	return c.Status.ReplicatedImages
+}
+
+func (c *ClusterPluginDefinition) SetReplicatedImages(images []string) {
+	c.Status.ReplicatedImages = images
 }
 
 func init() {
