@@ -82,10 +82,10 @@ containers:
 		})
 
 		It("should handle digest references", func() {
-			reg, repo, tagOrDigest := common.SplitImageRef("ghcr.io/cloudoperators/greenhouse@sha256:abc123")
+			reg, repo, tagOrDigest := common.SplitImageRef("ghcr.io/cloudoperators/greenhouse@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
 			Expect(reg).To(Equal("ghcr.io"))
 			Expect(repo).To(Equal("cloudoperators/greenhouse"))
-			Expect(tagOrDigest).To(Equal("@sha256:abc123"))
+			Expect(tagOrDigest).To(Equal("@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"))
 		})
 
 		It("should handle nested paths", func() {
@@ -95,11 +95,11 @@ containers:
 			Expect(tagOrDigest).To(Equal(":v1.0"))
 		})
 
-		It("should return empty tagOrDigest when absent", func() {
+		It("should default to :latest when tag is absent", func() {
 			reg, repo, tagOrDigest := common.SplitImageRef("ghcr.io/cloudoperators/greenhouse")
 			Expect(reg).To(Equal("ghcr.io"))
 			Expect(repo).To(Equal("cloudoperators/greenhouse"))
-			Expect(tagOrDigest).To(BeEmpty())
+			Expect(tagOrDigest).To(Equal(":latest"))
 		})
 	})
 
