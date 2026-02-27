@@ -19,6 +19,15 @@ import (
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 )
 
+const (
+	// defaultHelmChartRepo is the default Helm chart repository for test resources
+	defaultHelmChartRepo = "oci://greenhouse/helm-charts"
+	// defaultHelmChartName is the default Helm chart name for test resources
+	defaultHelmChartName = "dummy"
+	// defaultHelmChartVersion is the default Helm chart version for test resources
+	defaultHelmChartVersion = "1.0.0"
+)
+
 // WithAccessMode sets the ClusterAccessMode on a Cluster
 func WithAccessMode(mode greenhousev1alpha1.ClusterAccessMode) func(*greenhousev1alpha1.Cluster) {
 	return func(c *greenhousev1alpha1.Cluster) {
@@ -188,11 +197,11 @@ func NewClusterPluginDefinition(ctx context.Context, name string, opts ...func(d
 		},
 		Spec: greenhousev1alpha1.PluginDefinitionSpec{
 			Description: "TestPluginDefinition",
-			Version:     "1.0.0",
+			Version:     defaultHelmChartVersion,
 			HelmChart: &greenhousev1alpha1.HelmChartReference{
-				Name:       "dummy",
-				Repository: "oci://greenhouse/helm-charts",
-				Version:    "1.0.0",
+				Name:       defaultHelmChartName,
+				Repository: defaultHelmChartRepo,
+				Version:    defaultHelmChartVersion,
 			},
 		},
 	}
@@ -246,10 +255,11 @@ func NewPluginDefinition(ctx context.Context, name, namespace string, opts ...fu
 		},
 		Spec: greenhousev1alpha1.PluginDefinitionSpec{
 			Description: "TestPluginDefinition",
-			Version:     "1.0.0",
+			Version:     defaultHelmChartVersion,
 			HelmChart: &greenhousev1alpha1.HelmChartReference{
-				Name:    "./../../test/fixtures/myChart",
-				Version: "1.0.0",
+				Name:       defaultHelmChartName,
+				Repository: defaultHelmChartRepo,
+				Version:    defaultHelmChartVersion,
 			},
 		},
 	}
