@@ -6,15 +6,18 @@ package plugindefinition
 import (
 	"context"
 
+	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
@@ -29,18 +32,19 @@ func (r *ClusterPluginDefinitionReconciler) SetupWithManager(name string, mgr ct
 	r.Client = mgr.GetClient()
 	r.Scheme = mgr.GetScheme()
 	r.recorder = mgr.GetEventRecorder(name)
-	return setupManagerBuilder(
-		mgr,
-		name,
-		&greenhousev1alpha1.ClusterPluginDefinition{},
-		r.helmRepositoryEventHandler,
-	).Complete(r)
+	return ctrl.NewControllerManagedBy(mgr).
+		Named(name).
+		For(&greenhousev1alpha1.ClusterPluginDefinition{}).
+		Owns(&sourcev1.HelmChart{}, builder.WithPredicates(clientutil.PredicateIgnoreDeletingResources())).Complete(r)
 }
 
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=ocirepositories, verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmrepositories,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmrepositories/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmrepositories/finalizers,verbs=get;create;update;patch;delete
+// +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmcharts,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmcharts/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmcharts/finalizers,verbs=get;create;update;patch;delete
 // +kubebuilder:rbac:groups="events.k8s.io",resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups=greenhouse.sap,resources=clusterplugindefinitions,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=greenhouse.sap,resources=clusterplugindefinitions/status,verbs=get;update;patch
@@ -55,10 +59,6 @@ func (r *ClusterPluginDefinitionReconciler) setConditions() lifecycle.Conditione
 		pluginDef := resource.(*greenhousev1alpha1.ClusterPluginDefinition) //nolint:errcheck
 		setReadyCondition(pluginDef)
 	}
-}
-
-func (r *ClusterPluginDefinitionReconciler) helmRepositoryEventHandler(_ context.Context, obj client.Object) []ctrl.Request {
-	return enqueueOwnersForHelmRepository(obj, greenhousev1alpha1.ClusterPluginDefinitionKind)
 }
 
 func (r *ClusterPluginDefinitionReconciler) EnsureCreated(ctx context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {

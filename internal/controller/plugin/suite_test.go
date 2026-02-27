@@ -607,6 +607,8 @@ var _ = When("the pluginDefinition is UI only", func() {
 			test.WithReleaseName("myuiplugin-release"))
 
 		Expect(test.K8sClient.Create(test.Ctx, uiPluginDefinition)).Should(Succeed())
+		// Ensure the ClusterPluginDefinition exists before trying to create the Plugin.
+		test.EventuallyCreated(test.Ctx, test.K8sClient, uiPluginDefinition)
 		Expect(test.K8sClient.Create(test.Ctx, uiPlugin)).Should(Succeed())
 	})
 
