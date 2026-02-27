@@ -44,8 +44,14 @@ type PluginDefinitionSpec struct {
 	// - A publicly accessible image reference to a .png file. Will be displayed 100x100px
 	Icon string `json:"icon,omitempty"`
 
+	// DocsURL specifies the URL to the documentation for this plugin.
+	// This is used by the Greenhouse UI to provide a link to external documentation.
+	DocsURL string `json:"docsUrl,omitempty"`
+
 	// DocMarkDownUrl specifies the URL to the markdown documentation file for this plugin.
 	// Source needs to allow all CORS origins.
+	//
+	// Deprecated: Use DocsURL instead. This field will be removed in a future release.
 	DocMarkDownUrl string `json:"docMarkDownUrl,omitempty"` //nolint:stylecheck
 }
 
