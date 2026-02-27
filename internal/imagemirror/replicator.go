@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package replication
+package imagemirror
 
 import (
 	"context"
@@ -17,7 +17,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/cloudoperators/greenhouse/internal/common"
 )
 
 // ManifestFetcher matches the crane.Manifest signature.
@@ -26,13 +25,13 @@ type ManifestFetcher func(ref string, opts ...crane.Option) ([]byte, error)
 // ImageReplicator ensures images are available in the mirror registry by fetching their manifests,
 // triggering on-demand replication from the upstream source.
 type ImageReplicator struct {
-	config          *common.RegistryMirrorConfig
+	config          *RegistryMirrorConfig
 	auth            authn.Authenticator
 	manifestFetcher ManifestFetcher
 }
 
 // NewImageReplicator creates an ImageReplicator with credentials from the configured Secret.
-func NewImageReplicator(ctx context.Context, k8sClient client.Client, config *common.RegistryMirrorConfig, namespace string) (*ImageReplicator, error) {
+func NewImageReplicator(ctx context.Context, k8sClient client.Client, config *RegistryMirrorConfig, namespace string) (*ImageReplicator, error) {
 	auth := authn.Anonymous
 	if config.SecretName != "" {
 		a, err := getAuthFromSecret(ctx, k8sClient, config.SecretName, namespace)
@@ -51,7 +50,7 @@ func NewImageReplicator(ctx context.Context, k8sClient client.Client, config *co
 
 // ReplicateImages triggers replication for new images found in renderedManifests, skipping alreadyReplicated ones.
 func (r *ImageReplicator) ReplicateImages(ctx context.Context, renderedManifests string, alreadyReplicated []string) ([]string, error) {
-	imageRefs := common.ExtractUniqueImages(renderedManifests)
+	imageRefs := ExtractUniqueImages(renderedManifests)
 	if len(imageRefs) == 0 {
 		return alreadyReplicated, nil
 	}
