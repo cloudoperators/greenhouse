@@ -11,7 +11,6 @@ import (
 	"github.com/google/go-containerregistry/pkg/crane"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
 )
 
 var mirrorConfig = &RegistryMirrorConfig{
