@@ -21,6 +21,8 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/flux"
+	"github.com/cloudoperators/greenhouse/internal/helm"
+	"github.com/cloudoperators/greenhouse/internal/replication"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
@@ -43,30 +45,41 @@ func initializeConditions(resource common.GenericPluginDefinition, conditionType
 	}
 }
 
-// setReadyCondition sets the Ready condition for a (Cluster-)PluginDefinition based on HelmChartReady condition status.
 func setReadyCondition(resource common.GenericPluginDefinition) {
-	pluginDefSpec := resource.GetPluginDefinitionSpec()
-	if pluginDefSpec.HelmChart == nil {
-		// No HelmChart defined, set Ready to True (possible UI application)
+	if resource.GetPluginDefinitionSpec().HelmChart == nil {
 		resource.SetCondition(greenhousemetav1alpha1.TrueCondition(
 			greenhousemetav1alpha1.ReadyCondition, "", "No HelmChart defined"))
 		return
 	}
+
 	conditions := resource.GetConditions()
 	helmChartCondition := conditions.GetConditionByType(greenhousev1alpha1.HelmChartReadyCondition)
-
 	switch {
 	case helmChartCondition == nil:
 		resource.SetCondition(greenhousemetav1alpha1.UnknownCondition(
 			greenhousemetav1alpha1.ReadyCondition, "", "HelmChart status unknown"))
-	case helmChartCondition.IsTrue():
-		resource.SetCondition(greenhousemetav1alpha1.TrueCondition(
-			greenhousemetav1alpha1.ReadyCondition, "", "PluginDefinition is ready"))
-	default:
+		return
+	case !helmChartCondition.IsTrue():
 		resource.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousemetav1alpha1.ReadyCondition,
 			helmChartCondition.Reason,
 			helmChartCondition.Message))
+		return
+	}
+
+	imageReplicationCondition := conditions.GetConditionByType(greenhousev1alpha1.ImageReplicationReadyCondition)
+	switch {
+	case imageReplicationCondition == nil:
+		resource.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousemetav1alpha1.ReadyCondition, "", "PluginDefinition is ready"))
+	case imageReplicationCondition.IsFalse():
+		resource.SetCondition(greenhousemetav1alpha1.FalseCondition(
+			greenhousemetav1alpha1.ReadyCondition,
+			imageReplicationCondition.Reason,
+			imageReplicationCondition.Message))
+	default:
+		resource.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousemetav1alpha1.ReadyCondition, "", "PluginDefinition is ready"))
 	}
 }
 
@@ -123,7 +136,7 @@ func (h *helmer) createUpdateHelmRepository(ctx context.Context) (*sourcev1.Helm
 	return helmRepository, nil
 }
 
-func (h *helmer) createUpdateHelmChart(ctx context.Context, helmRepo *sourcev1.HelmRepository) (*sourcev1.HelmChart, error) {
+func (h *helmer) createUpdateHelmChart(ctx context.Context, helmRepo *sourcev1.HelmRepository) (*sourcev1.HelmChart, controllerutil.OperationResult, error) {
 	pluginDefSpec := h.pluginDef.GetPluginDefinitionSpec()
 	helmChart := &sourcev1.HelmChart{}
 	helmChart.SetName(h.pluginDef.FluxHelmChartResourceName())
@@ -142,7 +155,7 @@ func (h *helmer) createUpdateHelmChart(ctx context.Context, helmRepo *sourcev1.H
 		return controllerutil.SetControllerReference(h.pluginDef, helmChart, h.k8sClient.Scheme())
 	})
 	if err != nil {
-		return nil, err
+		return nil, result, err
 	}
 	switch result {
 	case controllerutil.OperationResultCreated:
@@ -154,5 +167,54 @@ func (h *helmer) createUpdateHelmChart(ctx context.Context, helmRepo *sourcev1.H
 	case controllerutil.OperationResultNone:
 		log.FromContext(ctx).Info("No changes to helmChart", "namespace", h.namespaceName, "name", helmChart.Name)
 	}
-	return helmChart, nil
+	return helmChart, result, nil
+}
+
+// ensureImageReplication triggers replication for images referenced in the chart's default templates.
+func ensureImageReplication(ctx context.Context, k8sClient client.Client, pluginDef common.GenericPluginDefinition, namespaceName string) error {
+	logger := log.FromContext(ctx)
+
+	failReplication := func(err error, msg string) error {
+		logger.Error(err, msg)
+		pluginDef.SetCondition(greenhousemetav1alpha1.FalseCondition(
+			greenhousev1alpha1.ImageReplicationReadyCondition,
+			greenhousev1alpha1.ImageReplicationFailedReason,
+			msg+": "+err.Error()))
+		return err
+	}
+
+	mirrorConfig, err := common.GetRegistryMirrorConfig(ctx, k8sClient, namespaceName)
+	if err != nil {
+		return failReplication(err, "failed to get registry mirror config")
+	}
+
+	if mirrorConfig == nil || mirrorConfig.PrimaryMirror == "" {
+		pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.ImageReplicationReadyCondition,
+			greenhousev1alpha1.ImageReplicationNotConfiguredReason,
+			"Image replication is not configured"))
+		return nil
+	}
+
+	templateRelease, err := helm.TemplateHelmChartWithDefaults(ctx, pluginDef.GetPluginDefinitionSpec().HelmChart)
+	if err != nil {
+		return failReplication(err, "failed to template helm chart")
+	}
+
+	replicator, err := replication.NewImageReplicator(ctx, k8sClient, mirrorConfig, namespaceName)
+	if err != nil {
+		return failReplication(err, "failed to create image replicator")
+	}
+
+	replicated, err := replicator.ReplicateImages(ctx, templateRelease.Manifest, pluginDef.GetReplicatedImages())
+	pluginDef.SetReplicatedImages(replicated)
+	if err != nil {
+		return failReplication(err, "image replication failed")
+	}
+
+	pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
+		greenhousev1alpha1.ImageReplicationReadyCondition,
+		greenhousev1alpha1.ImageReplicationSucceededReason,
+		"All images replicated successfully"))
+	return nil
 }

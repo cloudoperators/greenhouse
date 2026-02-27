@@ -18,13 +18,15 @@ import (
 )
 
 const (
-	registryMirrorConfigKey = "containerRegistryConfig"
+	registryMirrorConfigKey         = "containerRegistryConfig"
+	defaultRegistryMirrorSecretName = "registry-mirror-creds"
 )
 
 // RegistryMirrorConfig represents the registry mirror configuration structure.
 type RegistryMirrorConfig struct {
 	PrimaryMirror   string                    `yaml:"primaryMirror"`
 	RegistryMirrors map[string]RegistryMirror `yaml:"registryMirrors"`
+	SecretName      string                    `yaml:"secretName,omitempty"`
 }
 
 // RegistryMirror represents a single registry mirror configuration.
@@ -70,7 +72,28 @@ func GetRegistryMirrorConfig(ctx context.Context, k8sClient client.Reader, orgNa
 		return nil, fmt.Errorf("invalid registry mirror configuration: %w", err)
 	}
 
+	if mirrorConfig.PrimaryMirror != "" && mirrorConfig.SecretName == "" {
+		mirrorConfig.SecretName = defaultRegistryMirrorSecretName
+	}
+
 	return &mirrorConfig, nil
+}
+
+// ResolvedImage holds the result of resolving an image reference against a mirror configuration.
+type ResolvedImage struct {
+	Mirror      RegistryMirror
+	Repository  string
+	TagOrDigest string
+}
+
+// ResolveImage looks up the mirror configuration for an image reference.
+func (c *RegistryMirrorConfig) ResolveImage(imageRef string) *ResolvedImage {
+	registry, repo, tagOrDigest := SplitImageRef(imageRef)
+	mirror, ok := c.RegistryMirrors[registry]
+	if !ok {
+		return nil
+	}
+	return &ResolvedImage{Mirror: mirror, Repository: repo, TagOrDigest: tagOrDigest}
 }
 
 // validateRegistryMirrorConfig validates the registry mirror configuration.
