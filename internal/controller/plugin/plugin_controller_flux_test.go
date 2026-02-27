@@ -126,7 +126,6 @@ var (
 
 var _ = Describe("Flux Plugin Controller", Ordered, func() {
 	BeforeAll(func() {
-		test.NewTestSetup(test.Ctx, test.K8sClient, test.TestNamespace)
 		By("creating ClusterPluginDefinitions for the Flux Plugin tests")
 		err := test.K8sClient.Create(test.Ctx, testPluginDefinition)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the pluginDefinition")
