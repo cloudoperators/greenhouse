@@ -186,7 +186,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		testPluginDefinition = test.NewClusterPluginDefinition(test.Ctx, PluginDefinitionName,
 			test.WithVersion(PluginDefinitionVersion),
 			test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
-				Name:       "dummy",
+				Name:       HelmChartName,
 				Repository: "oci://greenhouse/helm-charts",
 				Version:    PluginDefinitionChartVersion,
 			}),
@@ -309,7 +309,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			Eventually(func(g Gomega) bool {
 				err := test.K8sClient.Get(test.Ctx, pluginID, actPlugin)
 				if err != nil {
-					Expect(err).ToNot(HaveOccurred(), "error getting plugin")
+					g.Expect(err).ToNot(HaveOccurred(), "error getting plugin")
 					return false
 				}
 				verifyPluginHelmIntegration(g, actPlugin, actPluginDefinition)
