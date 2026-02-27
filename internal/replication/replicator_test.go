@@ -182,8 +182,8 @@ func TestBuildMirroredImageRef(t *testing.T) {
 		},
 		{
 			name:     "image with digest",
-			imageRef: "ghcr.io/cloudoperators/greenhouse@sha256:abc123",
-			expected: "primary.registry.com/ghcr-mirror/cloudoperators/greenhouse@sha256:abc123",
+			imageRef: "ghcr.io/cloudoperators/greenhouse@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+			expected: "primary.registry.com/ghcr-mirror/cloudoperators/greenhouse@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 		},
 		{
 			name:     "no mirror configured",

@@ -6,18 +6,11 @@ package common
 import (
 	"regexp"
 	"slices"
-	"strings"
+
+	"github.com/google/go-containerregistry/pkg/name"
 )
 
-const (
-	dockerHubRegistry         = "docker.io"
-	dockerHubLibraryNamespace = "library"
-)
-
-var (
-	imageFieldPattern = regexp.MustCompile(`(?m)^[\s-]*image:\s+["']?([^\s"']+)["']?`)
-	imageRefPattern   = regexp.MustCompile(`^(?:([a-zA-Z0-9][a-zA-Z0-9.-]*(?:\:[0-9]+)?)/)?([a-zA-Z0-9._/-]+)(?:[:@](.+))?$`)
-)
+var imageFieldPattern = regexp.MustCompile(`(?m)^[\s-]*image:\s+["']?([^\s"']+)["']?`)
 
 // ExtractUniqueImages extracts and deduplicates all image references from YAML manifests.
 func ExtractUniqueImages(manifests string) []string {
@@ -37,41 +30,29 @@ func ExtractUniqueImages(manifests string) []string {
 	return images
 }
 
-// SplitImageRef splits an image reference into (registry, repository, tagOrDigest).
-// tagOrDigest includes the separator (":tag" or "@sha256:..."), empty if absent.
-// Defaults to docker.io when no registry is specified.
+// SplitImageRef breaks an image ref into registry, repository, and tag/digest.
 func SplitImageRef(imageRef string) (registry, repository, tagOrDigest string) {
-	m := imageRefPattern.FindStringSubmatch(imageRef)
-	if len(m) < 3 {
-		return dockerHubRegistry, dockerHubLibraryOrRepo(imageRef), ""
+	ref, err := name.ParseReference(imageRef)
+	if err != nil {
+		return "docker.io", imageRef, ""
 	}
 
-	registry = m[1]
-	repository = m[2]
-	if len(m) > 3 && m[3] != "" {
-		sep := ":"
-		if strings.HasPrefix(m[3], "sha256:") || strings.HasPrefix(m[3], "sha512:") {
-			sep = "@"
-		}
-		tagOrDigest = sep + m[3]
+	// name.ParseReference normalizes Docker Hub to "index.docker.io",
+	// but our mirror config uses "docker.io" as the map key.
+	registry = ref.Context().RegistryStr()
+	if registry == name.DefaultRegistry {
+		registry = "docker.io"
 	}
 
-	// First segment without "." or ":" is a namespace, not a registry (e.g. "myorg/nginx").
-	if registry != "" && !strings.ContainsAny(registry, ".:") {
-		repository = registry + "/" + repository
-		registry = ""
-	}
+	repository = ref.Context().RepositoryStr()
 
-	if registry == "" {
-		registry = dockerHubRegistry
-		repository = dockerHubLibraryOrRepo(repository)
+	// ref.Identifier() doesnt include the separator so we prepend ":" or "@".
+	switch r := ref.(type) {
+	case name.Tag:
+		tagOrDigest = ":" + r.TagStr()
+	case name.Digest:
+		tagOrDigest = "@" + r.DigestStr()
 	}
 
 	return registry, repository, tagOrDigest
-}
-func dockerHubLibraryOrRepo(repo string) string {
-	if strings.Contains(repo, "/") {
-		return repo
-	}
-	return dockerHubLibraryNamespace + "/" + repo
 }

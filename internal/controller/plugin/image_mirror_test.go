@@ -112,7 +112,7 @@ var _ = Describe("createRegistryMirrorPostRenderer", func() {
 	})
 
 	It("should handle images with digest", func() {
-		manifest := `image: ghcr.io/cloudoperators/greenhouse@sha256:abc123`
+		manifest := `image: ghcr.io/cloudoperators/greenhouse@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
 		postRenderer := createRegistryMirrorPostRenderer(mirrorConfig, manifest)
 		Expect(postRenderer).NotTo(BeNil())
 		Expect(postRenderer.Kustomize.Images[0].Name).To(Equal("ghcr.io/cloudoperators/greenhouse"))
