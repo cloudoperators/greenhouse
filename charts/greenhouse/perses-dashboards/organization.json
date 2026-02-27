@@ -2,9 +2,9 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "organization",
-    "createdAt": "2026-01-21T11:27:00.783732473Z",
-    "updatedAt": "2026-01-21T11:27:00.783732473Z",
-    "version": 0,
+    "createdAt": "2026-02-09T18:00:07.913346704Z",
+    "updatedAt": "2026-02-16T10:05:56.205613134Z",
+    "version": 1,
     "project": "greenhouse"
   },
   "spec": {
@@ -130,7 +130,7 @@
                 "plugin": {
                   "kind": "PrometheusTimeSeriesQuery",
                   "spec": {
-                    "query": "greenhouse_team_rbac_ready{cluster=~\"$cluster\", team=~\"$team\", organization=~\"$organization\"}",
+                    "query": "greenhouse_team_rbac_ready{cluster=~\"$cluster\", team=~\"$team\", namespace=~\"$organization\"}",
                     "seriesNameFormat": "{{organization}} | {{team}} | {{ team_role_binding }}"
                   }
                 }
@@ -153,14 +153,13 @@
               "format": {
                 "unit": "decimal"
               },
-              "sparkline": {},
               "mappings": [
                 {
                   "kind": "Value",
                   "spec": {
                     "result": {
-                      "value": "Ready",
-                      "color": "#2FBF71"
+                      "color": "#2FBF71",
+                      "value": "Ready"
                     },
                     "value": "1"
                   }
@@ -169,13 +168,14 @@
                   "kind": "Value",
                   "spec": {
                     "result": {
-                      "value": "Not Ready",
-                      "color": "#EA4747"
+                      "color": "#EA4747",
+                      "value": "Not Ready"
                     },
                     "value": "0"
                   }
                 }
-              ]
+              ],
+              "sparkline": {}
             }
           },
           "queries": [
@@ -202,69 +202,11 @@
             "description": "GreenhouseTeamMembershipCountDrop: The number of members for team {{ $labels.teams }} in organization {{ $labels.namespace }} has dropped by more than 5 in the last 5 minutes."
           },
           "plugin": {
-            "kind": "Table",
+            "kind": "TimeSeriesChart",
             "spec": {
-              "density": "standard",
-              "columnSettings": [
-                {
-                  "name": "organization"
-                },
-                {
-                  "name": "cluster"
-                },
-                {
-                  "name": "team"
-                },
-                {
-                  "name": "value",
-                  "header": "number of members"
-                },
-                {
-                  "name": "container",
-                  "hide": true
-                },
-                {
-                  "name": "job",
-                  "enableSorting": false,
-                  "hide": true
-                },
-                {
-                  "name": "prometheus",
-                  "hide": true
-                },
-                {
-                  "name": "endpoint",
-                  "hide": true
-                },
-                {
-                  "name": "instance",
-                  "hide": true
-                },
-                {
-                  "name": "__name__",
-                  "hide": true
-                },
-                {
-                  "name": "timestamp",
-                  "hide": true
-                },
-                {
-                  "name": "pod",
-                  "hide": true
-                },
-                {
-                  "name": "service",
-                  "hide": true
-                },
-                {
-                  "name": "region",
-                  "hide": true
-                },
-                {
-                  "name": "namespace",
-                  "hide": true
-                }
-              ]
+              "legend": {
+                "position": "bottom"
+              }
             }
           },
           "queries": [
@@ -274,14 +216,13 @@
                 "plugin": {
                   "kind": "PrometheusTimeSeriesQuery",
                   "spec": {
-                    "query": "greenhouse_team_members_count{cluster=~\"$cluster\", team=~\"$team\", organization=~\"$organization\"}",
-                    "seriesNameFormat": ""
+                    "query": "greenhouse_team_members_count{cluster=~\"$cluster\", team=~\"$team\", namespace=~\"$organization\"}",
+                    "seriesNameFormat": "{{team}}"
                   }
                 }
               }
             }
-          ],
-          "links": []
+          ]
         }
       },
       "d3f5fea6b42c4e438ccb6b2f3fa4772e": {
@@ -298,14 +239,13 @@
               "format": {
                 "unit": "decimal"
               },
-              "sparkline": {},
               "mappings": [
                 {
                   "kind": "Value",
                   "spec": {
                     "result": {
-                      "value": "Ready",
-                      "color": "#2FBF71"
+                      "color": "#2FBF71",
+                      "value": "Ready"
                     },
                     "value": "1"
                   }
@@ -314,13 +254,14 @@
                   "kind": "Value",
                   "spec": {
                     "result": {
-                      "value": "Not Ready",
-                      "color": "#EA4747"
+                      "color": "#EA4747",
+                      "value": "Not Ready"
                     },
                     "value": "0"
                   }
                 }
-              ]
+              ],
+              "sparkline": {}
             }
           },
           "queries": [
@@ -369,8 +310,7 @@
                 "$ref": "#/spec/panels/d3f5fea6b42c4e438ccb6b2f3fa4772e"
               }
             }
-          ],
-          "repeatVariable": ""
+          ]
         }
       },
       {
@@ -776,12 +716,12 @@
       {
         "kind": "ListVariable",
         "spec": {
-          "name": "organization",
           "display": {
             "name": "Organization",
-            "description": "Organization"
+            "description": "Organization",
+            "hidden": false
           },
-          "defaultValue": "greenhouse",
+          "defaultValue": "sci-demo",
           "allowAllValue": false,
           "allowMultiple": false,
           "sort": "alphabetical-asc",
@@ -790,16 +730,17 @@
             "spec": {
               "labelName": "organization"
             }
-          }
+          },
+          "name": "organization"
         }
       },
       {
         "kind": "ListVariable",
         "spec": {
-          "name": "team",
           "display": {
             "name": "Team",
-            "description": "Team"
+            "description": "Team",
+            "hidden": false
           },
           "defaultValue": "$__all",
           "allowAllValue": true,
@@ -814,17 +755,19 @@
                 "greenhouse_team_rbac_ready"
               ]
             }
-          }
+          },
+          "name": "team"
         }
       },
       {
         "kind": "ListVariable",
         "spec": {
-          "name": "cluster",
           "display": {
             "name": "Greenhouse Control Plane Cluster",
-            "description": "Cluster"
+            "description": "Cluster",
+            "hidden": false
           },
+          "defaultValue": "greenhouse-playground",
           "allowAllValue": false,
           "allowMultiple": false,
           "plugin": {
@@ -834,12 +777,11 @@
               "matchers": []
             }
           },
-          "defaultValue": "greenhouse-playground"
+          "name": "cluster"
         }
       }
     ],
     "duration": "1h",
-    "refreshInterval": "0s",
-    "datasources": {}
+    "refreshInterval": "0s"
   }
 }
