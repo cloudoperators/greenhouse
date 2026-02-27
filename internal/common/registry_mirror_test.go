@@ -85,6 +85,94 @@ registryMirrors:
 					SubPath:    "dockerhub-mirror",
 				}))
 			})
+
+			It("should default SecretName when PrimaryMirror is set", func() {
+				config, err := GetRegistryMirrorConfig(ctx, fakeClient, orgName)
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(config).NotTo(BeNil())
+				Expect(config.SecretName).To(Equal("registry-mirror-creds"))
+			})
+		})
+
+		Context("when config has explicit secretName", func() {
+			BeforeEach(func() {
+				org := &greenhousev1alpha1.Organization{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: orgName,
+					},
+					Spec: greenhousev1alpha1.OrganizationSpec{
+						ConfigMapRef: "test-configmap",
+					},
+				}
+
+				configMap := &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-configmap",
+						Namespace: orgName,
+					},
+					Data: map[string]string{
+						registryMirrorConfigKey: `primaryMirror: "primary.registry.com"
+secretName: "custom-secret"
+registryMirrors:
+  ghcr.io:
+    baseDomain: "europe.registry.com"
+    subPath: "ghcr-mirror"`,
+					},
+				}
+
+				fakeClient = fake.NewClientBuilder().
+					WithScheme(scheme).
+					WithObjects(org, configMap).
+					Build()
+			})
+
+			It("should use the explicit SecretName", func() {
+				config, err := GetRegistryMirrorConfig(ctx, fakeClient, orgName)
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(config).NotTo(BeNil())
+				Expect(config.SecretName).To(Equal("custom-secret"))
+			})
+		})
+
+		Context("when PrimaryMirror is empty, SecretName should not be defaulted", func() {
+			BeforeEach(func() {
+				org := &greenhousev1alpha1.Organization{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: orgName,
+					},
+					Spec: greenhousev1alpha1.OrganizationSpec{
+						ConfigMapRef: "test-configmap",
+					},
+				}
+
+				configMap := &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-configmap",
+						Namespace: orgName,
+					},
+					Data: map[string]string{
+						registryMirrorConfigKey: `registryMirrors:
+  ghcr.io:
+    baseDomain: "europe.registry.com"
+    subPath: "ghcr-mirror"`,
+					},
+				}
+
+				fakeClient = fake.NewClientBuilder().
+					WithScheme(scheme).
+					WithObjects(org, configMap).
+					Build()
+			})
+
+			It("should leave SecretName empty", func() {
+				config, err := GetRegistryMirrorConfig(ctx, fakeClient, orgName)
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(config).NotTo(BeNil())
+				Expect(config.SecretName).To(BeEmpty())
+			})
 		})
 
 		Context("when organization does not exist", func() {
