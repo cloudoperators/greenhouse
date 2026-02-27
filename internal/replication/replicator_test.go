@@ -6,35 +6,35 @@ package replication
 import (
 	"context"
 	"errors"
-	"testing"
 
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 
 	"github.com/cloudoperators/greenhouse/internal/common"
+
 )
 
-func TestReplicateImages(t *testing.T) {
-	config := &common.RegistryMirrorConfig{
-		PrimaryMirror: "primary.registry.com",
-		RegistryMirrors: map[string]common.RegistryMirror{
-			"ghcr.io": {
-				BaseDomain: "primary.registry.com",
-				SubPath:    "ghcr-mirror",
-			},
-			"docker.io": {
-				BaseDomain: "primary.registry.com",
-				SubPath:    "dockerhub-mirror",
-			},
+var mirrorConfig = &common.RegistryMirrorConfig{
+	PrimaryMirror: "primary.registry.com",
+	RegistryMirrors: map[string]common.RegistryMirror{
+		"ghcr.io": {
+			BaseDomain: "primary.registry.com",
+			SubPath:    "ghcr-mirror",
 		},
-	}
+		"docker.io": {
+			BaseDomain: "primary.registry.com",
+			SubPath:    "dockerhub-mirror",
+		},
+	},
+}
 
-	t.Run("replicates images successfully", func(t *testing.T) {
+var _ = Describe("ReplicateImages", func() {
+	It("should replicate images successfully", func() {
 		fetchedRefs := make([]string, 0)
 		replicator := &ImageReplicator{
-			config: config,
+			config: mirrorConfig,
 			auth:   authn.Anonymous,
 			manifestFetcher: func(ref string, opts ...crane.Option) ([]byte, error) {
 				fetchedRefs = append(fetchedRefs, ref)
@@ -48,17 +48,17 @@ containers:
 - image: docker.io/library/nginx:latest
 `
 		replicated, err := replicator.ReplicateImages(context.Background(), manifests, nil)
-		require.NoError(t, err)
-		assert.Len(t, replicated, 2)
-		assert.Len(t, fetchedRefs, 2)
-		assert.Contains(t, fetchedRefs, "primary.registry.com/dockerhub-mirror/library/nginx:latest")
-		assert.Contains(t, fetchedRefs, "primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:main")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(replicated).To(HaveLen(2))
+		Expect(fetchedRefs).To(HaveLen(2))
+		Expect(fetchedRefs).To(ContainElement("primary.registry.com/dockerhub-mirror/library/nginx:latest"))
+		Expect(fetchedRefs).To(ContainElement("primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:main"))
 	})
 
-	t.Run("skips already replicated images", func(t *testing.T) {
+	It("should skip already replicated images", func() {
 		fetchCount := 0
 		replicator := &ImageReplicator{
-			config: config,
+			config: mirrorConfig,
 			auth:   authn.Anonymous,
 			manifestFetcher: func(ref string, opts ...crane.Option) ([]byte, error) {
 				fetchCount++
@@ -73,15 +73,15 @@ containers:
 `
 		alreadyReplicated := []string{"ghcr.io/cloudoperators/greenhouse:main"}
 		replicated, err := replicator.ReplicateImages(context.Background(), manifests, alreadyReplicated)
-		require.NoError(t, err)
-		assert.Len(t, replicated, 2)
-		assert.Equal(t, 1, fetchCount)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(replicated).To(HaveLen(2))
+		Expect(fetchCount).To(Equal(1))
 	})
 
-	t.Run("skips images without configured mirror", func(t *testing.T) {
+	It("should skip images without configured mirror", func() {
 		fetchCount := 0
 		replicator := &ImageReplicator{
-			config: config,
+			config: mirrorConfig,
 			auth:   authn.Anonymous,
 			manifestFetcher: func(ref string, opts ...crane.Option) ([]byte, error) {
 				fetchCount++
@@ -94,14 +94,14 @@ containers:
 - image: registry.k8s.io/pause:3.9
 `
 		replicated, err := replicator.ReplicateImages(context.Background(), manifests, nil)
-		require.NoError(t, err)
-		assert.Empty(t, replicated)
-		assert.Equal(t, 0, fetchCount)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(replicated).To(BeEmpty())
+		Expect(fetchCount).To(Equal(0))
 	})
 
-	t.Run("returns partial results and error on failure", func(t *testing.T) {
+	It("should return partial results and error on failure", func() {
 		replicator := &ImageReplicator{
-			config: config,
+			config: mirrorConfig,
 			auth:   authn.Anonymous,
 			manifestFetcher: func(ref string, opts ...crane.Option) ([]byte, error) {
 				if ref == "primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:main" {
@@ -117,15 +117,15 @@ containers:
 - image: docker.io/library/nginx:latest
 `
 		replicated, err := replicator.ReplicateImages(context.Background(), manifests, nil)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "connection refused")
-		assert.Contains(t, replicated, "docker.io/library/nginx:latest")
-		assert.NotContains(t, replicated, "ghcr.io/cloudoperators/greenhouse:main")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("connection refused"))
+		Expect(replicated).To(ContainElement("docker.io/library/nginx:latest"))
+		Expect(replicated).NotTo(ContainElement("ghcr.io/cloudoperators/greenhouse:main"))
 	})
 
-	t.Run("returns existing list when no images in manifests", func(t *testing.T) {
+	It("should return existing list when no images in manifests", func() {
 		replicator := &ImageReplicator{
-			config: config,
+			config: mirrorConfig,
 			auth:   authn.Anonymous,
 			manifestFetcher: func(ref string, opts ...crane.Option) ([]byte, error) {
 				return []byte("{}"), nil
@@ -138,69 +138,35 @@ kind: ConfigMap
 `
 		existing := []string{"some-image:latest"}
 		replicated, err := replicator.ReplicateImages(context.Background(), manifests, existing)
-		require.NoError(t, err)
-		assert.Equal(t, existing, replicated)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(replicated).To(Equal(existing))
 	})
-}
+})
 
-func TestBuildMirroredImageRef(t *testing.T) {
-	config := &common.RegistryMirrorConfig{
-		PrimaryMirror: "primary.registry.com",
-		RegistryMirrors: map[string]common.RegistryMirror{
-			"ghcr.io": {
-				BaseDomain: "primary.registry.com",
-				SubPath:    "ghcr-mirror",
-			},
-			"docker.io": {
-				BaseDomain: "primary.registry.com",
-				SubPath:    "dockerhub-mirror",
-			},
-		},
-	}
+var _ = Describe("buildMirroredImageRef", func() {
+	replicator := &ImageReplicator{config: mirrorConfig, auth: authn.Anonymous}
 
-	replicator := &ImageReplicator{config: config, auth: authn.Anonymous}
-
-	tests := []struct {
-		name     string
-		imageRef string
-		expected string
-	}{
-		{
-			name:     "ghcr.io image with tag",
-			imageRef: "ghcr.io/cloudoperators/greenhouse:main",
-			expected: "primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:main",
+	DescribeTable("should build correct mirrored refs",
+		func(imageRef, expected string) {
+			Expect(replicator.buildMirroredImageRef(imageRef)).To(Equal(expected))
 		},
-		{
-			name:     "docker.io image with tag",
-			imageRef: "docker.io/library/nginx:latest",
-			expected: "primary.registry.com/dockerhub-mirror/library/nginx:latest",
-		},
-		{
-			name:     "unqualified image defaults to docker.io",
-			imageRef: "nginx:latest",
-			expected: "primary.registry.com/dockerhub-mirror/library/nginx:latest",
-		},
-		{
-			name:     "image with digest",
-			imageRef: "ghcr.io/cloudoperators/greenhouse@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-			expected: "primary.registry.com/ghcr-mirror/cloudoperators/greenhouse@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-		},
-		{
-			name:     "no mirror configured",
-			imageRef: "registry.k8s.io/pause:3.9",
-			expected: "",
-		},
-		{
-			name:     "nested path image",
-			imageRef: "ghcr.io/org/team/project/app:v1.0",
-			expected: "primary.registry.com/ghcr-mirror/org/team/project/app:v1.0",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := replicator.buildMirroredImageRef(tt.imageRef)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
+		Entry("ghcr.io image with tag",
+			"ghcr.io/cloudoperators/greenhouse:main",
+			"primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:main"),
+		Entry("docker.io image with tag",
+			"docker.io/library/nginx:latest",
+			"primary.registry.com/dockerhub-mirror/library/nginx:latest"),
+		Entry("unqualified image defaults to docker.io",
+			"nginx:latest",
+			"primary.registry.com/dockerhub-mirror/library/nginx:latest"),
+		Entry("image with digest",
+			"ghcr.io/cloudoperators/greenhouse@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+			"primary.registry.com/ghcr-mirror/cloudoperators/greenhouse@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"),
+		Entry("no mirror configured",
+			"registry.k8s.io/pause:3.9",
+			""),
+		Entry("nested path image",
+			"ghcr.io/org/team/project/app:v1.0",
+			"primary.registry.com/ghcr-mirror/org/team/project/app:v1.0"),
+	)
+})
