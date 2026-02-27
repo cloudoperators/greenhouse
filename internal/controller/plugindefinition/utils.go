@@ -22,7 +22,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/helm"
-	"github.com/cloudoperators/greenhouse/internal/replication"
+	"github.com/cloudoperators/greenhouse/internal/imagemirror"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
@@ -183,7 +183,7 @@ func ensureImageReplication(ctx context.Context, k8sClient client.Client, plugin
 		return err
 	}
 
-	mirrorConfig, err := common.GetRegistryMirrorConfig(ctx, k8sClient, namespaceName)
+	mirrorConfig, err := imagemirror.GetRegistryMirrorConfig(ctx, k8sClient, namespaceName)
 	if err != nil {
 		return failReplication(err, "failed to get registry mirror config")
 	}
@@ -201,7 +201,7 @@ func ensureImageReplication(ctx context.Context, k8sClient client.Client, plugin
 		return failReplication(err, "failed to template helm chart")
 	}
 
-	replicator, err := replication.NewImageReplicator(ctx, k8sClient, mirrorConfig, namespaceName)
+	replicator, err := imagemirror.NewImageReplicator(ctx, k8sClient, mirrorConfig, namespaceName)
 	if err != nil {
 		return failReplication(err, "failed to create image replicator")
 	}

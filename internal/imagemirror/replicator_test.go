@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package replication
+package imagemirror
 
 import (
 	"context"
@@ -12,13 +12,11 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/cloudoperators/greenhouse/internal/common"
-
 )
 
-var mirrorConfig = &common.RegistryMirrorConfig{
+var mirrorConfig = &RegistryMirrorConfig{
 	PrimaryMirror: "primary.registry.com",
-	RegistryMirrors: map[string]common.RegistryMirror{
+	RegistryMirrors: map[string]RegistryMirror{
 		"ghcr.io": {
 			BaseDomain: "primary.registry.com",
 			SubPath:    "ghcr-mirror",

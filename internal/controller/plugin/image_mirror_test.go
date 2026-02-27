@@ -7,15 +7,15 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/cloudoperators/greenhouse/internal/common"
+	"github.com/cloudoperators/greenhouse/internal/imagemirror"
 )
 
 var _ = Describe("createRegistryMirrorPostRenderer", func() {
-	var mirrorConfig *common.RegistryMirrorConfig
+	var mirrorConfig *imagemirror.RegistryMirrorConfig
 
 	BeforeEach(func() {
-		mirrorConfig = &common.RegistryMirrorConfig{
-			RegistryMirrors: map[string]common.RegistryMirror{
+		mirrorConfig = &imagemirror.RegistryMirrorConfig{
+			RegistryMirrors: map[string]imagemirror.RegistryMirror{
 				"ghcr.io": {
 					BaseDomain: "mirror.example.com",
 					SubPath:    "ghcr-mirror",
@@ -35,8 +35,8 @@ var _ = Describe("createRegistryMirrorPostRenderer", func() {
 	})
 
 	It("should return nil when no mirrors configured", func() {
-		emptyConfig := &common.RegistryMirrorConfig{
-			RegistryMirrors: map[string]common.RegistryMirror{},
+		emptyConfig := &imagemirror.RegistryMirrorConfig{
+			RegistryMirrors: map[string]imagemirror.RegistryMirror{},
 		}
 		manifest := `image: ghcr.io/cloudoperators/greenhouse:main`
 		postRenderer := createRegistryMirrorPostRenderer(emptyConfig, manifest)

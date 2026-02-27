@@ -9,10 +9,10 @@ import (
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	"github.com/fluxcd/pkg/apis/kustomize"
 
-	"github.com/cloudoperators/greenhouse/internal/common"
+	"github.com/cloudoperators/greenhouse/internal/imagemirror"
 )
 
-func createRegistryMirrorPostRenderer(mirrorConfig *common.RegistryMirrorConfig, renderedManifests string) *helmv2.PostRenderer {
+func createRegistryMirrorPostRenderer(mirrorConfig *imagemirror.RegistryMirrorConfig, renderedManifests string) *helmv2.PostRenderer {
 	if mirrorConfig == nil || len(mirrorConfig.RegistryMirrors) == 0 {
 		return nil
 	}
@@ -29,8 +29,8 @@ func createRegistryMirrorPostRenderer(mirrorConfig *common.RegistryMirrorConfig,
 	}
 }
 
-func buildImageTransformations(manifests string, config *common.RegistryMirrorConfig) []kustomize.Image {
-	imageRefs := common.ExtractUniqueImages(manifests)
+func buildImageTransformations(manifests string, config *imagemirror.RegistryMirrorConfig) []kustomize.Image {
+	imageRefs := imagemirror.ExtractUniqueImages(manifests)
 
 	var transformations []kustomize.Image
 	for _, imageRef := range imageRefs {
@@ -39,7 +39,7 @@ func buildImageTransformations(manifests string, config *common.RegistryMirrorCo
 			continue
 		}
 
-		registry, _, _ := common.SplitImageRef(imageRef)
+		registry, _, _ := imagemirror.SplitImageRef(imageRef)
 		baseName := fmt.Sprintf("%s/%s", registry, resolved.Repository)
 		newName := fmt.Sprintf("%s/%s/%s", resolved.Mirror.BaseDomain, resolved.Mirror.SubPath, resolved.Repository)
 
