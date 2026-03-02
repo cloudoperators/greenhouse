@@ -17,10 +17,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
-const (
-	registryMirrorConfigKey         = "containerRegistryConfig"
-	defaultRegistryMirrorSecretName = "registry-mirror-creds"
-)
+const registryMirrorConfigKey = "containerRegistryConfig"
 
 // RegistryMirrorConfig represents the registry mirror configuration structure.
 type RegistryMirrorConfig struct {
@@ -70,10 +67,6 @@ func GetRegistryMirrorConfig(ctx context.Context, k8sClient client.Reader, orgNa
 
 	if err := validateRegistryMirrorConfig(&mirrorConfig); err != nil {
 		return nil, fmt.Errorf("invalid registry mirror configuration: %w", err)
-	}
-
-	if mirrorConfig.PrimaryMirror != "" && mirrorConfig.SecretName == "" {
-		mirrorConfig.SecretName = defaultRegistryMirrorSecretName
 	}
 
 	return &mirrorConfig, nil
