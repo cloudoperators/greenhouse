@@ -86,12 +86,12 @@ registryMirrors:
 				}))
 			})
 
-			It("should default SecretName when PrimaryMirror is set", func() {
+			It("should leave SecretName empty when not explicitly set", func() {
 				config, err := GetRegistryMirrorConfig(ctx, fakeClient, orgName)
 
 				Expect(err).NotTo(HaveOccurred())
 				Expect(config).NotTo(BeNil())
-				Expect(config.SecretName).To(Equal("registry-mirror-creds"))
+				Expect(config.SecretName).To(BeEmpty())
 			})
 		})
 
