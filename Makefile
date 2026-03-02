@@ -348,10 +348,6 @@ prepare-e2e:
 list-scenarios:
 	find $(shell pwd)/e2e -type f -name 'e2e_test.go' -exec dirname {} \; | xargs -n 1 basename | jq -R -s -c 'split("\n")[:-1]'
 
-.PHONY: dev-docs
-dev-docs:
-	go run -tags="dev" -mod=mod dev-env/docs.go
-
 # Download and install mockery locally via `brew install mockery`
 MOCKERY := $(shell which mockery)
 mockery:
