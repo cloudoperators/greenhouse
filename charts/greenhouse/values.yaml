@@ -34,13 +34,12 @@ postgresqlng:
   alerts:
     support_group: greenhouse
   resources: {}
-  # The database that will be created in the database
-  postgresDatabase: dex
+  # The databases that will be created in the PostgreSQL server
+  databases:
+    - name: dex
+      owner: dex
   users:
-    dex:         # The user that will be created in the database
-      grant:         # The grants that will be given to the user
-      - 'GRANT ALL PRIVILEGES ON DATABASE "%PGDATABASE%"'
-  tableOwner:         # The owner of the tables in the database
+    dex: {}         # The user that will be created in the database
 
 # demo organization
 demo:

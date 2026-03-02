@@ -35,11 +35,12 @@ cors-proxy:
 postgresqlng:
   enabled: true
   resources: {}
-  # The database that will be created in the database
-  postgresDatabase: dex
-  tableOwner: dex
+  # The databases that will be created in the PostgreSQL server
+  databases:
+    - name: dex
+      owner: dex
   users:
-    acme-user:
+    acme-user: {}
   alerts:
     support_group: foobar
 
