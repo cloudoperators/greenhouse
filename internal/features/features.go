@@ -21,10 +21,6 @@ const (
 	PluginFeatureKey = "plugin"
 )
 
-var (
-	DefaultDeploymentToolValue = "helm"
-)
-
 type Features struct {
 	raw    map[string]string
 	dex    *dexFeatures    `yaml:"dex"`
@@ -36,9 +32,8 @@ type dexFeatures struct {
 }
 
 type pluginFeatures struct {
-	ExpressionEvaluationEnabled bool   `yaml:"expressionEvaluationEnabled"`
-	IntegrationEnabled          bool   `yaml:"integrationEnabled"`
-	DefaultDeploymentTool       string `yaml:"defaultDeploymentTool"`
+	ExpressionEvaluationEnabled bool `yaml:"expressionEvaluationEnabled"`
+	IntegrationEnabled          bool `yaml:"integrationEnabled"`
 }
 
 func NewFeatures(ctx context.Context, k8sClient client.Reader, configMapName, namespace string) (*Features, error) {
@@ -132,28 +127,4 @@ func (f *Features) IsIntegrationEnabled() bool {
 		return false
 	}
 	return f.plugin.IntegrationEnabled
-}
-
-// GetDefaultDeploymentTool returns the default deployment tool for plugins.
-// Returns nil if the value cannot be resolved.
-func (f *Features) GetDefaultDeploymentTool() *string {
-	if f == nil {
-		return nil
-	}
-
-	if f.plugin != nil {
-		if f.plugin.DefaultDeploymentTool == "" {
-			return nil
-		}
-		return ptr.To(f.plugin.DefaultDeploymentTool)
-	}
-
-	if err := f.resolvePluginFeatures(); err != nil {
-		ctrl.LoggerFrom(context.Background()).Error(err, "failed to resolve plugin features")
-		return nil
-	}
-	if f.plugin.DefaultDeploymentTool == "" {
-		return nil
-	}
-	return ptr.To(f.plugin.DefaultDeploymentTool)
 }
