@@ -239,8 +239,6 @@ func (p *PluginDefinition) FluxHelmChartResourceName() string {
 type PluginDefinitionStatus struct {
 	// StatusConditions contain the different conditions that constitute the status of the Plugin.
 	greenhousemetav1alpha1.StatusConditions `json:"statusConditions,omitempty"`
-	// ReplicatedImages is the list of images that have been replicated to the mirror registry.
-	ReplicatedImages []string `json:"replicatedImages,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -289,14 +287,6 @@ func (p *PluginDefinition) RemoveCondition(conditionType greenhousemetav1alpha1.
 
 func (p *PluginDefinition) CanBeSuspended() bool {
 	return false
-}
-
-func (p *PluginDefinition) GetReplicatedImages() []string {
-	return p.Status.ReplicatedImages
-}
-
-func (p *PluginDefinition) SetReplicatedImages(images []string) {
-	p.Status.ReplicatedImages = images
 }
 
 func init() {

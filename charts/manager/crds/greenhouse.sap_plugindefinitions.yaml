@@ -175,12 +175,6 @@ spec:
           status:
             description: PluginDefinitionStatus defines the observed state of PluginDefinition
             properties:
-              replicatedImages:
-                description: ReplicatedImages is the list of images that have been
-                  replicated to the mirror registry.
-                items:
-                  type: string
-                type: array
               statusConditions:
                 description: StatusConditions contain the different conditions that
                   constitute the status of the Plugin.

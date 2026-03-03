@@ -121,41 +121,6 @@ func TemplateHelmChartFromPluginOptionValues(ctx context.Context, local client.C
 	return installAction.RunWithContext(ctx, helmChart, helmValues)
 }
 
-// TemplateHelmChartWithDefaults renders a Helm chart client-only using its default values.
-func TemplateHelmChartWithDefaults(ctx context.Context, helmChartRef *greenhousev1alpha1.HelmChartReference) (*release.Release, error) {
-	if helmChartRef == nil {
-		return nil, errors.New("helmChartRef is nil")
-	}
-
-	cfg := &action.Configuration{}
-	registryClient, err := registry.NewClient(
-		registry.ClientOptDebug(IsHelmDebug),
-		registry.ClientOptEnableCache(true),
-		registry.ClientOptWriter(os.Stderr),
-		registry.ClientOptCredentialsFile(settings.RegistryConfig),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create registry client: %w", err)
-	}
-	cfg.RegistryClient = registryClient
-
-	installAction := action.NewInstall(cfg)
-	installAction.ReleaseName = "template-defaults"
-	installAction.Namespace = "default"
-	installAction.DryRun = true
-	installAction.ClientOnly = true
-	installAction.Replace = true
-
-	helmChart, err := loadHelmChart(&installAction.ChartPathOptions, helmChartRef, settings)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load helm chart: %w", err)
-	}
-
-	helmValues := MergeMaps(make(map[string]any), helmChart.Values)
-
-	return installAction.RunWithContext(ctx, helmChart, helmValues)
-}
-
 type ChartLoaderFunc func(name string) (*chart.Chart, error)
 
 var ChartLoader ChartLoaderFunc = loader.Load
