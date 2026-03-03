@@ -63,7 +63,7 @@ func (r *ImageReplicator) ReplicateImages(ctx context.Context, renderedManifests
 
 	var replicationErrors []string
 	for _, imageRef := range imageRefs {
-		mirroredRef := r.buildMirroredImageRef(imageRef)
+		mirroredRef := r.BuildMirroredImageRef(imageRef)
 		if mirroredRef == "" {
 			continue
 		}
@@ -72,7 +72,7 @@ func (r *ImageReplicator) ReplicateImages(ctx context.Context, renderedManifests
 			continue
 		}
 
-		if err := r.triggerReplication(ctx, mirroredRef); err != nil {
+		if err := r.TriggerReplication(ctx, mirroredRef, crane.WithPlatform(&v1.Platform{OS: "linux", Architecture: "amd64"})); err != nil {
 			replicationErrors = append(replicationErrors, fmt.Sprintf("%s: %v", imageRef, err))
 			continue
 		}
@@ -87,7 +87,8 @@ func (r *ImageReplicator) ReplicateImages(ctx context.Context, renderedManifests
 	return replicated, nil
 }
 
-func (r *ImageReplicator) buildMirroredImageRef(imageRef string) string {
+// BuildMirroredImageRef resolves imageRef against the mirror config and returns the mirrored reference.
+func (r *ImageReplicator) BuildMirroredImageRef(imageRef string) string {
 	resolved := r.config.ResolveImage(imageRef)
 	if resolved == nil {
 		return ""
@@ -101,12 +102,11 @@ func (r *ImageReplicator) buildMirroredImageRef(imageRef string) string {
 	return mirroredRef
 }
 
-func (r *ImageReplicator) triggerReplication(ctx context.Context, mirroredRef string) error {
-	log.FromContext(ctx).V(1).Info("triggering replication for image", "ref", mirroredRef)
-	_, err := r.manifestFetcher(mirroredRef,
-		crane.WithPlatform(&v1.Platform{OS: "linux", Architecture: "amd64"}),
-		crane.WithAuth(r.auth),
-	)
+// TriggerReplication fetches the manifest for mirroredRef to warm the pull-through cache.
+func (r *ImageReplicator) TriggerReplication(ctx context.Context, mirroredRef string, extraOpts ...crane.Option) error {
+	log.FromContext(ctx).V(1).Info("triggering replication", "ref", mirroredRef)
+	opts := append([]crane.Option{crane.WithAuth(r.auth)}, extraOpts...)
+	_, err := r.manifestFetcher(mirroredRef, opts...)
 	if err != nil {
 		return fmt.Errorf("failed to fetch manifest for %s: %w", mirroredRef, err)
 	}

@@ -46,7 +46,7 @@ func SplitImageRef(imageRef string) (registry, repository, tagOrDigest string) {
 
 	repository = ref.Context().RepositoryStr()
 
-	// ref.Identifier() doesnt include the separator so we prepend ":" or "@".
+	// ref.Identifier() doesn't include the separator so we prepend ":" or "@".
 	switch r := ref.(type) {
 	case name.Tag:
 		tagOrDigest = ":" + r.TagStr()
