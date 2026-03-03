@@ -140,12 +140,12 @@ kind: ConfigMap
 	})
 })
 
-var _ = Describe("buildMirroredImageRef", func() {
+var _ = Describe("BuildMirroredImageRef", func() {
 	replicator := &ImageReplicator{config: mirrorConfig, auth: authn.Anonymous}
 
 	DescribeTable("should build correct mirrored refs",
 		func(imageRef, expected string) {
-			Expect(replicator.buildMirroredImageRef(imageRef)).To(Equal(expected))
+			Expect(replicator.BuildMirroredImageRef(imageRef)).To(Equal(expected))
 		},
 		Entry("ghcr.io image with tag",
 			"ghcr.io/cloudoperators/greenhouse:main",

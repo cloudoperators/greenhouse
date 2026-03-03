@@ -84,7 +84,7 @@ func (r *ClusterPluginDefinitionReconciler) EnsureCreated(ctx context.Context, o
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	helmChart, _, err := h.createUpdateHelmChart(ctx, helmRepo)
+	helmChart, err := h.createUpdateHelmChart(ctx, helmRepo)
 	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}

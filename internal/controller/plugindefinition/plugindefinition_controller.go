@@ -14,7 +14,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
@@ -91,13 +90,9 @@ func (r *PluginDefinitionReconciler) EnsureCreated(ctx context.Context, obj life
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	helmChart, chartResult, err := h.createUpdateHelmChart(ctx, helmRepo)
+	helmChart, err := h.createUpdateHelmChart(ctx, helmRepo)
 	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
-	}
-
-	if chartResult == controllerutil.OperationResultCreated || chartResult == controllerutil.OperationResultUpdated {
-		pluginDef.SetReplicatedImages(nil)
 	}
 
 	h.setHelmChartReadyCondition(ctx, helmChart)
@@ -105,7 +100,7 @@ func (r *PluginDefinitionReconciler) EnsureCreated(ctx context.Context, obj life
 	conditions := pluginDef.GetConditions()
 	helmChartCond := conditions.GetConditionByType(greenhousev1alpha1.HelmChartReadyCondition)
 	if helmChartCond != nil && helmChartCond.IsTrue() {
-		if replicationErr := ensureImageReplication(ctx, r.Client, pluginDef, pluginDef.Namespace); replicationErr != nil {
+		if replicationErr := ensureChartReplication(ctx, r.Client, pluginDef, pluginDef.Namespace); replicationErr != nil {
 			return ctrl.Result{RequeueAfter: 1 * time.Minute}, lifecycle.Success, nil //nolint:nilerr
 		}
 	}

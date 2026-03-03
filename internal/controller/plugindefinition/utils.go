@@ -5,6 +5,8 @@ package plugindefinition
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	fluxmeta "github.com/fluxcd/pkg/apis/meta"
@@ -21,7 +23,6 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/flux"
-	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/imagemirror"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
@@ -136,7 +137,7 @@ func (h *helmer) createUpdateHelmRepository(ctx context.Context) (*sourcev1.Helm
 	return helmRepository, nil
 }
 
-func (h *helmer) createUpdateHelmChart(ctx context.Context, helmRepo *sourcev1.HelmRepository) (*sourcev1.HelmChart, controllerutil.OperationResult, error) {
+func (h *helmer) createUpdateHelmChart(ctx context.Context, helmRepo *sourcev1.HelmRepository) (*sourcev1.HelmChart, error) {
 	pluginDefSpec := h.pluginDef.GetPluginDefinitionSpec()
 	helmChart := &sourcev1.HelmChart{}
 	helmChart.SetName(h.pluginDef.FluxHelmChartResourceName())
@@ -155,7 +156,7 @@ func (h *helmer) createUpdateHelmChart(ctx context.Context, helmRepo *sourcev1.H
 		return controllerutil.SetControllerReference(h.pluginDef, helmChart, h.k8sClient.Scheme())
 	})
 	if err != nil {
-		return nil, result, err
+		return nil, err
 	}
 	switch result {
 	case controllerutil.OperationResultCreated:
@@ -167,11 +168,11 @@ func (h *helmer) createUpdateHelmChart(ctx context.Context, helmRepo *sourcev1.H
 	case controllerutil.OperationResultNone:
 		log.FromContext(ctx).Info("No changes to helmChart", "namespace", h.namespaceName, "name", helmChart.Name)
 	}
-	return helmChart, result, nil
+	return helmChart, nil
 }
 
-// ensureImageReplication triggers replication for images referenced in the chart's default templates.
-func ensureImageReplication(ctx context.Context, k8sClient client.Client, pluginDef common.GenericPluginDefinition, namespaceName string) error {
+// ensureChartReplication triggers replication for the Helm chart OCI artifact to the configured mirror registry.
+func ensureChartReplication(ctx context.Context, k8sClient client.Client, pluginDef common.GenericPluginDefinition, namespaceName string) error {
 	logger := log.FromContext(ctx)
 
 	failReplication := func(err error, msg string) error {
@@ -196,9 +197,17 @@ func ensureImageReplication(ctx context.Context, k8sClient client.Client, plugin
 		return nil
 	}
 
-	templateRelease, err := helm.TemplateHelmChartWithDefaults(ctx, pluginDef.GetPluginDefinitionSpec().HelmChart)
-	if err != nil {
-		return failReplication(err, "failed to template helm chart")
+	helmChart := pluginDef.GetPluginDefinitionSpec().HelmChart
+	chartRef := strings.TrimPrefix(helmChart.Repository, "oci://") + "/" + helmChart.Name + ":" + helmChart.Version
+
+	// Skip replication if the current chart version was already replicated.
+	conditions := pluginDef.GetConditions()
+	replicationCond := conditions.GetConditionByType(greenhousev1alpha1.ImageReplicationReadyCondition)
+	if replicationCond != nil && replicationCond.IsTrue() &&
+		replicationCond.Reason == greenhousemetav1alpha1.ConditionReason(greenhousev1alpha1.ImageReplicationSucceededReason) &&
+		strings.Contains(replicationCond.Message, chartRef) {
+		logger.V(1).Info("chart already replicated, skipping", "chart", chartRef)
+		return nil
 	}
 
 	replicator, err := imagemirror.NewImageReplicator(ctx, k8sClient, mirrorConfig, namespaceName)
@@ -206,15 +215,23 @@ func ensureImageReplication(ctx context.Context, k8sClient client.Client, plugin
 		return failReplication(err, "failed to create image replicator")
 	}
 
-	replicated, err := replicator.ReplicateImages(ctx, templateRelease.Manifest, pluginDef.GetReplicatedImages())
-	pluginDef.SetReplicatedImages(replicated)
-	if err != nil {
-		return failReplication(err, "image replication failed")
+	mirroredRef := replicator.BuildMirroredImageRef(chartRef)
+	if mirroredRef == "" {
+		logger.Info("no mirror configured for chart registry, skipping replication", "chart", chartRef)
+		pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.ImageReplicationReadyCondition,
+			greenhousev1alpha1.ImageReplicationNotConfiguredReason,
+			"No mirror configured for chart registry"))
+		return nil
+	}
+
+	if err := replicator.TriggerReplication(ctx, mirroredRef); err != nil {
+		return failReplication(err, "chart replication failed")
 	}
 
 	pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
 		greenhousev1alpha1.ImageReplicationReadyCondition,
 		greenhousev1alpha1.ImageReplicationSucceededReason,
-		"All images replicated successfully"))
+		fmt.Sprintf("Chart replicated successfully: %s", chartRef)))
 	return nil
 }
