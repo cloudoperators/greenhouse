@@ -39,7 +39,7 @@ require (
 	github.com/go-logr/logr v1.4.3
 	github.com/google/cel-go v0.27.0
 	github.com/google/go-cmp v0.7.0
-	github.com/google/go-github/v83 v83.0.0
+	github.com/google/go-github/v84 v84.0.0
 	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/jeremywohl/flatten/v2 v2.0.0-20211013061545-07e4a09fb8e4
 	github.com/oklog/run v1.2.0
@@ -100,7 +100,6 @@ require (
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/platforms v0.2.1 // indirect
 	github.com/coreos/go-oidc/v3 v3.14.1 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/creack/pty v1.1.23 // indirect
 	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
