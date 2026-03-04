@@ -28,7 +28,6 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/test"
-	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName string) {
@@ -70,8 +69,6 @@ func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClien
 
 	By("Creating the plugin preset")
 	testPluginPreset := test.NewPluginPreset("test-podinfo-plugin-preset", env.TestNamespace,
-		test.WithPluginPresetLabel(greenhouseapis.GreenhouseHelmDeliveryToolLabel, greenhouseapis.GreenhouseHelmDeliveryToolFlux),
-		test.WithPluginPresetAnnotation(lifecycle.PropagateLabelsAnnotation, greenhouseapis.GreenhouseHelmDeliveryToolLabel),
 		test.WithPluginPresetPluginSpec(testPlugin.Spec),
 		test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"app": "test-cluster"}}),
 	)
@@ -82,7 +79,7 @@ func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClien
 	By("Checking the plugin is created")
 	Eventually(func(g Gomega) {
 		pluginList := &greenhousev1alpha1.PluginList{}
-		err = adminClient.List(ctx, pluginList, client.MatchingLabels{greenhouseapis.GreenhouseHelmDeliveryToolLabel: greenhouseapis.GreenhouseHelmDeliveryToolFlux})
+		err = adminClient.List(ctx, pluginList, client.MatchingLabels{greenhouseapis.LabelKeyPluginPreset: testPluginPreset.Name})
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(pluginList.Items).To(HaveLen(1))
 		plugin = &pluginList.Items[0]
@@ -221,8 +218,6 @@ func FluxControllerUIOnlyPlugin(ctx context.Context, adminClient, remoteClient c
 
 	By("Creating the plugin preset")
 	testPluginPreset := test.NewPluginPreset("test-ui-only-plugin-preset", env.TestNamespace,
-		test.WithPluginPresetLabel(greenhouseapis.GreenhouseHelmDeliveryToolLabel, greenhouseapis.GreenhouseHelmDeliveryToolFlux),
-		test.WithPluginPresetAnnotation(lifecycle.PropagateLabelsAnnotation, greenhouseapis.GreenhouseHelmDeliveryToolLabel),
 		test.WithPluginPresetPluginSpec(testPlugin.Spec),
 		test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"app": "test-cluster"}}),
 	)
@@ -238,7 +233,7 @@ func FluxControllerUIOnlyPlugin(ctx context.Context, adminClient, remoteClient c
 	By("Checking the plugin is created")
 	Eventually(func(g Gomega) {
 		pluginList := &greenhousev1alpha1.PluginList{}
-		err = adminClient.List(ctx, pluginList, client.MatchingLabels{greenhouseapis.GreenhouseHelmDeliveryToolLabel: greenhouseapis.GreenhouseHelmDeliveryToolFlux})
+		err = adminClient.List(ctx, pluginList, client.MatchingLabels{greenhouseapis.LabelKeyPluginPreset: testPluginPreset.Name})
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(pluginList.Items).To(HaveLen(1))
 		plugin = &pluginList.Items[0]
@@ -333,9 +328,7 @@ func FluxControllerPluginDependencies(ctx context.Context, adminClient, remoteCl
 
 	By("Creating leaf PluginPreset dependent on Plugin from mid PluginPreset and on global Plugin")
 	leafPluginPreset := test.NewPluginPreset("test-leaf-plugin-preset", env.TestNamespace,
-		test.WithPluginPresetLabel(greenhouseapis.GreenhouseHelmDeliveryToolLabel, greenhouseapis.GreenhouseHelmDeliveryToolFlux),
 		test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamName),
-		test.WithPluginPresetAnnotation(lifecycle.PropagateLabelsAnnotation, greenhouseapis.GreenhouseHelmDeliveryToolLabel),
 		test.WithPluginPresetPluginSpec(testPluginSpec),
 		test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"app": "test-cluster"}}),
 		test.WithPluginPresetWaitFor(
@@ -394,9 +387,7 @@ func FluxControllerPluginDependencies(ctx context.Context, adminClient, remoteCl
 
 	By("Creating mid PluginPreset")
 	midPluginPreset := test.NewPluginPreset(midPluginPresetName, env.TestNamespace,
-		test.WithPluginPresetLabel(greenhouseapis.GreenhouseHelmDeliveryToolLabel, greenhouseapis.GreenhouseHelmDeliveryToolFlux),
 		test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamName),
-		test.WithPluginPresetAnnotation(lifecycle.PropagateLabelsAnnotation, greenhouseapis.GreenhouseHelmDeliveryToolLabel),
 		test.WithPluginPresetPluginSpec(testPluginSpec),
 		test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"app": "test-cluster"}}),
 		test.WithPluginPresetWaitFor(greenhousev1alpha1.WaitForItem{
@@ -440,7 +431,6 @@ func FluxControllerPluginDependencies(ctx context.Context, adminClient, remoteCl
 		test.WithReleaseName("test-global-podinfo-plugin"),
 		test.WithReleaseNamespace(env.TestNamespace),
 		test.WithCluster(remoteClusterName),
-		test.WithPluginLabel(greenhouseapis.GreenhouseHelmDeliveryToolLabel, greenhouseapis.GreenhouseHelmDeliveryToolFlux),
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, teamName),
 	)
 	err = adminClient.Create(ctx, globalPlugin)
@@ -536,9 +526,7 @@ func FluxControllerPluginDeletePolicyRetain(ctx context.Context, adminClient, re
 
 	By("Creating PluginPreset")
 	pluginPreset := test.NewPluginPreset(pluginPresetName, env.TestNamespace,
-		test.WithPluginPresetLabel(greenhouseapis.GreenhouseHelmDeliveryToolLabel, greenhouseapis.GreenhouseHelmDeliveryToolFlux),
 		test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamName),
-		test.WithPluginPresetAnnotation(lifecycle.PropagateLabelsAnnotation, greenhouseapis.GreenhouseHelmDeliveryToolLabel),
 		test.WithPluginPresetPluginSpec(testPluginSpec),
 		test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"app": "test-cluster"}}),
 		test.WithPluginPresetDeletionPolicy(greenhouseapis.DeletionPolicyRetain),
