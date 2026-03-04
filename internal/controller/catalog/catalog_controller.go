@@ -82,7 +82,7 @@ func (r *CatalogReconciler) EnsureDeleted(_ context.Context, _ lifecycle.Runtime
 }
 
 func (r *CatalogReconciler) EnsureSuspended(ctx context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, error) {
-	catalog := obj.(*greenhousev1alpha1.Catalog) //nolint:errcheck
+	catalog := obj.(*greenhousev1alpha1.Catalog)
 	allErrors := make([]error, 0)
 	for _, s := range catalog.Status.Inventory {
 		for _, inv := range s {
@@ -213,7 +213,7 @@ func (r *CatalogReconciler) suspendArtifactGenerator(ctx context.Context, name, 
 }
 
 func (r *CatalogReconciler) EnsureCreated(ctx context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	catalog := obj.(*greenhousev1alpha1.Catalog) //nolint:errcheck
+	catalog := obj.(*greenhousev1alpha1.Catalog)
 	catalog.SetUnknownCondition()
 
 	if len(catalog.Spec.Sources) == 0 {

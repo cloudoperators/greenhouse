@@ -94,7 +94,7 @@ func (r *PluginPresetReconciler) setConditions() lifecycle.Conditioner {
 }
 
 func (r *PluginPresetReconciler) EnsureCreated(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	pluginPreset := resource.(*greenhousev1alpha1.PluginPreset) //nolint:errcheck
+	pluginPreset := resource.(*greenhousev1alpha1.PluginPreset)
 
 	_ = log.FromContext(ctx)
 
@@ -133,7 +133,7 @@ func (r *PluginPresetReconciler) EnsureCreated(ctx context.Context, resource lif
 }
 
 func (r *PluginPresetReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	pluginPreset := resource.(*greenhousev1alpha1.PluginPreset) //nolint:errcheck
+	pluginPreset := resource.(*greenhousev1alpha1.PluginPreset)
 
 	plugins, err := r.listPlugins(ctx, pluginPreset)
 	if err != nil {
@@ -237,7 +237,7 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 			// Copy over the plugin dependencies
 			plugin.Spec.WaitFor = preset.Spec.WaitFor
 			// transport plugin preset labels to plugin
-			plugin = (lifecycle.NewPropagator(preset, plugin).Apply()).(*greenhousev1alpha1.Plugin) //nolint:errcheck
+			plugin = (lifecycle.NewPropagator(preset, plugin).Apply()).(*greenhousev1alpha1.Plugin)
 			// overrides options based on preset definition
 			overridesPluginOptionValues(plugin, preset)
 			return nil

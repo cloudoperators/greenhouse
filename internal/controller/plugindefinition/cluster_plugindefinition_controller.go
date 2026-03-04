@@ -56,13 +56,13 @@ func (r *ClusterPluginDefinitionReconciler) Reconcile(ctx context.Context, req c
 
 func (r *ClusterPluginDefinitionReconciler) setConditions() lifecycle.Conditioner {
 	return func(ctx context.Context, resource lifecycle.RuntimeObject) {
-		pluginDef := resource.(*greenhousev1alpha1.ClusterPluginDefinition) //nolint:errcheck
+		pluginDef := resource.(*greenhousev1alpha1.ClusterPluginDefinition)
 		setReadyCondition(pluginDef)
 	}
 }
 
 func (r *ClusterPluginDefinitionReconciler) EnsureCreated(ctx context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	clusterDef := obj.(*greenhousev1alpha1.ClusterPluginDefinition) //nolint:errcheck
+	clusterDef := obj.(*greenhousev1alpha1.ClusterPluginDefinition)
 
 	initializeConditions(clusterDef, greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.HelmChartReadyCondition)
 

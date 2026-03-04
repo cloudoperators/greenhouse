@@ -163,12 +163,12 @@ func (r *PluginReconciler) reconcileTechnicalLabels(ctx context.Context, plugin 
 }
 
 func (r *PluginReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	plugin := resource.(*greenhousev1alpha1.Plugin) //nolint:errcheck
+	plugin := resource.(*greenhousev1alpha1.Plugin)
 	return r.EnsureFluxDeleted(ctx, plugin)
 }
 
 func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	plugin := resource.(*greenhousev1alpha1.Plugin) //nolint:errcheck
+	plugin := resource.(*greenhousev1alpha1.Plugin)
 	InitPluginStatus(plugin)
 	// Check if we should continue with reconciliation or requeue if cluster is scheduled for deletion
 	result, err := shouldReconcileOrRequeue(ctx, r.Client, plugin)
@@ -182,7 +182,7 @@ func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle
 }
 
 func (r *PluginReconciler) EnsureSuspended(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, error) {
-	plugin := resource.(*greenhousev1alpha1.Plugin) //nolint:errcheck
+	plugin := resource.(*greenhousev1alpha1.Plugin)
 	return r.EnsureFluxSuspended(ctx, plugin)
 }
 
