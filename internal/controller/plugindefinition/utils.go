@@ -5,7 +5,6 @@ package plugindefinition
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -198,13 +197,21 @@ func ensureChartReplication(ctx context.Context, k8sClient client.Client, plugin
 	}
 
 	helmChart := pluginDef.GetPluginDefinitionSpec().HelmChart
+	if !strings.HasPrefix(helmChart.Repository, "oci://") {
+		logger.V(1).Info("chart repository is not OCI, skipping replication", "repository", helmChart.Repository)
+		pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.ImageReplicationReadyCondition,
+			greenhousev1alpha1.ImageReplicationNotConfiguredReason,
+			"Chart replication only applies to OCI repositories"))
+		return nil
+	}
 	chartRef := strings.TrimPrefix(helmChart.Repository, "oci://") + "/" + helmChart.Name + ":" + helmChart.Version
 
 	// Skip replication if the current chart version was already replicated.
 	conditions := pluginDef.GetConditions()
 	replicationCond := conditions.GetConditionByType(greenhousev1alpha1.ImageReplicationReadyCondition)
 	if replicationCond != nil && replicationCond.IsTrue() &&
-		replicationCond.Reason == greenhousemetav1alpha1.ConditionReason(greenhousev1alpha1.ImageReplicationSucceededReason) &&
+		replicationCond.Reason == greenhousev1alpha1.ImageReplicationSucceededReason &&
 		strings.Contains(replicationCond.Message, chartRef) {
 		logger.V(1).Info("chart already replicated, skipping", "chart", chartRef)
 		return nil
@@ -232,6 +239,6 @@ func ensureChartReplication(ctx context.Context, k8sClient client.Client, plugin
 	pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
 		greenhousev1alpha1.ImageReplicationReadyCondition,
 		greenhousev1alpha1.ImageReplicationSucceededReason,
-		fmt.Sprintf("Chart replicated successfully: %s", chartRef)))
+		"Chart replicated successfully: "+chartRef))
 	return nil
 }
