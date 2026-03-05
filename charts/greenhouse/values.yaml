@@ -35,10 +35,10 @@ postgresqlng:
   resources: {}
   # The databases that will be created in the PostgreSQL server
   databases:
-    - name: dex
+    dex:
       owner: dex
   users:
-    dex: {}         # The user that will be created in the database
+    dex: {} # The user that will be created in the database
 
 # demo organization
 demo:
