@@ -70,7 +70,7 @@ spec:
 
                   Deprecated: Use docsUrl instead. This field will be removed in a future release.
                 type: string
-              docsUrl:
+              docsURL:
                 description: |-
                   DocsURL specifies the URL to the documentation for this plugin.
                   This is used by the Greenhouse UI to provide a link to external documentation.
