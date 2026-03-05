@@ -49,7 +49,7 @@ func MustSetAnnotation(ctx context.Context, c client.Client, o client.Object, ke
 func MustSetAnnotations(ctx context.Context, c client.Client, o client.Object, annotations map[string]string) {
 	GinkgoHelper()
 	Eventually(func(g Gomega) {
-		base := o.DeepCopyObject().(client.Object) //nolint:errcheck
+		base := o.DeepCopyObject().(client.Object)
 		g.Expect(c.Get(ctx, client.ObjectKeyFromObject(o), o)).To(Succeed(), "there must be no error getting the object")
 		if o.GetAnnotations() == nil {
 			o.SetAnnotations(annotations)

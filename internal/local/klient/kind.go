@@ -6,6 +6,7 @@ package klient
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/cloudoperators/greenhouse/internal/local/utils"
@@ -64,12 +65,7 @@ func clusterExists(clusterName string) (bool, error) {
 		return false, fmt.Errorf("failed to check if cluster exists: %w", err)
 	}
 	utils.Logf("checking if cluster %s exists...", clusterName)
-	for _, c := range clusters {
-		if c == clusterName {
-			return true, nil
-		}
-	}
-	return false, nil
+	return slices.Contains(clusters, clusterName), nil
 }
 
 // getKindClusters - returns a list of all kind clusters

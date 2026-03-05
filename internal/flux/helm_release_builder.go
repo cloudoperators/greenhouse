@@ -57,7 +57,7 @@ func (b *HelmReleaseBuilder) WithMaxHistory(num int) *HelmReleaseBuilder {
 	if num < 0 {
 		return b
 	}
-	b.spec.MaxHistory = ptr.To[int](num)
+	b.spec.MaxHistory = ptr.To(num)
 	return b
 }
 
