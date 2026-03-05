@@ -15,17 +15,17 @@ import (
 
 var (
 	clusterFromContext = promhttp.WithLabelFromCtx("cluster", func(ctx context.Context) string {
-		cluster, _ := ctx.Value(contextClusterKey{}).(string) //nolint:errcheck
+		cluster, _ := ctx.Value(contextClusterKey{}).(string)
 		return cluster
 	})
 
 	namespaceFromContext = promhttp.WithLabelFromCtx("namespace", func(ctx context.Context) string {
-		namespace, _ := ctx.Value(contextNamespaceKey{}).(string) //nolint:errcheck
+		namespace, _ := ctx.Value(contextNamespaceKey{}).(string)
 		return namespace
 	})
 
 	nameFromContext = promhttp.WithLabelFromCtx("name", func(ctx context.Context) string {
-		name, _ := ctx.Value(contextNameKey{}).(string) //nolint:errcheck
+		name, _ := ctx.Value(contextNameKey{}).(string)
 		return name
 	})
 )

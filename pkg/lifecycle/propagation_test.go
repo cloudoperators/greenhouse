@@ -4,6 +4,8 @@
 package lifecycle_test
 
 import (
+	"maps"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -166,9 +168,7 @@ var _ = DescribeTable("Annotation propagation scenarios",
 		if src.GetAnnotations() == nil {
 			src.SetAnnotations(map[string]string{})
 		}
-		for k, v := range srcDecl {
-			src.GetAnnotations()[k] = v
-		}
+		maps.Copy(src.GetAnnotations(), srcDecl)
 
 		updated := lifecycle.NewPropagator(src, dst).Apply()
 		// Build expected annotations map including propagated keys but excluding tracking annotation

@@ -19,7 +19,7 @@ var DNSDomain string
 // The pattern shall be $https://$cluster--$hash.$organisation.$basedomain, where $hash = $service--$namespace
 // We know $cluster is no longer than 40 characters and does not contain "--"
 func URLForExposedServiceInPlugin(serviceName string, plugin *greenhousev1alpha1.Plugin) string {
-	hash := sha256.Sum256([]byte(fmt.Sprintf("%s--%s", serviceName, plugin.Spec.ReleaseNamespace)))
+	hash := sha256.Sum256(fmt.Appendf(nil, "%s--%s", serviceName, plugin.Spec.ReleaseNamespace))
 	hashString := hex.EncodeToString(hash[:])
 	subdomain := fmt.Sprintf("%s--%s", plugin.Spec.ClusterName, hashString[:7])
 	return fmt.Sprintf(
