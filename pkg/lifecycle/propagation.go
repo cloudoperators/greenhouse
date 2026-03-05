@@ -143,8 +143,7 @@ func (p *Propagator) labelKeysToPropagate() []string {
 	if annotation == "" {
 		return nil
 	}
-	rawKeys := strings.Split(annotation, ",")
-	for _, k := range rawKeys {
+	for k := range strings.SplitSeq(annotation, ",") {
 		k = strings.TrimSpace(k)
 		if k != "" {
 			keys = append(keys, k)
@@ -161,8 +160,7 @@ func (p *Propagator) annotationKeysToPropagate() []string {
 	if annotation == "" {
 		return nil
 	}
-	rawKeys := strings.Split(annotation, ",")
-	for _, k := range rawKeys {
+	for k := range strings.SplitSeq(annotation, ",") {
 		k = strings.TrimSpace(k)
 		if k != "" {
 			keys = append(keys, k)

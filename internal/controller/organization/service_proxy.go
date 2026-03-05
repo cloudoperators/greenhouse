@@ -190,31 +190,31 @@ func (r *OrganizationReconciler) reconcileServiceProxyPlugin(ctx context.Context
 			},
 			{
 				Name:  "oauth2proxy.issuerURL",
-				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", "https://auth."+common.DNSDomain))},
+				Value: &apiextensionsv1.JSON{Raw: fmt.Appendf(nil, "\"%s\"", "https://auth."+common.DNSDomain)},
 			},
 			{
 				Name:  "oauth2proxy.clientIDRef.secret",
-				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", oauth2ProxyInternalSecretName))},
+				Value: &apiextensionsv1.JSON{Raw: fmt.Appendf(nil, "\"%s\"", oauth2ProxyInternalSecretName)},
 			},
 			{
 				Name:  "oauth2proxy.clientIDRef.key",
-				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", dexOAuth2ProxyClientIDKey))},
+				Value: &apiextensionsv1.JSON{Raw: fmt.Appendf(nil, "\"%s\"", dexOAuth2ProxyClientIDKey)},
 			},
 			{
 				Name:  "oauth2proxy.clientSecretRef.secret",
-				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", oauth2ProxyInternalSecretName))},
+				Value: &apiextensionsv1.JSON{Raw: fmt.Appendf(nil, "\"%s\"", oauth2ProxyInternalSecretName)},
 			},
 			{
 				Name:  "oauth2proxy.clientSecretRef.key",
-				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", dexOAuth2ProxyClientSecretKey))},
+				Value: &apiextensionsv1.JSON{Raw: fmt.Appendf(nil, "\"%s\"", dexOAuth2ProxyClientSecretKey)},
 			},
 			{
 				Name:  "oauth2proxy.cookieSecretRef.secret",
-				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", org.Name+technicalSecretSuffix))},
+				Value: &apiextensionsv1.JSON{Raw: fmt.Appendf(nil, "\"%s\"", org.Name+technicalSecretSuffix)},
 			},
 			{
 				Name:  "oauth2proxy.cookieSecretRef.key",
-				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", cookieSecretKey))},
+				Value: &apiextensionsv1.JSON{Raw: fmt.Appendf(nil, "\"%s\"", cookieSecretKey)},
 			},
 		}
 		plugin.Spec.OptionValues = append(plugin.Spec.OptionValues, oauthProxyValues...)

@@ -73,7 +73,7 @@ func (r *RemoteClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 }
 
 func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	cluster := resource.(*greenhousev1alpha1.Cluster) //nolint:errcheck
+	cluster := resource.(*greenhousev1alpha1.Cluster)
 	if cluster.Spec.AccessMode != greenhousev1alpha1.ClusterAccessModeDirect {
 		return ctrl.Result{}, lifecycle.Failed, nil
 	}
@@ -291,7 +291,7 @@ func (r *RemoteClusterReconciler) reconcileServiceAccountToken(
 
 // EnsureDeleted - handles the deletion / cleanup of cluster resource
 func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	cluster := resource.(*greenhousev1alpha1.Cluster) //nolint:errcheck
+	cluster := resource.(*greenhousev1alpha1.Cluster)
 	c := cluster.Status.GetConditionByType(greenhousev1alpha1.KubeConfigValid)
 	if c != nil && c.IsFalse() {
 		return ctrl.Result{}, lifecycle.Success, nil

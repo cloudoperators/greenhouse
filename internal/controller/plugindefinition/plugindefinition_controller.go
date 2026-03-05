@@ -58,13 +58,13 @@ func (r *PluginDefinitionReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 func (r *PluginDefinitionReconciler) setConditions() lifecycle.Conditioner {
 	return func(ctx context.Context, resource lifecycle.RuntimeObject) {
-		pluginDef := resource.(*greenhousev1alpha1.PluginDefinition) //nolint:errcheck
+		pluginDef := resource.(*greenhousev1alpha1.PluginDefinition)
 		setReadyCondition(pluginDef)
 	}
 }
 
 func (r *PluginDefinitionReconciler) EnsureCreated(ctx context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	pluginDef := obj.(*greenhousev1alpha1.PluginDefinition) //nolint:errcheck
+	pluginDef := obj.(*greenhousev1alpha1.PluginDefinition)
 
 	initializeConditions(pluginDef, greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.HelmChartReadyCondition)
 

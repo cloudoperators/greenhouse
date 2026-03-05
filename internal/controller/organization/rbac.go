@@ -25,7 +25,8 @@ const (
 	member
 	clusterAdmin
 	pluginAdmin
-
+)
+const (
 	clusterRoleKind = "ClusterRole"
 )
 
