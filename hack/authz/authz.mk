@@ -4,6 +4,14 @@
 
 AUTHZ_CLUSTER ?= greenhouse-authz
 
+.PHONY: setup-dashboard-authz
+setup-dashboard-authz: cli
+	$(CLI) dev setup dashboard -f dev-env/ui.authz-config.yaml
+
+.PHONY: setup-demo-authz
+setup-demo-authz: ADMIN_CLUSTER := greenhouse-authz
+setup-demo-authz: setup-demo
+
 .PHONY: setup-e2e-authz
 setup-e2e-authz: cli authz-certs
 	CONTROLLER_ENABLED=$(WITH_CONTROLLER) $(CLI) dev setup -f e2e/authz.config.yaml

@@ -262,7 +262,7 @@ E2E_RESULT_DIR ?= $(shell pwd)/bin
 include hack/authz/authz.mk
 
 .PHONY: setup-authz
-setup-authz: setup-manager-authz setup-dashboard setup-demo
+setup-authz: setup-manager-authz setup-dashboard-authz setup-demo-authz
 
 .PHONY: setup
 setup: setup-manager setup-dashboard setup-demo
