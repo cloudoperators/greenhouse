@@ -70,11 +70,11 @@ type oidcConnector struct {
 }
 
 func (c *oidcConnector) LoginURL(s connector.Scopes, callbackURL, state string) (string, error) {
-	return c.conn.(connector.CallbackConnector).LoginURL(s, callbackURL, state) //nolint:errcheck
+	return c.conn.(connector.CallbackConnector).LoginURL(s, callbackURL, state)
 }
 
 func (c *oidcConnector) HandleCallback(s connector.Scopes, r *http.Request) (connector.Identity, error) {
-	identity, err := c.conn.(connector.CallbackConnector).HandleCallback(s, r) //nolint:errcheck
+	identity, err := c.conn.(connector.CallbackConnector).HandleCallback(s, r)
 	if err != nil {
 		return identity, err
 	}
@@ -103,7 +103,7 @@ func (c *oidcConnector) HandleCallback(s connector.Scopes, r *http.Request) (con
 }
 
 func (c *oidcConnector) Refresh(ctx context.Context, s connector.Scopes, identity connector.Identity) (connector.Identity, error) {
-	identity, err := c.conn.(connector.RefreshConnector).Refresh(ctx, s, identity) //nolint:errcheck
+	identity, err := c.conn.(connector.RefreshConnector).Refresh(ctx, s, identity)
 	if err != nil {
 		return identity, err
 	}
@@ -144,8 +144,9 @@ func (c *oidcConnector) getGroups(organization string, upstreamGroups []string, 
 	for _, team := range teamList.Items {
 		teamNamesByIDPGroups[team.Spec.MappedIDPGroup] = append(teamNamesByIDPGroups[team.Spec.MappedIDPGroup], "team:"+team.Name)
 		for labelKey := range team.Labels {
-			if strings.HasPrefix(labelKey, greenhouseLabelKeyPrefix) {
-				teamCategoryName := strings.TrimPrefix(labelKey, greenhouseLabelKeyPrefix)
+			after, ok := strings.CutPrefix(labelKey, greenhouseLabelKeyPrefix)
+			if ok {
+				teamCategoryName := after
 				teamNamesByIDPGroups[team.Spec.MappedIDPGroup] = append(teamNamesByIDPGroups[team.Spec.MappedIDPGroup], fmt.Sprintf("%s:%s", teamCategoryName, team.Name))
 			}
 		}

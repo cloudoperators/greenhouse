@@ -11,11 +11,14 @@ import (
 	"os"
 	"time"
 
+	fluxmeta "github.com/fluxcd/pkg/apis/meta"
+	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -25,6 +28,7 @@ import (
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/internal/common"
 )
 
 func UpdateClusterWithDeletionAnnotation(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster) *greenhousev1alpha1.Cluster {
@@ -45,7 +49,7 @@ func MustSetAnnotation(ctx context.Context, c client.Client, o client.Object, ke
 func MustSetAnnotations(ctx context.Context, c client.Client, o client.Object, annotations map[string]string) {
 	GinkgoHelper()
 	Eventually(func(g Gomega) {
-		base := o.DeepCopyObject().(client.Object) //nolint:errcheck
+		base := o.DeepCopyObject().(client.Object)
 		g.Expect(c.Get(ctx, client.ObjectKeyFromObject(o), o)).To(Succeed(), "there must be no error getting the object")
 		if o.GetAnnotations() == nil {
 			o.SetAnnotations(annotations)
@@ -129,4 +133,30 @@ func KubeconfigFromEnvVar(envVar string) ([]byte, error) {
 		return nil, err
 	}
 	return kubeconfig, nil
+}
+
+// MockHelmChartReady mocks the HelmChart status for a PluginDefinition as ready.
+// This is useful in tests where the Flux source controller is not running.
+// The function uses Eventually to wait for the HelmChart to be created and then patches its status.
+// Works with both ClusterPluginDefinition and PluginDefinition via the common.GenericPluginDefinition interface.
+func MockHelmChartReady(ctx context.Context, k8sClient client.Client, pluginDefinition common.GenericPluginDefinition, helmChartNamespace string) {
+	GinkgoHelper()
+	Eventually(func(g Gomega) {
+		helmChart := &sourcev1.HelmChart{}
+		helmChart.SetName(pluginDefinition.FluxHelmChartResourceName())
+		helmChart.SetNamespace(helmChartNamespace)
+		err := k8sClient.Get(ctx, client.ObjectKeyFromObject(helmChart), helmChart)
+		g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the HelmChart")
+		newHelmChart := &sourcev1.HelmChart{}
+		*newHelmChart = *helmChart
+		helmChartReadyCondition := metav1.Condition{
+			Type:               fluxmeta.ReadyCondition,
+			Status:             metav1.ConditionTrue,
+			LastTransitionTime: metav1.Now(),
+			Reason:             "Succeeded",
+			Message:            "Helm chart is ready",
+		}
+		newHelmChart.Status.Conditions = []metav1.Condition{helmChartReadyCondition}
+		g.Expect(k8sClient.Status().Patch(ctx, newHelmChart, client.MergeFrom(helmChart))).To(Succeed(), "there should be no error patching HelmChart status")
+	}).Should(Succeed(), "HelmChart should be mocked as ready")
 }

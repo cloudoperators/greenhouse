@@ -509,7 +509,7 @@ func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhou
 
 // generateHelmValues generates the Helm values in JSON format to be used with a Flux HelmRelease.
 func generateHelmValues(ctx context.Context, optionValues []greenhousev1alpha1.PluginOptionValue) ([]byte, error) {
-	o := make([]greenhousev1alpha1.PluginOptionValue, len(optionValues))
+	o := make([]greenhousev1alpha1.PluginOptionValue, 0, len(optionValues))
 	for _, v := range optionValues {
 		if v.ValueFrom != nil && v.ValueFrom.Secret != nil {
 			// remove all option values that are set from a secret, as these have a nil value

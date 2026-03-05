@@ -49,24 +49,6 @@ var (
 		},
 	}
 
-	testPluginWithoutHelmChart = &greenhousev1alpha1.ClusterPluginDefinition{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      "test-plugindefinition",
-		},
-		Spec: greenhousev1alpha1.PluginDefinitionSpec{
-			Options: []greenhousev1alpha1.PluginOption{
-				{
-					Name:        "key1",
-					Description: "key1 description",
-					Required:    true,
-					Default:     test.MustReturnJSONFor("defaultKey1"),
-					Type:        "string",
-				},
-			},
-		},
-	}
-
 	testPluginWithHelmChart = &greenhousev1alpha1.ClusterPluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
@@ -100,29 +82,6 @@ var (
 				Name:       "dummy",
 				Repository: "oci://greenhouse/helm-charts",
 				Version:    "1.0.0",
-			},
-			Options: []greenhousev1alpha1.PluginOption{
-				{
-					Name:        "key1",
-					Description: "key1 description",
-					Required:    true,
-					Default:     test.MustReturnJSONFor("defaultKey1"),
-					Type:        "string",
-				},
-			},
-		},
-	}
-
-	testPluginWithHelmChartCRDs = &greenhousev1alpha1.ClusterPluginDefinition{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      "test-plugindefinition",
-		},
-		Spec: greenhousev1alpha1.PluginDefinitionSpec{
-			Version: "1.0.0",
-			HelmChart: &greenhousev1alpha1.HelmChartReference{
-				Name:    "./../test/fixtures/myChartWithCRDs",
-				Version: "1.0.0",
 			},
 			Options: []greenhousev1alpha1.PluginOption{
 				{

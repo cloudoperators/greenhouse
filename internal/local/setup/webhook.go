@@ -114,7 +114,7 @@ func (m *Manifest) setCertManagerAnnotation(resources []map[string]any) []map[st
 		// Grab existing annotations (if any), else make a new map
 		var annotations map[string]any
 		if annAny, found := metadata["annotations"]; found {
-			a := annAny.(map[string]any) //nolint:errcheck
+			a := annAny.(map[string]any)
 			annotations = a
 		} else {
 			annotations = make(map[string]any)
@@ -384,7 +384,7 @@ func getHostIPFromInterface() string {
 		return ""
 	}
 	for _, addr := range addresses {
-		if ipv4 := addr.(*net.IPNet).IP.To4(); ipv4 != nil { //nolint:errcheck
+		if ipv4 := addr.(*net.IPNet).IP.To4(); ipv4 != nil {
 			utils.Logf("found IP address for docker0 interface: %s", ipv4.String())
 			return ipv4.String()
 		}
