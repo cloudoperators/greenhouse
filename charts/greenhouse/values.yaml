@@ -38,7 +38,7 @@ postgresqlng:
     dex:
       owner: dex
   users:
-    dex: {} # The user that will be created in the database
+    dex: {}         # The user that will be created in the database
 
 # demo organization
 demo:
