@@ -177,6 +177,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 				},
 			}).
 			WithUpgrade(&helmv2.Upgrade{
+				CRDs: helmv2.CreateReplace,
 				Remediation: &helmv2.UpgradeRemediation{
 					Retries: 3,
 				},
