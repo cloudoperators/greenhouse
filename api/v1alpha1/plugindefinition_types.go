@@ -46,7 +46,7 @@ type PluginDefinitionSpec struct {
 
 	// DocsURL specifies the URL to the documentation for this plugin.
 	// This is used by the Greenhouse UI to provide a link to external documentation.
-	DocsURL string `json:"docsUrl,omitempty"`
+	DocsURL string `json:"docsURL,omitempty"`
 
 	// DocMarkDownUrl specifies the URL to the markdown documentation file for this plugin.
 	// Source needs to allow all CORS origins.
