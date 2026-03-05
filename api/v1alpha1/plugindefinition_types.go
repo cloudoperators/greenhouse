@@ -51,7 +51,7 @@ type PluginDefinitionSpec struct {
 	// DocMarkDownUrl specifies the URL to the markdown documentation file for this plugin.
 	// Source needs to allow all CORS origins.
 	//
-	// Deprecated: Use docsUrl instead. This field will be removed in a future release.
+	// Deprecated: Use docsURL instead. This field will be removed in a future release.
 	DocMarkDownUrl string `json:"docMarkDownUrl,omitempty"` //nolint:stylecheck
 }
 

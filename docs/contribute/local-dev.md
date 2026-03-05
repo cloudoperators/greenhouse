@@ -183,7 +183,7 @@ metadata:
 spec:
   description: Automated TLS certificate management
   displayName: Certificate manager
-  docsUrl: >-
+  docsURL: >-
     https://cloudoperators.github.io/greenhouse/docs/reference/catalog/cert-manager/
   helmChart:
     name: 'local/plugins/<path-to-cert-manager-chart-folder>'

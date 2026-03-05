@@ -17,7 +17,7 @@ spec:
   description: The Alerts Plugin consists of both Prometheus Alertmanager and Supernova,
     the holistic alert management UI
   displayName: Alerts
-  docsUrl: https://cloudoperators.github.io/greenhouse/docs/reference/catalog/alerts/
+  docsURL: https://cloudoperators.github.io/greenhouse/docs/reference/catalog/alerts/
   helmChart:
     name: alerts
     repository: oci://ghcr.io/cloudoperators/greenhouse-extensions/charts
@@ -45,12 +45,12 @@ spec:
     version: latest
   weight: 0
   icon: https://raw.githubusercontent.com/cloudoperators/greenhouse-extensions/main/alerts/logo.png
-  docsUrl: https://cloudoperators.github.io/greenhouse/docs/reference/catalog/alerts/
+  docsURL: https://cloudoperators.github.io/greenhouse/docs/reference/catalog/alerts/
 ```
 
-The fields `weight` and `icon` are optional and are used to customize the appearance of the Plugin in the Greenhouse UI sidebar. The optional field `docsUrl` can be used to provide a link to documentation for the PluginDefinition, which will be displayed in the entry of available PluginDefinitions in the Greenhouse UI.
+The fields `weight` and `icon` are optional and are used to customize the appearance of the Plugin in the Greenhouse UI sidebar. The optional field `docsURL` can be used to provide a link to documentation for the PluginDefinition, which will be displayed in the entry of available PluginDefinitions in the Greenhouse UI.
 
-> **Note:** The `docMarkDownUrl` field is deprecated and will be removed in a future release. Please use `docsUrl` instead.
+> **Note:** The `docMarkDownUrl` field is deprecated and will be removed in a future release. Please use `docsURL` instead.
 
 `.spec.helmChart` is an optional field that specifies the Helm chart that is deployed when creating a Plugin from this PluginDefinition.
 
