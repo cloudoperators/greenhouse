@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package imagemirror
+package ocimirror
 
 import (
 	"context"
@@ -27,10 +27,10 @@ var mirrorConfig = &RegistryMirrorConfig{
 	},
 }
 
-var _ = Describe("ReplicateImages", func() {
+var _ = Describe("ReplicateOCIArtifacts", func() {
 	It("should replicate images successfully", func() {
 		fetchedRefs := make([]string, 0)
-		replicator := &ImageReplicator{
+		replicator := &OCIReplicator{
 			config: mirrorConfig,
 			auth:   authn.Anonymous,
 			manifestFetcher: func(ref string, opts ...crane.Option) ([]byte, error) {
@@ -44,7 +44,7 @@ containers:
 - image: ghcr.io/cloudoperators/greenhouse:main
 - image: docker.io/library/nginx:latest
 `
-		replicated, err := replicator.ReplicateImages(context.Background(), manifests, nil)
+		replicated, err := replicator.ReplicateOCIArtifacts(context.Background(), manifests, nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(replicated).To(HaveLen(2))
 		Expect(fetchedRefs).To(HaveLen(2))
@@ -54,7 +54,7 @@ containers:
 
 	It("should skip already replicated images", func() {
 		fetchCount := 0
-		replicator := &ImageReplicator{
+		replicator := &OCIReplicator{
 			config: mirrorConfig,
 			auth:   authn.Anonymous,
 			manifestFetcher: func(ref string, opts ...crane.Option) ([]byte, error) {
@@ -69,7 +69,7 @@ containers:
 - image: docker.io/library/nginx:latest
 `
 		alreadyReplicated := []string{"ghcr.io/cloudoperators/greenhouse:main"}
-		replicated, err := replicator.ReplicateImages(context.Background(), manifests, alreadyReplicated)
+		replicated, err := replicator.ReplicateOCIArtifacts(context.Background(), manifests, alreadyReplicated)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(replicated).To(HaveLen(2))
 		Expect(fetchCount).To(Equal(1))
@@ -77,7 +77,7 @@ containers:
 
 	It("should skip images without configured mirror", func() {
 		fetchCount := 0
-		replicator := &ImageReplicator{
+		replicator := &OCIReplicator{
 			config: mirrorConfig,
 			auth:   authn.Anonymous,
 			manifestFetcher: func(ref string, opts ...crane.Option) ([]byte, error) {
@@ -90,14 +90,14 @@ containers:
 containers:
 - image: registry.k8s.io/pause:3.9
 `
-		replicated, err := replicator.ReplicateImages(context.Background(), manifests, nil)
+		replicated, err := replicator.ReplicateOCIArtifacts(context.Background(), manifests, nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(replicated).To(BeEmpty())
 		Expect(fetchCount).To(Equal(0))
 	})
 
 	It("should return partial results and error on failure", func() {
-		replicator := &ImageReplicator{
+		replicator := &OCIReplicator{
 			config: mirrorConfig,
 			auth:   authn.Anonymous,
 			manifestFetcher: func(ref string, opts ...crane.Option) ([]byte, error) {
@@ -113,7 +113,7 @@ containers:
 - image: ghcr.io/cloudoperators/greenhouse:main
 - image: docker.io/library/nginx:latest
 `
-		replicated, err := replicator.ReplicateImages(context.Background(), manifests, nil)
+		replicated, err := replicator.ReplicateOCIArtifacts(context.Background(), manifests, nil)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("connection refused"))
 		Expect(replicated).To(ContainElement("docker.io/library/nginx:latest"))
@@ -121,7 +121,7 @@ containers:
 	})
 
 	It("should return existing list when no images in manifests", func() {
-		replicator := &ImageReplicator{
+		replicator := &OCIReplicator{
 			config: mirrorConfig,
 			auth:   authn.Anonymous,
 			manifestFetcher: func(ref string, opts ...crane.Option) ([]byte, error) {
@@ -134,18 +134,18 @@ apiVersion: v1
 kind: ConfigMap
 `
 		existing := []string{"some-image:latest"}
-		replicated, err := replicator.ReplicateImages(context.Background(), manifests, existing)
+		replicated, err := replicator.ReplicateOCIArtifacts(context.Background(), manifests, existing)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(replicated).To(Equal(existing))
 	})
 })
 
-var _ = Describe("BuildMirroredImageRef", func() {
-	replicator := &ImageReplicator{config: mirrorConfig, auth: authn.Anonymous}
+var _ = Describe("BuildMirroredOCIRef", func() {
+	replicator := &OCIReplicator{config: mirrorConfig, auth: authn.Anonymous}
 
 	DescribeTable("should build correct mirrored refs",
 		func(imageRef, expected string) {
-			Expect(replicator.BuildMirroredImageRef(imageRef)).To(Equal(expected))
+			Expect(replicator.BuildMirroredOCIRef(imageRef)).To(Equal(expected))
 		},
 		Entry("ghcr.io image with tag",
 			"ghcr.io/cloudoperators/greenhouse:main",

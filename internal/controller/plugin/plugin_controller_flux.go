@@ -30,7 +30,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/helm"
-	"github.com/cloudoperators/greenhouse/internal/imagemirror"
+	"github.com/cloudoperators/greenhouse/internal/ocimirror"
 	"github.com/cloudoperators/greenhouse/internal/util"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
@@ -147,7 +147,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 	release.SetName(plugin.Name)
 	release.SetNamespace(plugin.Namespace)
 
-	mirrorConfig, err := imagemirror.GetRegistryMirrorConfig(ctx, r.Client, plugin.GetNamespace())
+	mirrorConfig, err := ocimirror.GetRegistryMirrorConfig(ctx, r.Client, plugin.GetNamespace())
 	if err != nil {
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseCreatedCondition, "", "Failed to read Organization registry mirror configuration"))
 		return fmt.Errorf("failed to read registry mirror configuration for Plugin %s: %w", plugin.Name, err)

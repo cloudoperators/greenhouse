@@ -22,7 +22,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/flux"
-	"github.com/cloudoperators/greenhouse/internal/imagemirror"
+	"github.com/cloudoperators/greenhouse/internal/ocimirror"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
@@ -67,7 +67,7 @@ func setReadyCondition(resource common.GenericPluginDefinition) {
 		return
 	}
 
-	imageReplicationCondition := conditions.GetConditionByType(greenhousev1alpha1.ImageReplicationReadyCondition)
+	imageReplicationCondition := conditions.GetConditionByType(greenhousev1alpha1.OCIReplicationReadyCondition)
 	switch {
 	case imageReplicationCondition == nil:
 		resource.SetCondition(greenhousemetav1alpha1.TrueCondition(
@@ -177,22 +177,22 @@ func ensureChartReplication(ctx context.Context, k8sClient client.Client, plugin
 	failReplication := func(err error, msg string) error {
 		logger.Error(err, msg)
 		pluginDef.SetCondition(greenhousemetav1alpha1.FalseCondition(
-			greenhousev1alpha1.ImageReplicationReadyCondition,
-			greenhousev1alpha1.ImageReplicationFailedReason,
+			greenhousev1alpha1.OCIReplicationReadyCondition,
+			greenhousev1alpha1.OCIReplicationFailedReason,
 			msg+": "+err.Error()))
 		return err
 	}
 
-	mirrorConfig, err := imagemirror.GetRegistryMirrorConfig(ctx, k8sClient, namespaceName)
+	mirrorConfig, err := ocimirror.GetRegistryMirrorConfig(ctx, k8sClient, namespaceName)
 	if err != nil {
 		return failReplication(err, "failed to get registry mirror config")
 	}
 
 	if mirrorConfig == nil || mirrorConfig.PrimaryMirror == "" {
 		pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
-			greenhousev1alpha1.ImageReplicationReadyCondition,
-			greenhousev1alpha1.ImageReplicationNotConfiguredReason,
-			"Image replication is not configured"))
+			greenhousev1alpha1.OCIReplicationReadyCondition,
+			greenhousev1alpha1.OCIReplicationNotConfiguredReason,
+			"OCI replication is not configured"))
 		return nil
 	}
 
@@ -200,8 +200,8 @@ func ensureChartReplication(ctx context.Context, k8sClient client.Client, plugin
 	if !strings.HasPrefix(helmChart.Repository, "oci://") {
 		logger.V(1).Info("chart repository is not OCI, skipping replication", "repository", helmChart.Repository)
 		pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
-			greenhousev1alpha1.ImageReplicationReadyCondition,
-			greenhousev1alpha1.ImageReplicationNotConfiguredReason,
+			greenhousev1alpha1.OCIReplicationReadyCondition,
+			greenhousev1alpha1.OCIReplicationNotConfiguredReason,
 			"Chart replication only applies to OCI repositories"))
 		return nil
 	}
@@ -209,25 +209,25 @@ func ensureChartReplication(ctx context.Context, k8sClient client.Client, plugin
 
 	// Skip replication if the current chart version was already replicated.
 	conditions := pluginDef.GetConditions()
-	replicationCond := conditions.GetConditionByType(greenhousev1alpha1.ImageReplicationReadyCondition)
+	replicationCond := conditions.GetConditionByType(greenhousev1alpha1.OCIReplicationReadyCondition)
 	if replicationCond != nil && replicationCond.IsTrue() &&
-		replicationCond.Reason == greenhousev1alpha1.ImageReplicationSucceededReason &&
+		replicationCond.Reason == greenhousev1alpha1.OCIReplicationSucceededReason &&
 		strings.Contains(replicationCond.Message, chartRef) {
 		logger.V(1).Info("chart already replicated, skipping", "chart", chartRef)
 		return nil
 	}
 
-	replicator, err := imagemirror.NewImageReplicator(ctx, k8sClient, mirrorConfig, namespaceName)
+	replicator, err := ocimirror.NewOCIReplicator(ctx, k8sClient, mirrorConfig, namespaceName)
 	if err != nil {
-		return failReplication(err, "failed to create image replicator")
+		return failReplication(err, "failed to create OCI replicator")
 	}
 
-	mirroredRef := replicator.BuildMirroredImageRef(chartRef)
+	mirroredRef := replicator.BuildMirroredOCIRef(chartRef)
 	if mirroredRef == "" {
 		logger.Info("no mirror configured for chart registry, skipping replication", "chart", chartRef)
 		pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
-			greenhousev1alpha1.ImageReplicationReadyCondition,
-			greenhousev1alpha1.ImageReplicationNotConfiguredReason,
+			greenhousev1alpha1.OCIReplicationReadyCondition,
+			greenhousev1alpha1.OCIReplicationNotConfiguredReason,
 			"No mirror configured for chart registry"))
 		return nil
 	}
@@ -237,8 +237,8 @@ func ensureChartReplication(ctx context.Context, k8sClient client.Client, plugin
 	}
 
 	pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
-		greenhousev1alpha1.ImageReplicationReadyCondition,
-		greenhousev1alpha1.ImageReplicationSucceededReason,
+		greenhousev1alpha1.OCIReplicationReadyCondition,
+		greenhousev1alpha1.OCIReplicationSucceededReason,
 		"Chart replicated successfully: "+chartRef))
 	return nil
 }

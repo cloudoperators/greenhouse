@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package imagemirror
+package ocimirror
 
 import (
 	"context"
@@ -21,16 +21,16 @@ import (
 // ManifestFetcher matches the crane.Manifest signature.
 type ManifestFetcher func(ref string, opts ...crane.Option) ([]byte, error)
 
-// ImageReplicator ensures images are available in the mirror registry by fetching their manifests,
+// OCIReplicator ensures OCI artifacts are available in the mirror registry by fetching their manifests,
 // triggering on-demand replication from the upstream source.
-type ImageReplicator struct {
+type OCIReplicator struct {
 	config          *RegistryMirrorConfig
 	auth            authn.Authenticator
 	manifestFetcher ManifestFetcher
 }
 
-// NewImageReplicator creates an ImageReplicator with credentials from the configured Secret.
-func NewImageReplicator(ctx context.Context, k8sClient client.Client, config *RegistryMirrorConfig, namespace string) (*ImageReplicator, error) {
+// NewOCIReplicator creates an OCIReplicator with credentials from the configured Secret.
+func NewOCIReplicator(ctx context.Context, k8sClient client.Client, config *RegistryMirrorConfig, namespace string) (*OCIReplicator, error) {
 	auth := authn.Anonymous
 	if config.SecretName != "" {
 		a, err := getAuthFromSecret(ctx, k8sClient, config.SecretName, namespace)
@@ -40,16 +40,16 @@ func NewImageReplicator(ctx context.Context, k8sClient client.Client, config *Re
 		auth = a
 	}
 
-	return &ImageReplicator{
+	return &OCIReplicator{
 		config:          config,
 		auth:            auth,
 		manifestFetcher: crane.Manifest,
 	}, nil
 }
 
-// ReplicateImages triggers replication for new images found in renderedManifests, skipping alreadyReplicated ones.
-func (r *ImageReplicator) ReplicateImages(ctx context.Context, renderedManifests string, alreadyReplicated []string) ([]string, error) {
-	imageRefs := ExtractUniqueImages(renderedManifests)
+// ReplicateOCIArtifacts triggers replication for new OCI artifacts found in renderedManifests, skipping alreadyReplicated ones.
+func (r *OCIReplicator) ReplicateOCIArtifacts(ctx context.Context, renderedManifests string, alreadyReplicated []string) ([]string, error) {
+	imageRefs := ExtractUniqueOCIRefs(renderedManifests)
 	if len(imageRefs) == 0 {
 		return alreadyReplicated, nil
 	}
@@ -63,7 +63,7 @@ func (r *ImageReplicator) ReplicateImages(ctx context.Context, renderedManifests
 
 	var replicationErrors []string
 	for _, imageRef := range imageRefs {
-		mirroredRef := r.BuildMirroredImageRef(imageRef)
+		mirroredRef := r.BuildMirroredOCIRef(imageRef)
 		if mirroredRef == "" {
 			continue
 		}
@@ -87,9 +87,9 @@ func (r *ImageReplicator) ReplicateImages(ctx context.Context, renderedManifests
 	return replicated, nil
 }
 
-// BuildMirroredImageRef resolves imageRef against the mirror config and returns the mirrored reference.
-func (r *ImageReplicator) BuildMirroredImageRef(imageRef string) string {
-	resolved := r.config.ResolveImage(imageRef)
+// BuildMirroredOCIRef resolves imageRef against the mirror config and returns the mirrored reference.
+func (r *OCIReplicator) BuildMirroredOCIRef(imageRef string) string {
+	resolved := r.config.ResolveOCIRef(imageRef)
 	if resolved == nil {
 		return ""
 	}
@@ -103,7 +103,7 @@ func (r *ImageReplicator) BuildMirroredImageRef(imageRef string) string {
 }
 
 // TriggerReplication fetches the manifest for mirroredRef to warm the pull-through cache.
-func (r *ImageReplicator) TriggerReplication(ctx context.Context, mirroredRef string, extraOpts ...crane.Option) error {
+func (r *OCIReplicator) TriggerReplication(ctx context.Context, mirroredRef string, extraOpts ...crane.Option) error {
 	log.FromContext(ctx).V(1).Info("triggering replication", "ref", mirroredRef)
 	opts := append([]crane.Option{crane.WithAuth(r.auth)}, extraOpts...)
 	_, err := r.manifestFetcher(mirroredRef, opts...)
