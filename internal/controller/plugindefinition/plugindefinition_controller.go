@@ -70,7 +70,7 @@ func (r *PluginDefinitionReconciler) setConditions() lifecycle.Conditioner {
 func (r *PluginDefinitionReconciler) EnsureCreated(ctx context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	pluginDef := obj.(*greenhousev1alpha1.PluginDefinition)
 
-	initializeConditions(pluginDef, greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.HelmChartReadyCondition, greenhousev1alpha1.ImageReplicationReadyCondition)
+	initializeConditions(pluginDef, greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.HelmChartReadyCondition, greenhousev1alpha1.OCIReplicationReadyCondition)
 
 	if pluginDef.Spec.HelmChart == nil {
 		log.FromContext(ctx).Info("No HelmChart defined in PluginDefinition, skipping HelmRepository creation", "name", pluginDef.Name)

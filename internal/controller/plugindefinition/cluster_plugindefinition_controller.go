@@ -64,7 +64,7 @@ func (r *ClusterPluginDefinitionReconciler) setConditions() lifecycle.Conditione
 func (r *ClusterPluginDefinitionReconciler) EnsureCreated(ctx context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	clusterDef := obj.(*greenhousev1alpha1.ClusterPluginDefinition)
 
-	initializeConditions(clusterDef, greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.HelmChartReadyCondition, greenhousev1alpha1.ImageReplicationReadyCondition)
+	initializeConditions(clusterDef, greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.HelmChartReadyCondition, greenhousev1alpha1.OCIReplicationReadyCondition)
 
 	if clusterDef.Spec.HelmChart == nil {
 		log.FromContext(ctx).Info("No HelmChart defined in ClusterPluginDefinition, skipping HelmRepository creation")
@@ -90,11 +90,11 @@ func (r *ClusterPluginDefinitionReconciler) EnsureCreated(ctx context.Context, o
 	}
 	h.setHelmChartReadyCondition(ctx, helmChart)
 
-	// Image replication for ClusterPluginDefinitions is not yet supported.
+	// OCI replication for ClusterPluginDefinitions is not yet supported.
 	clusterDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
-		greenhousev1alpha1.ImageReplicationReadyCondition,
-		greenhousev1alpha1.ImageReplicationNotConfiguredReason,
-		"Image replication for ClusterPluginDefinitions is not yet supported"))
+		greenhousev1alpha1.OCIReplicationReadyCondition,
+		greenhousev1alpha1.OCIReplicationNotConfiguredReason,
+		"OCI replication for ClusterPluginDefinitions is not yet supported"))
 
 	return ctrl.Result{}, lifecycle.Success, nil
 }

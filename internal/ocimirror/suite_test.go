@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package imagemirror
+package ocimirror
 
 import (
 	"testing"
@@ -12,5 +12,5 @@ import (
 
 func TestReplication(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Image Mirror suite")
+	RunSpecs(t, "OCI Mirror suite")
 }
