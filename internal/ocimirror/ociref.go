@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package imagemirror
+package ocimirror
 
 import (
 	"regexp"
@@ -12,8 +12,8 @@ import (
 
 var imageFieldPattern = regexp.MustCompile(`(?m)^[\s-]*image:\s+["']?([^\s"']+)["']?`)
 
-// ExtractUniqueImages extracts and deduplicates all image references from YAML manifests.
-func ExtractUniqueImages(manifests string) []string {
+// ExtractUniqueOCIRefs extracts and deduplicates all OCI image references from YAML manifests.
+func ExtractUniqueOCIRefs(manifests string) []string {
 	seen := make(map[string]struct{})
 
 	for _, match := range imageFieldPattern.FindAllStringSubmatch(manifests, -1) {
@@ -30,8 +30,8 @@ func ExtractUniqueImages(manifests string) []string {
 	return images
 }
 
-// SplitImageRef breaks an image ref into registry, repository, and tag/digest.
-func SplitImageRef(imageRef string) (registry, repository, tagOrDigest string) {
+// SplitOCIRef breaks an OCI reference into registry, repository, and tag/digest.
+func SplitOCIRef(imageRef string) (registry, repository, tagOrDigest string) {
 	ref, err := name.ParseReference(imageRef)
 	if err != nil {
 		return "docker.io", imageRef, ""

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package imagemirror
+package ocimirror
 
 import (
 	"context"
@@ -72,21 +72,21 @@ func GetRegistryMirrorConfig(ctx context.Context, k8sClient client.Reader, orgNa
 	return &mirrorConfig, nil
 }
 
-// ResolvedImage holds the result of resolving an image reference against a mirror configuration.
-type ResolvedImage struct {
+// ResolvedOCIRef holds the result of resolving an OCI reference against a mirror configuration.
+type ResolvedOCIRef struct {
 	Mirror      RegistryMirror
 	Repository  string
 	TagOrDigest string
 }
 
-// ResolveImage looks up the mirror configuration for an image reference.
-func (c *RegistryMirrorConfig) ResolveImage(imageRef string) *ResolvedImage {
-	registry, repo, tagOrDigest := SplitImageRef(imageRef)
+// ResolveOCIRef looks up the mirror configuration for an OCI reference.
+func (c *RegistryMirrorConfig) ResolveOCIRef(imageRef string) *ResolvedOCIRef {
+	registry, repo, tagOrDigest := SplitOCIRef(imageRef)
 	mirror, ok := c.RegistryMirrors[registry]
 	if !ok {
 		return nil
 	}
-	return &ResolvedImage{Mirror: mirror, Repository: repo, TagOrDigest: tagOrDigest}
+	return &ResolvedOCIRef{Mirror: mirror, Repository: repo, TagOrDigest: tagOrDigest}
 }
 
 // validateRegistryMirrorConfig validates the registry mirror configuration.

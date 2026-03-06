@@ -69,14 +69,14 @@ const (
 	// PluginDefinitionProgressingReason is the reason when PluginDefinition reconciliation is in progress
 	PluginDefinitionProgressingReason greenhousemetav1alpha1.ConditionReason = "ReconcileProgressing"
 
-	// ImageReplicationReadyCondition reflects if image replication to the mirror registry is complete.
-	ImageReplicationReadyCondition greenhousemetav1alpha1.ConditionType = "ImageReplicationReady"
-	// ImageReplicationFailedReason is the reason when image replication has failed.
-	ImageReplicationFailedReason greenhousemetav1alpha1.ConditionReason = "ImageReplicationFailed"
-	// ImageReplicationSucceededReason is the reason when all images have been replicated successfully.
-	ImageReplicationSucceededReason greenhousemetav1alpha1.ConditionReason = "ImageReplicationSucceeded"
-	// ImageReplicationNotConfiguredReason is the reason when no mirror registry is configured.
-	ImageReplicationNotConfiguredReason greenhousemetav1alpha1.ConditionReason = "ImageReplicationNotConfigured"
+	// OCIReplicationReadyCondition reflects if OCI replication to the mirror registry is complete.
+	OCIReplicationReadyCondition greenhousemetav1alpha1.ConditionType = "OCIReplicationReady"
+	// OCIReplicationFailedReason is the reason when OCI replication has failed.
+	OCIReplicationFailedReason greenhousemetav1alpha1.ConditionReason = "OCIReplicationFailed"
+	// OCIReplicationSucceededReason is the reason when all OCI artifacts have been replicated successfully.
+	OCIReplicationSucceededReason greenhousemetav1alpha1.ConditionReason = "OCIReplicationSucceeded"
+	// OCIReplicationNotConfiguredReason is the reason when no mirror registry is configured.
+	OCIReplicationNotConfiguredReason greenhousemetav1alpha1.ConditionReason = "OCIReplicationNotConfigured"
 
 	// PluginOptionTypeString is a valid value for PluginOptionType.
 	PluginOptionTypeString PluginOptionType = "string"
