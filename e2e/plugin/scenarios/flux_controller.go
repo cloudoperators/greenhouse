@@ -119,21 +119,13 @@ func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClien
 		err := adminClient.Get(ctx, client.ObjectKeyFromObject(plugin), plugin)
 		g.Expect(err).ToNot(HaveOccurred(), "failed to get the Plugin")
 
-		clusterAccess := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
-		g.Expect(clusterAccess).ToNot(BeNil(), "Plugin clusterAccess condition must be set")
-		g.Expect(clusterAccess.Status).To(Equal(metav1.ConditionTrue), "Plugin clusterAccess condition must be true")
-
-		reconcileFailed := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition)
-		g.Expect(reconcileFailed).ToNot(BeNil(), "Plugin reconcileFailed condition must be set")
-		g.Expect(reconcileFailed.Status).To(Equal(metav1.ConditionFalse), "Plugin reconcileFailed condition must be false")
+		helmReleaseDeployed := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.HelmReleaseDeployedCondition)
+		g.Expect(helmReleaseDeployed).ToNot(BeNil(), "Plugin HelmReleaseDeployed condition must be set")
+		g.Expect(helmReleaseDeployed.Status).To(Equal(metav1.ConditionTrue), "Plugin HelmReleaseDeployed condition must be true")
 
 		ready := plugin.Status.StatusConditions.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 		g.Expect(ready).ToNot(BeNil(), "Plugin Ready condition must be set")
 		g.Expect(ready.Status).To(Equal(metav1.ConditionTrue), "Plugin Ready condition must be true")
-
-		statusUpToDate := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.StatusUpToDateCondition)
-		g.Expect(statusUpToDate).ToNot(BeNil(), "Plugin StatusUpToDate condition must be set")
-		g.Expect(statusUpToDate.Status).To(Equal(metav1.ConditionTrue), "Plugin statusUpToDate condition must be true")
 
 		g.Expect(plugin.Status.ExposedServices).To(BeEmpty(), "exposed services in plugin status should be empty")
 		g.Expect(plugin.Status.UIApplication).To(BeNil(), "UIApplication in plugin status should be nil")
@@ -252,21 +244,13 @@ func FluxControllerUIOnlyPlugin(ctx context.Context, adminClient, remoteClient c
 		err := adminClient.Get(ctx, client.ObjectKeyFromObject(plugin), plugin)
 		g.Expect(err).ToNot(HaveOccurred(), "failed to get the Plugin")
 
-		clusterAccess := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
-		g.Expect(clusterAccess).ToNot(BeNil(), "Plugin clusterAccess condition must be set")
-		g.Expect(clusterAccess.Status).To(Equal(metav1.ConditionTrue), "Plugin clusterAccess condition must be true")
-
-		reconcileFailed := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition)
-		g.Expect(reconcileFailed).ToNot(BeNil(), "Plugin reconcileFailed condition must be set")
-		g.Expect(reconcileFailed.Status).To(Equal(metav1.ConditionFalse), "Plugin reconcileFailed condition must be false")
+		helmReleaseDeployed := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.HelmReleaseDeployedCondition)
+		g.Expect(helmReleaseDeployed).ToNot(BeNil(), "Plugin HelmReleaseDeployed condition must be set")
+		g.Expect(helmReleaseDeployed.Status).To(Equal(metav1.ConditionTrue), "Plugin HelmReleaseDeployed condition must be true")
 
 		ready := plugin.Status.StatusConditions.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 		g.Expect(ready).ToNot(BeNil(), "Plugin Ready condition must be set")
 		g.Expect(ready.Status).To(Equal(metav1.ConditionTrue), "Plugin Ready condition must be true")
-
-		statusUpToDate := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.StatusUpToDateCondition)
-		g.Expect(statusUpToDate).ToNot(BeNil(), "Plugin StatusUpToDate condition must be set")
-		g.Expect(statusUpToDate.Status).To(Equal(metav1.ConditionFalse), "Plugin statusUpToDate condition must be false")
 
 		g.Expect(plugin.Status.ExposedServices).To(BeEmpty(), "exposed services in plugin status should be empty")
 		g.Expect(plugin.Status.UIApplication).To(Equal(testPluginDefinition.Spec.UIApplication), "UIApplication in plugin status should be set correctly")
