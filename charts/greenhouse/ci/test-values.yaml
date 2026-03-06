@@ -14,7 +14,6 @@ global:
   plugin:
     expressionEvaluationEnabled: false
     integrationEnabled: false
-    defaultDeploymentTool: helm
   linkerd_enabled: false
   region: greenhouse
   registry: ghcr.io/cloudoperators/greenhouse

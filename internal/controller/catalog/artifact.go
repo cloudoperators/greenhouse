@@ -37,16 +37,16 @@ type IArtifactory interface {
 // noopLogger implements retryable http.LeveledLogger using logr
 type noopLogger struct{ log logr.Logger }
 
-func (l noopLogger) Error(msg string, keysAndValues ...interface{}) {
+func (l noopLogger) Error(msg string, keysAndValues ...any) {
 	l.log.Error(errors.New(msg), "http error", keysAndValues...)
 }
-func (l noopLogger) Info(msg string, keysAndValues ...interface{}) {
+func (l noopLogger) Info(msg string, keysAndValues ...any) {
 	l.log.V(1).Info(msg, keysAndValues...)
 }
-func (l noopLogger) Debug(msg string, keysAndValues ...interface{}) {
+func (l noopLogger) Debug(msg string, keysAndValues ...any) {
 	l.log.V(2).Info(msg, keysAndValues...)
 }
-func (l noopLogger) Warn(msg string, keysAndValues ...interface{}) {
+func (l noopLogger) Warn(msg string, keysAndValues ...any) {
 	l.log.V(1).Info("WARN: "+msg, keysAndValues...)
 }
 

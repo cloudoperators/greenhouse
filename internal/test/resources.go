@@ -7,16 +7,25 @@ import (
 	"context"
 
 	. "github.com/onsi/ginkgo/v2"
-	"k8s.io/utils/ptr"
 
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
+)
+
+const (
+	// defaultHelmChartRepo is the default Helm chart repository for test resources
+	defaultHelmChartRepo = "oci://greenhouse/helm-charts"
+	// defaultHelmChartName is the default Helm chart name for test resources
+	defaultHelmChartName = "dummy"
+	// defaultHelmChartVersion is the default Helm chart version for test resources
+	defaultHelmChartVersion = "1.0.0"
 )
 
 // WithAccessMode sets the ClusterAccessMode on a Cluster
@@ -188,10 +197,11 @@ func NewClusterPluginDefinition(ctx context.Context, name string, opts ...func(d
 		},
 		Spec: greenhousev1alpha1.PluginDefinitionSpec{
 			Description: "TestPluginDefinition",
-			Version:     "1.0.0",
+			Version:     defaultHelmChartVersion,
 			HelmChart: &greenhousev1alpha1.HelmChartReference{
-				Name:    "./../../test/fixtures/myChart",
-				Version: "1.0.0",
+				Name:       defaultHelmChartName,
+				Repository: defaultHelmChartRepo,
+				Version:    defaultHelmChartVersion,
 			},
 		},
 	}
@@ -245,10 +255,11 @@ func NewPluginDefinition(ctx context.Context, name, namespace string, opts ...fu
 		},
 		Spec: greenhousev1alpha1.PluginDefinitionSpec{
 			Description: "TestPluginDefinition",
-			Version:     "1.0.0",
+			Version:     defaultHelmChartVersion,
 			HelmChart: &greenhousev1alpha1.HelmChartReference{
-				Name:    "./../../test/fixtures/myChart",
-				Version: "1.0.0",
+				Name:       defaultHelmChartName,
+				Repository: defaultHelmChartRepo,
+				Version:    defaultHelmChartVersion,
 			},
 		},
 	}

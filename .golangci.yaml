@@ -4,7 +4,31 @@
 version: "2"
 run:
   modules-download-mode: readonly
+  timeout: 3m0s # none by default in v2
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      # Put local imports after 3rd-party packages
+      local-prefixes:
+        - github.com/cloudoperators/greenhouse
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+
+issues:
+  # '0' disables the following options
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
 linters:
+  # Disable all pre-enabled linters and enable them explicitly so that a newer version does not introduce new linters unexpectedly
   default: none
   enable:
     - bodyclose
@@ -15,18 +39,20 @@ linters:
     - errcheck
     - errname
     - errorlint
+    - exptostd
     - forbidigo
     - ginkgolinter
     - gocheckcompilerdirectives
     - goconst
     - gocritic
+    - gomoddirectives
     - gosec
     - govet
     - ineffassign
     - intrange
-    - misspell
+    - iotamixing
+    - modernize
     - nilerr
-    - noctx
     - nolintlint
     - nosprintfhostport
     - perfsprint
@@ -38,27 +64,38 @@ linters:
     - unparam
     - unused
     - usestdlibvars
+    - usetesting
     - whitespace
   settings:
-    dupl:
-      threshold: 100
+    dupword:
+      # Do not choke on SQL statements like `INSERT INTO things (foo, bar, baz) VALUES (TRUE, TRUE, TRUE)`.
+      ignore: ["TRUE", "FALSE", "NULL"]
     errcheck:
-      check-type-assertions: true
+      check-type-assertions: false
+      # Report about assignment of errors to blank identifier.
       check-blank: true
+      # Do not report about not checking of errors in type assertions.
+      # This is not as dangerous as skipping error values because an unchecked type assertion just immediately panics.
+      # We disable this because it makes a ton of useless noise esp. in test code.
       exclude-functions:
         - encoding/json.Marshal
+        - (net/http.ResponseWriter).Write
+        - (*github.com/spf13/cobra.Command).Help
     forbidigo:
+      analyze-types: true # required for pkg:
       forbid:
+        # ioutil package has been deprecated: https://github.com/golang/go/issues/42026
         - pattern: ^ioutil\..*$
+        # Using http.DefaultServeMux is discouraged because it's a global variable that some packages silently and magically add handlers to (esp. net/http/pprof).
+        # Applications wishing to use http.ServeMux should obtain local instances through http.NewServeMux() instead of using the global default instance.
         - pattern: ^http\.DefaultServeMux$
         - pattern: ^http\.Handle(?:Func)?$
         - pkg: ^gopkg\.in/square/go-jose\.v2$
-          msg: gopk.in/square/go-jose is arcived and has CVEs. Replace it with gopkg.in/go-jose/go-jose.v2
+          msg: gopkg.in/square/go-jose is archived and has CVEs. Replace it with gopkg.in/go-jose/go-jose.v2
         - pkg: ^github.com/coreos/go-oidc$
           msg: github.com/coreos/go-oidc depends on gopkg.in/square/go-jose which has CVEs. Replace it with github.com/coreos/go-oidc/v3
         - pkg: ^github.com/howeyc/gopass$
           msg: github.com/howeyc/gopass is archived, use golang.org/x/term instead
-      analyze-types: true
     goconst:
       min-occurrences: 5
     gocritic:
@@ -86,19 +123,51 @@ linters:
         - unnecessaryDefer
         - weakCond
         - yodaStyleExpr
+    gomoddirectives:
+      replace-allow-list:
+        - github.com/dexidp/dex
+        - github.com/dexidp/dex/api/v2
+        - github.com/fluxcd/helm-controller/api
+        - github.com/fluxcd/kustomize-controller/api
+        - github.com/fluxcd/pkg/apis/kustomize
+        - github.com/fluxcd/pkg/apis/meta
+        - github.com/fluxcd/source-controller/api
+        - github.com/fluxcd/source-watcher/api/v2
+        - k8s.io/api
+        - k8s.io/apiextensions-apiserver
+        - k8s.io/apimachinery
+        - k8s.io/cli-runtime
+        - k8s.io/client-go
+        - k8s.io/component-base
+        - k8s.io/kubectl
+        - sigs.k8s.io/controller-runtime
+
+      toolchain-forbidden: true
+      go-version-pattern: 1\.\d+(\.0)?$
     gosec:
       excludes:
+        # gosec wants us to set a short ReadHeaderTimeout to avoid Slowloris attacks, but doing so would expose us to Keep-Alive race conditions (see https://iximiuz.com/en/posts/reverse-proxy-http-keep-alive-and-502s/
         - G112
+        # if we put a password or token into a serialized payload, guess what, we probably did that on purpose
+        - G117
+        # created file permissions are restricted by umask if necessary
         - G306
+        # the following lints cause false-positives in many repositories, should be fixed with the next release. (see https://github.com/securego/gosec/issues/1500)
+        - G701
+        - G702
+        - G703
+        - G704
+        - G705
+        - G706
     govet:
       disable:
         - fieldalignment
       enable-all: true
-    misspell:
-      ignore-rules:
-        - metis
     nolintlint:
       require-specific: true
+    perfsprint:
+      # modernize generates nicer fix code
+      concat-loop: false
     staticcheck:
       dot-import-whitelist:
         - github.com/onsi/ginkgo/v2
@@ -115,20 +184,24 @@ linters:
       sql-isolation-level: true
       tls-signature-scheme: true
       constant-kind: true
+    usetesting:
+      os-temp-dir: true
     whitespace:
+      # Enforce newlines (or comments) after multi-line function signatures.
       multi-func: true
   exclusions:
     generated: lax
     presets:
-      - comments
       - common-false-positives
       - legacy
       - std-error-handling
     rules:
       - linters:
           - bodyclose
-          - dupl
+          - revive
         path: _test\.go
+      # It is idiomatic Go to reuse the name 'err' with ':=' for subsequent errors.
+      # Ref: https://go.dev/doc/effective_go#redeclaration
       - path: (.+)\.go$
         text: declaration of "err" shadows declaration at
       - linters:
@@ -138,20 +211,9 @@ linters:
       - third_party$
       - builtin$
       - examples$
-issues:
-  max-issues-per-linter: 0
-  max-same-issues: 0
-formatters:
-  enable:
-    - gofmt
-    - goimports
-  settings:
-    goimports:
-      local-prefixes:
-        - github.com/cloudoperators/greenhouse
-  exclusions:
-    generated: lax
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
+
+output:
+  formats:
+    text:
+      # Do not print lines of code with issue.
+      print-issued-lines: false

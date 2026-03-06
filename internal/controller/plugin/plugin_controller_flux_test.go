@@ -12,7 +12,6 @@ import (
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	fluxmeta "github.com/fluxcd/pkg/apis/meta"
-	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -62,7 +61,6 @@ var (
 		test.WithClusterPluginDefinition("test-flux-plugindefinition"),
 		test.WithReleaseName("release-test-flux"),
 		test.WithReleaseNamespace(test.TestNamespace),
-		test.WithPluginLabel(greenhouseapis.GreenhouseHelmDeliveryToolLabel, greenhouseapis.GreenhouseHelmDeliveryToolFlux),
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testPluginTeam.Name),
 		test.WithPluginOptionValue("flatOption", test.MustReturnJSONFor("flatValue")),
 		test.WithPluginOptionValue("nested.option", test.MustReturnJSONFor("nestedValue")),
@@ -122,15 +120,17 @@ var (
 	uiPlugin = test.NewPlugin(test.Ctx, "test-flux-ui-plugin", test.TestNamespace,
 		test.WithClusterPluginDefinition(uiPluginDefinition.Name),
 		test.WithReleaseName("release-test-flux"),
-		test.WithPluginLabel(greenhouseapis.GreenhouseHelmDeliveryToolLabel, greenhouseapis.GreenhouseHelmDeliveryToolFlux),
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testPluginTeam.Name),
 	)
 )
 
 var _ = Describe("Flux Plugin Controller", Ordered, func() {
 	BeforeAll(func() {
+		By("creating ClusterPluginDefinitions for the Flux Plugin tests")
 		err := test.K8sClient.Create(test.Ctx, testPluginDefinition)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the pluginDefinition")
+
+		test.MockHelmChartReady(test.Ctx, test.K8sClient, testPluginDefinition, flux.HelmRepositoryDefaultNamespace)
 
 		err = test.K8sClient.Create(test.Ctx, uiPluginDefinition)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the UI pluginDefinition")
@@ -139,7 +139,7 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 		_, remoteK8sClient, remoteEnvTest, remoteKubeConfig = test.StartControlPlane("6885", false, false)
 
 		By("creating an Organization")
-		Expect(test.K8sClient.Create(test.Ctx, testOrganization)).Should(Succeed(), "there should be no error creating the Organization")
+		Expect(client.IgnoreAlreadyExists(test.K8sClient.Create(test.Ctx, testOrganization))).Should(Succeed(), "there should be no error creating the Organization")
 
 		By("creating a Team")
 		Expect(test.K8sClient.Create(test.Ctx, testPluginTeam)).Should(Succeed(), "there should be no error creating the Team")
@@ -213,15 +213,6 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 	})
 
 	It("should create HelmRelease for Plugin", func() {
-		By("ensuring HelmRepository has been created for ClusterPluginDefinition")
-		helmRepository := &sourcecontroller.HelmRepository{}
-		repoName := flux.ChartURLToName(testPluginDefinition.Spec.HelmChart.Repository)
-		repoNamespace := flux.HelmRepositoryDefaultNamespace
-		Eventually(func(g Gomega) {
-			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: repoName, Namespace: repoNamespace}, helmRepository)
-			g.Expect(err).ToNot(HaveOccurred(), "failed to get HelmRepository")
-		}).Should(Succeed())
-
 		By("creating test Plugin")
 		Expect(test.K8sClient.Create(test.Ctx, testPlugin)).To(Succeed(), "failed to create Plugin")
 

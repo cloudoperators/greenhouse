@@ -92,7 +92,7 @@ func (m *Manifest) setHostPathVolume(deployment *appsv1.Deployment) {
 		VolumeSource: v1.VolumeSource{
 			HostPath: &v1.HostPathVolumeSource{
 				Path: utils.PluginHostPath,
-				Type: ptr.To[v1.HostPathType](v1.HostPathDirectory),
+				Type: ptr.To(v1.HostPathDirectory),
 			},
 		},
 	}

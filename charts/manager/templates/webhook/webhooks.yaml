@@ -132,6 +132,26 @@ webhooks:
       service:
         name: greenhouse-webhook-service
         namespace: greenhouse
+        path: /mutate-greenhouse-sap-v1alpha2-teamrolebinding
+    failurePolicy: Fail
+    name: mrolebinding-v1alpha2.kb.io
+    rules:
+      - apiGroups:
+          - greenhouse.sap
+        apiVersions:
+          - v1alpha2
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - teamrolebindings
+    sideEffects: None
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: greenhouse-webhook-service
+        namespace: greenhouse
         path: /mutate--v1-secret
     failurePolicy: Ignore
     matchPolicy: Exact
@@ -192,26 +212,6 @@ webhooks:
           - UPDATE
         resources:
           - teamroles
-    sideEffects: None
-  - admissionReviewVersions:
-      - v1
-    clientConfig:
-      service:
-        name: greenhouse-webhook-service
-        namespace: greenhouse
-        path: /mutate-greenhouse-sap-v1alpha2-teamrolebinding
-    failurePolicy: Fail
-    name: mrolebinding-v1alpha2.kb.io
-    rules:
-      - apiGroups:
-          - greenhouse.sap
-        apiVersions:
-          - v1alpha2
-        operations:
-          - CREATE
-          - UPDATE
-        resources:
-          - teamrolebindings
     sideEffects: None
 ---
 apiVersion: admissionregistration.k8s.io/v1
@@ -353,6 +353,27 @@ webhooks:
       service:
         name: greenhouse-webhook-service
         namespace: greenhouse
+        path: /validate-greenhouse-sap-v1alpha2-teamrolebinding
+    failurePolicy: Fail
+    name: vrolebinding-v1alpha2.kb.io
+    rules:
+      - apiGroups:
+          - greenhouse.sap
+        apiVersions:
+          - v1alpha2
+        operations:
+          - CREATE
+          - UPDATE
+          - DELETE
+        resources:
+          - teamrolebindings
+    sideEffects: None
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: greenhouse-webhook-service
+        namespace: greenhouse
         path: /validate--v1-secret
     failurePolicy: Ignore
     matchPolicy: Exact
@@ -416,25 +437,4 @@ webhooks:
           - DELETE
         resources:
           - teamroles
-    sideEffects: None
-  - admissionReviewVersions:
-      - v1
-    clientConfig:
-      service:
-        name: greenhouse-webhook-service
-        namespace: greenhouse
-        path: /validate-greenhouse-sap-v1alpha2-teamrolebinding
-    failurePolicy: Fail
-    name: vrolebinding-v1alpha2.kb.io
-    rules:
-      - apiGroups:
-          - greenhouse.sap
-        apiVersions:
-          - v1alpha2
-        operations:
-          - CREATE
-          - UPDATE
-          - DELETE
-        resources:
-          - teamrolebindings
     sideEffects: None

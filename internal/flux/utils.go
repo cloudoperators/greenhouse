@@ -39,8 +39,8 @@ func ChartURLToName(repositoryURL string) (repositoryName string) {
 		"http://",
 	}
 	for _, prefix := range prefixes {
-		if strings.HasPrefix(repositoryURL, prefix) {
-			repositoryName = strings.TrimPrefix(repositoryURL, prefix)
+		if after, ok := strings.CutPrefix(repositoryURL, prefix); ok {
+			repositoryName = after
 			break
 		}
 	}

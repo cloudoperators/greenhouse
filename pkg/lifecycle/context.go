@@ -17,7 +17,7 @@ type reconcileRun struct {
 // createContextFromRuntimeObject create a new context with a copy of the object attached.
 func createContextFromRuntimeObject(ctx context.Context, object RuntimeObject) context.Context {
 	return context.WithValue(ctx, reconcileRunKey{}, &reconcileRun{
-		objectCopy: object.DeepCopyObject().(RuntimeObject), //nolint:errcheck
+		objectCopy: object.DeepCopyObject().(RuntimeObject),
 	})
 }
 
@@ -38,5 +38,5 @@ func getOriginalResourceFromContext(ctx context.Context) (RuntimeObject, error) 
 	}
 
 	// create another copy so that context can not be modified by accident
-	return reconcileRun.objectCopy.DeepCopyObject().(RuntimeObject), nil //nolint:errcheck
+	return reconcileRun.objectCopy.DeepCopyObject().(RuntimeObject), nil
 }

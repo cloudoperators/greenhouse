@@ -227,7 +227,6 @@ rules:
   - source.toolkit.fluxcd.io
   resources:
   - externalartifacts
-  - helmcharts
   verbs:
   - get
   - list
@@ -236,6 +235,7 @@ rules:
   - source.toolkit.fluxcd.io
   resources:
   - gitrepositories
+  - helmcharts
   - helmrepositories
   - ocirepositories
   verbs:
@@ -249,6 +249,7 @@ rules:
 - apiGroups:
   - source.toolkit.fluxcd.io
   resources:
+  - helmcharts/finalizers
   - helmrepositories/finalizers
   verbs:
   - create
@@ -259,6 +260,7 @@ rules:
 - apiGroups:
   - source.toolkit.fluxcd.io
   resources:
+  - helmcharts/status
   - helmrepositories/status
   verbs:
   - get

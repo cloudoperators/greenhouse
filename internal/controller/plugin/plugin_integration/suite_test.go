@@ -9,7 +9,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/client-go/rest"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	greenhousecluster "github.com/cloudoperators/greenhouse/internal/controller/cluster"
@@ -26,8 +25,7 @@ func TestPluginIntegration(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	test.RegisterController("plugin", (&plugin.PluginReconciler{
-		IntegrationEnabled:    true, // Enable integration features for tracking
-		DefaultDeploymentTool: ptr.To("flux"),
+		IntegrationEnabled: true, // Enable integration features for tracking
 	}).SetupWithManager)
 	test.RegisterWebhook("organizationWebhook", webhookv1alpha1.SetupOrganizationWebhookWithManager)
 	test.RegisterController("clusterPluginDefinition", (&greenhouseDef.ClusterPluginDefinitionReconciler{}).SetupWithManager)

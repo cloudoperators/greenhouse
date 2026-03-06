@@ -12,7 +12,7 @@ import (
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	"github.com/fluxcd/pkg/apis/kustomize"
 	fluxmeta "github.com/fluxcd/pkg/apis/meta"
-	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
+	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -61,13 +61,14 @@ func (r *PluginReconciler) EnsureFluxDeleted(ctx context.Context, plugin *greenh
 }
 
 func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, plugin *greenhousev1alpha1.Plugin) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	pluginDefinitionSpec, err := common.GetPluginDefinitionSpec(ctx, r.Client, plugin.Spec.PluginDefinitionRef, plugin.GetNamespace())
+	pluginDefinition, err := common.GetPluginDefinitionFromPlugin(ctx, r.Client, plugin.Spec.PluginDefinitionRef, plugin.GetNamespace())
 	if err != nil {
 		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
 			greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.PluginDefinitionNotFoundReason, err.Error()))
 		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonPluginDefinitionNotFound)
 		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("%s not found: %s", plugin.Spec.PluginDefinitionRef.Kind, err.Error())
 	}
+	pluginDefinitionSpec := pluginDefinition.GetPluginDefinitionSpec()
 
 	namespace := flux.HelmRepositoryDefaultNamespace
 	if plugin.Spec.PluginDefinitionRef.Kind == greenhousev1alpha1.PluginDefinitionKind {
@@ -83,9 +84,11 @@ func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, plugin *greenh
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 
-	helmRepository, err := flux.FindHelmRepositoryByURL(ctx, r.Client, pluginDefinitionSpec.HelmChart.Repository, namespace)
+	helmChart, err := getPluginHelmChart(ctx, r.Client, pluginDefinition, namespace)
 	if err != nil {
-		return ctrl.Result{}, lifecycle.Failed, errors.New("helm repository not found")
+		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.HelmReconcileFailedCondition, "", fmt.Sprintf("Failed to load helm chart for %s/%s", plugin.Spec.PluginDefinitionRef.Kind, plugin.Spec.PluginDefinitionRef.Name)))
+		return ctrl.Result{}, lifecycle.Failed, errors.New("helm chart not found for " + plugin.Spec.PluginDefinitionRef.Kind + "/" + plugin.Spec.PluginDefinitionRef.Name)
 	}
 
 	optionValues, err := computeReleaseValues(ctx, r.Client, plugin, r.ExpressionEvaluationEnabled, r.IntegrationEnabled)
@@ -95,7 +98,7 @@ func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, plugin *greenh
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	if err := r.ensureHelmRelease(ctx, plugin, *pluginDefinitionSpec, helmRepository, optionValues); err != nil {
+	if err := r.ensureHelmRelease(ctx, plugin, *pluginDefinitionSpec, helmChart, optionValues); err != nil {
 		log.FromContext(ctx).Error(err, "failed to ensure HelmRelease for Plugin", "name", plugin.Name, "namespace", plugin.Namespace)
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
@@ -135,7 +138,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 	ctx context.Context,
 	plugin *greenhousev1alpha1.Plugin,
 	pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec,
-	helmRepository *sourcecontroller.HelmRepository,
+	helmChart *sourcev1.HelmChart,
 	optionValues []greenhousev1alpha1.PluginOptionValue,
 ) error {
 
@@ -158,15 +161,10 @@ func (r *PluginReconciler) ensureHelmRelease(
 
 	result, err := controllerutil.CreateOrPatch(ctx, r.Client, release, func() error {
 		builder := flux.NewHelmReleaseSpecBuilder().
-			WithChart(helmv2.HelmChartTemplateSpec{
-				Chart:    pluginDefinitionSpec.HelmChart.Name,
-				Interval: &metav1.Duration{Duration: flux.DefaultInterval},
-				Version:  pluginDefinitionSpec.HelmChart.Version,
-				SourceRef: helmv2.CrossNamespaceObjectReference{
-					Kind:      sourcecontroller.HelmRepositoryKind,
-					Name:      helmRepository.Name,
-					Namespace: helmRepository.Namespace,
-				},
+			WithHelmChartRef(&helmv2.CrossNamespaceSourceReference{
+				Kind:      sourcev1.HelmChartKind,
+				Name:      helmChart.Name,
+				Namespace: helmChart.Namespace,
 			}).
 			WithInterval(flux.DefaultInterval).
 			WithTimeout(flux.DefaultTimeout).
@@ -179,6 +177,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 				},
 			}).
 			WithUpgrade(&helmv2.Upgrade{
+				CRDs: helmv2.CreateReplace,
 				Remediation: &helmv2.UpgradeRemediation{
 					Retries: 3,
 				},
@@ -326,7 +325,7 @@ func (r *PluginReconciler) reconcilePluginStatus(ctx context.Context,
 			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 				greenhousev1alpha1.StatusUpToDateCondition, "", "failed to get Helm SDK release: "+err.Error()))
 		} else {
-			serviceList, err := getExposedServicesForPluginFromHelmRelease(restClientGetter, helmSDKRelease, plugin)
+			serviceList, err := getAllExposedServicesForPlugin(restClientGetter, helmSDKRelease, plugin)
 			if err != nil {
 				plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 					greenhousev1alpha1.StatusUpToDateCondition, "", "failed to get exposed services: "+err.Error()))
@@ -511,7 +510,7 @@ func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhou
 
 // generateHelmValues generates the Helm values in JSON format to be used with a Flux HelmRelease.
 func generateHelmValues(ctx context.Context, optionValues []greenhousev1alpha1.PluginOptionValue) ([]byte, error) {
-	o := make([]greenhousev1alpha1.PluginOptionValue, len(optionValues))
+	o := make([]greenhousev1alpha1.PluginOptionValue, 0, len(optionValues))
 	for _, v := range optionValues {
 		if v.ValueFrom != nil && v.ValueFrom.Secret != nil {
 			// remove all option values that are set from a secret, as these have a nil value
@@ -624,4 +623,14 @@ func (r *PluginReconciler) triggerReconcileForTracker(ctx context.Context, plugi
 	}
 
 	return nil
+}
+
+func getPluginHelmChart(ctx context.Context, c client.Client, pluginDef common.GenericPluginDefinition, namespace string) (*sourcev1.HelmChart, error) {
+	helmChartResourceName := pluginDef.FluxHelmChartResourceName()
+	helmChart := &sourcev1.HelmChart{}
+	err := c.Get(ctx, types.NamespacedName{Name: helmChartResourceName, Namespace: namespace}, helmChart)
+	if err != nil {
+		return nil, err
+	}
+	return helmChart, nil
 }

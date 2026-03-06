@@ -4,6 +4,8 @@
 package lifecycle_test
 
 import (
+	"maps"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -166,9 +168,7 @@ var _ = DescribeTable("Annotation propagation scenarios",
 		if src.GetAnnotations() == nil {
 			src.SetAnnotations(map[string]string{})
 		}
-		for k, v := range srcDecl {
-			src.GetAnnotations()[k] = v
-		}
+		maps.Copy(src.GetAnnotations(), srcDecl)
 
 		updated := lifecycle.NewPropagator(src, dst).Apply()
 		// Build expected annotations map including propagated keys but excluding tracking annotation
@@ -238,4 +238,69 @@ var _ = DescribeTable("Annotation propagation scenarios",
 		map[string]string{"team": "a", "owner": "x"},
 		true,
 		[]string{"team", "owner"}),
+)
+
+var _ = DescribeTable("Label copy scenarios",
+	func(srcLabels map[string]string, dstLabels map[string]string, labelKeys []string, expected map[string]string) {
+		src := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "src",
+				Namespace: "default",
+				Labels:    srcLabels,
+			},
+		}
+		dst := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "dst",
+				Namespace: "default",
+				Labels:    dstLabels,
+			},
+		}
+
+		updated := lifecycle.NewPropagator(src, dst).CopyLabels(labelKeys)
+
+		Expect(updated.GetLabels()).To(Equal(expected))
+	},
+	Entry("It should copy over the specified label and not change existing ones",
+		map[string]string{"region": "bar"},
+		map[string]string{"test1": "value1"},
+		[]string{"region"},
+		map[string]string{"test1": "value1", "region": "bar"},
+	),
+	Entry("It should not change existing labels",
+		map[string]string{"region": "foo"},
+		map[string]string{"region": "bar"},
+		[]string{"test"},
+		map[string]string{"region": "bar"},
+	),
+	Entry("It should overwrite the specified label to copy",
+		map[string]string{"region": "bar"},
+		map[string]string{"region": "foo"},
+		[]string{"region"},
+		map[string]string{"region": "bar"},
+	),
+	Entry("It should copy over all labels matching the specified key with wildcard",
+		map[string]string{"region": "bar", "test/test1": "value1", "test/test2": "value2"},
+		map[string]string{"region": "foo"},
+		[]string{"test/*"},
+		map[string]string{"region": "foo", "test/test1": "value1", "test/test2": "value2"},
+	),
+	Entry("It should not change destination when labelKeys is empty",
+		map[string]string{"region": "bar"},
+		map[string]string{"test1": "value1"},
+		[]string{},
+		map[string]string{"test1": "value1"},
+	),
+	Entry("It should copy both exact and wildcard matches",
+		map[string]string{"region": "bar", "test/test1": "value1", "test/test2": "value2", "owner": "team-a"},
+		map[string]string{"existing": "label"},
+		[]string{"region", "test/*"},
+		map[string]string{"existing": "label", "region": "bar", "test/test1": "value1", "test/test2": "value2"},
+	),
+	Entry("It should not change destination when wildcard has no matches",
+		map[string]string{"region": "bar", "support-group": "x"},
+		map[string]string{"existing": "label"},
+		[]string{"test/*"},
+		map[string]string{"existing": "label"},
+	),
 )
