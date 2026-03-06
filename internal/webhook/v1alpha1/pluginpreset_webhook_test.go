@@ -170,6 +170,46 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, cut)
 	})
 
+	It("should set greenhouse.sap/plugindefinition label on PluginPreset with namespaced PluginDefinition", func() {
+		cut := test.NewPluginPreset(pluginPresetCreate, test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}}),
+			test.WithPluginPresetPluginSpec(greenhousev1alpha1.PluginSpec{
+				PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+					Name: pluginPresetNamespacedDefinition,
+					Kind: greenhousev1alpha1.PluginDefinitionKind,
+				},
+			}),
+		)
+		Expect(test.K8sClient.Create(test.Ctx, cut)).To(Succeed(), "there must be no error creating the PluginPreset")
+		labels := cut.GetLabels()
+		Expect(labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyPluginDefinition, pluginPresetNamespacedDefinition),
+			"the PluginPreset should have the plugindefinition label set to the PluginDefinition name")
+		Expect(labels).ToNot(HaveKey(greenhouseapis.LabelKeyClusterPluginDefinition),
+			"the PluginPreset should not have the clusterplugindefinition label set")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, cut)
+	})
+
+	It("should set greenhouse.sap/clusterplugindefinition label on PluginPreset with ClusterPluginDefinition", func() {
+		cut := test.NewPluginPreset(pluginPresetCreate, test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}}),
+			test.WithPluginPresetPluginSpec(greenhousev1alpha1.PluginSpec{
+				PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+					Name: pluginPresetClusterDefinition,
+					Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+				},
+			}),
+		)
+		Expect(test.K8sClient.Create(test.Ctx, cut)).To(Succeed(), "there must be no error creating the PluginPreset")
+		labels := cut.GetLabels()
+		Expect(labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyClusterPluginDefinition, pluginPresetClusterDefinition),
+			"the PluginPreset should have the clusterplugindefinition label set to the ClusterPluginDefinition name")
+		Expect(labels).ToNot(HaveKey(greenhouseapis.LabelKeyPluginDefinition),
+			"the PluginPreset should not have the plugindefinition label set")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, cut)
+	})
+
 	It("should accept and reject updates to the PluginPreset", func() {
 		cut := test.NewPluginPreset(pluginPresetUpdate, test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),

@@ -183,8 +183,8 @@ metadata:
 spec:
   description: Automated TLS certificate management
   displayName: Certificate manager
-  docMarkDownUrl: >-
-    https://raw.githubusercontent.com/cloudoperators/greenhouse-extensions/main/cert-manager/README.md
+  docsURL: >-
+    https://cloudoperators.github.io/greenhouse/docs/reference/catalog/cert-manager/
   helmChart:
     name: 'local/plugins/<path-to-cert-manager-chart-folder>'
     repository: '' # <- has to be empty
