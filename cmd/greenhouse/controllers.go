@@ -42,9 +42,9 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	"clusterPluginDefinition": (&plugindefinitioncontroller.ClusterPluginDefinitionReconciler{}).SetupWithManager,
 
 	// Cluster controllers
-	"bootStrap":         (&clustercontrollers.BootstrapReconciler{}).SetupWithManager,
-	"clusterReconciler": startClusterReconciler,
-	"kubeconfig":        (&clustercontrollers.KubeconfigReconciler{}).SetupWithManager,
+	"bootstrap":  (&clustercontrollers.BootstrapReconciler{}).SetupWithManager,
+	"cluster":    startClusterReconciler,
+	"kubeconfig": (&clustercontrollers.KubeconfigReconciler{}).SetupWithManager,
 }
 
 // knownControllers lists the name of known controllers.
