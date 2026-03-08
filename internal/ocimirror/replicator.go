@@ -18,15 +18,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// ManifestFetcher matches the crane.Manifest signature.
-type ManifestFetcher func(ref string, opts ...crane.Option) ([]byte, error)
+// manifestFetcherFunc is a function type matching the crane.Manifest signature.
+type manifestFetcherFunc func(ref string, opts ...crane.Option) ([]byte, error)
 
 // OCIReplicator ensures OCI artifacts are available in the mirror registry by fetching their manifests,
 // triggering on-demand replication from the upstream source.
 type OCIReplicator struct {
 	config          *RegistryMirrorConfig
 	auth            authn.Authenticator
-	manifestFetcher ManifestFetcher
+	manifestFetcher manifestFetcherFunc
 }
 
 // NewOCIReplicator creates an OCIReplicator with credentials from the configured Secret.
@@ -94,7 +94,7 @@ func (r *OCIReplicator) BuildMirroredOCIRef(imageRef string) string {
 		return ""
 	}
 
-	mirroredRef := fmt.Sprintf("%s/%s/%s", r.config.PrimaryMirror, resolved.Mirror.SubPath, resolved.Repository)
+	mirroredRef := fmt.Sprintf("%s/%s/%s", resolved.Mirror.BaseDomain, resolved.Mirror.SubPath, resolved.Repository)
 	if resolved.TagOrDigest != "" {
 		mirroredRef += resolved.TagOrDigest
 	}

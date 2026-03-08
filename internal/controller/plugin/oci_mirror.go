@@ -39,8 +39,7 @@ func buildImageTransformations(manifests string, config *ocimirror.RegistryMirro
 			continue
 		}
 
-		registry, _, _ := ocimirror.SplitOCIRef(imageRef)
-		baseName := fmt.Sprintf("%s/%s", registry, resolved.Repository)
+		baseName := fmt.Sprintf("%s/%s", resolved.Registry, resolved.Repository)
 		newName := fmt.Sprintf("%s/%s/%s", resolved.Mirror.BaseDomain, resolved.Mirror.SubPath, resolved.Repository)
 
 		transformations = append(transformations, kustomize.Image{
