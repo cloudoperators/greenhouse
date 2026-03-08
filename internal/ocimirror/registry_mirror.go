@@ -74,6 +74,7 @@ func GetRegistryMirrorConfig(ctx context.Context, k8sClient client.Reader, orgNa
 
 // ResolvedOCIRef holds the result of resolving an OCI reference against a mirror configuration.
 type ResolvedOCIRef struct {
+	Registry    string
 	Mirror      RegistryMirror
 	Repository  string
 	TagOrDigest string
@@ -86,7 +87,7 @@ func (c *RegistryMirrorConfig) ResolveOCIRef(imageRef string) *ResolvedOCIRef {
 	if !ok {
 		return nil
 	}
-	return &ResolvedOCIRef{Mirror: mirror, Repository: repo, TagOrDigest: tagOrDigest}
+	return &ResolvedOCIRef{Registry: registry, Mirror: mirror, Repository: repo, TagOrDigest: tagOrDigest}
 }
 
 // validateRegistryMirrorConfig validates the registry mirror configuration.
