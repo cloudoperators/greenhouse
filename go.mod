@@ -52,7 +52,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/vladimirvivien/gexe v0.5.0
 	go.uber.org/zap v1.27.1
-	golang.org/x/oauth2 v0.35.0
+	golang.org/x/oauth2 v0.36.0
 	golang.org/x/text v0.34.0
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.20.0
