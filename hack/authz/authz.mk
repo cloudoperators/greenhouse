@@ -2,8 +2,6 @@
 # This file contains all authz-related make targets for generating and managing
 # certificates required by the authorization webhook.
 
-AUTHZ_CLUSTER ?= greenhouse-authz
-
 .PHONY: setup-dashboard-authz
 setup-dashboard-authz: cli
 	$(CLI) dev setup dashboard -f dev-env/ui.authz-config.yaml
@@ -15,7 +13,7 @@ setup-demo-authz: setup-demo
 .PHONY: setup-e2e-authz
 setup-e2e-authz: cli authz-certs
 	CONTROLLER_ENABLED=$(WITH_CONTROLLER) $(CLI) dev setup -f e2e/authz.config.yaml
-	make prepare-e2e-authz
+	$(MAKE) prepare-e2e-authz
 
 .PHONY: clean-e2e-authz
 clean-e2e-authz: ADMIN_CLUSTER := greenhouse-authz
