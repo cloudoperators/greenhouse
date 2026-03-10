@@ -7,7 +7,7 @@ global:
     backend: kubernetes
   plugin:
     expressionEvaluationEnabled: true
-    integrationEnabled: false
+    integrationEnabled: true
 alerts:
   enabled: false
 certManager:
