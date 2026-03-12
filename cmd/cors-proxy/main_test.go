@@ -6,7 +6,6 @@ package main
 import (
 	"net/http"
 	"net/http/httptest"
-	"net/http/httputil"
 	"net/url"
 	"testing"
 
@@ -14,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRewriteSetsHostHeader(t *testing.T) {
+func TestReverseProxyRewritesHostToTarget(t *testing.T) {
 	var receivedHost string
 	targetServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		receivedHost = r.Host
@@ -25,12 +24,7 @@ func TestRewriteSetsHostHeader(t *testing.T) {
 	target, err := url.Parse(targetServer.URL)
 	require.NoError(t, err)
 
-	reverseProxy := &httputil.ReverseProxy{
-		Rewrite: func(r *httputil.ProxyRequest) {
-			r.SetURL(target)
-			r.SetXForwarded()
-		},
-	}
+	reverseProxy := newReverseProxy(target)
 
 	proxy := httptest.NewServer(reverseProxy)
 	defer proxy.Close()
