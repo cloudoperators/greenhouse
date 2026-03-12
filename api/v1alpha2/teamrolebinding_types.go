@@ -16,8 +16,11 @@ import (
 type TeamRoleBindingSpec struct {
 	// TeamRoleRef references a Greenhouse TeamRole by name
 	TeamRoleRef string `json:"teamRoleRef,omitempty"`
+	// Deprecated: Use TeamRefs instead.
 	// TeamRef references a Greenhouse Team by name
 	TeamRef string `json:"teamRef,omitempty"`
+	// TeamRefs references Greenhouse Teams by name
+	TeamRefs []string `json:"teamRefs,omitempty"`
 	// Usernames defines list of users to add to the (Cluster-)RoleBindings
 	Usernames []string `json:"usernames,omitempty"`
 	// ClusterSelector is used to select a Cluster or Clusters the TeamRoleBinding should be deployed to.
