@@ -61,7 +61,7 @@ func (r *TeamRoleBindingReconciler) SetupWithManager(name string, mgr ctrl.Manag
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &greenhousev1alpha2.TeamRoleBinding{}, greenhouseapis.RolebindingTeamRefField, func(rawObj client.Object) []string {
 		// Extract the TeamRole name from the TeamRoleBinding Spec, if one is provided
 		teamRoleBinding, ok := rawObj.(*greenhousev1alpha2.TeamRoleBinding)
-		if teamRoleBinding.Spec.TeamRef == "" || !ok {
+		if !ok || teamRoleBinding.Spec.TeamRef == "" {
 			return nil
 		}
 		return []string{teamRoleBinding.Spec.TeamRef}
@@ -72,7 +72,7 @@ func (r *TeamRoleBindingReconciler) SetupWithManager(name string, mgr ctrl.Manag
 	// index TeamRoleBindings by the TeamRoleRef field for faster lookups
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &greenhousev1alpha2.TeamRoleBinding{}, greenhouseapis.RolebindingTeamRoleRefField, func(rawObj client.Object) []string {
 		teamRoleBinding, ok := rawObj.(*greenhousev1alpha2.TeamRoleBinding)
-		if teamRoleBinding.Spec.TeamRoleRef == "" || !ok {
+		if !ok || teamRoleBinding.Spec.TeamRoleRef == "" {
 			return nil
 		}
 		return []string{teamRoleBinding.Spec.TeamRoleRef}
