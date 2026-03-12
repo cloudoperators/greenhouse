@@ -55,8 +55,9 @@ func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClien
 		test.WithClusterPluginDefinition(testPluginDefinition.Name),
 		test.WithReleaseName("test-podinfo-plugin"),
 		test.WithReleaseNamespace(env.TestNamespace),
-		test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}))
-
+		test.WithPluginOptionValue("replicaCount", test.MustReturnJSONFor("1")),
+		test.WithPluginOptionValue("ingress.enabled", test.MustReturnJSONFor("true")),
+		test.WithPluginOptionValue("ingress.annotations", test.MustReturnJSONFor(map[string]string{"greenhouse.sap/expose": "true"})))
 	By("Add labels to remote cluster")
 	remoteCluster := &greenhousev1alpha1.Cluster{}
 	err = adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterName, Namespace: env.TestNamespace}, remoteCluster)
@@ -119,23 +120,23 @@ func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClien
 		err := adminClient.Get(ctx, client.ObjectKeyFromObject(plugin), plugin)
 		g.Expect(err).ToNot(HaveOccurred(), "failed to get the Plugin")
 
-		clusterAccess := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
-		g.Expect(clusterAccess).ToNot(BeNil(), "Plugin clusterAccess condition must be set")
-		g.Expect(clusterAccess.Status).To(Equal(metav1.ConditionTrue), "Plugin clusterAccess condition must be true")
+		helmReleaseCreated := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
+		g.Expect(helmReleaseCreated).ToNot(BeNil(), "Plugin HelmReleaseCreated condition must be set")
+		g.Expect(helmReleaseCreated.Status).To(Equal(metav1.ConditionTrue), "Plugin HelmReleaseCreated condition must be true")
 
-		reconcileFailed := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition)
-		g.Expect(reconcileFailed).ToNot(BeNil(), "Plugin reconcileFailed condition must be set")
-		g.Expect(reconcileFailed.Status).To(Equal(metav1.ConditionFalse), "Plugin reconcileFailed condition must be false")
+		helmReleaseDeployed := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.HelmReleaseDeployedCondition)
+		g.Expect(helmReleaseDeployed).ToNot(BeNil(), "Plugin HelmReleaseDeployed condition must be set")
+		g.Expect(helmReleaseDeployed.Status).To(Equal(metav1.ConditionTrue), "Plugin HelmReleaseDeployed condition must be true")
+
+		exposedServices := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.ExposedServicesSyncedCondition)
+		g.Expect(exposedServices).ToNot(BeNil(), "Plugin ExposedServicesSynced condition must be set")
+		g.Expect(exposedServices.Status).To(Equal(metav1.ConditionTrue), "Plugin ExposedServicesSynced condition must be true")
+		g.Expect(plugin.Status.ExposedServices).To(HaveLen(1), "there should be exactly one exposed service in plugin status")
 
 		ready := plugin.Status.StatusConditions.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 		g.Expect(ready).ToNot(BeNil(), "Plugin Ready condition must be set")
 		g.Expect(ready.Status).To(Equal(metav1.ConditionTrue), "Plugin Ready condition must be true")
 
-		statusUpToDate := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.StatusUpToDateCondition)
-		g.Expect(statusUpToDate).ToNot(BeNil(), "Plugin StatusUpToDate condition must be set")
-		g.Expect(statusUpToDate.Status).To(Equal(metav1.ConditionTrue), "Plugin statusUpToDate condition must be true")
-
-		g.Expect(plugin.Status.ExposedServices).To(BeEmpty(), "exposed services in plugin status should be empty")
 		g.Expect(plugin.Status.UIApplication).To(BeNil(), "UIApplication in plugin status should be nil")
 		g.Expect(plugin.Status.HelmReleaseStatus.Status).To(Equal("deployed"), "HelmReleaseStatus in plugin status should be set to deployed")
 		g.Expect(plugin.Status.HelmChart).To(Equal(testPluginDefinition.Spec.HelmChart), "HelmChart in plugin status should be set correctly")
@@ -252,21 +253,17 @@ func FluxControllerUIOnlyPlugin(ctx context.Context, adminClient, remoteClient c
 		err := adminClient.Get(ctx, client.ObjectKeyFromObject(plugin), plugin)
 		g.Expect(err).ToNot(HaveOccurred(), "failed to get the Plugin")
 
-		clusterAccess := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
-		g.Expect(clusterAccess).ToNot(BeNil(), "Plugin clusterAccess condition must be set")
-		g.Expect(clusterAccess.Status).To(Equal(metav1.ConditionTrue), "Plugin clusterAccess condition must be true")
+		helmReleaseCreated := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
+		g.Expect(helmReleaseCreated).ToNot(BeNil(), "Plugin HelmReleaseCreated condition must be set")
+		g.Expect(helmReleaseCreated.Status).To(Equal(metav1.ConditionUnknown), "Plugin HelmReleaseCreated condition must be unknown")
 
-		reconcileFailed := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition)
-		g.Expect(reconcileFailed).ToNot(BeNil(), "Plugin reconcileFailed condition must be set")
-		g.Expect(reconcileFailed.Status).To(Equal(metav1.ConditionFalse), "Plugin reconcileFailed condition must be false")
+		helmReleaseDeployed := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.HelmReleaseDeployedCondition)
+		g.Expect(helmReleaseDeployed).ToNot(BeNil(), "Plugin HelmReleaseDeployed condition must be set")
+		g.Expect(helmReleaseDeployed.Status).To(Equal(metav1.ConditionUnknown), "Plugin HelmReleaseDeployed condition must be unknown")
 
 		ready := plugin.Status.StatusConditions.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 		g.Expect(ready).ToNot(BeNil(), "Plugin Ready condition must be set")
 		g.Expect(ready.Status).To(Equal(metav1.ConditionTrue), "Plugin Ready condition must be true")
-
-		statusUpToDate := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.StatusUpToDateCondition)
-		g.Expect(statusUpToDate).ToNot(BeNil(), "Plugin StatusUpToDate condition must be set")
-		g.Expect(statusUpToDate.Status).To(Equal(metav1.ConditionFalse), "Plugin statusUpToDate condition must be false")
 
 		g.Expect(plugin.Status.ExposedServices).To(BeEmpty(), "exposed services in plugin status should be empty")
 		g.Expect(plugin.Status.UIApplication).To(Equal(testPluginDefinition.Spec.UIApplication), "UIApplication in plugin status should be set correctly")

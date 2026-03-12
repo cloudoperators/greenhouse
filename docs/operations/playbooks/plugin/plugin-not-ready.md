@@ -44,13 +44,17 @@ kubectl describe plugin <plugin-name> -n <namespace>
 
 Look at the `status.statusConditions` section in the plugin resource. Pay special attention to:
 
-- **Ready**: The main indicator of plugin health
-- **ClusterAccessReady**: Indicates if Greenhouse can access the target cluster. If `false` check target [Cluster status](../cluster/cluster-not-ready.md).
-- **HelmReconcileFailed**: Shows if Helm reconciliation failed
-- **HelmDriftDetected**: Indicates drift between desired and actual state
-- **HelmChartTestSucceeded**: Shows if Helm chart tests passed
-- **WaitingForDependencies**: Indicates if waiting for other plugins
-- **RetriesExhausted**: Shows if all retry attempts have been exhausted
+- **Ready**: The main indicator of plugin health. Set to `false` if cluster access fails, the PluginDefinition is unavailable, or the Helm release is not deployed successfully.
+- **HelmReleaseCreated**: Indicates whether the Flux HelmRelease object has been successfully created. Common reasons for `false`:
+  - `PluginDefinitionNotAvailable` — the referenced PluginDefinition or ClusterPluginDefinition does not exist
+  - `OptionValueResolutionFailed` — option values could not be resolved (e.g. a referenced secret is missing)
+  - `PluginOptionValueInvalid` — option values could not be converted to Helm values
+  - `FluxHelmReleaseConfigInvalid` — the generated Flux HelmRelease manifest is invalid
+  - `ClusterAccessFailed` — the controller cannot access the target cluster; check target [Cluster status](../cluster/cluster-not-ready.md)
+- **HelmReleaseDeployed**: Mirrors the Flux HelmRelease `Ready` condition and reflects whether the Helm release has been successfully deployed on the target cluster. Common reasons for `false`:
+  - `FluxHelmReleaseStalled` — install/upgrade retries have been exhausted
+  - `HelmUninstallFailed` — uninstalling a previous Helm release revision failed
+- **ExposedServicesSynced**: Indicates whether the list of exposed services is up to date with the services defined in the deployed Helm chart.
 
 ### Check Underlying Flux Resources
 
