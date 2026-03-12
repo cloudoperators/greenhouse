@@ -69,6 +69,17 @@ func (r *TeamRoleBindingReconciler) SetupWithManager(name string, mgr ctrl.Manag
 		return err
 	}
 
+	// index TeamRoleBindings by the TeamRoleRef field for faster lookups
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &greenhousev1alpha2.TeamRoleBinding{}, greenhouseapis.RolebindingTeamRoleRefField, func(rawObj client.Object) []string {
+		teamRoleBinding, ok := rawObj.(*greenhousev1alpha2.TeamRoleBinding)
+		if teamRoleBinding.Spec.TeamRoleRef == "" || !ok {
+			return nil
+		}
+		return []string{teamRoleBinding.Spec.TeamRoleRef}
+	}); clientutil.IgnoreIndexerConflict(err) != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&greenhousev1alpha2.TeamRoleBinding{}).
 		Watches(&greenhousev1alpha1.TeamRole{},
@@ -112,8 +123,27 @@ func (r *TeamRoleBindingReconciler) EnsureCreated(ctx context.Context, resource 
 
 	initTeamRoleBindingStatus(trb)
 
+	// early exit if the TeamRole does not yet exist
 	teamRole, err := getTeamRole(ctx, r.Client, r.recorder, trb)
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			message := fmt.Sprintf("TeamRole %s not found in namespace %s", trb.Spec.TeamRoleRef, trb.GetNamespace())
+			trb.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha2.RBACReady, greenhousev1alpha2.TeamRoleNotFound, message))
+			r.recorder.Eventf(trb, nil, corev1.EventTypeWarning, greenhousemetav1alpha1.FailedEvent, "reconciling TeamRoleBinding", message)
+			return ctrl.Result{}, lifecycle.Success, nil
+		}
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+
+	// early exit if the Team does not yet exist
+	team, err := getTeam(ctx, r.Client, trb)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			message := fmt.Sprintf("Team %s not found in namespace %s", trb.Spec.TeamRef, trb.GetNamespace())
+			trb.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha2.RBACReady, greenhousev1alpha2.TeamNotFound, message))
+			r.recorder.Eventf(trb, nil, corev1.EventTypeWarning, greenhousemetav1alpha1.FailedEvent, "reconciling TeamRoleBinding", message)
+			return ctrl.Result{}, lifecycle.Success, nil
+		}
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
@@ -134,16 +164,6 @@ func (r *TeamRoleBindingReconciler) EnsureCreated(ctx context.Context, resource 
 		trb.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha2.RBACReady, greenhousev1alpha2.EmptyClusterList, ""))
 		r.recorder.Eventf(trb, nil, corev1.EventTypeWarning, greenhousemetav1alpha1.FailedEvent, "reconciling TeamRoleBinding", "No clusters found for %s", trb.GetName())
 		return ctrl.Result{}, lifecycle.Success, nil
-	}
-
-	team, err := getTeam(ctx, r.Client, trb)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			message := fmt.Sprintf("Failed to get team %s in namespace %s", trb.Spec.TeamRef, trb.GetNamespace())
-			trb.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha2.RBACReady, greenhousev1alpha2.TeamNotFound, message))
-			r.recorder.Eventf(trb, nil, corev1.EventTypeWarning, greenhousemetav1alpha1.FailedEvent, "reconciling TeamRoleBinding", message)
-		}
-		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
 	err = r.doReconcile(ctx, teamRole, clusters, trb, team)
@@ -479,7 +499,7 @@ func generateSubjects(usernames []string, mappedIDPGroup string) []rbacv1.Subjec
 	})
 }
 
-// getTeamRole retrieves the Role referenced by the given RoleBinding in the RoleBinding's Namespace
+// getTeamRole retrieves the Role referenced by the given RoleBinding in the RoleBinding's Namespace.
 func getTeamRole(ctx context.Context, c client.Client, r events.EventRecorder, teamRoleBinding *greenhousev1alpha2.TeamRoleBinding) (*greenhousev1alpha1.TeamRole, error) {
 	if teamRoleBinding.Spec.TeamRoleRef == "" {
 		r.Eventf(teamRoleBinding, nil, corev1.EventTypeNormal, "RoleReferenceMissing", "reconciling TeamRoleBinding", "TeamRoleBinding %s does not reference a TeamRole", teamRoleBinding.GetName())
@@ -493,7 +513,7 @@ func getTeamRole(ctx context.Context, c client.Client, r events.EventRecorder, t
 	return teamRole, nil
 }
 
-// getTeam retrieves the Team referenced by the given TeamRoleBinding in the TeamRoleBinding's Namespace
+// getTeam retrieves the Team referenced by the given TeamRoleBinding in the TeamRoleBinding's Namespace.
 func getTeam(ctx context.Context, c client.Client, teamRoleBinding *greenhousev1alpha2.TeamRoleBinding) (*greenhousev1alpha1.Team, error) {
 	if teamRoleBinding.Spec.TeamRef == "" {
 		return nil, errors.New("error missing team reference")

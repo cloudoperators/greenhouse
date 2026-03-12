@@ -147,6 +147,9 @@ const (
 	// TeamNotFound is the condition reason when the resources refers to a non-existing Team
 	TeamNotFound greenhousemetav1alpha1.ConditionReason = "TeamNotFound"
 
+	// TeamRoleNotFound is the condition reason when the resource refers to a non-existing TeamRole
+	TeamRoleNotFound greenhousemetav1alpha1.ConditionReason = "TeamRoleNotFound"
+
 	// ClusterConnectionFailed is the condition reason for the TeamRoleBinding when the connection to the cluster failed
 	ClusterConnectionFailed greenhousemetav1alpha1.ConditionReason = "ClusterConnectionFailed"
 

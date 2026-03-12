@@ -44,8 +44,8 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
 	})
 
-	Context("deny create if referenced resources do not exist", func() {
-		It("should return an error if the role does not exist", func() {
+	Context("validate create TeamRoleBinding", func() {
+		It("should allow creation even if the TeamRole does not exist yet", func() {
 			rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
 				test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 				test.WithTeamRoleRef("non-existent-role"),
@@ -55,10 +55,9 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 
 			warns, err := ValidateCreateRoleBinding(test.Ctx, test.K8sClient, rb)
 			Expect(warns).To(BeNil(), "expected no warnings")
-			Expect(err).To(HaveOccurred(), "expected an error")
-			Expect(err).To(MatchError(ContainSubstring("role does not exist")))
+			Expect(err).ToNot(HaveOccurred(), "expected no error when TeamRole does not exist")
 		})
-		It("should return an error if the team does not exist", func() {
+		It("should allow creation even if the Team does not exist yet", func() {
 			rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
 				test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
@@ -68,8 +67,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 
 			warns, err := ValidateCreateRoleBinding(test.Ctx, test.K8sClient, rb)
 			Expect(warns).To(BeNil(), "expected no warnings")
-			Expect(err).To(HaveOccurred(), "expected an error")
-			Expect(err).To(MatchError(ContainSubstring("team does not exist")))
+			Expect(err).ToNot(HaveOccurred(), "expected no error when Team does not exist")
 		})
 		It("should return an error if both clusterName and clusterSelector not specified", func() {
 			rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),

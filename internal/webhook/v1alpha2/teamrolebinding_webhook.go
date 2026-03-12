@@ -13,7 +13,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
@@ -41,24 +40,6 @@ func DefaultRoleBinding(_ context.Context, _ client.Client, _ *greenhousev1alpha
 //+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha2-teamrolebinding,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=teamrolebindings,verbs=create;update;delete,versions=v1alpha2,name=vrolebinding-v1alpha2.kb.io,admissionReviewVersions=v1
 
 func ValidateCreateRoleBinding(ctx context.Context, c client.Client, rb *greenhousev1alpha2.TeamRoleBinding) (admission.Warnings, error) {
-	// check if the referenced role exists
-	var r greenhousev1alpha1.TeamRole
-	if err := c.Get(ctx, client.ObjectKey{Namespace: rb.Namespace, Name: rb.Spec.TeamRoleRef}, &r); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil, apierrors.NewInvalid(rb.GroupVersionKind().GroupKind(), rb.Name, field.ErrorList{field.Invalid(field.NewPath("spec", "roleRef"), rb.Spec.TeamRoleRef, "role does not exist")})
-		}
-		return nil, apierrors.NewInternalError(err)
-	}
-
-	// check if the referenced team exists
-	var t greenhousev1alpha1.Team
-	if err := c.Get(ctx, client.ObjectKey{Namespace: rb.Namespace, Name: rb.Spec.TeamRef}, &t); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil, apierrors.NewInvalid(rb.GroupVersionKind().GroupKind(), rb.Name, field.ErrorList{field.Invalid(field.NewPath("spec", "teamRef"), rb.Spec.TeamRef, "team does not exist")})
-		}
-		return nil, apierrors.NewInternalError(err)
-	}
-
 	if err := validateClusterSelector(rb); err != nil {
 		return nil, err
 	}
