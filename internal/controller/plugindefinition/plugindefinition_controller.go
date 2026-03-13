@@ -5,6 +5,7 @@ package plugindefinition
 
 import (
 	"context"
+	"time"
 
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -48,6 +49,9 @@ func (r *PluginDefinitionReconciler) SetupWithManager(name string, mgr ctrl.Mana
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmcharts/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmcharts/finalizers,verbs=get;create;update;patch;delete
 // +kubebuilder:rbac:groups="events.k8s.io",resources=events,verbs=create;patch
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
+// +kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get
 // +kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch
 // +kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions/finalizers,verbs=get;create;update;patch;delete
@@ -66,11 +70,15 @@ func (r *PluginDefinitionReconciler) setConditions() lifecycle.Conditioner {
 func (r *PluginDefinitionReconciler) EnsureCreated(ctx context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	pluginDef := obj.(*greenhousev1alpha1.PluginDefinition)
 
-	initializeConditions(pluginDef, greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.HelmChartReadyCondition)
+	initializeConditions(pluginDef, greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.HelmChartReadyCondition, greenhousev1alpha1.OCIReplicationReadyCondition)
 
 	if pluginDef.Spec.HelmChart == nil {
 		log.FromContext(ctx).Info("No HelmChart defined in PluginDefinition, skipping HelmRepository creation", "name", pluginDef.Name)
 		r.recorder.Eventf(pluginDef, nil, corev1.EventTypeNormal, "Skipped", "reconciling PluginDefinition", "Skipped HelmRepository creation")
+		pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.OCIReplicationReadyCondition,
+			greenhousev1alpha1.OCIReplicationNotConfiguredReason,
+			"No HelmChart defined"))
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 
@@ -84,6 +92,10 @@ func (r *PluginDefinitionReconciler) EnsureCreated(ctx context.Context, obj life
 	helmRepo, err := h.createUpdateHelmRepository(ctx)
 	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
+	}
+
+	if replicationErr := ensureChartReplication(ctx, r.Client, pluginDef, pluginDef.Namespace); replicationErr != nil {
+		return ctrl.Result{RequeueAfter: 1 * time.Minute}, lifecycle.Success, nil //nolint:nilerr
 	}
 
 	helmChart, err := h.createUpdateHelmChart(ctx, helmRepo)

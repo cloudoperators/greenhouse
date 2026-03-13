@@ -1306,6 +1306,19 @@ Greenhouse meta/v1alpha1.StatusConditions
 <p>StatusConditions contain the different conditions that constitute the status of the Plugin.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>ociReplication</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.OCIReplicationStatus">
+OCIReplicationStatus
+</a>
+</em>
+</td>
+<td>
+<p>OCIReplication tracks the last successfully replicated chart artifact.</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -1908,6 +1921,72 @@ int32
 </td>
 <td>
 <p>NotReady is slice of non-ready nodes status details.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.OCIReplicationStatus">OCIReplicationStatus
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterPluginDefinitionStatus">ClusterPluginDefinitionStatus</a>, 
+<a href="#greenhouse.sap/v1alpha1.PluginDefinitionStatus">PluginDefinitionStatus</a>)
+</p>
+<p>OCIReplicationStatus tracks the last successfully replicated chart artifact.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>registry</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Registry is the source registry of the replicated chart.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>chartName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ChartName is the name of the replicated chart.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Version is the chart version that was replicated.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>digest</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Digest is the sha256 digest of the replicated chart manifest.</p>
 </td>
 </tr>
 </tbody>
@@ -2839,6 +2918,19 @@ Greenhouse meta/v1alpha1.StatusConditions
 </td>
 <td>
 <p>StatusConditions contain the different conditions that constitute the status of the Plugin.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ociReplication</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.OCIReplicationStatus">
+OCIReplicationStatus
+</a>
+</em>
+</td>
+<td>
+<p>OCIReplication tracks the last successfully replicated chart artifact.</p>
 </td>
 </tr>
 </tbody>

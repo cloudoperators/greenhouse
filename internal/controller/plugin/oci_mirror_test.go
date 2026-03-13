@@ -7,15 +7,15 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/cloudoperators/greenhouse/internal/common"
+	"github.com/cloudoperators/greenhouse/internal/ocimirror"
 )
 
 var _ = Describe("createRegistryMirrorPostRenderer", func() {
-	var mirrorConfig *common.RegistryMirrorConfig
+	var mirrorConfig *ocimirror.RegistryMirrorConfig
 
 	BeforeEach(func() {
-		mirrorConfig = &common.RegistryMirrorConfig{
-			RegistryMirrors: map[string]common.RegistryMirror{
+		mirrorConfig = &ocimirror.RegistryMirrorConfig{
+			RegistryMirrors: map[string]ocimirror.RegistryMirror{
 				"ghcr.io": {
 					BaseDomain: "mirror.example.com",
 					SubPath:    "ghcr-mirror",
@@ -35,8 +35,8 @@ var _ = Describe("createRegistryMirrorPostRenderer", func() {
 	})
 
 	It("should return nil when no mirrors configured", func() {
-		emptyConfig := &common.RegistryMirrorConfig{
-			RegistryMirrors: map[string]common.RegistryMirror{},
+		emptyConfig := &ocimirror.RegistryMirrorConfig{
+			RegistryMirrors: map[string]ocimirror.RegistryMirror{},
 		}
 		manifest := `image: ghcr.io/cloudoperators/greenhouse:main`
 		postRenderer := createRegistryMirrorPostRenderer(emptyConfig, manifest)
@@ -112,7 +112,7 @@ var _ = Describe("createRegistryMirrorPostRenderer", func() {
 	})
 
 	It("should handle images with digest", func() {
-		manifest := `image: ghcr.io/cloudoperators/greenhouse@sha256:abc123`
+		manifest := `image: ghcr.io/cloudoperators/greenhouse@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
 		postRenderer := createRegistryMirrorPostRenderer(mirrorConfig, manifest)
 		Expect(postRenderer).NotTo(BeNil())
 		Expect(postRenderer.Kustomize.Images[0].Name).To(Equal("ghcr.io/cloudoperators/greenhouse"))

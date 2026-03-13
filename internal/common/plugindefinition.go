@@ -22,6 +22,8 @@ type GenericPluginDefinition interface {
 	lifecycle.RuntimeObject
 	GetPluginDefinitionSpec() *greenhousev1alpha1.PluginDefinitionSpec
 	FluxHelmChartResourceName() string
+	GetOCIReplicationStatus() *greenhousev1alpha1.OCIReplicationStatus
+	SetOCIReplicationStatus(status *greenhousev1alpha1.OCIReplicationStatus)
 }
 
 func GetPluginDefinitionFromPlugin(ctx context.Context, c client.Client, pluginDefRef greenhousev1alpha1.PluginDefinitionReference, resourceNamespace string) (GenericPluginDefinition, error) {
