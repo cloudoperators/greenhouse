@@ -2,7 +2,7 @@ groups:
   - name: greenhouse-plugin.rules
     rules:
     - alert: GreenhousePluginNotReady
-      expr: greenhouse_plugin_ready == 0
+      expr: sum by (namespace, clusterName, plugin, owned_by) (greenhouse_plugin_ready) == 0
       for: 15m
       labels:
         severity: warning
@@ -19,7 +19,14 @@ groups:
       annotations:
         summary: "Plugin reconciliation is constantly failing"
         description: "Plugin {{ $labels.plugin }} in organization {{ $labels.namespace }} keeps failing with reason: {{ $labels.reason }}"
-      expr: sum by (namespace, plugin) (increase(greenhouse_plugin_reconcile_total{result="error"}[5m])) > 0
+      expr: |
+        (
+          sum by (namespace, clusterName, plugin, owned_by) (rate(greenhouse_plugin_reconcile_total{result="error"}[15m]))
+        /
+          sum by (namespace, clusterName, plugin, owned_by) (rate(greenhouse_plugin_reconcile_total[15m]))
+        ) > 0.5
+        and
+        sum by (namespace, clusterName, plugin, owned_by) (increase(greenhouse_plugin_reconcile_total{result="error"}[15m])) > 3
       for: 15m
       labels:
         severity: warning
@@ -29,5 +36,3 @@ groups:
         cluster: '{{ $labels.clusterName }}'
         support_group: '{{ $labels.owned_by }}'
         playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/plugin/plugin-constantly-failing/
-      
-
