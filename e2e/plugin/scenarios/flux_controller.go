@@ -32,7 +32,7 @@ import (
 
 func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName string) {
 	By("Creating plugin definition")
-	testPluginDefinition := fixtures.PreparePodInfoPluginDefinition(env.TestNamespace, "6.9.0")
+	testPluginDefinition := fixtures.PreparePodInfoClusterPluginDefinition(env.TestNamespace, "6.9.0")
 	err := adminClient.Create(ctx, testPluginDefinition)
 	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
 
@@ -143,7 +143,7 @@ func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClien
 	}).Should(Succeed())
 
 	By("Upgrading the plugin definition")
-	updatedTestPluginDefinition := fixtures.PreparePodInfoPluginDefinition(env.TestNamespace, "6.9.2")
+	updatedTestPluginDefinition := fixtures.PreparePodInfoClusterPluginDefinition(env.TestNamespace, "6.9.2")
 	Eventually(func(g Gomega) {
 		err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPluginDefinition), testPluginDefinition)
 		g.Expect(err).NotTo(HaveOccurred(), "there should be no error getting the podinfo plugin definition")
@@ -183,7 +183,7 @@ func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClien
 	test.EventuallyDeleted(ctx, adminClient, testPluginDefinition)
 }
 
-func FluxControllerUIOnlyPlugin(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName string) {
+func FluxControllerUIOnlyPlugin(ctx context.Context, adminClient client.Client, env *shared.TestEnv, remoteClusterName string) {
 	By("Creating plugin definition")
 	testPluginDefinition := fixtures.PrepareUIPluginDefinition(env.TestNamespace)
 	err := adminClient.Create(ctx, testPluginDefinition)
@@ -281,9 +281,9 @@ func FluxControllerUIOnlyPlugin(ctx context.Context, adminClient, remoteClient c
 }
 
 // FluxControllerPluginDependencies is a scenario in which leafPreset depends on both midPreset and globalPlugin, and midPreset depends on globalPlugin.
-func FluxControllerPluginDependencies(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName, teamName string) {
+func FluxControllerPluginDependencies(ctx context.Context, adminClient client.Client, env *shared.TestEnv, remoteClusterName, teamName string) {
 	By("Creating plugin definition")
-	testPluginDefinition := fixtures.PreparePodInfoPluginDefinition(env.TestNamespace, "6.9.0")
+	testPluginDefinition := fixtures.PreparePodInfoClusterPluginDefinition(env.TestNamespace, "6.9.0")
 	err := adminClient.Create(ctx, testPluginDefinition)
 	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
 
@@ -487,9 +487,9 @@ func FluxControllerPluginDependencies(ctx context.Context, adminClient, remoteCl
 }
 
 // FluxControllerPluginDeletePolicyRetain tests that the helm release is left behind when deleting the Plugin.
-func FluxControllerPluginDeletePolicyRetain(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName, teamName string) {
+func FluxControllerPluginDeletePolicyRetain(ctx context.Context, adminClient client.Client, env *shared.TestEnv, remoteClusterName, teamName string) {
 	By("Creating plugin definition")
-	testPluginDefinition := fixtures.PreparePodInfoPluginDefinition(env.TestNamespace, "6.9.0")
+	testPluginDefinition := fixtures.PreparePodInfoClusterPluginDefinition(env.TestNamespace, "6.9.0")
 	err := adminClient.Create(ctx, testPluginDefinition)
 	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
 
