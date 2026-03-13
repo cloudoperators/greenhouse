@@ -225,6 +225,10 @@ func newHelmInstallAction(restClientGetter genericclioptions.RESTClientGetter, r
 	installAction.ClientOnly = isDryRun
 	installAction.Description = pluginDefinitionVersion
 
+	if isDryRun {
+		installAction.IncludeCRDs = true
+	}
+
 	return installAction, cfg.Capabilities, nil
 }
 
