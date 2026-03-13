@@ -1041,4 +1041,90 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
 		})
 	})
+
+	Context("When referenced TeamRole or Team does not yet exist", func() {
+		It("should set RBACReady=False with TeamRoleNotFound when the referenced TeamRole does not exist", func() {
+			By("creating a TeamRoleBinding referencing a non-existent TeamRole")
+			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-missing-teamrole",
+				test.WithTeamRoleRef("non-existent-teamrole"),
+				test.WithTeamRef(teamUT.Name),
+				test.WithClusterName(clusterA.Name))
+			trbKey := types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}
+
+			By("validating the TeamRoleBinding status reflects the missing TeamRole")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(test.Ctx, trbKey, trb)).To(Succeed(), "there should be no error getting the TeamRoleBinding")
+				rbacReadyCondition := trb.Status.GetConditionByType(greenhousev1alpha2.RBACReady)
+				g.Expect(rbacReadyCondition).ToNot(BeNil(), "RBACReady condition on TeamRoleBinding should not be nil")
+				g.Expect(rbacReadyCondition.Status).To(Equal(metav1.ConditionFalse), "RBACReady condition should be False when TeamRole is missing")
+				g.Expect(rbacReadyCondition.Reason).To(Equal(greenhousev1alpha2.TeamRoleNotFound), "RBACReady condition reason should be TeamRoleNotFound")
+				g.Expect(rbacReadyCondition.Message).To(ContainSubstring("non-existent-teamrole"), "RBACReady condition message should reference the missing TeamRole")
+			}).Should(Succeed(), "the TeamRoleBinding status should reflect the missing TeamRole")
+
+			By("cleaning up the test")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
+		})
+
+		It("should set RBACReady=False with TeamNotFound when the referenced Team does not exist", func() {
+			By("creating a TeamRoleBinding referencing a non-existent Team")
+			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-missing-team",
+				test.WithTeamRoleRef(teamRoleUT.Name),
+				test.WithTeamRef("non-existent-team"),
+				test.WithClusterName(clusterA.Name))
+			trbKey := types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}
+
+			By("validating the TeamRoleBinding status reflects the missing Team")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(test.Ctx, trbKey, trb)).To(Succeed(), "there should be no error getting the TeamRoleBinding")
+				rbacReadyCondition := trb.Status.GetConditionByType(greenhousev1alpha2.RBACReady)
+				g.Expect(rbacReadyCondition).ToNot(BeNil(), "RBACReady condition on TeamRoleBinding should not be nil")
+				g.Expect(rbacReadyCondition.Status).To(Equal(metav1.ConditionFalse), "RBACReady condition should be False when Team is missing")
+				g.Expect(rbacReadyCondition.Reason).To(Equal(greenhousev1alpha2.TeamNotFound), "RBACReady condition reason should be TeamNotFound")
+				g.Expect(rbacReadyCondition.Message).To(ContainSubstring("non-existent-team"), "RBACReady condition message should reference the missing Team")
+			}).Should(Succeed(), "the TeamRoleBinding status should reflect the missing Team")
+
+			By("cleaning up the test")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
+		})
+
+		It("should reconcile successfully once the missing TeamRole is created", func() {
+			// Pre-compute the exact TeamRole name so both the TRB reference and the actual
+			// TeamRole object share the same name. The Watch-based re-enqueue indexes TRBs by
+			// .spec.teamRoleRef, so the names must match exactly.
+			lateTeamRoleName := setup.RandomizeName("late-teamrole")
+
+			By("creating a TeamRoleBinding referencing a non-existent TeamRole")
+			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-late-teamrole",
+				test.WithTeamRoleRef(lateTeamRoleName),
+				test.WithTeamRef(teamUT.Name),
+				test.WithClusterName(clusterA.Name))
+			trbKey := types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}
+
+			By("confirming the TeamRoleBinding status reflects the missing TeamRole")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(test.Ctx, trbKey, trb)).To(Succeed())
+				rbacReadyCondition := trb.Status.GetConditionByType(greenhousev1alpha2.RBACReady)
+				g.Expect(rbacReadyCondition).ToNot(BeNil())
+				g.Expect(rbacReadyCondition.Status).To(Equal(metav1.ConditionFalse))
+				g.Expect(rbacReadyCondition.Reason).To(Equal(greenhousev1alpha2.TeamRoleNotFound))
+			}).Should(Succeed(), "the TeamRoleBinding should report TeamRoleNotFound")
+
+			By("creating the missing TeamRole with the exact pre-computed name")
+			lateTeamRole := test.NewTeamRole(test.Ctx, lateTeamRoleName, setup.Namespace(), test.WithRules(teamRoleUT.Spec.Rules))
+			Expect(k8sClient.Create(test.Ctx, lateTeamRole)).To(Succeed(), "there should be no error creating the late TeamRole")
+
+			By("validating the TeamRoleBinding reconciles successfully after the TeamRole is created")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(test.Ctx, trbKey, trb)).To(Succeed())
+				rbacReadyCondition := trb.Status.GetConditionByType(greenhousev1alpha2.RBACReady)
+				g.Expect(rbacReadyCondition).ToNot(BeNil())
+				g.Expect(rbacReadyCondition.Status).To(Equal(metav1.ConditionTrue), "RBACReady condition should become True once TeamRole exists")
+				g.Expect(rbacReadyCondition.Reason).To(Equal(greenhousev1alpha2.RBACReconciled))
+			}).Should(Succeed(), "the TeamRoleBinding should reconcile successfully once the TeamRole is created")
+
+			By("cleaning up the test")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, lateTeamRole)
+		})
+	})
 })
