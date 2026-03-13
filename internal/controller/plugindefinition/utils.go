@@ -5,6 +5,8 @@ package plugindefinition
 
 import (
 	"context"
+	"crypto/sha256"
+	"fmt"
 	"strings"
 	"time"
 
@@ -174,6 +176,17 @@ func (h *helmer) createUpdateHelmChart(ctx context.Context, helmRepo *sourcev1.H
 func ensureChartReplication(ctx context.Context, k8sClient client.Client, pluginDef common.GenericPluginDefinition, namespaceName string) error {
 	logger := log.FromContext(ctx)
 
+	// Check if the chart is OCI before making any API calls — non-OCI charts cannot be replicated.
+	helmChart := pluginDef.GetPluginDefinitionSpec().HelmChart
+	if !strings.HasPrefix(helmChart.Repository, "oci://") {
+		logger.V(1).Info("chart repository is not OCI, skipping replication", "repository", helmChart.Repository)
+		pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.OCIReplicationReadyCondition,
+			greenhousev1alpha1.OCIReplicationNotConfiguredReason,
+			"Chart replication only applies to OCI repositories"))
+		return nil
+	}
+
 	failReplication := func(err error, msg string) error {
 		logger.Error(err, msg)
 		pluginDef.SetCondition(greenhousemetav1alpha1.FalseCondition(
@@ -188,7 +201,7 @@ func ensureChartReplication(ctx context.Context, k8sClient client.Client, plugin
 		return failReplication(err, "failed to get registry mirror config")
 	}
 
-	if mirrorConfig == nil || mirrorConfig.PrimaryMirror == "" {
+	if mirrorConfig == nil || len(mirrorConfig.RegistryMirrors) == 0 {
 		pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
 			greenhousev1alpha1.OCIReplicationReadyCondition,
 			greenhousev1alpha1.OCIReplicationNotConfiguredReason,
@@ -196,24 +209,14 @@ func ensureChartReplication(ctx context.Context, k8sClient client.Client, plugin
 		return nil
 	}
 
-	helmChart := pluginDef.GetPluginDefinitionSpec().HelmChart
-	if !strings.HasPrefix(helmChart.Repository, "oci://") {
-		logger.V(1).Info("chart repository is not OCI, skipping replication", "repository", helmChart.Repository)
-		pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
-			greenhousev1alpha1.OCIReplicationReadyCondition,
-			greenhousev1alpha1.OCIReplicationNotConfiguredReason,
-			"Chart replication only applies to OCI repositories"))
-		return nil
-	}
-	chartRef := strings.TrimPrefix(helmChart.Repository, "oci://") + "/" + helmChart.Name + ":" + helmChart.Version
+	registry, chartName, version := parseChartRef(helmChart)
 
-	// Skip replication if the current chart version was already replicated.
-	conditions := pluginDef.GetConditions()
-	replicationCond := conditions.GetConditionByType(greenhousev1alpha1.OCIReplicationReadyCondition)
-	if replicationCond != nil && replicationCond.IsTrue() &&
-		replicationCond.Reason == greenhousev1alpha1.OCIReplicationSucceededReason &&
-		strings.Contains(replicationCond.Message, chartRef) {
-		logger.V(1).Info("chart already replicated, skipping", "chart", chartRef)
+	// Skip replication if the current chart version was already replicated (idempotency).
+	if status := pluginDef.GetOCIReplicationStatus(); status != nil &&
+		status.Registry == registry &&
+		status.ChartName == chartName &&
+		status.Version == version {
+		logger.V(1).Info("chart already replicated, skipping", "registry", registry, "chart", chartName, "version", version)
 		return nil
 	}
 
@@ -222,6 +225,7 @@ func ensureChartReplication(ctx context.Context, k8sClient client.Client, plugin
 		return failReplication(err, "failed to create OCI replicator")
 	}
 
+	chartRef := registry + "/" + chartName + ":" + version
 	mirroredRef := replicator.BuildMirroredOCIRef(chartRef)
 	if mirroredRef == "" {
 		logger.Info("no mirror configured for chart registry, skipping replication", "chart", chartRef)
@@ -232,13 +236,36 @@ func ensureChartReplication(ctx context.Context, k8sClient client.Client, plugin
 		return nil
 	}
 
-	if err := replicator.TriggerReplication(ctx, mirroredRef); err != nil {
+	manifest, err := replicator.TriggerReplication(ctx, mirroredRef)
+	if err != nil {
 		return failReplication(err, "chart replication failed")
 	}
 
+	digest := fmt.Sprintf("sha256:%x", sha256.Sum256(manifest))
+
+	pluginDef.SetOCIReplicationStatus(&greenhousev1alpha1.OCIReplicationStatus{
+		Registry:  registry,
+		ChartName: chartName,
+		Version:   version,
+		Digest:    digest,
+	})
 	pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
 		greenhousev1alpha1.OCIReplicationReadyCondition,
 		greenhousev1alpha1.OCIReplicationSucceededReason,
 		"Chart replicated successfully: "+chartRef))
 	return nil
+}
+
+// parseChartRef extracts registry, chart name, and version from a HelmChartReference.
+func parseChartRef(helmChart *greenhousev1alpha1.HelmChartReference) (registry, chartName, version string) {
+	ref := strings.TrimPrefix(helmChart.Repository, "oci://")
+	if idx := strings.Index(ref, "/"); idx > 0 {
+		registry = ref[:idx]
+		chartName = ref[idx+1:] + "/" + helmChart.Name
+	} else {
+		registry = ref
+		chartName = helmChart.Name
+	}
+	version = helmChart.Version
+	return registry, chartName, version
 }

@@ -69,6 +69,10 @@ func (r *ClusterPluginDefinitionReconciler) EnsureCreated(ctx context.Context, o
 	if clusterDef.Spec.HelmChart == nil {
 		log.FromContext(ctx).Info("No HelmChart defined in ClusterPluginDefinition, skipping HelmRepository creation")
 		r.recorder.Eventf(clusterDef, nil, corev1.EventTypeNormal, "Skipped", "reconciling ClusterPluginDefinition", "Skipped HelmRepository creation")
+		clusterDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.OCIReplicationReadyCondition,
+			greenhousev1alpha1.OCIReplicationNotConfiguredReason,
+			"No HelmChart defined"))
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 

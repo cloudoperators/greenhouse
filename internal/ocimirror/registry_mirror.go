@@ -82,6 +82,9 @@ type ResolvedOCIRef struct {
 
 // ResolveOCIRef looks up the mirror configuration for an OCI reference.
 func (c *RegistryMirrorConfig) ResolveOCIRef(imageRef string) *ResolvedOCIRef {
+	if c == nil {
+		return nil
+	}
 	registry, repo, tagOrDigest := SplitOCIRef(imageRef)
 	mirror, ok := c.RegistryMirrors[registry]
 	if !ok {

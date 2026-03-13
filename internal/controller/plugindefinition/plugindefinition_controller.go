@@ -75,6 +75,10 @@ func (r *PluginDefinitionReconciler) EnsureCreated(ctx context.Context, obj life
 	if pluginDef.Spec.HelmChart == nil {
 		log.FromContext(ctx).Info("No HelmChart defined in PluginDefinition, skipping HelmRepository creation", "name", pluginDef.Name)
 		r.recorder.Eventf(pluginDef, nil, corev1.EventTypeNormal, "Skipped", "reconciling PluginDefinition", "Skipped HelmRepository creation")
+		pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.OCIReplicationReadyCondition,
+			greenhousev1alpha1.OCIReplicationNotConfiguredReason,
+			"No HelmChart defined"))
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 
@@ -90,20 +94,16 @@ func (r *PluginDefinitionReconciler) EnsureCreated(ctx context.Context, obj life
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
+	if replicationErr := ensureChartReplication(ctx, r.Client, pluginDef, pluginDef.Namespace); replicationErr != nil {
+		return ctrl.Result{RequeueAfter: 1 * time.Minute}, lifecycle.Success, nil //nolint:nilerr
+	}
+
 	helmChart, err := h.createUpdateHelmChart(ctx, helmRepo)
 	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
 	h.setHelmChartReadyCondition(ctx, helmChart)
-
-	conditions := pluginDef.GetConditions()
-	helmChartCond := conditions.GetConditionByType(greenhousev1alpha1.HelmChartReadyCondition)
-	if helmChartCond != nil && helmChartCond.IsTrue() {
-		if replicationErr := ensureChartReplication(ctx, r.Client, pluginDef, pluginDef.Namespace); replicationErr != nil {
-			return ctrl.Result{RequeueAfter: 1 * time.Minute}, lifecycle.Success, nil //nolint:nilerr
-		}
-	}
 
 	return ctrl.Result{}, lifecycle.Success, nil
 }
