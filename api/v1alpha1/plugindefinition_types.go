@@ -235,10 +235,24 @@ func (p *PluginDefinition) FluxHelmChartResourceName() string {
 	return p.Name + "-" + p.Spec.HelmChart.Version
 }
 
+// OCIReplicationStatus tracks the last successfully replicated chart artifact.
+type OCIReplicationStatus struct {
+	// Registry is the source registry of the replicated chart.
+	Registry string `json:"registry"`
+	// ChartName is the name of the replicated chart.
+	ChartName string `json:"chartName"`
+	// Version is the chart version that was replicated.
+	Version string `json:"version"`
+	// Digest is the sha256 digest of the replicated chart manifest.
+	Digest string `json:"digest"`
+}
+
 // PluginDefinitionStatus defines the observed state of PluginDefinition
 type PluginDefinitionStatus struct {
 	// StatusConditions contain the different conditions that constitute the status of the Plugin.
 	greenhousemetav1alpha1.StatusConditions `json:"statusConditions,omitempty"`
+	// OCIReplication tracks the last successfully replicated chart artifact.
+	OCIReplication *OCIReplicationStatus `json:"ociReplication,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -277,6 +291,14 @@ func (p *PluginDefinition) GetConditions() greenhousemetav1alpha1.StatusConditio
 
 func (p *PluginDefinition) SetCondition(condition greenhousemetav1alpha1.Condition) {
 	p.Status.SetConditions(condition)
+}
+
+func (p *PluginDefinition) GetOCIReplicationStatus() *OCIReplicationStatus {
+	return p.Status.OCIReplication
+}
+
+func (p *PluginDefinition) SetOCIReplicationStatus(status *OCIReplicationStatus) {
+	p.Status.OCIReplication = status
 }
 
 func (p *PluginDefinition) RemoveCondition(conditionType greenhousemetav1alpha1.ConditionType) {

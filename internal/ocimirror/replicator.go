@@ -72,7 +72,7 @@ func (r *OCIReplicator) ReplicateOCIArtifacts(ctx context.Context, renderedManif
 			continue
 		}
 
-		if err := r.TriggerReplication(ctx, mirroredRef, crane.WithPlatform(&v1.Platform{OS: "linux", Architecture: "amd64"})); err != nil {
+		if _, err := r.TriggerReplication(ctx, mirroredRef, crane.WithPlatform(&v1.Platform{OS: "linux", Architecture: "amd64"})); err != nil {
 			replicationErrors = append(replicationErrors, fmt.Sprintf("%s: %v", imageRef, err))
 			continue
 		}
@@ -103,15 +103,16 @@ func (r *OCIReplicator) BuildMirroredOCIRef(imageRef string) string {
 }
 
 // TriggerReplication fetches the manifest for mirroredRef to warm the pull-through cache.
-func (r *OCIReplicator) TriggerReplication(ctx context.Context, mirroredRef string, extraOpts ...crane.Option) error {
+// Returns the raw manifest bytes on success for digest computation.
+func (r *OCIReplicator) TriggerReplication(ctx context.Context, mirroredRef string, extraOpts ...crane.Option) ([]byte, error) {
 	log.FromContext(ctx).V(1).Info("triggering replication", "ref", mirroredRef)
 	opts := append([]crane.Option{crane.WithAuth(r.auth)}, extraOpts...)
-	_, err := r.manifestFetcher(mirroredRef, opts...)
+	manifest, err := r.manifestFetcher(mirroredRef, opts...)
 	if err != nil {
-		return fmt.Errorf("failed to fetch manifest for %s: %w", mirroredRef, err)
+		return nil, fmt.Errorf("failed to fetch manifest for %s: %w", mirroredRef, err)
 	}
 
-	return nil
+	return manifest, nil
 }
 
 func getAuthFromSecret(ctx context.Context, k8sClient client.Client, secretName, namespace string) (authn.Authenticator, error) {
