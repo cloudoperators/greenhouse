@@ -127,9 +127,8 @@ func extractTeamFromServiceAccount(username, namespace string) string {
 	return teamName
 }
 
-// authorizeServiceAccount checks if a ServiceAccount is authorized to access the resource
-// Returns (allowed bool, reason string)
-func authorizeServiceAccount(ctx context.Context, c client.Client, mapper meta.RESTMapper, attrs *authv1.ResourceAttributes, teamName string) (bool, string) {
+// authorizeServiceAccount checks if a ServiceAccount is authorized to access the resource.
+func authorizeServiceAccount(ctx context.Context, c client.Client, mapper meta.RESTMapper, attrs *authv1.ResourceAttributes, teamName string) (allowed bool, reason string) {
 	gvr := schema.GroupVersionResource{
 		Group:    attrs.Group,
 		Version:  attrs.Version,

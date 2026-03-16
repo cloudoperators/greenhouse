@@ -46,6 +46,7 @@ var _ = BeforeSuite(func() {
 	test.RegisterWebhook("clusterPluginDefinitionWebhook", webhookv1alpha1.SetupClusterPluginDefinitionWebhookWithManager)
 	test.RegisterWebhook("pluginWebhook", webhookv1alpha1.SetupPluginWebhookWithManager)
 	test.RegisterWebhook("teamRoleWebhook", webhookv1alpha1.SetupTeamRoleWebhookWithManager)
+	test.RegisterWebhook("serviceAccountWebhook", webhookv1alpha1.SetupServiceAccountWebhookWithManager)
 	test.TestBeforeSuite()
 })
 
