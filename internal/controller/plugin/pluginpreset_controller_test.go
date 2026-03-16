@@ -781,6 +781,82 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		By("deleting the PluginPreset")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
 	})
+
+	It("should reconcile a PluginPreset when the referenced ClusterPluginDefinition changes", func() {
+		const watchTestDefinitionName = "watch-trigger-plugindefinition"
+
+		By("creating a ClusterPluginDefinition with an initial default option")
+		watchPluginDef := test.NewClusterPluginDefinition(test.Ctx, watchTestDefinitionName,
+			test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
+				Name:       "dummy",
+				Repository: "oci://greenhouse/helm-charts",
+				Version:    "1.0.0",
+			}),
+			test.AppendPluginOption(greenhousev1alpha1.PluginOption{
+				Name:    "initialDefault",
+				Type:    greenhousev1alpha1.PluginOptionTypeString,
+				Default: test.MustReturnJSONFor("initialValue"),
+			}),
+		)
+		Expect(test.K8sClient.Create(test.Ctx, watchPluginDef)).To(Succeed())
+		test.MockHelmChartReady(test.Ctx, test.K8sClient, watchPluginDef, flux.HelmRepositoryDefaultNamespace)
+
+		By("creating a PluginPreset referencing the ClusterPluginDefinition with no explicit option values")
+		watchPluginSpec := greenhousev1alpha1.PluginSpec{
+			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+				Name: watchTestDefinitionName,
+			},
+		}
+		testPluginPreset := test.NewPluginPreset("watch-trigger-preset", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(watchPluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{"cluster": clusterA},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, testPluginPreset)).To(Succeed())
+
+		By("verifying the webhook set the clusterplugindefinition label on the PluginPreset")
+		Eventually(func(g Gomega) {
+			g.Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)).To(Succeed())
+			g.Expect(testPluginPreset.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyClusterPluginDefinition, watchTestDefinitionName))
+		}).Should(Succeed(), "webhook should have set the clusterplugindefinition label on the PluginPreset")
+
+		By("waiting for the Plugin to be created with the initial default option value")
+		expPluginName := types.NamespacedName{Name: "watch-trigger-preset-" + clusterA, Namespace: test.TestNamespace}
+		expPlugin := &greenhousev1alpha1.Plugin{}
+		Eventually(func(g Gomega) {
+			g.Expect(test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)).To(Succeed())
+			g.Expect(expPlugin.Spec.OptionValues).To(ContainElement(greenhousev1alpha1.PluginOptionValue{
+				Name:  "initialDefault",
+				Value: test.MustReturnJSONFor("initialValue"),
+			}))
+		}).Should(Succeed(), "Plugin should be created with the initial default option")
+
+		By("updating the ClusterPluginDefinition to add a new default option")
+		_, err := clientutil.CreateOrPatch(test.Ctx, test.K8sClient, watchPluginDef, func() error {
+			watchPluginDef.Spec.Options = append(watchPluginDef.Spec.Options, greenhousev1alpha1.PluginOption{
+				Name:    "newDefault",
+				Type:    greenhousev1alpha1.PluginOptionTypeString,
+				Default: test.MustReturnJSONFor("newDefaultValue"),
+			})
+			return nil
+		})
+		Expect(err).NotTo(HaveOccurred(), "failed to update ClusterPluginDefinition")
+
+		By("verifying the Plugin is updated with the new default option after PluginPreset reconciliation")
+		Eventually(func(g Gomega) {
+			g.Expect(test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)).To(Succeed())
+			g.Expect(expPlugin.Spec.OptionValues).To(ContainElement(greenhousev1alpha1.PluginOptionValue{
+				Name:  "newDefault",
+				Value: test.MustReturnJSONFor("newDefaultValue"),
+			}))
+		}).Should(Succeed(), "Plugin should have the new default option after ClusterPluginDefinition change triggers PluginPreset reconciliation")
+
+		By("cleaning up")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, watchPluginDef)
+	})
 })
 
 var _ = Describe("overridesPluginOptionValues", Ordered, func() {

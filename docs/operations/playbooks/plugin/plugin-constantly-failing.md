@@ -46,24 +46,25 @@ kubectl describe plugin <plugin-name> -n <namespace>
 
 Look at the `status.statusConditions` section in the plugin resource. Pay special attention to:
 
-- **Ready**: The main indicator of plugin health
-- **ClusterAccessReady**: Indicates if Greenhouse can access the target cluster. If `false` check target [Cluster status](../cluster/cluster-not-ready.md).
-- **HelmReconcileFailed**: Shows if Helm reconciliation failed
-- **HelmDriftDetected**: Indicates drift between desired and actual state
-- **HelmChartTestSucceeded**: Shows if Helm chart tests passed
-- **WaitingForDependencies**: Indicates if waiting for other plugins
-- **RetriesExhausted**: Shows if all retry attempts have been exhausted
+- **Ready**: The main indicator of plugin health. Set to `false` if cluster access fails, the PluginDefinition is unavailable, or the Helm release is not deployed successfully.
+- **HelmReleaseCreated**: Indicates whether the Flux HelmRelease object has been successfully created. If `false`, check for PluginDefinition or option value issues.
+- **HelmReleaseDeployed**: Mirrors the Flux HelmRelease `Ready` condition and reflects whether the Helm release has been successfully deployed on the target cluster.
+- **ExposedServicesSynced**: Indicates whether the list of exposed services is up to date with the services defined in the deployed Helm chart.
 
 Common failure reasons to look for:
 
-- **PluginDefinitionNotFound**: The referenced PluginDefinition does not exist
-- **OptionValueResolutionFailed**: Option values could not be resolved
+- **PluginDefinitionNotAvailable**: The referenced PluginDefinition or ClusterPluginDefinition does not exist
+- **PluginDefinitionNotBackedByHelmChart**: The PluginDefinition does not define a Helm chart
+- **OptionValueResolutionFailed**: Option values could not be resolved (e.g. a referenced secret is missing)
 - **PluginOptionValueInvalid**: Option values could not be converted to Helm values
-- **HelmUninstallFailed**: The Helm release could not be uninstalled
+- **FluxHelmReleaseConfigInvalid**: The generated Flux HelmRelease manifest is invalid and could not be applied
+- **FluxHelmReleaseStalled**: The Flux HelmRelease is stalled, typically because install/upgrade retries have been exhausted
+- **ClusterAccessFailed**: The controller cannot access the target cluster — check target [Cluster status](../cluster/cluster-not-ready.md)
+- **HelmUninstallFailed**: The Helm release could not be uninstalled (relevant during Plugin deletion)
 
 ### Check for Specific Issues
 
-#### PluginDefinitionNotFound
+#### PluginDefinitionNotAvailable
 
 ```bash
 # Check if the PluginDefinition exists

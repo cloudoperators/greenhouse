@@ -544,7 +544,6 @@ func (s *source) objectReadiness(ctx context.Context, obj client.Object) (ready 
 		msg = err.Error()
 		return
 	}
-
 	conditions := cObj.GetConditions()
 	readyCondition := meta.FindStatusCondition(conditions, fluxmeta.ReadyCondition)
 

@@ -293,8 +293,15 @@ export interface components {
                 /**
                  * @description DocMarkDownUrl specifies the URL to the markdown documentation file for this plugin.
                  *     Source needs to allow all CORS origins.
+                 *
+                 *     Deprecated: Use docsURL instead. This field will be removed in a future release.
                  */
                 docMarkDownUrl?: string;
+                /**
+                 * @description DocsURL specifies the URL to the documentation for this plugin.
+                 *     This is used by the Greenhouse UI to provide a link to external documentation.
+                 */
+                docsURL?: string;
                 /** @description HelmChart specifies where the Helm Chart for this pluginDefinition can be found. */
                 helmChart?: {
                     /** @description Name of the HelmChart chart. */
@@ -678,8 +685,15 @@ export interface components {
                 /**
                  * @description DocMarkDownUrl specifies the URL to the markdown documentation file for this plugin.
                  *     Source needs to allow all CORS origins.
+                 *
+                 *     Deprecated: Use docsURL instead. This field will be removed in a future release.
                  */
                 docMarkDownUrl?: string;
+                /**
+                 * @description DocsURL specifies the URL to the documentation for this plugin.
+                 *     This is used by the Greenhouse UI to provide a link to external documentation.
+                 */
+                docsURL?: string;
                 /** @description HelmChart specifies where the Helm Chart for this pluginDefinition can be found. */
                 helmChart?: {
                     /** @description Name of the HelmChart chart. */

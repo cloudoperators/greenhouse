@@ -14,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
@@ -45,6 +46,19 @@ func DefaultPluginPreset(ctx context.Context, c client.Client, pluginPreset *gre
 
 	if pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind == "" {
 		pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind = greenhousev1alpha1.PluginDefinitionKind
+	}
+
+	// Set a label identifying the referenced PluginDefinition for easier listing and watch-based reconciliation.
+	if pluginPreset.Labels == nil {
+		pluginPreset.Labels = make(map[string]string)
+	}
+	switch pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind {
+	case greenhousev1alpha1.PluginDefinitionKind:
+		pluginPreset.Labels[greenhouseapis.LabelKeyPluginDefinition] = pluginPreset.Spec.Plugin.PluginDefinitionRef.Name
+		delete(pluginPreset.Labels, greenhouseapis.LabelKeyClusterPluginDefinition)
+	case greenhousev1alpha1.ClusterPluginDefinitionKind:
+		pluginPreset.Labels[greenhouseapis.LabelKeyClusterPluginDefinition] = pluginPreset.Spec.Plugin.PluginDefinitionRef.Name
+		delete(pluginPreset.Labels, greenhouseapis.LabelKeyPluginDefinition)
 	}
 
 	return nil
