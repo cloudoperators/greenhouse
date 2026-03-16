@@ -31,10 +31,7 @@ func UpdateTeamrbacMetrics(teamRoleBinding *greenhousev1alpha2.TeamRoleBinding) 
 		"namespace":         teamRoleBinding.Namespace,
 	})
 
-	teamRefs := teamRoleBinding.Spec.TeamRefs
-	if len(teamRefs) == 0 && teamRoleBinding.Spec.TeamRef != "" { //nolint:staticcheck // fallback for pre-migration objects
-		teamRefs = []string{teamRoleBinding.Spec.TeamRef} //nolint:staticcheck // fallback for pre-migration objects
-	}
+	teamRefs := resolveTeamRefs(teamRoleBinding)
 
 	var value float64
 	if teamRoleBinding.Status.IsReadyTrue() {

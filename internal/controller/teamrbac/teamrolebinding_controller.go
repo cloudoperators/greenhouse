@@ -16,7 +16,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -154,15 +153,18 @@ func (r *TeamRoleBindingReconciler) EnsureCreated(ctx context.Context, resource 
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 
-	teams, err := getTeams(ctx, r.Client, trb)
+	teams, missingTeams, err := getTeams(ctx, r.Client, trb)
 	if err != nil {
-		if apierrors.IsNotFound(err) {
-			teamRefs := resolveTeamRefs(trb)
-			message := fmt.Sprintf("Failed to get team(s) %s in namespace %s", strings.Join(teamRefs, ", "), trb.GetNamespace())
-			trb.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha2.RBACReady, greenhousev1alpha2.TeamNotFound, message))
-			r.recorder.Eventf(trb, nil, corev1.EventTypeWarning, greenhousemetav1alpha1.FailedEvent, "reconciling TeamRoleBinding", message)
-		}
 		return ctrl.Result{}, lifecycle.Failed, err
+	}
+
+	if len(missingTeams) > 0 {
+		message := fmt.Sprintf("Team(s) %s not found in namespace %s", strings.Join(missingTeams, ", "), trb.GetNamespace())
+		trb.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha2.RBACReady, greenhousev1alpha2.TeamNotFound, message))
+		r.recorder.Eventf(trb, nil, corev1.EventTypeWarning, greenhousemetav1alpha1.FailedEvent, "reconciling TeamRoleBinding", message)
+		if len(teams) == 0 {
+			return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("none of the referenced teams found: %s", strings.Join(missingTeams, ", "))
+		}
 	}
 
 	var mappedIDPGroups []string
@@ -524,10 +526,12 @@ func getTeamRole(ctx context.Context, c client.Client, r events.EventRecorder, t
 }
 
 // getTeams retrieves all Teams referenced by the TeamRoleBinding.
-func getTeams(ctx context.Context, c client.Client, trb *greenhousev1alpha2.TeamRoleBinding) ([]*greenhousev1alpha1.Team, error) {
+// It returns successfully fetched teams even when some teams are missing, along with
+// a list of missing team names. Non-transient errors are returned as error.
+func getTeams(ctx context.Context, c client.Client, trb *greenhousev1alpha2.TeamRoleBinding) ([]*greenhousev1alpha1.Team, []string, error) {
 	teamRefs := resolveTeamRefs(trb)
 	if len(teamRefs) == 0 {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	var teams []*greenhousev1alpha1.Team
@@ -539,18 +543,12 @@ func getTeams(ctx context.Context, c client.Client, trb *greenhousev1alpha2.Team
 				missingTeams = append(missingTeams, ref)
 				continue
 			}
-			return nil, fmt.Errorf("error getting team %s: %w", ref, err)
+			return nil, nil, fmt.Errorf("error getting team %s: %w", ref, err)
 		}
 		teams = append(teams, team)
 	}
 
-	if len(missingTeams) > 0 {
-		return nil, apierrors.NewNotFound(
-			schema.GroupResource{Group: "greenhouse.sap", Resource: "teams"},
-			strings.Join(missingTeams, ", "),
-		)
-	}
-	return teams, nil
+	return teams, missingTeams, nil
 }
 
 // reconcileClusterRole creates or updates a ClusterRole in the Cluster the given client.Client is created for

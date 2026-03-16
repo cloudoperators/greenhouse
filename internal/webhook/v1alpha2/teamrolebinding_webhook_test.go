@@ -53,6 +53,25 @@ var _ = Describe("Default RoleBinding", Ordered, func() {
 		Expect(rb.Spec.TeamRefs).To(ConsistOf("team-b"))
 	})
 
+	It("should deduplicate teamRefs", func() {
+		rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", "default",
+			test.WithTeamRefs("team-b", "team-a", "team-b"),
+		)
+		err := DefaultRoleBinding(test.Ctx, test.K8sClient, rb)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(rb.Spec.TeamRefs).To(Equal([]string{"team-a", "team-b"}))
+	})
+
+	It("should deduplicate when teamRef duplicates an entry in teamRefs", func() {
+		rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", "default",
+			test.WithTeamRef("team-a"),
+			test.WithTeamRefs("team-a"),
+		)
+		err := DefaultRoleBinding(test.Ctx, test.K8sClient, rb)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(rb.Spec.TeamRefs).To(Equal([]string{"team-a"}))
+	})
+
 	It("should leave teamRefs empty when both teamRef and teamRefs are empty", func() {
 		rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", "default")
 		err := DefaultRoleBinding(test.Ctx, test.K8sClient, rb)
