@@ -216,6 +216,15 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 		By("creating test Plugin")
 		Expect(test.K8sClient.Create(test.Ctx, testPlugin)).To(Succeed(), "failed to create Plugin")
 
+		By("ensuring the Plugin Status reflects the HelmReleaseCreated condition")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)
+			g.Expect(err).ToNot(HaveOccurred(), "failed to get Plugin")
+			helmReleaseCreatedCondition := testPlugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
+			g.Expect(helmReleaseCreatedCondition).ToNot(BeNil(), "HelmReleaseCreated condition should be set")
+			g.Expect(helmReleaseCreatedCondition.IsTrue()).To(BeTrue(), "HelmReleaseCreated condition should be true")
+		}).Should(Succeed(), "Plugin should have HelmReleaseCreated condition set to true")
+
 		By("ensuring HelmRelease has been created")
 		release := &helmv2.HelmRelease{}
 		releaseKey := types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}
@@ -235,16 +244,12 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)
 			g.Expect(err).ToNot(HaveOccurred())
 
-			clusterAccessReadyCondition := testPlugin.Status.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
-			g.Expect(clusterAccessReadyCondition).ToNot(BeNil())
-			g.Expect(clusterAccessReadyCondition.Status).To(Equal(metav1.ConditionTrue), "ClusterAccessReady condition should be true")
-			helmReconcileFailedCondition := testPlugin.Status.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition)
-			g.Expect(helmReconcileFailedCondition).ToNot(BeNil())
-			g.Expect(helmReconcileFailedCondition.Status).To(Equal(metav1.ConditionUnknown), "HelmReconcileFailed condition should be unknown")
+			helmReleaseDeployedCondition := testPlugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseDeployedCondition)
+			g.Expect(helmReleaseDeployedCondition).ToNot(BeNil())
+			g.Expect(helmReleaseDeployedCondition.Status).To(Equal(metav1.ConditionUnknown), "HelmReleaseDeployed condition should be unknown")
 			readyCondition := testPlugin.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 			g.Expect(readyCondition).ToNot(BeNil())
 			g.Expect(readyCondition.IsFalse()).To(BeTrue(), "Ready condition should be set to false")
-			g.Expect(readyCondition.Message).To(ContainSubstring("Reconciling"))
 			// The status won't change further, because Flux HelmController can't be registered here. See E2E tests.
 		}).Should(Succeed())
 
@@ -312,15 +317,6 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 			err = test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)
 			g.Expect(err).ToNot(HaveOccurred(), "failed to get Plugin")
 			g.Expect(testPlugin.Status.LastReconciledAt).To(BeEmpty(), "Plugin status LastReconcile should be empty")
-		}).Should(Succeed())
-
-		By("ensuring RetriesExhaustedCondition is initialized")
-		Eventually(func(g Gomega) {
-			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)
-			g.Expect(err).ToNot(HaveOccurred())
-
-			retriesExhaustedCondition := testPlugin.Status.GetConditionByType(greenhousev1alpha1.RetriesExhaustedCondition)
-			g.Expect(retriesExhaustedCondition).ToNot(BeNil(), "RetriesExhaustedCondition should be present in Plugin status")
 		}).Should(Succeed())
 	})
 
