@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -44,6 +45,20 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, ma
 
 	logAuthz.Info("Received request", "user", review.Spec.User, "verb", attrs.Verb, "resource", attrs.Resource, "ns", attrs.Namespace)
 
+	// Check if the request is from a support-group ServiceAccount
+	serviceAccountTeam := extractTeamFromServiceAccount(review.Spec.User, attrs.Namespace)
+	if serviceAccountTeam != "" {
+		logAuthz.Info("Request is from support-group ServiceAccount", "team", serviceAccountTeam)
+		allowed, reason := authorizeServiceAccount(ctx, c, mapper, attrs, serviceAccountTeam)
+		if allowed {
+			respond(w, review, true, reason)
+			return
+		}
+		// If ServiceAccount authorization fails, deny the request
+		respond(w, review, false, reason)
+		return
+	}
+
 	var userSupportGroups []string
 	for _, group := range review.Spec.Groups {
 		supportGroupName, found := strings.CutPrefix(group, supportGroupClaimPrefix)
@@ -53,7 +68,7 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, ma
 	}
 
 	if len(userSupportGroups) == 0 {
-		respond(w, review, false, "user has no support-group claims")
+		respond(w, review, false, "user has no support-group claims and is not an authorized ServiceAccount")
 		return
 	}
 	logAuthz.Info("User has the following support-group claims: " + strings.Join(userSupportGroups, ", "))
@@ -92,6 +107,61 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, ma
 	}
 
 	respond(w, review, false, "")
+}
+
+// extractTeamFromServiceAccount checks if the user is a support-group ServiceAccount
+// and returns the team name if it matches the pattern system:serviceaccount:{namespace}:{team-name}-sa
+func extractTeamFromServiceAccount(username, namespace string) string {
+	// ServiceAccount username format: system:serviceaccount:{namespace}:{serviceaccount-name}
+	prefix := "system:serviceaccount:" + namespace + ":"
+	serviceAccountName, found := strings.CutPrefix(username, prefix)
+	if !found {
+		return ""
+	}
+
+	// Check if ServiceAccount follows the pattern {team-name}-sa
+	teamName, found := strings.CutSuffix(serviceAccountName, "-sa")
+	if !found {
+		return ""
+	}
+	return teamName
+}
+
+// authorizeServiceAccount checks if a ServiceAccount is authorized to access the resource
+// Returns (allowed bool, reason string)
+func authorizeServiceAccount(ctx context.Context, c client.Client, mapper meta.RESTMapper, attrs *authv1.ResourceAttributes, teamName string) (bool, string) {
+	gvr := schema.GroupVersionResource{
+		Group:    attrs.Group,
+		Version:  attrs.Version,
+		Resource: attrs.Resource,
+	}
+	gvk, err := mapper.KindFor(gvr)
+	if err != nil {
+		return false, "failed to get Kind for the requested resource"
+	}
+
+	// Fetch the resource to check its owned-by label
+	obj := &unstructured.Unstructured{}
+	obj.SetGroupVersionKind(gvk)
+	key := types.NamespacedName{Namespace: attrs.Namespace, Name: attrs.Name}
+	if err := c.Get(ctx, key, obj); err != nil {
+		return false, fmt.Sprintf("failed to fetch object: %v", err)
+	}
+
+	labels := obj.GetLabels()
+	ownedByValue, ok := labels[greenhouseapis.LabelKeyOwnedBy]
+	if !ok {
+		return false, "requested resource has no owned-by label set"
+	}
+	logAuthz.Info("Requested resource is owned by: " + ownedByValue)
+
+	// Check if the ServiceAccount's team matches the resource's owned-by label
+	if teamName == ownedByValue {
+		return true, fmt.Sprintf("ServiceAccount for support-group team %s is authorized to access resource owned by %s", teamName, ownedByValue)
+	}
+
+	logAuthz.Info("ServiceAccount team does not match resource owner", "serviceAccountTeam", teamName, "resourceOwner", ownedByValue)
+	return false, fmt.Sprintf("ServiceAccount team %s does not match resource owner %s", teamName, ownedByValue)
 }
 
 func respond(w http.ResponseWriter, review authv1.SubjectAccessReview, allowed bool, msg string) {
