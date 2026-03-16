@@ -1,6 +1,15 @@
-# Authorization Webhook Certificate Management
-# This file contains all authz-related make targets for generating and managing
-# certificates required by the authorization webhook.
+# Authorization Webhook Make Targets
+# This file contains all authz-related make targets:
+#   - Development environment setup (manager, dashboard, demo)
+#   - End-to-end test lifecycle (setup, prepare, run, clean)
+#   - TLS certificate generation and management for the authorization webhook (CA, server, client)
+
+.PHONY: setup-authz
+setup-authz: setup-manager-authz setup-dashboard-authz setup-demo-authz
+
+.PHONY: setup-manager-authz
+setup-manager-authz: cli authz-certs
+	CONTROLLER_ENABLED=$(WITH_CONTROLLER) PLUGIN_PATH=$(PLUGIN_DIR) $(CLI) dev setup -f dev-env/authz.config.yaml d=$(DEV_MODE)
 
 .PHONY: setup-dashboard-authz
 setup-dashboard-authz: cli
