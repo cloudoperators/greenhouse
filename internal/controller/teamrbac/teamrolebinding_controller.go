@@ -160,10 +160,10 @@ func (r *TeamRoleBindingReconciler) EnsureCreated(ctx context.Context, resource 
 
 	if len(missingTeams) > 0 {
 		message := fmt.Sprintf("Team(s) %s not found in namespace %s", strings.Join(missingTeams, ", "), trb.GetNamespace())
-		trb.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha2.RBACReady, greenhousev1alpha2.TeamNotFound, message))
 		r.recorder.Eventf(trb, nil, corev1.EventTypeWarning, greenhousemetav1alpha1.FailedEvent, "reconciling TeamRoleBinding", message)
 		if len(teams) == 0 {
-			return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("none of the referenced teams found: %s", strings.Join(missingTeams, ", "))
+			trb.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha2.RBACReady, greenhousev1alpha2.TeamNotFound, message))
+			return ctrl.Result{}, lifecycle.Success, nil
 		}
 	}
 
@@ -177,7 +177,13 @@ func (r *TeamRoleBindingReconciler) EnsureCreated(ctx context.Context, resource 
 	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	return ctrl.Result{}, lifecycle.Success, err
+
+	if len(missingTeams) > 0 {
+		message := fmt.Sprintf("RBAC reconciled with available teams, but team(s) %s not found in namespace %s", strings.Join(missingTeams, ", "), trb.GetNamespace())
+		trb.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha2.RBACReady, greenhousev1alpha2.RBACReconciled, message))
+	}
+
+	return ctrl.Result{}, lifecycle.Success, nil
 }
 
 // EnsureDeleted - removes the TeamRoleBinding's rbacv1 resources from all clusters.

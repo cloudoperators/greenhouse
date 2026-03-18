@@ -1,6 +1,3 @@
-# SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
-# SPDX-License-Identifier: Apache-2.0
-
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -15,214 +12,199 @@ spec:
     listKind: CatalogList
     plural: catalogs
     shortNames:
-      - cat
+    - cat
     singular: catalog
   scope: Namespaced
   versions:
-    - additionalPrinterColumns:
-        - jsonPath: .status.statusConditions.conditions[?(@.type == "Ready")].status
-          name: Ready
-          type: string
-      name: v1alpha1
-      schema:
-        openAPIV3Schema:
-          description: Catalog is the Schema for the catalogs API.
-          properties:
-            apiVersion:
-              description: |-
-                APIVersion defines the versioned schema of this representation of an object.
-                Servers should convert recognized schemas to the latest internal value, and
-                may reject unrecognized values.
-                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
-              type: string
-            kind:
-              description: |-
-                Kind is a string value representing the REST resource this object represents.
-                Servers may infer this from the endpoint the client submits requests to.
-                Cannot be updated.
-                In CamelCase.
-                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-              type: string
-            metadata:
-              type: object
-            spec:
-              description: CatalogSpec defines the desired state of Catalog.
-              properties:
-                sources:
-                  description:
-                    Sources contains the list of Git Repository source to
-                    resolve PluginDefinitions / ClusterPluginDefinitions from
-                  items:
-                    properties:
-                      interval:
-                        description:
-                          Interval defines how often to reconcile the Git
-                          repository source
-                        pattern: ^([0-9]+(\.[0-9]+)?(ms|s|m|h))+$
-                        type: string
-                      overrides:
-                        description:
-                          Overrides are the PluginDefinition overrides to
-                          be applied
-                        items:
-                          properties:
-                            alias:
-                              description: |-
-                                Alias is the alias to apply to the PluginDefinition Name via Kustomize patches
-                                For SourceType Helm, this field is passed to postRender Kustomize patch
-                              type: string
-                            name:
-                              description:
-                                Name is the name of the PluginDefinition
-                                to patch with an alias
-                              minLength: 1
-                              type: string
-                            optionsOverride:
-                              description:
-                                OptionsOverride are the option values to
-                                override in the PluginDefinition .spec.options[]
-                              items:
-                                properties:
-                                  name:
-                                    description:
-                                      Name is the name of the option value
-                                      to override in the PluginDefinition
-                                    minLength: 1
-                                    type: string
-                                  value:
-                                    description:
-                                      Value is the value to set as Default
-                                      in the PluginDefinition option
-                                    x-kubernetes-preserve-unknown-fields: true
-                                required:
-                                  - name
-                                  - value
-                                type: object
-                              type: array
-                            repository:
-                              description:
-                                Repository is the repository to override
-                                in the PluginDefinition .spec.helmChart.repository
-                              type: string
-                          required:
-                            - name
-                          type: object
-                        type: array
-                      ref:
-                        description: |-
-                          Ref is the git reference (branch, tag, or SHA) to resolve PluginDefinitions from
-                          precedence: SHA > Tag > Branch
-                          if not specified, defaults to the branch "main"
-                        properties:
-                          branch:
-                            type: string
-                          sha:
-                            type: string
-                          tag:
-                            type: string
-                        type: object
-                      repository:
-                        description: Repository - the Git repository URL
-                        pattern: ^https://.*$
-                        type: string
-                      resources:
-                        description: |-
-                          Resources contains the list of path to PluginDefinition files
-                          e.g. ["plugins/plugin-a.yaml", "plugins/plugin-b.yaml"]
-                          glob patterns are supported, e.g. ["plugins/*.yaml", "more-plugins/**/plugindefinition.yaml"]
-                        items:
-                          type: string
-                        type: array
-                      secretName:
-                        description: |-
-                          SecretName is the name of v1.Secret containing credentials to access the Git repository
-                          the secret must be in the same namespace as the Catalog resource
-
-                          GitHub App Example:
-                        type: string
-                    required:
-                      - repository
-                      - resources
-                    type: object
-                  type: array
-              required:
-                - sources
-              type: object
-            status:
-              description: CatalogStatus defines the observed state of Catalog.
-              properties:
-                inventory:
-                  additionalProperties:
-                    items:
-                      properties:
-                        kind:
-                          type: string
-                        message:
-                          type: string
-                        name:
-                          type: string
-                        ready:
-                          type: string
-                      required:
-                        - kind
-                        - name
-                      type: object
-                    type: array
-                  description:
-                    Inventory contains list of internal artifacts generated
-                    by Catalog
-                  type: object
-                lastReconciledAt:
-                  description:
-                    LastReconciledAt contains the value when the reconcile
-                    was last triggered via annotation.
-                  type: string
-                statusConditions:
-                  description:
-                    StatusConditions contain the different conditions that
-                    constitute the status of the Catalog
+  - additionalPrinterColumns:
+    - jsonPath: .status.statusConditions.conditions[?(@.type == "Ready")].status
+      name: Ready
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Catalog is the Schema for the catalogs API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: CatalogSpec defines the desired state of Catalog.
+            properties:
+              sources:
+                description: Sources contains the list of Git Repository source to
+                  resolve PluginDefinitions / ClusterPluginDefinitions from
+                items:
                   properties:
-                    conditions:
+                    interval:
+                      description: Interval defines how often to reconcile the Git
+                        repository source
+                      pattern: ^([0-9]+(\.[0-9]+)?(ms|s|m|h))+$
+                      type: string
+                    overrides:
+                      description: Overrides are the PluginDefinition overrides to
+                        be applied
                       items:
-                        description:
-                          Condition contains additional information on the
-                          state of a resource.
                         properties:
-                          lastTransitionTime:
-                            description:
-                              LastTransitionTime is the last time the condition
-                              transitioned from one status to another.
-                            format: date-time
+                          alias:
+                            description: |-
+                              Alias is the alias to apply to the PluginDefinition Name via Kustomize patches
+                              For SourceType Helm, this field is passed to postRender Kustomize patch
                             type: string
-                          message:
-                            description:
-                              Message is an optional human-readable message
-                              indicating details about the last transition.
+                          name:
+                            description: Name is the name of the PluginDefinition
+                              to patch with an alias
+                            minLength: 1
                             type: string
-                          reason:
-                            description:
-                              Reason is a one-word, CamelCase reason for
-                              the condition's last transition.
-                            type: string
-                          status:
-                            description: Status of the condition.
-                            type: string
-                          type:
-                            description: Type of the condition.
+                          optionsOverride:
+                            description: OptionsOverride are the option values to
+                              override in the PluginDefinition .spec.options[]
+                            items:
+                              properties:
+                                name:
+                                  description: Name is the name of the option value
+                                    to override in the PluginDefinition
+                                  minLength: 1
+                                  type: string
+                                value:
+                                  description: Value is the value to set as Default
+                                    in the PluginDefinition option
+                                  x-kubernetes-preserve-unknown-fields: true
+                              required:
+                              - name
+                              - value
+                              type: object
+                            type: array
+                          repository:
+                            description: Repository is the repository to override
+                              in the PluginDefinition .spec.helmChart.repository
                             type: string
                         required:
-                          - lastTransitionTime
-                          - status
-                          - type
+                        - name
                         type: object
                       type: array
-                      x-kubernetes-list-map-keys:
-                        - type
-                      x-kubernetes-list-type: map
+                    ref:
+                      description: |-
+                        Ref is the git reference (branch, tag, or SHA) to resolve PluginDefinitions from
+                        precedence: SHA > Tag > Branch
+                        if not specified, defaults to the branch "main"
+                      properties:
+                        branch:
+                          type: string
+                        sha:
+                          type: string
+                        tag:
+                          type: string
+                      type: object
+                    repository:
+                      description: Repository - the Git repository URL
+                      pattern: ^https://.*$
+                      type: string
+                    resources:
+                      description: |-
+                        Resources contains the list of path to PluginDefinition files
+                        e.g. ["plugins/plugin-a.yaml", "plugins/plugin-b.yaml"]
+                        glob patterns are supported, e.g. ["plugins/*.yaml", "more-plugins/**/plugindefinition.yaml"]
+                      items:
+                        type: string
+                      type: array
+                    secretName:
+                      description: |-
+                        SecretName is the name of v1.Secret containing credentials to access the Git repository
+                        the secret must be in the same namespace as the Catalog resource
+
+                        GitHub App Example:
+                      type: string
+                  required:
+                  - repository
+                  - resources
                   type: object
-              type: object
-          type: object
-      served: true
-      storage: true
-      subresources:
-        status: {}
+                type: array
+            required:
+            - sources
+            type: object
+          status:
+            description: CatalogStatus defines the observed state of Catalog.
+            properties:
+              inventory:
+                additionalProperties:
+                  items:
+                    properties:
+                      kind:
+                        type: string
+                      message:
+                        type: string
+                      name:
+                        type: string
+                      ready:
+                        type: string
+                    required:
+                    - kind
+                    - name
+                    type: object
+                  type: array
+                description: Inventory contains list of internal artifacts generated
+                  by Catalog
+                type: object
+              lastReconciledAt:
+                description: LastReconciledAt contains the value when the reconcile
+                  was last triggered via annotation.
+                type: string
+              statusConditions:
+                description: StatusConditions contain the different conditions that
+                  constitute the status of the Catalog
+                properties:
+                  conditions:
+                    items:
+                      description: Condition contains additional information on the
+                        state of a resource.
+                      properties:
+                        lastTransitionTime:
+                          description: LastTransitionTime is the last time the condition
+                            transitioned from one status to another.
+                          format: date-time
+                          type: string
+                        message:
+                          description: Message is an optional human-readable message
+                            indicating details about the last transition.
+                          type: string
+                        reason:
+                          description: Reason is a one-word, CamelCase reason for
+                            the condition's last transition.
+                          type: string
+                        status:
+                          description: Status of the condition.
+                          type: string
+                        type:
+                          description: Type of the condition.
+                          type: string
+                      required:
+                      - lastTransitionTime
+                      - status
+                      - type
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - type
+                    x-kubernetes-list-type: map
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

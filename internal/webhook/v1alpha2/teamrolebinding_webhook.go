@@ -14,7 +14,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
@@ -44,6 +43,13 @@ func DefaultRoleBinding(_ context.Context, _ client.Client, trb *greenhousev1alp
 	return nil
 }
 
+func deprecationWarnings(trb *greenhousev1alpha2.TeamRoleBinding) admission.Warnings {
+	if trb.Spec.TeamRef != "" { //nolint:staticcheck
+		return admission.Warnings{"spec.teamRef is deprecated, use spec.teamRefs instead"}
+	}
+	return nil
+}
+
 //+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha2-teamrolebinding,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=teamrolebindings,verbs=create;update;delete,versions=v1alpha2,name=vrolebinding-v1alpha2.kb.io,admissionReviewVersions=v1
 
 func ValidateCreateRoleBinding(ctx context.Context, c client.Client, rb *greenhousev1alpha2.TeamRoleBinding) (admission.Warnings, error) {
@@ -51,11 +57,12 @@ func ValidateCreateRoleBinding(ctx context.Context, c client.Client, rb *greenho
 		return nil, err
 	}
 
+	warns := deprecationWarnings(rb)
 	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, rb)
 	if labelValidationWarning != "" {
-		return admission.Warnings{"TeamRoleBinding should have a support-group Team set as its owner", labelValidationWarning}, nil
+		warns = append(warns, "TeamRoleBinding should have a support-group Team set as its owner", labelValidationWarning)
 	}
-	return nil, nil
+	return warns, nil
 }
 
 func ValidateUpdateRoleBinding(ctx context.Context, c client.Client, oldRB, curRB *greenhousev1alpha2.TeamRoleBinding) (admission.Warnings, error) {
@@ -86,10 +93,6 @@ func ValidateUpdateRoleBinding(ctx context.Context, c client.Client, oldRB, curR
 			}, oldRB.Name, field.Forbidden(field.NewPath("spec", "namespaces"), "cannot remove all namespaces in existing TeamRoleBinding"))
 	}
 
-	if err := validateTeamRefs(ctx, c, curRB); err != nil {
-		return nil, err
-	}
-
 	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, curRB)
 	if labelValidationWarning != "" {
 		return admission.Warnings{"TeamRoleBinding should have a support-group Team set as its owner", labelValidationWarning}, nil
@@ -109,20 +112,6 @@ func validateClusterSelector(rb *greenhousev1alpha2.TeamRoleBinding) error {
 
 	if rb.Spec.ClusterSelector.Name == "" && (len(rb.Spec.ClusterSelector.LabelSelector.MatchLabels) == 0 && len(rb.Spec.ClusterSelector.LabelSelector.MatchExpressions) == 0) {
 		return apierrors.NewInvalid(rb.GroupVersionKind().GroupKind(), rb.Name, field.ErrorList{field.Invalid(field.NewPath("spec", "clusterSelector", "name"), rb.Spec.ClusterSelector.Name, "must specify either spec.clusterSelector.name or spec.clusterSelector.labelSelector")})
-	}
-	return nil
-}
-
-// validateTeamRefs validates that all teams in teamRefs exist.
-func validateTeamRefs(ctx context.Context, c client.Client, rb *greenhousev1alpha2.TeamRoleBinding) error {
-	for _, teamRef := range rb.Spec.TeamRefs {
-		var t greenhousev1alpha1.Team
-		if err := c.Get(ctx, client.ObjectKey{Namespace: rb.Namespace, Name: teamRef}, &t); err != nil {
-			if apierrors.IsNotFound(err) {
-				return apierrors.NewInvalid(rb.GroupVersionKind().GroupKind(), rb.Name, field.ErrorList{field.Invalid(field.NewPath("spec", "teamRefs"), teamRef, "team does not exist")})
-			}
-			return apierrors.NewInternalError(err)
-		}
 	}
 	return nil
 }
