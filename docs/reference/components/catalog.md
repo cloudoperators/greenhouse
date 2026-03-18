@@ -432,4 +432,4 @@ In case of permissions issues, you will see errors in the Kustomization status c
 
 ## Next Steps
 
-- [Catalog API Reference](./../../api/)
+- [Catalog API Reference](./../../../reference/api/)

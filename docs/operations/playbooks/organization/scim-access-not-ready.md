@@ -77,4 +77,4 @@ Or access your logs sink for Greenhouse logs.
 
 ## Additional Resources
 
-- [Greenhouse Organization Documentation](../../../reference/components/organization.md)
+- [Greenhouse Organization Documentation](../../../../reference/components/organization)

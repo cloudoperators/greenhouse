@@ -59,7 +59,7 @@ Common failure reasons to look for:
 - **PluginOptionValueInvalid**: Option values could not be converted to Helm values
 - **FluxHelmReleaseConfigInvalid**: The generated Flux HelmRelease manifest is invalid and could not be applied
 - **FluxHelmReleaseStalled**: The Flux HelmRelease is stalled, typically because install/upgrade retries have been exhausted
-- **ClusterAccessFailed**: The controller cannot access the target cluster — check target [Cluster status](../cluster/cluster-not-ready.md)
+- **ClusterAccessFailed**: The controller cannot access the target cluster — check target [Cluster status](../../cluster/cluster-not-ready)
 - **HelmUninstallFailed**: The Helm release could not be uninstalled (relevant during Plugin deletion)
 
 ### Check for Specific Issues
@@ -104,5 +104,5 @@ kubectl describe helmrelease <plugin-name> -n <namespace>
 
 ## Additional Resources
 
-- [Greenhouse Plugin Documentation](../../../reference/components/plugin.md)
-- [Plugin Configuration Guide](../../../user-guides/plugin/configure.md)
+- [Greenhouse Plugin Documentation](../../../../reference/components/plugin)
+- [Plugin Configuration Guide](../../../../user-guides/plugin/plugin-deployment)

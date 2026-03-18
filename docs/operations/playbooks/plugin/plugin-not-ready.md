@@ -50,7 +50,7 @@ Look at the `status.statusConditions` section in the plugin resource. Pay specia
   - `OptionValueResolutionFailed` — option values could not be resolved (e.g. a referenced secret is missing)
   - `PluginOptionValueInvalid` — option values could not be converted to Helm values
   - `FluxHelmReleaseConfigInvalid` — the generated Flux HelmRelease manifest is invalid
-  - `ClusterAccessFailed` — the controller cannot access the target cluster; check target [Cluster status](../cluster/cluster-not-ready.md)
+  - `ClusterAccessFailed` — the controller cannot access the target cluster; check target [Cluster status](../../cluster/cluster-not-ready)
 - **HelmReleaseDeployed**: Mirrors the Flux HelmRelease `Ready` condition and reflects whether the Helm release has been successfully deployed on the target cluster. Common reasons for `false`:
   - `FluxHelmReleaseStalled` — install/upgrade retries have been exhausted
   - `HelmUninstallFailed` — uninstalling a previous Helm release revision failed
@@ -70,6 +70,6 @@ kubectl describe helmrelease <plugin-name> -n <namespace>
 
 ## Additional Resources
 
-- [Greenhouse Plugin Documentation](../../../reference/components/plugin.md)
-- [Plugin Configuration Guide](../../../user-guides/plugin/configure.md)
+- [Greenhouse Plugin Documentation](../../../../reference/components/plugin)
+- [Plugin Configuration Guide](../../../../user-guides/plugin/plugin-deployment)
 - [Flux HelmRelease Documentation](https://fluxcd.io/flux/components/helm/helmreleases/)
