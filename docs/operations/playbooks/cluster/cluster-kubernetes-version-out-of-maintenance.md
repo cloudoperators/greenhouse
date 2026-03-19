@@ -43,6 +43,6 @@ kubectl --kubeconfig=<target-cluster-kubeconfig> version --short
 
 ## Additional Resources
 
-- [Greenhouse Cluster Documentation](../../../reference/api/cluster.md)
+- [Greenhouse Cluster Documentation](../../../../reference/components/cluster)
 - [Kubernetes Version Skew Policy](https://kubernetes.io/releases/version-skew-policy/)
 - [Kubernetes Release Information](https://kubernetes.io/releases/)

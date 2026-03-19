@@ -15,7 +15,7 @@ groups:
         support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
         playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/team/team-membership-count-drop/
     - alert: GreenhouseTeamRoleBindingNotReady
-      expr: greenhouse_team_rbac_ready == 0
+      expr: sum by (namespace, team, team_role_binding, owned_by) (greenhouse_team_rbac_ready) == 0
       for: 15m
       labels:
         severity: warning
