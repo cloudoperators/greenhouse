@@ -320,6 +320,48 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 		}).Should(Succeed())
 	})
 
+	It("should skip exposed services when cluster has service-proxy-disabled annotation", func() {
+		By("annotating the cluster with service-proxy-disabled=true")
+		test.MustSetAnnotation(test.Ctx, test.K8sClient, testCluster, greenhousev1alpha1.ServiceProxyDisabledKey, "true")
+
+		// By("triggering a reconcile on the Plugin")
+		// test.MustSetAnnotation(test.Ctx, test.K8sClient, testPlugin, lifecycle.ReconcileAnnotation, "service-proxy-test")
+
+		By("verifying exposed services are nil and condition reflects disabled state")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)
+			g.Expect(err).ToNot(HaveOccurred(), "failed to get Plugin")
+
+			g.Expect(testPlugin.Status.ExposedServices).To(BeNil(), "ExposedServices should be nil when service-proxy is disabled")
+
+			exposedServicesSyncedCondition := testPlugin.Status.GetConditionByType(greenhousev1alpha1.ExposedServicesSyncedCondition)
+			g.Expect(exposedServicesSyncedCondition).ToNot(BeNil(), "ExposedServicesSynced condition should be set")
+			g.Expect(exposedServicesSyncedCondition.IsTrue()).To(BeTrue(), "ExposedServicesSynced condition should be true")
+			g.Expect(exposedServicesSyncedCondition.Reason).To(Equal(greenhousev1alpha1.ExposedServicesDisabledReason),
+				"ExposedServicesSynced condition should have ExposedServicesDisabled reason")
+		}).Should(Succeed())
+
+		By("removing the service-proxy-disabled annotation from the cluster")
+		test.MustRemoveAnnotation(test.Ctx, test.K8sClient, testCluster, greenhousev1alpha1.ServiceProxyDisabledKey)
+
+		// By("triggering another reconcile on the Plugin")
+		// test.MustSetAnnotation(test.Ctx, test.K8sClient, testPlugin, lifecycle.ReconcileAnnotation, "service-proxy-test-2")
+
+		By("verifying exposed services are fetched again after annotation removal")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)
+			g.Expect(err).ToNot(HaveOccurred(), "failed to get Plugin")
+
+			exposedServicesSyncedCondition := testPlugin.Status.GetConditionByType(greenhousev1alpha1.ExposedServicesSyncedCondition)
+			g.Expect(exposedServicesSyncedCondition).ToNot(BeNil(), "ExposedServicesSynced condition should be set")
+			g.Expect(exposedServicesSyncedCondition.Reason).ToNot(Equal(greenhousev1alpha1.ExposedServicesDisabledReason),
+				"ExposedServicesSynced condition should no longer have ExposedServicesDisabled reason after annotation removal")
+		}).Should(Succeed())
+
+		// By("cleaning up reconcile annotation")
+		// test.MustRemoveAnnotation(test.Ctx, test.K8sClient, testPlugin, lifecycle.ReconcileAnnotation)
+	})
+
 	It("should reconcile a UI-only Plugin", func() {
 		By("creating UI-only Plugin")
 		Expect(test.K8sClient.Create(test.Ctx, uiPlugin)).To(Succeed(), "failed to create UI-only Plugin")
