@@ -36,10 +36,9 @@ postgresqlng:
   resources: {}
   # The databases that will be created in the PostgreSQL server
   databases:
-    dex:
-      owner: dex
+    dex: {}
   users:
-    acme-user: {}
+    dex: {}
   alerts:
     support_group: foobar
 
