@@ -108,30 +108,43 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		Expect(err.Error()).To(ContainSubstring("ClusterSelector must be set"))
 	})
 
-	It("should reject PluginPreset with non-existing ClusterPluginDefinition", func() {
-		cut := &greenhousev1alpha1.PluginPreset{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      pluginPresetCreate,
-				Namespace: test.TestNamespace,
-			},
-			Spec: greenhousev1alpha1.PluginPresetSpec{
-				Plugin: greenhousev1alpha1.PluginSpec{
-					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
-						Name: "non-existing",
-						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
-					},
+	It("should accept PluginPreset with non-existing ClusterPluginDefinition", func() {
+		cut := test.NewPluginPreset(pluginPresetCreate+"-nonexist-cpd", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}}),
+			test.WithPluginPresetPluginSpec(greenhousev1alpha1.PluginSpec{
+				PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+					Name: "non-existing",
+					Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 				},
-				ClusterSelector:        metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
-				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{},
-			},
-		}
+			}),
+		)
 
-		err := test.K8sClient.Create(test.Ctx, cut)
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("PluginDefinition non-existing does not exist"))
+		Expect(test.K8sClient.Create(test.Ctx, cut)).To(Succeed(), "PluginPreset with non-existing ClusterPluginDefinition should be accepted")
+		delete(cut.Annotations, greenhousev1alpha1.PreventDeletionAnnotation)
+		Expect(test.K8sClient.Update(test.Ctx, cut)).To(Succeed())
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, cut)
 	})
 
-	It("should reject PluginPreset with non-existing PluginDefinition", func() {
+	It("should accept PluginPreset with non-existing PluginDefinition", func() {
+		cut := test.NewPluginPreset(pluginPresetCreate+"-nonexist-pd", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}}),
+			test.WithPluginPresetPluginSpec(greenhousev1alpha1.PluginSpec{
+				PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+					Name: "non-existing",
+					Kind: greenhousev1alpha1.PluginDefinitionKind,
+				},
+			}),
+		)
+
+		Expect(test.K8sClient.Create(test.Ctx, cut)).To(Succeed(), "PluginPreset with non-existing PluginDefinition should be accepted")
+		delete(cut.Annotations, greenhousev1alpha1.PreventDeletionAnnotation)
+		Expect(test.K8sClient.Update(test.Ctx, cut)).To(Succeed())
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, cut)
+	})
+
+	It("should reject PluginPreset with unsupported PluginDefinition kind", func() {
 		cut := &greenhousev1alpha1.PluginPreset{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      pluginPresetCreate,
@@ -140,18 +153,17 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 			Spec: greenhousev1alpha1.PluginPresetSpec{
 				Plugin: greenhousev1alpha1.PluginSpec{
 					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
-						Name: "non-existing",
-						Kind: greenhousev1alpha1.PluginDefinitionKind,
+						Name: "some-definition",
+						Kind: "UnsupportedKind",
 					},
 				},
-				ClusterSelector:        metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
-				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{},
+				ClusterSelector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 			},
 		}
 
 		err := test.K8sClient.Create(test.Ctx, cut)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("PluginDefinition non-existing does not exist"))
+		Expect(err.Error()).To(ContainSubstring("Unsupported value"))
 	})
 
 	It("should accept PluginPreset with namespaced PluginDefinition", func() {
@@ -296,7 +308,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 })
 
 var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
-	DescribeTable("Validate OptionValues in .Spec.Plugin contain either Value or ValueFrom", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.PluginValueFromSource, expErr bool) {
+	DescribeTable("Validate OptionValues in .Spec.Plugin contain exactly one of Value, ValueFrom, or Expression", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.PluginValueFromSource, expErr bool) {
 		pluginPreset := &greenhousev1alpha1.PluginPreset{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "PluginPreset",
@@ -323,34 +335,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		var defaultVal *apiextensionsv1.JSON
-		var optionType greenhousev1alpha1.PluginOptionType
-		switch {
-		case value != nil:
-			defaultVal = value
-			optionType = greenhousev1alpha1.PluginOptionTypeString
-		case valueFrom != nil:
-			defaultVal = test.MustReturnJSONFor(valueFrom.Secret.Name)
-			optionType = greenhousev1alpha1.PluginOptionTypeSecret
-		}
-
-		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "greenhouse",
-				Name:      "testPlugin",
-			},
-			Spec: greenhousev1alpha1.PluginDefinitionSpec{
-				Options: []greenhousev1alpha1.PluginOption{
-					{
-						Name:    "test",
-						Default: defaultVal,
-						Type:    optionType,
-					},
-				},
-			},
-		}
-
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
+		errList := validatePluginOptionValuesForPreset(pluginPreset)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -359,12 +344,12 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 		}
 	},
 		Entry("Value and ValueFrom nil", nil, nil, true),
-		Entry("Value and ValueFrom not nil", test.MustReturnJSONFor("test"), &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret"}}, true),
+		Entry("Value and ValueFrom not nil", test.MustReturnJSONFor("test"), &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, true),
 		Entry("Value not nil", test.MustReturnJSONFor("test"), nil, false),
 		Entry("ValueFrom not nil", nil, &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, false),
 	)
 
-	DescribeTable("Validate OptionValues in .Spec.ClusterOptionOverrides contain either Value or ValueFrom", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.PluginValueFromSource, expErr bool) {
+	DescribeTable("Validate OptionValues in .Spec.ClusterOptionOverrides contain exactly one of Value, ValueFrom, or Expression", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.PluginValueFromSource, expErr bool) {
 		pluginPreset := &greenhousev1alpha1.PluginPreset{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "PluginPreset",
@@ -397,34 +382,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		var defaultVal *apiextensionsv1.JSON
-		var optionType greenhousev1alpha1.PluginOptionType
-		switch {
-		case value != nil:
-			defaultVal = value
-			optionType = greenhousev1alpha1.PluginOptionTypeString
-		case valueFrom != nil:
-			defaultVal = test.MustReturnJSONFor(valueFrom.Secret.Name)
-			optionType = greenhousev1alpha1.PluginOptionTypeSecret
-		}
-
-		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "greenhouse",
-				Name:      "testPlugin",
-			},
-			Spec: greenhousev1alpha1.PluginDefinitionSpec{
-				Options: []greenhousev1alpha1.PluginOption{
-					{
-						Name:    "test",
-						Default: defaultVal,
-						Type:    optionType,
-					},
-				},
-			},
-		}
-
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
+		errList := validatePluginOptionValuesForPreset(pluginPreset)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -433,163 +391,12 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 		}
 	},
 		Entry("Value and ValueFrom nil", nil, nil, true),
-		Entry("Value and ValueFrom not nil", test.MustReturnJSONFor("test"), &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret"}}, true),
+		Entry("Value and ValueFrom not nil", test.MustReturnJSONFor("test"), &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, true),
 		Entry("Value not nil", test.MustReturnJSONFor("test"), nil, false),
 		Entry("ValueFrom not nil", nil, &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, false),
 	)
 
-	DescribeTable("Validate OptionValues in .Spec.Plugin are consistent with PluginOption Type", func(defaultValue any, defaultType greenhousev1alpha1.PluginOptionType, actValue any, expErr bool) {
-		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "greenhouse",
-				Name:      "testPlugin",
-			},
-			Spec: greenhousev1alpha1.PluginDefinitionSpec{
-				Options: []greenhousev1alpha1.PluginOption{
-					{
-						Name:    "test",
-						Default: test.MustReturnJSONFor(defaultValue),
-						Type:    defaultType,
-					},
-				},
-			},
-		}
-
-		pluginPreset := &greenhousev1alpha1.PluginPreset{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "PluginPreset",
-				APIVersion: greenhousev1alpha1.GroupVersion.String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-plugin-preset",
-				Namespace: test.TestNamespace,
-			},
-			Spec: greenhousev1alpha1.PluginPresetSpec{
-				Plugin: greenhousev1alpha1.PluginSpec{
-					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
-						Name: "test",
-						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
-					},
-					OptionValues: []greenhousev1alpha1.PluginOptionValue{
-						{
-							Name:  "test",
-							Value: test.MustReturnJSONFor(actValue),
-						},
-					},
-				},
-			},
-		}
-
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
-		switch expErr {
-		case true:
-			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
-		default:
-			Expect(errList).To(BeEmpty(), "expected no error, got %v", errList)
-		}
-	},
-		Entry("PluginOption Value Consistent With PluginOption Type Bool", false, greenhousev1alpha1.PluginOptionTypeBool, true, false),
-		Entry("PluginOption Value Inconsistent With PluginOption Type Bool", true, greenhousev1alpha1.PluginOptionTypeBool, "notabool", true),
-		Entry("PluginOption Value Consistent With PluginOption Type String", "string", greenhousev1alpha1.PluginOptionTypeString, "mystring", false),
-		Entry("PluginOption Value Consistent With PluginOption Type String Escaped Integer", "1", greenhousev1alpha1.PluginOptionTypeString, "1", false),
-		Entry("PluginOption Value Inconsistent With PluginOption Type String", "string", greenhousev1alpha1.PluginOptionTypeString, 1, true),
-		Entry("PluginOption Value Consistent With PluginOption Type Int", 1, greenhousev1alpha1.PluginOptionTypeInt, 1, false),
-		Entry("PluginOption Value Inconsistent With PluginOption Type Int", 1, greenhousev1alpha1.PluginOptionTypeInt, "one", true),
-		Entry("PluginOption Value Consistent With PluginOption Type List", []string{"one", "two"}, greenhousev1alpha1.PluginOptionTypeList, []string{"one", "two", "three"}, false),
-		Entry("PluginOption Value Inconsistent With PluginOption Type List", []string{"one", "two"}, greenhousev1alpha1.PluginOptionTypeList, "one,two", true),
-		Entry("PluginOption Value Consistent With PluginOption Type Map", map[string]any{"key": "value"}, greenhousev1alpha1.PluginOptionTypeMap, map[string]any{"key": "custom"}, false),
-		Entry("PluginOption Value Inconsistent With PluginOption Type Map", map[string]any{"key": "value"}, greenhousev1alpha1.PluginOptionTypeMap, "one", true),
-		Entry("PluginOption Value Consistent With PluginOption Type Map Nested Map", map[string]any{"key": map[string]any{"nestedKey": "value"}}, greenhousev1alpha1.PluginOptionTypeMap, map[string]any{"key": map[string]any{"nestedKey": "custom"}}, false),
-		Entry("PluginOption Value not supported With PluginOption Type Secret", "", greenhousev1alpha1.PluginOptionTypeSecret, "string", true),
-	)
-
-	DescribeTable("Validate OptionValues in .Spec.ClusterOptionOverrides are consistent with PluginOption Type", func(defaultValue any, defaultType greenhousev1alpha1.PluginOptionType, actValue any, expErr bool) {
-		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "greenhouse",
-				Name:      "testPlugin",
-			},
-			Spec: greenhousev1alpha1.PluginDefinitionSpec{
-				Options: []greenhousev1alpha1.PluginOption{
-					{
-						Name:    "test",
-						Default: test.MustReturnJSONFor(defaultValue),
-						Type:    defaultType,
-					},
-				},
-			},
-		}
-
-		pluginPreset := &greenhousev1alpha1.PluginPreset{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "PluginPreset",
-				APIVersion: greenhousev1alpha1.GroupVersion.String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-plugin-preset",
-				Namespace: test.TestNamespace,
-			},
-			Spec: greenhousev1alpha1.PluginPresetSpec{
-				Plugin: greenhousev1alpha1.PluginSpec{
-					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
-						Name: "test",
-						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
-					},
-					OptionValues: []greenhousev1alpha1.PluginOptionValue{},
-				},
-				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
-					{
-						ClusterName: "test-cluster",
-						Overrides: []greenhousev1alpha1.PluginOptionValue{
-							{
-								Name:  "test",
-								Value: test.MustReturnJSONFor(actValue),
-							},
-						},
-					},
-				},
-			},
-		}
-
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
-		switch expErr {
-		case true:
-			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
-		default:
-			Expect(errList).To(BeEmpty(), "expected no error, got %v", errList)
-		}
-	},
-		Entry("PluginOption Value Consistent With PluginOption Type Bool", false, greenhousev1alpha1.PluginOptionTypeBool, true, false),
-		Entry("PluginOption Value Inconsistent With PluginOption Type Bool", true, greenhousev1alpha1.PluginOptionTypeBool, "notabool", true),
-		Entry("PluginOption Value Consistent With PluginOption Type String", "string", greenhousev1alpha1.PluginOptionTypeString, "mystring", false),
-		Entry("PluginOption Value Consistent With PluginOption Type String Escaped Integer", "1", greenhousev1alpha1.PluginOptionTypeString, "1", false),
-		Entry("PluginOption Value Inconsistent With PluginOption Type String", "string", greenhousev1alpha1.PluginOptionTypeString, 1, true),
-		Entry("PluginOption Value Consistent With PluginOption Type Int", 1, greenhousev1alpha1.PluginOptionTypeInt, 1, false),
-		Entry("PluginOption Value Inconsistent With PluginOption Type Int", 1, greenhousev1alpha1.PluginOptionTypeInt, "one", true),
-		Entry("PluginOption Value Consistent With PluginOption Type List", []string{"one", "two"}, greenhousev1alpha1.PluginOptionTypeList, []string{"one", "two", "three"}, false),
-		Entry("PluginOption Value Inconsistent With PluginOption Type List", []string{"one", "two"}, greenhousev1alpha1.PluginOptionTypeList, "one,two", true),
-		Entry("PluginOption Value Consistent With PluginOption Type Map", map[string]any{"key": "value"}, greenhousev1alpha1.PluginOptionTypeMap, map[string]any{"key": "custom"}, false),
-		Entry("PluginOption Value Inconsistent With PluginOption Type Map", map[string]any{"key": "value"}, greenhousev1alpha1.PluginOptionTypeMap, "one", true),
-		Entry("PluginOption Value Consistent With PluginOption Type Map Nested Map", map[string]any{"key": map[string]any{"nestedKey": "value"}}, greenhousev1alpha1.PluginOptionTypeMap, map[string]any{"key": map[string]any{"nestedKey": "custom"}}, false),
-		Entry("PluginOption Value not supported With PluginOption Type Secret", "", greenhousev1alpha1.PluginOptionTypeSecret, "string", true),
-	)
-
-	DescribeTable("Validate OptionValues in .Spec.Plugin reference a Secret", func(actValue *greenhousev1alpha1.PluginValueFromSource, expErr bool) {
-		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "greenhouse",
-				Name:      "testPlugin",
-			},
-			Spec: greenhousev1alpha1.PluginDefinitionSpec{
-				Options: []greenhousev1alpha1.PluginOption{
-					{
-						Name: "test",
-						Type: greenhousev1alpha1.PluginOptionTypeSecret,
-					},
-				},
-			},
-		}
-
+	DescribeTable("Validate OptionValues in .Spec.Plugin with ValueFrom reference a Secret", func(actValue *greenhousev1alpha1.PluginValueFromSource, expErr bool) {
 		pluginPreset := &greenhousev1alpha1.PluginPreset{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "PluginPreset",
@@ -615,7 +422,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
+		errList := validatePluginOptionValuesForPreset(pluginPreset)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -626,25 +433,10 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 		Entry("PluginOption ValueFrom has a valid SecretReference", &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "secret", Key: "key"}}, false),
 		Entry("PluginOption ValueFrom is missing SecretReference Name", &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Key: "key"}}, true),
 		Entry("PluginOption ValueFrom is missing SecretReference Key", &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "secret"}}, true),
-		Entry("PluginOption ValueFrom does not contain a SecretReference", nil, true),
+		Entry("PluginOption ValueFrom without a SecretReference is valid", &greenhousev1alpha1.PluginValueFromSource{}, false),
 	)
 
-	DescribeTable("Validate OptionValues in .Spec.ClusterOptionOverrides reference a Secret", func(actValue *greenhousev1alpha1.PluginValueFromSource, expErr bool) {
-		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "greenhouse",
-				Name:      "testPlugin",
-			},
-			Spec: greenhousev1alpha1.PluginDefinitionSpec{
-				Options: []greenhousev1alpha1.PluginOption{
-					{
-						Name: "test",
-						Type: greenhousev1alpha1.PluginOptionTypeSecret,
-					},
-				},
-			},
-		}
-
+	DescribeTable("Validate OptionValues in .Spec.ClusterOptionOverrides with ValueFrom reference a Secret", func(actValue *greenhousev1alpha1.PluginValueFromSource, expErr bool) {
 		pluginPreset := &greenhousev1alpha1.PluginPreset{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "PluginPreset",
@@ -676,7 +468,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
+		errList := validatePluginOptionValuesForPreset(pluginPreset)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -687,26 +479,11 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 		Entry("PluginOption ValueFrom has a valid SecretReference", &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "secret", Key: "key"}}, false),
 		Entry("PluginOption ValueFrom is missing SecretReference Name", &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Key: "key"}}, true),
 		Entry("PluginOption ValueFrom is missing SecretReference Key", &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "secret"}}, true),
-		Entry("PluginOption ValueFrom does not contain a SecretReference", nil, true),
+		Entry("PluginOption ValueFrom without a SecretReference is valid", &greenhousev1alpha1.PluginValueFromSource{}, false),
 	)
 
-	Describe("Validate PluginPreset does not have to specify required options", func() {
-		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "greenhouse",
-				Name:      "testPlugin",
-			},
-			Spec: greenhousev1alpha1.PluginDefinitionSpec{
-				Options: []greenhousev1alpha1.PluginOption{
-					{
-						Name:     "test",
-						Type:     greenhousev1alpha1.PluginOptionTypeString,
-						Required: true,
-					},
-				},
-			},
-		}
-		It("should accept a PluginPreset with missing required options", func() {
+	Describe("Validate PluginPreset accepts valid option values without PluginDefinition", func() {
+		It("should accept a PluginPreset with a value set", func() {
 			pluginPreset := &greenhousev1alpha1.PluginPreset{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "PluginPreset",
@@ -719,20 +496,19 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginSpec{
 						PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
-							Name: "test",
+							Name: "non-existing-definition",
 							Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 						},
-						OptionValues: []greenhousev1alpha1.PluginOptionValue{},
-					},
-					ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
-						{
-							ClusterName: "test-cluster",
-							Overrides:   []greenhousev1alpha1.PluginOptionValue{},
+						OptionValues: []greenhousev1alpha1.PluginOptionValue{
+							{
+								Name:  "some-option",
+								Value: test.MustReturnJSONFor("some-value"),
+							},
 						},
 					},
 				},
 			}
-			errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
+			errList := validatePluginOptionValuesForPreset(pluginPreset)
 			Expect(errList).To(BeEmpty(), "unexpected error")
 		})
 	})

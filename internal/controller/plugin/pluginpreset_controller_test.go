@@ -412,6 +412,68 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
 	})
 
+	It("should set ReadyCondition to false with ClusterPluginDefinitionNotExists reason when referenced ClusterPluginDefinition does not exist, and recover when it is created", func() {
+		const missingDefName = "non-existing-plugin-definition"
+		pluginPreset := test.NewPluginPreset("pd-not-found", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(greenhousev1alpha1.PluginSpec{
+				PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+					Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					Name: missingDefName,
+				},
+				ReleaseName:      releaseName,
+				ReleaseNamespace: releaseNamespace,
+			}),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
+				},
+			}))
+
+		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).Should(Succeed(), "failed to create test PluginPreset")
+
+		By("checking that ReadyCondition is false with ClusterPluginDefinitionNotExists reason")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: "pd-not-found", Namespace: pluginPreset.Namespace}, pluginPreset)
+			g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
+			g.Expect(pluginPreset.Status.StatusConditions.Conditions).NotTo(BeNil(), "the PluginPreset should have StatusConditions")
+
+			readyCondition := pluginPreset.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
+			g.Expect(readyCondition).NotTo(BeNil(), "ReadyCondition should be set")
+			g.Expect(readyCondition.IsFalse()).Should(BeTrue(), "ReadyCondition should be false when ClusterPluginDefinition is not found")
+			g.Expect(readyCondition.Reason).To(Equal(greenhousev1alpha1.ClusterPluginDefinitionNotExistsReason), "ReadyCondition reason should be ClusterPluginDefinitionNotExists")
+			g.Expect(readyCondition.Message).To(ContainSubstring(missingDefName), "condition message should contain the PluginDefinition name")
+		}).Should(Succeed(), "the PluginPreset should have ReadyCondition set to false with correct reason")
+
+		By("checking that no Plugins were created")
+		pluginList := &greenhousev1alpha1.PluginList{}
+		Expect(test.K8sClient.List(test.Ctx, pluginList, client.InNamespace(test.TestNamespace), client.MatchingLabels{greenhouseapis.LabelKeyPluginPreset: "pd-not-found"})).To(Succeed())
+		Expect(pluginList.Items).To(BeEmpty(), "no Plugins should be created when ClusterPluginDefinition does not exist")
+
+		By("creating the missing ClusterPluginDefinition to trigger recovery")
+		missingDef := test.NewClusterPluginDefinition(test.Ctx, missingDefName, test.WithHelmChart(
+			&greenhousev1alpha1.HelmChartReference{
+				Name:       "dummy",
+				Repository: "oci://greenhouse/helm-charts",
+				Version:    "1.0.0",
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, missingDef)).To(Succeed(), "failed to create the ClusterPluginDefinition")
+		test.MockHelmChartReady(test.Ctx, test.K8sClient, missingDef, flux.HelmRepositoryDefaultNamespace)
+
+		By("checking that ReadyCondition recovers after ClusterPluginDefinition is created")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: "pd-not-found", Namespace: pluginPreset.Namespace}, pluginPreset)
+			g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
+
+			readyCondition := pluginPreset.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
+			g.Expect(readyCondition).NotTo(BeNil(), "ReadyCondition should be set")
+			g.Expect(string(readyCondition.Reason)).NotTo(Equal(string(greenhousev1alpha1.ClusterPluginDefinitionNotExistsReason)), "ReadyCondition reason should no longer be ClusterPluginDefinitionNotExists")
+		}).Should(Succeed(), "the PluginPreset should recover after the ClusterPluginDefinition is created")
+
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, missingDef)
+	})
+
 	It("should reconcile PluginStatuses for PluginPreset", func() {
 		By("creating a PluginPreset")
 		testPluginPreset := test.NewPluginPreset(pluginPresetName, test.TestNamespace,

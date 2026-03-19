@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -105,6 +106,27 @@ func (r *PluginPresetReconciler) EnsureCreated(ctx context.Context, resource lif
 	_ = log.FromContext(ctx)
 
 	initPluginPresetStatus(pluginPreset)
+
+	// Check if the referenced PluginDefinition exists. If not, set ReadyCondition to false and return early.
+	pluginDefExists, err := r.pluginDefinitionExists(ctx, pluginPreset)
+	if err != nil {
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+	if !pluginDefExists {
+		reason := greenhousev1alpha1.PluginDefinitionNotExistsReason
+		if pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind == greenhousev1alpha1.ClusterPluginDefinitionKind {
+			reason = greenhousev1alpha1.ClusterPluginDefinitionNotExistsReason
+		}
+		pluginPreset.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousemetav1alpha1.ReadyCondition, reason,
+			fmt.Sprintf("The referenced %s %q does not exist", pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind, pluginPreset.Spec.Plugin.PluginDefinitionRef.Name)))
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, lifecycle.Success, nil
+	}
+
+	// Clear any stale PluginDefinitionNotExists ReadyCondition since the definition now exists.
+	if rc := pluginPreset.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition); rc != nil &&
+		(rc.Reason == greenhousev1alpha1.PluginDefinitionNotExistsReason || rc.Reason == greenhousev1alpha1.ClusterPluginDefinitionNotExistsReason) {
+		pluginPreset.SetCondition(greenhousemetav1alpha1.UnknownCondition(greenhousemetav1alpha1.ReadyCondition, "", ""))
+	}
 
 	clusters, err := r.listClusters(ctx, pluginPreset)
 	if err != nil {
@@ -368,12 +390,43 @@ func initPluginPresetStatus(p *greenhousev1alpha1.PluginPreset) {
 	}
 }
 
+// pluginDefinitionExists checks whether the referenced PluginDefinition or ClusterPluginDefinition exists.
+func (r *PluginPresetReconciler) pluginDefinitionExists(ctx context.Context, pluginPreset *greenhousev1alpha1.PluginPreset) (bool, error) {
+	ref := pluginPreset.Spec.Plugin.PluginDefinitionRef
+	switch ref.Kind {
+	case greenhousev1alpha1.PluginDefinitionKind:
+		pd := &greenhousev1alpha1.PluginDefinition{}
+		err := r.Get(ctx, client.ObjectKey{Namespace: pluginPreset.GetNamespace(), Name: ref.Name}, pd)
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+		return err == nil, err
+	case greenhousev1alpha1.ClusterPluginDefinitionKind:
+		cpd := &greenhousev1alpha1.ClusterPluginDefinition{}
+		err := r.Get(ctx, client.ObjectKey{Name: ref.Name}, cpd)
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+		return err == nil, err
+	default:
+		return false, fmt.Errorf("unsupported PluginDefinition kind: %s", ref.Kind)
+	}
+}
+
 // computeReadyCondition computes the ReadyCondition based on the PluginPreset's StatusConditions.
 func (r *PluginPresetReconciler) computeReadyCondition(
 	conditions greenhousemetav1alpha1.StatusConditions,
 ) (readyCondition greenhousemetav1alpha1.Condition) {
 
 	readyCondition = *conditions.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
+
+	// If the ReadyCondition was already set to False with a PluginDefinitionNotExists reason by EnsureCreated,
+	// preserve it and do not overwrite it.
+	if readyCondition.IsFalse() &&
+		(readyCondition.Reason == greenhousev1alpha1.PluginDefinitionNotExistsReason ||
+			readyCondition.Reason == greenhousev1alpha1.ClusterPluginDefinitionNotExistsReason) {
+		return readyCondition
+	}
 
 	if conditions.GetConditionByType(greenhousev1alpha1.PluginFailedCondition).IsTrue() {
 		readyCondition.Status = metav1.ConditionFalse

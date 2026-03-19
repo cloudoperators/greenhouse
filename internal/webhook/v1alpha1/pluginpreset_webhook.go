@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -75,13 +74,19 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, pluginPres
 	}
 
 	// ensure PluginDefinition reference is set
-	pluginDefinitionRefNamePath := field.NewPath("spec", "plugin", "pluginDefinitionRef", "name")
 	pluginDefinitionRefKindPath := field.NewPath("spec", "plugin", "pluginDefinitionRef", "kind")
 	if pluginPreset.Spec.Plugin.PluginDefinitionRef.Name == "" {
-		allErrs = append(allErrs, field.Invalid(pluginDefinitionRefNamePath, pluginPreset.Spec.Plugin.PluginDefinitionRef.Name, "PluginDefinition name must be set"))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "plugin", "pluginDefinitionRef", "name"), pluginPreset.Spec.Plugin.PluginDefinitionRef.Name, "PluginDefinition name must be set"))
 	}
 	if pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind == "" {
 		allErrs = append(allErrs, field.Invalid(pluginDefinitionRefKindPath, pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind, "PluginDefinition kind must be set"))
+	}
+
+	// ensure the PluginDefinition kind is supported
+	if pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind != "" &&
+		pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind != greenhousev1alpha1.PluginDefinitionKind &&
+		pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind != greenhousev1alpha1.ClusterPluginDefinitionKind {
+		allErrs = append(allErrs, field.Invalid(pluginDefinitionRefKindPath, pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind, "unsupported PluginDefinition kind"))
 	}
 
 	// ensure ClusterSelector is set
@@ -103,53 +108,13 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, pluginPres
 		allErrs = append(allErrs, errList...)
 	}
 
+	// validate that each PluginOptionValue and ClusterOptionOverride is structurally valid
+	if errList := validatePluginOptionValuesForPreset(pluginPreset); len(errList) > 0 {
+		allErrs = append(allErrs, errList...)
+	}
+
 	if len(allErrs) > 0 {
 		return allWarns, apierrors.NewInvalid(pluginPreset.GroupVersionKind().GroupKind(), pluginPreset.Name, allErrs)
-	}
-
-	var pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec
-
-	// ensure (Cluster-)PluginDefinition exists and validate OptionValues defined by the Preset
-	switch pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind {
-	case greenhousev1alpha1.PluginDefinitionKind:
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{}
-		err := c.Get(ctx, types.NamespacedName{
-			Namespace: pluginPreset.GetNamespace(),
-			Name:      pluginPreset.Spec.Plugin.PluginDefinitionRef.Name,
-		}, pluginDefinition)
-		switch {
-		case apierrors.IsNotFound(err):
-			return allWarns, field.Invalid(pluginDefinitionRefNamePath, pluginPreset.Spec.Plugin.PluginDefinitionRef.Name,
-				fmt.Sprintf("PluginDefinition %s does not exist in namespace %s", pluginPreset.Spec.Plugin.PluginDefinitionRef.Name, pluginPreset.GetNamespace()))
-		case err != nil:
-			return allWarns, field.Invalid(pluginDefinitionRefNamePath, pluginPreset.Spec.Plugin.PluginDefinitionRef.Name,
-				fmt.Sprintf("PluginDefinition %s could not be retrieved from namespace %s: %s", pluginPreset.Spec.Plugin.PluginDefinitionRef.Name, pluginPreset.GetNamespace(), err.Error()))
-		default:
-			pluginDefinitionSpec = pluginDefinition.Spec
-		}
-	case greenhousev1alpha1.ClusterPluginDefinitionKind:
-		clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
-		err := c.Get(ctx, types.NamespacedName{
-			Namespace: "",
-			Name:      pluginPreset.Spec.Plugin.PluginDefinitionRef.Name,
-		}, clusterPluginDefinition)
-		switch {
-		case apierrors.IsNotFound(err):
-			return allWarns, field.Invalid(pluginDefinitionRefNamePath, pluginPreset.Spec.Plugin.PluginDefinitionRef.Name,
-				fmt.Sprintf("ClusterPluginDefinition %s does not exist", pluginPreset.Spec.Plugin.PluginDefinitionRef.Name))
-		case err != nil:
-			return allWarns, field.Invalid(pluginDefinitionRefNamePath, pluginPreset.Spec.Plugin.PluginDefinitionRef.Name,
-				fmt.Sprintf("ClusterPluginDefinition %s could not be retrieved: %s", pluginPreset.Spec.Plugin.PluginDefinitionRef.Name, err.Error()))
-		default:
-			pluginDefinitionSpec = clusterPluginDefinition.Spec
-		}
-	default:
-		return allWarns, field.Invalid(pluginDefinitionRefKindPath, pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind, "unsupported PluginDefinition kind")
-	}
-
-	// validate OptionValues defined by the Preset
-	if errList := validatePluginOptionValuesForPreset(pluginPreset, pluginPreset.Spec.Plugin.PluginDefinitionRef.Name, pluginDefinitionSpec); len(errList) > 0 {
-		return allWarns, apierrors.NewInvalid(pluginPreset.GroupVersionKind().GroupKind(), pluginPreset.Name, errList)
 	}
 
 	return allWarns, nil
@@ -178,6 +143,11 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldPluginP
 		allErrs = append(allErrs, errList...)
 	}
 
+	// validate that each PluginOptionValue and ClusterOptionOverride is structurally valid
+	if errList := validatePluginOptionValuesForPreset(pluginPreset); len(errList) > 0 {
+		allErrs = append(allErrs, errList...)
+	}
+
 	if len(allErrs) > 0 {
 		return allWarns, apierrors.NewInvalid(pluginPreset.GroupVersionKind().GroupKind(), pluginPreset.Name, allErrs)
 	}
@@ -197,19 +167,51 @@ func ValidateDeletePluginPreset(_ context.Context, _ client.Client, pluginPreset
 	return nil, nil
 }
 
-// validatePluginOptionValuesForPreset validates plugin options and their values, but skips the check for required options.
-// Required options are checked at the Plugin creation level, because the preset can override options and we cannot predict what clusters will be a part of the PluginPreset later on.
-func validatePluginOptionValuesForPreset(pluginPreset *greenhousev1alpha1.PluginPreset, pluginDefinitionName string, pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec) field.ErrorList {
+// validatePluginOptionValuesForPreset validates that each PluginOptionValue and ClusterOptionOverride is structurally valid.
+// It checks that each option value has exactly one value source set (value, valueFrom, or expression),
+// and that secret references (valueFrom) have both name and key set.
+// It does NOT validate option types against the PluginDefinition, because the PluginDefinition may not exist yet at admission time.
+// Type validation is deferred to the controller / Plugin creation level.
+func validatePluginOptionValuesForPreset(pluginPreset *greenhousev1alpha1.PluginPreset) field.ErrorList {
 	var allErrs field.ErrorList
 
 	optionValuesPath := field.NewPath("spec").Child("plugin").Child("optionValues")
-	errors := validatePluginOptionValues(pluginPreset.Spec.Plugin.OptionValues, pluginDefinitionName, pluginDefinitionSpec, false, optionValuesPath)
-	allErrs = append(allErrs, errors...)
+	allErrs = append(allErrs, validateOptionValuesStructure(pluginPreset.Spec.Plugin.OptionValues, optionValuesPath)...)
 
 	for idx, overridesForSingleCluster := range pluginPreset.Spec.ClusterOptionOverrides {
 		optionOverridesPath := field.NewPath("spec").Child("clusterOptionOverrides").Index(idx).Child("overrides")
-		errors = validatePluginOptionValues(overridesForSingleCluster.Overrides, pluginDefinitionName, pluginDefinitionSpec, false, optionOverridesPath)
-		allErrs = append(allErrs, errors...)
+		allErrs = append(allErrs, validateOptionValuesStructure(overridesForSingleCluster.Overrides, optionOverridesPath)...)
+	}
+	return allErrs
+}
+
+// validateOptionValuesStructure validates that each option value has exactly one value source set,
+// and that valueFrom secret references have both name and key set.
+func validateOptionValuesStructure(optionValues []greenhousev1alpha1.PluginOptionValue, basePath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+	for idx, val := range optionValues {
+		fieldPathWithIndex := basePath.Index(idx)
+
+		// Value, ValueFrom, and Expression are mutually exclusive, but exactly one must be provided.
+		if !hasExactlyOneValueSource(val) {
+			allErrs = append(allErrs, field.Required(
+				fieldPathWithIndex,
+				"must provide exactly one of value, valueFrom, or expression for option "+val.Name),
+			)
+			continue
+		}
+
+		// Validate that ValueFrom secret references are well-formed if a secret is referenced.
+		if val.ValueFrom != nil && val.ValueFrom.Secret != nil {
+			if val.ValueFrom.Secret.Name == "" {
+				allErrs = append(allErrs, field.Required(fieldPathWithIndex.Child("valueFrom").Child("secret").Child("name"),
+					fmt.Sprintf("optionValue %s must reference a secret by name", val.Name)))
+			}
+			if val.ValueFrom.Secret.Key == "" {
+				allErrs = append(allErrs, field.Required(fieldPathWithIndex.Child("valueFrom").Child("secret").Child("key"),
+					fmt.Sprintf("optionValue %s must reference a key in a secret", val.Name)))
+			}
+		}
 	}
 	return allErrs
 }
