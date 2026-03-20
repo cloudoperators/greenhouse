@@ -154,11 +154,6 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 		Expect(test.K8sClient.Create(test.Ctx, &testClusterK8sSecret)).Should(Succeed())
 	})
 
-	AfterEach(func() {
-		By("deleting the test plugin")
-		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPlugin)
-	})
-
 	AfterAll(func() {
 		By("stopping the test environment")
 		err := remoteEnvTest.Stop()
