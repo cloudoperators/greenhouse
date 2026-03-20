@@ -340,27 +340,32 @@ func (r *PluginReconciler) fetchReleaseStatus(ctx context.Context,
 	// Collect status from the Helm release.
 	helmRelease := &helmv2.HelmRelease{}
 	err := r.Get(ctx, types.NamespacedName{Name: plugin.Name, Namespace: plugin.Namespace}, helmRelease)
-	if err != nil { // helm release does not exist or cannot be accessed
+	if err != nil {
+		// helm release does not exist or cannot be accessed
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ExposedServicesSyncedCondition, "", "failed to load Flux HelmRelease: "+err.Error()))
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseDeployedCondition, "", "failed to load Flux HelmRelease: "+err.Error()))
 	}
-	if exposedServicesDisabled { // exposed services are disabled for the cluster
-		plugin.Status.ExposedServices = nil
-		plugin.Status.SetConditions(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.ExposedServicesSyncedCondition, greenhousev1alpha1.ExposedServicesDisabledReason, "Exposed services are disabled for cluster "+plugin.Spec.ClusterName))
+	if exposedServicesDisabled {
+		// exposed services are disabled for the cluster
+		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.ExposedServicesSyncedCondition, greenhousev1alpha1.ExposedServicesDisabledReason, "Exposed services are disabled for cluster "+plugin.Spec.ClusterName))
 	}
-	if !exposedServicesDisabled && err == nil { // helm release exists and exposed services are not disabled, attempt to fetch exposed services from the cluster
-		helmSDKRelease, err := helm.GetReleaseForHelmChartFromPlugin(ctx, restClientGetter, plugin)
-		if err != nil {
-			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
-				greenhousev1alpha1.ExposedServicesSyncedCondition, "", "failed to fetch Helm release from remote cluster: "+err.Error()))
-		} else {
-			serviceList, err := getAllExposedServicesForPlugin(restClientGetter, helmSDKRelease, plugin)
+	if err == nil {
+		// helm release exists
+		if !exposedServicesDisabled {
+			// exposed services are not disabled, attempt to fetch exposed services from the cluster
+			helmSDKRelease, err := helm.GetReleaseForHelmChartFromPlugin(ctx, restClientGetter, plugin)
 			if err != nil {
 				plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
-					greenhousev1alpha1.ExposedServicesSyncedCondition, "", "failed to get exposed services: "+err.Error()))
+					greenhousev1alpha1.ExposedServicesSyncedCondition, "", "failed to fetch Helm release from remote cluster: "+err.Error()))
 			} else {
-				exposedServices = serviceList
-				plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.ExposedServicesSyncedCondition, "", "Fetched exposed services successfully"))
+				serviceList, err := getAllExposedServicesForPlugin(restClientGetter, helmSDKRelease, plugin)
+				if err != nil {
+					plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
+						greenhousev1alpha1.ExposedServicesSyncedCondition, "", "failed to get exposed services: "+err.Error()))
+				} else {
+					exposedServices = serviceList
+					plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.ExposedServicesSyncedCondition, "", "Fetched exposed services successfully"))
+				}
 			}
 		}
 
