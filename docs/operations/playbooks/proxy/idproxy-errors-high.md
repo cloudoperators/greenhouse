@@ -107,5 +107,5 @@ kubectl logs -n greenhouse -l app.kubernetes.io/name=idproxy --tail=500 | grep -
 
 ## Additional Resources
 
-- [Greenhouse Architecture](../../../architecture/components.md)
-- [Authentication Configuration](../../../user-guides/organization/authentication.md)
+- [Greenhouse Architecture](../../../../architecture/high-level)
+- [Authentication Configuration](../../../../user-guides/organization/creation)

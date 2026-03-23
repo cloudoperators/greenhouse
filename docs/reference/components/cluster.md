@@ -35,6 +35,6 @@ kubectl label cluster example-cluster \
 
 ## Next Steps
 
-- [Cluster Onboarding](./../../user-guides/cluster/onboarding)
-- [Cluster Offboarding](./../../user-guides/cluster/offboarding)
-- [Using Metadata Labels and Expressions](./../../user-guides/plugin/metadata-expressions)
+- [Cluster Onboarding](./../../../user-guides/cluster/onboarding)
+- [Cluster Offboarding](./../../../user-guides/cluster/offboarding)
+- [Using Metadata Labels and Expressions](./../../../user-guides/plugin/metadata-expressions)

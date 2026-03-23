@@ -85,7 +85,7 @@ If the issue is cluster connectivity, check the target cluster status:
 kubectl get cluster <cluster-name> -n <namespace>
 ```
 
-See the [ClusterNotReady playbook](../cluster/cluster-not-ready.md) for cluster troubleshooting.
+See the [ClusterNotReady playbook](../../cluster/cluster-not-ready) for cluster troubleshooting.
 
 ### Check Controller Logs
 
@@ -99,5 +99,5 @@ Or access your logs sink for Greenhouse logs.
 
 ## Additional Resources
 
-- [Greenhouse Team(RoleBinding) Documentation](../../../reference/components/team.md#teamrolebinding)
-- [Greenhouse Team RBAC User Guide](../../../user-guides/team/rbac.md)
+- [Greenhouse Team(RoleBinding) Documentation](../../../../user-guides/team/rbac)
+- [Greenhouse Team RBAC User Guide](../../../../user-guides/team/rbac)

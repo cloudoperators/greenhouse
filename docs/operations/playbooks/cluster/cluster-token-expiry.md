@@ -15,8 +15,8 @@ This alert fires when the kubeconfig token for a cluster will expire in less tha
 
 Greenhouse has two ways of authenticating to Clusters:
 
-- [OIDC trust](../../user-guides/cluster/oidc_connectivity.md) - Preferred method, credential-less authentication
-- [Initial kubeconfig](../../user-guides/cluster/onboarding.md) - Traditional method using kubeconfig credentials
+- [OIDC trust](../../../../user-guides/cluster/oidc_connectivity) - Preferred method, credential-less authentication
+- [Initial kubeconfig](../../../../user-guides/cluster/onboarding) - Traditional method using kubeconfig credentials
 
 This alert only fires when initially a kubeconfig was provided. Greenhouse will create a Service Account on the target Cluster and keep a kubeconfig with a token scoped to this SA on the Greenhouse Cluster. These tokens have a limited validity period and are auto-rotated by the Greenhouse controller. When a token is about to expire, this alert fires. Since Greenhouse auto-rotates these tokens, this alert indicates that Greenhouse cannot (or could not) interact properly with the Cluster.
 
@@ -111,6 +111,6 @@ Look for messages about token refresh operations or authentication issues.
 
 ## Additional Resources
 
-- [Greenhouse Cluster Documentation](../../../reference/api/cluster.md)
-- [Cluster Onboarding](../../../user-guides/cluster/onboarding.md)
-- [Cluster OIDC connectivity](../../../user-guides/cluster/oidc_connectivity.md)
+- [Greenhouse Cluster Documentation](../../../../reference/components/cluster)
+- [Cluster Onboarding](../../../../user-guides/cluster/onboarding)
+- [Cluster OIDC connectivity](../../../../user-guides/cluster/oidc_connectivity)
