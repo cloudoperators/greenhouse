@@ -235,24 +235,39 @@ func (p *PluginDefinition) FluxHelmChartResourceName() string {
 	return p.Name + "-" + p.Spec.HelmChart.Version
 }
 
-// OCIReplicationStatus tracks the last successfully replicated chart artifact.
-type OCIReplicationStatus struct {
-	// Registry is the source registry of the replicated chart.
+// ReplicationStatusType represents the outcome of chart replication to a mirror registry.
+// +kubebuilder:validation:Enum=Replicated;Failed;Skipped
+type ReplicationStatusType string
+
+const (
+	// ReplicationStatusReplicated indicates the chart was successfully replicated.
+	ReplicationStatusReplicated ReplicationStatusType = "Replicated"
+	// ReplicationStatusFailed indicates the chart replication failed.
+	ReplicationStatusFailed ReplicationStatusType = "Failed"
+	// ReplicationStatusSkipped indicates the chart replication was skipped.
+	ReplicationStatusSkipped ReplicationStatusType = "Skipped"
+)
+
+// LastSyncedArtifact tracks the last synced chart artifact and its replication status.
+type LastSyncedArtifact struct {
+	// Registry is the source registry of the chart.
 	Registry string `json:"registry"`
-	// ChartName is the name of the replicated chart.
+	// ChartName is the name of the chart.
 	ChartName string `json:"chartName"`
-	// Version is the chart version that was replicated.
+	// Version is the chart version.
 	Version string `json:"version"`
-	// Digest is the sha256 digest of the replicated chart manifest.
-	Digest string `json:"digest"`
+	// Digest is the sha256 digest of the chart manifest.
+	Digest string `json:"digest,omitempty"`
+	// ReplicationStatus indicates the outcome of replication to the mirror registry.
+	ReplicationStatus ReplicationStatusType `json:"replicationStatus"`
 }
 
 // PluginDefinitionStatus defines the observed state of PluginDefinition
 type PluginDefinitionStatus struct {
 	// StatusConditions contain the different conditions that constitute the status of the Plugin.
 	greenhousemetav1alpha1.StatusConditions `json:"statusConditions,omitempty"`
-	// OCIReplication tracks the last successfully replicated chart artifact.
-	OCIReplication *OCIReplicationStatus `json:"ociReplication,omitempty"`
+	// LastSyncedArtifact tracks the last synced chart artifact and its replication status.
+	LastSyncedArtifact *LastSyncedArtifact `json:"lastSyncedArtifact,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -293,12 +308,12 @@ func (p *PluginDefinition) SetCondition(condition greenhousemetav1alpha1.Conditi
 	p.Status.SetConditions(condition)
 }
 
-func (p *PluginDefinition) GetOCIReplicationStatus() *OCIReplicationStatus {
-	return p.Status.OCIReplication
+func (p *PluginDefinition) GetLastSyncedArtifact() *LastSyncedArtifact {
+	return p.Status.LastSyncedArtifact
 }
 
-func (p *PluginDefinition) SetOCIReplicationStatus(status *OCIReplicationStatus) {
-	p.Status.OCIReplication = status
+func (p *PluginDefinition) SetLastSyncedArtifact(artifact *LastSyncedArtifact) {
+	p.Status.LastSyncedArtifact = artifact
 }
 
 func (p *PluginDefinition) RemoveCondition(conditionType greenhousemetav1alpha1.ConditionType) {

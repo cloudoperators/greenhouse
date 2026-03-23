@@ -474,25 +474,32 @@ components:
         status:
           description: ClusterPluginDefinitionStatus defines the observed state of ClusterPluginDefinition.
           properties:
-            ociReplication:
-              description: OCIReplication tracks the last successfully replicated chart artifact.
+            lastSyncedArtifact:
+              description: LastSyncedArtifact tracks the last synced chart artifact and its replication status.
               properties:
                 chartName:
-                  description: ChartName is the name of the replicated chart.
+                  description: ChartName is the name of the chart.
                   type: string
                 digest:
-                  description: Digest is the sha256 digest of the replicated chart manifest.
+                  description: Digest is the sha256 digest of the chart manifest.
                   type: string
                 registry:
-                  description: Registry is the source registry of the replicated chart.
+                  description: Registry is the source registry of the chart.
+                  type: string
+                replicationStatus:
+                  description: ReplicationStatus indicates the outcome of replication to the mirror registry.
+                  enum:
+                    - Replicated
+                    - Failed
+                    - Skipped
                   type: string
                 version:
-                  description: Version is the chart version that was replicated.
+                  description: Version is the chart version.
                   type: string
               required:
                 - chartName
-                - digest
                 - registry
+                - replicationStatus
                 - version
               type: object
             statusConditions:
@@ -1001,25 +1008,32 @@ components:
         status:
           description: PluginDefinitionStatus defines the observed state of PluginDefinition
           properties:
-            ociReplication:
-              description: OCIReplication tracks the last successfully replicated chart artifact.
+            lastSyncedArtifact:
+              description: LastSyncedArtifact tracks the last synced chart artifact and its replication status.
               properties:
                 chartName:
-                  description: ChartName is the name of the replicated chart.
+                  description: ChartName is the name of the chart.
                   type: string
                 digest:
-                  description: Digest is the sha256 digest of the replicated chart manifest.
+                  description: Digest is the sha256 digest of the chart manifest.
                   type: string
                 registry:
-                  description: Registry is the source registry of the replicated chart.
+                  description: Registry is the source registry of the chart.
+                  type: string
+                replicationStatus:
+                  description: ReplicationStatus indicates the outcome of replication to the mirror registry.
+                  enum:
+                    - Replicated
+                    - Failed
+                    - Skipped
                   type: string
                 version:
-                  description: Version is the chart version that was replicated.
+                  description: Version is the chart version.
                   type: string
               required:
                 - chartName
-                - digest
                 - registry
+                - replicationStatus
                 - version
               type: object
             statusConditions:

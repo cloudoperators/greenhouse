@@ -212,10 +212,11 @@ func ensureChartReplication(ctx context.Context, k8sClient client.Client, plugin
 	registry, chartName, version := parseChartRef(helmChart)
 
 	// Skip replication if the current chart version was already replicated (idempotency).
-	if status := pluginDef.GetOCIReplicationStatus(); status != nil &&
-		status.Registry == registry &&
-		status.ChartName == chartName &&
-		status.Version == version {
+	if artifact := pluginDef.GetLastSyncedArtifact(); artifact != nil &&
+		artifact.Registry == registry &&
+		artifact.ChartName == chartName &&
+		artifact.Version == version &&
+		artifact.ReplicationStatus == greenhousev1alpha1.ReplicationStatusReplicated {
 		logger.V(1).Info("chart already replicated, skipping", "registry", registry, "chart", chartName, "version", version)
 		return nil
 	}
@@ -243,11 +244,12 @@ func ensureChartReplication(ctx context.Context, k8sClient client.Client, plugin
 
 	digest := fmt.Sprintf("sha256:%x", sha256.Sum256(manifest))
 
-	pluginDef.SetOCIReplicationStatus(&greenhousev1alpha1.OCIReplicationStatus{
-		Registry:  registry,
-		ChartName: chartName,
-		Version:   version,
-		Digest:    digest,
+	pluginDef.SetLastSyncedArtifact(&greenhousev1alpha1.LastSyncedArtifact{
+		Registry:          registry,
+		ChartName:         chartName,
+		Version:           version,
+		Digest:            digest,
+		ReplicationStatus: greenhousev1alpha1.ReplicationStatusReplicated,
 	})
 	pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
 		greenhousev1alpha1.OCIReplicationReadyCondition,

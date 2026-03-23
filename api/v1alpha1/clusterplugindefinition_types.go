@@ -22,8 +22,8 @@ const (
 type ClusterPluginDefinitionStatus struct {
 	// StatusConditions contain the different conditions that constitute the status of the Plugin.
 	greenhousemetav1alpha1.StatusConditions `json:"statusConditions,omitempty"`
-	// OCIReplication tracks the last successfully replicated chart artifact.
-	OCIReplication *OCIReplicationStatus `json:"ociReplication,omitempty"`
+	// LastSyncedArtifact tracks the last synced chart artifact and its replication status.
+	LastSyncedArtifact *LastSyncedArtifact `json:"lastSyncedArtifact,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -71,12 +71,12 @@ func (c *ClusterPluginDefinition) SetCondition(condition greenhousemetav1alpha1.
 	c.Status.SetConditions(condition)
 }
 
-func (c *ClusterPluginDefinition) GetOCIReplicationStatus() *OCIReplicationStatus {
-	return c.Status.OCIReplication
+func (c *ClusterPluginDefinition) GetLastSyncedArtifact() *LastSyncedArtifact {
+	return c.Status.LastSyncedArtifact
 }
 
-func (c *ClusterPluginDefinition) SetOCIReplicationStatus(status *OCIReplicationStatus) {
-	c.Status.OCIReplication = status
+func (c *ClusterPluginDefinition) SetLastSyncedArtifact(artifact *LastSyncedArtifact) {
+	c.Status.LastSyncedArtifact = artifact
 }
 
 func (c *ClusterPluginDefinition) RemoveCondition(conditionType greenhousemetav1alpha1.ConditionType) {
