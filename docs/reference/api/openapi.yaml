@@ -2007,8 +2007,15 @@ components:
                 type: string
               type: array
             teamRef:
-              description: TeamRef references a Greenhouse Team by name
+              description: |-
+                Deprecated: Use TeamRefs instead.
+                TeamRef references a Greenhouse Team by name
               type: string
+            teamRefs:
+              description: TeamRefs references Greenhouse Teams by name
+              items:
+                type: string
+              type: array
             teamRoleRef:
               description: TeamRoleRef references a Greenhouse TeamRole by name
               type: string
