@@ -6,6 +6,7 @@ package v1alpha2
 import (
 	"context"
 	"slices"
+	"strings"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -38,6 +39,9 @@ func DefaultRoleBinding(_ context.Context, _ client.Client, trb *greenhousev1alp
 	if trb.Spec.TeamRef != "" && !slices.Contains(trb.Spec.TeamRefs, trb.Spec.TeamRef) { //nolint:staticcheck // defaulting migrates deprecated teamRef to teamRefs
 		trb.Spec.TeamRefs = append(trb.Spec.TeamRefs, trb.Spec.TeamRef) //nolint:staticcheck // defaulting migrates deprecated teamRef to teamRefs
 	}
+	trb.Spec.TeamRefs = slices.DeleteFunc(trb.Spec.TeamRefs, func(s string) bool {
+		return strings.TrimSpace(s) == ""
+	})
 	slices.Sort(trb.Spec.TeamRefs)
 	trb.Spec.TeamRefs = slices.Compact(trb.Spec.TeamRefs)
 	return nil

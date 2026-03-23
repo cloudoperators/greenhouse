@@ -25,7 +25,7 @@ var _ = Describe("resolveTeamRefs", func() {
 		trb := &greenhousev1alpha2.TeamRoleBinding{
 			ObjectMeta: metav1.ObjectMeta{Name: "pre-migration-trb"},
 			Spec: greenhousev1alpha2.TeamRoleBindingSpec{
-				TeamRef: "team-legacy", //nolint:staticcheck
+				TeamRef: "team-legacy",
 			},
 		}
 		Expect(resolveTeamRefs(trb)).To(Equal([]string{"team-legacy"}))
@@ -34,7 +34,7 @@ var _ = Describe("resolveTeamRefs", func() {
 	It("should prefer teamRefs over teamRef when both are set", func() {
 		trb := &greenhousev1alpha2.TeamRoleBinding{
 			Spec: greenhousev1alpha2.TeamRoleBindingSpec{
-				TeamRef:  "team-old", //nolint:staticcheck
+				TeamRef:  "team-old",
 				TeamRefs: []string{"team-new"},
 			},
 		}
