@@ -60,7 +60,7 @@ spec:
 
 | :information_source: A defaulting webhook automatically merges the OptionValues with the defaults set in the PluginDefinition. The defaulting does not update OptionValues when the defaults change and does not remove values when they are removed from the PluginDefinition. |
 
-`.spec.optionValues[].expression` is an optional field that allows you to define dynamic values using [CEL (Common Expression Language)](https://github.com/google/cel-spec) expressions. Expressions use `${...}` placeholders that reference `global.greenhouse.*` variables such as `global.greenhouse.clusterName` or [Cluster Metadata](./../cluster#setting-metadata-labels) via `global.greenhouse.metadata.*`. For available CEL string functions, see the [CEL string extension documentation](https://github.com/google/cel-go/tree/master/ext#strings). See [Using Metadata Labels and Expressions](./../../user-guides/plugin/metadata-expressions) for detailed examples.
+`.spec.optionValues[].expression` is an optional field that allows you to define dynamic values using [CEL (Common Expression Language)](https://github.com/google/cel-spec) expressions. Expressions use `${...}` placeholders that reference `global.greenhouse.*` variables such as `global.greenhouse.clusterName` or [Cluster Metadata](./../cluster#setting-metadata-labels) via `global.greenhouse.metadata.*`. For available CEL string functions, see the [CEL string extension documentation](https://github.com/google/cel-go/tree/master/ext#strings). See [Using Metadata Labels and Expressions](./../../../user-guides/plugin/metadata-expressions) for detailed examples.
 
 ```yaml
   optionValues:
@@ -110,4 +110,4 @@ The annotation `greenhouse.sap/reconcile` can be added to a Plugin resource to t
 - [Cluster reference](./../cluster)
 - [PluginPreset reference](./../pluginpreset)
 - [PluginDefinition reference](./../plugindefinition)
-- [Using Metadata Labels and Expressions](./../../user-guides/plugin/metadata-expressions)
+- [Using Metadata Labels and Expressions](./../../../user-guides/plugin/metadata-expressions)

@@ -88,5 +88,5 @@ kubectl get --raw /readyz
 
 ## Additional Resources
 
-- [Greenhouse Architecture](../../../architecture/components.md)
+- [Greenhouse Architecture](../../../../architecture/high-level)
 - [Controller Runtime Metrics](https://book.kubebuilder.io/reference/metrics-reference.html)

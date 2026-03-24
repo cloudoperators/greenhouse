@@ -103,6 +103,6 @@ kubectl describe pod -n greenhouse -l app=greenhouse,app.kubernetes.io/component
 
 ## Additional Resources
 
-- [Greenhouse Architecture](../../../architecture/components.md)
+- [Greenhouse Architecture](../../../../architecture/high-level)
 - [Kubernetes Admission Webhooks](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/)
 - [Controller Runtime Metrics](https://book.kubebuilder.io/reference/metrics-reference.html)

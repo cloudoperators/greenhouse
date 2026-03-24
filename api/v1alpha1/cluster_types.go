@@ -40,6 +40,9 @@ const (
 	// AllNodesReady reflects the readiness status of all nodes of a cluster.
 	AllNodesReady greenhousemetav1alpha1.ConditionType = "AllNodesReady"
 
+	// PayloadSchedulable reflects whether workloads can be scheduled on the cluster.
+	PayloadSchedulable greenhousemetav1alpha1.ConditionType = "PayloadSchedulable"
+
 	// KubeConfigValid reflects the validity of the kubeconfig of a cluster.
 	KubeConfigValid greenhousemetav1alpha1.ConditionType = "KubeConfigValid"
 
@@ -74,9 +77,9 @@ type ClusterConditionType string
 // Nodes contains node count metrics and tracks non-ready nodes in a cluster.
 type Nodes struct {
 	// Total represent the number of all the nodes in the cluster.
-	Total int32 `json:"total,omitempty"`
+	Total int `json:"total,omitempty"`
 	// ReadyNodes represent the number of ready nodes in the cluster.
-	Ready int32 `json:"ready,omitempty"`
+	Ready int `json:"ready,omitempty"`
 	// NotReady is slice of non-ready nodes status details.
 	// +listType="map"
 	// +listMapKey=name
