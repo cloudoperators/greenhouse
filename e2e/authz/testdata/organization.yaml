@@ -8,4 +8,4 @@ metadata:
 spec:
   description: e2e organization for authz
   displayName: AuthzE2E
-  mappedOrgAdminIdPGroup: TEST_ORG_ADMIN
+  mappedOrgAdminIdPGroup: SOME_IDP_GROUP_NAME
