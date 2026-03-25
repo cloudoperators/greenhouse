@@ -9,26 +9,23 @@ replicaCount: 1
 image:
   repository: ghcr.io/cloudoperators/greenhouse
   pullPolicy: IfNotPresent
-  tag: v0.9.0
+  # Overrides the image tag. Defaults to the chart appVersion.
+  tag: ""
+  # digest takes precedence over tag if set
+  digest: ""
 
-# This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
 imagePullSecrets: []
 
 serviceAccount:
-  # Automatically mount a ServiceAccount's API credentials?
+  create: true
   automount: true
-  # Annotations to add to the service account
   annotations: {}
   # The name of the service account to use.
-  # If not set, a name is generated using the fullname template
+  # If not set, a name is generated using the fullname template.
   name: ""
 
-# This is for setting Kubernetes Annotations to a Pod.
-# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
-podAnnotations: {}
-# This is for setting Kubernetes Labels to a Pod.
-# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
-podLabels: {}
+commonAnnotations: {}
+commonLabels: {}
 
 podSecurityContext: {}
   # fsGroup: 2000
@@ -41,37 +38,53 @@ securityContext: {}
   # runAsNonRoot: true
   # runAsUser: 1000
 
-livenessProbe:
-  httpGet:
-    path: /healthz
-    port: 8081
-readinessProbe:
-  httpGet:
-    path: /readyz
-    port: 8081
-
-authzService:
+service:
   type: ClusterIP
-  ports:
-    - name: webhook
-      port: 9443
-      targetPort: authz-server
-      protocol: TCP
+  port: 9443
 
-authzDeployment:
-  volumes:
-    - name: serving-certs
-      hostPath:
-        path: /etc/kubernetes/webhook/certs
-        type: Directory
-  volumeMounts:
-    - name: serving-certs
-      mountPath: /tmp/k8s-webhook-server/serving-certs
-      readOnly: true
-  containerPorts:
-    - name: authz-server
-      containerPort: 9443
-      protocol: TCP
-  containerEnv:
-    - name: AUTHZ_TLS_DISABLED
-      value: "false"
+tls:
+  # Set to false to disable auto-mounting of serving certs (e.g. local debugger running outside cluster).
+  # Set to true with useSecret=true to auto-mount the cert-manager Secret as serving-certs volume.
+  # Set to true with useSecret=false to supply the serving-certs volume yourself via volumes/volumeMounts.
+  enabled: true
+  # When enabled=true and useSecret=true, the chart mounts the cert-manager Secret as the serving-certs volume.
+  # When enabled=true and useSecret=false, supply the serving-certs volume/mount via volumes/volumeMounts below.
+  useSecret: true
+  # Name of the cert-manager generated Secret. Defaults to <fullname>-serving-certs.
+  secretName: ""
+
+# Additional volumes to add to the deployment.
+# Example for kind hostPath (tls.enabled=true, tls.useSecret=false):
+# volumes:
+#   - name: serving-certs
+#     hostPath:
+#       path: /etc/kubernetes/webhook/certs
+
+# Additional volumeMounts to add to the container.
+# Example for kind hostPath (tls.enabled=true, tls.useSecret=false):
+# volumeMounts:
+#   - name: serving-certs
+#     mountPath: /tmp/k8s-webhook-server/serving-certs
+#     readOnly: true
+
+# Additional environment variables.
+# env:
+#   - name: AUTHZ_TLS_DISABLED
+#     value: "true"
+env: []
+
+# Additional args to pass to the authz binary.
+# Use --webhook-client-ca-name="" to disable mTLS client cert verification.
+args: []
+
+resources: {}
+  # limits:
+  #   cpu: 500m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 10m
+  #   memory: 64Mi
+
+# When enabled, configures podAntiAffinity and topologySpreadConstraints for high availability.
+ha:
+  enabled: true
