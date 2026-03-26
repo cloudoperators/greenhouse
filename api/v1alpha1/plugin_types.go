@@ -140,6 +140,9 @@ const (
 	// ExposedServicesSyncedCondition reflects that the list of exposed services is up to date with the services defined in the Helm chart.
 	ExposedServicesSyncedCondition greenhousemetav1alpha1.ConditionType = "ExposedServicesSynced"
 
+	// ExposedServicesDisabledReason is used as a reason for ExposedServicesSyncedCondition when exposed services are disabled for the cluster.
+	ExposedServicesDisabledReason greenhousemetav1alpha1.ConditionReason = "ExposedServicesDisabled"
+
 	// HelmReleaseDeployedCondition reflects that the HelmRelease has been successfully released on the target cluster.
 	HelmReleaseDeployedCondition greenhousemetav1alpha1.ConditionType = "HelmReleaseDeployed"
 
