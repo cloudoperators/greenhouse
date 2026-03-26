@@ -5,7 +5,6 @@ package plugindefinition
 
 import (
 	"context"
-	"time"
 
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -94,8 +93,8 @@ func (r *PluginDefinitionReconciler) EnsureCreated(ctx context.Context, obj life
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	if replicationErr := ensureChartReplication(ctx, r.Client, pluginDef, pluginDef.Namespace); replicationErr != nil {
-		return ctrl.Result{RequeueAfter: 1 * time.Minute}, lifecycle.Success, nil //nolint:nilerr
+	if replicationErr := h.ensureChartReplication(ctx); replicationErr != nil {
+		return ctrl.Result{}, lifecycle.Failed, replicationErr
 	}
 
 	helmChart, err := h.createUpdateHelmChart(ctx, helmRepo)

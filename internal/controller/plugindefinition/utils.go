@@ -173,14 +173,14 @@ func (h *helmer) createUpdateHelmChart(ctx context.Context, helmRepo *sourcev1.H
 }
 
 // ensureChartReplication triggers replication for the Helm chart OCI artifact to the configured mirror registry.
-func ensureChartReplication(ctx context.Context, k8sClient client.Client, pluginDef common.GenericPluginDefinition, namespaceName string) error {
+func (h *helmer) ensureChartReplication(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
 	// Check if the chart is OCI before making any API calls — non-OCI charts cannot be replicated.
-	helmChart := pluginDef.GetPluginDefinitionSpec().HelmChart
+	helmChart := h.pluginDef.GetPluginDefinitionSpec().HelmChart
 	if !strings.HasPrefix(helmChart.Repository, "oci://") {
 		logger.V(1).Info("chart repository is not OCI, skipping replication", "repository", helmChart.Repository)
-		pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
+		h.pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
 			greenhousev1alpha1.OCIReplicationReadyCondition,
 			greenhousev1alpha1.OCIReplicationNotConfiguredReason,
 			"Chart replication only applies to OCI repositories"))
@@ -189,20 +189,20 @@ func ensureChartReplication(ctx context.Context, k8sClient client.Client, plugin
 
 	failReplication := func(err error, msg string) error {
 		logger.Error(err, msg)
-		pluginDef.SetCondition(greenhousemetav1alpha1.FalseCondition(
+		h.pluginDef.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.OCIReplicationReadyCondition,
 			greenhousev1alpha1.OCIReplicationFailedReason,
 			msg+": "+err.Error()))
 		return err
 	}
 
-	mirrorConfig, err := ocimirror.GetRegistryMirrorConfig(ctx, k8sClient, namespaceName)
+	mirrorConfig, err := ocimirror.GetRegistryMirrorConfig(ctx, h.k8sClient, h.namespaceName)
 	if err != nil {
 		return failReplication(err, "failed to get registry mirror config")
 	}
 
 	if mirrorConfig == nil || len(mirrorConfig.RegistryMirrors) == 0 {
-		pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
+		h.pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
 			greenhousev1alpha1.OCIReplicationReadyCondition,
 			greenhousev1alpha1.OCIReplicationNotConfiguredReason,
 			"OCI replication is not configured"))
@@ -212,7 +212,7 @@ func ensureChartReplication(ctx context.Context, k8sClient client.Client, plugin
 	registry, chartName, version := parseChartRef(helmChart)
 
 	// Skip replication if the current chart version was already replicated (idempotency).
-	if artifact := pluginDef.GetLastSyncedArtifact(); artifact != nil &&
+	if artifact := h.pluginDef.GetLastSyncedArtifact(); artifact != nil &&
 		artifact.Registry == registry &&
 		artifact.ChartName == chartName &&
 		artifact.Version == version &&
@@ -221,7 +221,7 @@ func ensureChartReplication(ctx context.Context, k8sClient client.Client, plugin
 		return nil
 	}
 
-	replicator, err := ocimirror.NewOCIReplicator(ctx, k8sClient, mirrorConfig, namespaceName)
+	replicator, err := ocimirror.NewOCIReplicator(ctx, h.k8sClient, mirrorConfig, h.namespaceName)
 	if err != nil {
 		return failReplication(err, "failed to create OCI replicator")
 	}
@@ -230,7 +230,7 @@ func ensureChartReplication(ctx context.Context, k8sClient client.Client, plugin
 	mirroredRef := replicator.BuildMirroredOCIRef(chartRef)
 	if mirroredRef == "" {
 		logger.Info("no mirror configured for chart registry, skipping replication", "chart", chartRef)
-		pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
+		h.pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
 			greenhousev1alpha1.OCIReplicationReadyCondition,
 			greenhousev1alpha1.OCIReplicationNotConfiguredReason,
 			"No mirror configured for chart registry"))
@@ -244,14 +244,14 @@ func ensureChartReplication(ctx context.Context, k8sClient client.Client, plugin
 
 	digest := fmt.Sprintf("sha256:%x", sha256.Sum256(manifest))
 
-	pluginDef.SetLastSyncedArtifact(&greenhousev1alpha1.LastSyncedArtifact{
+	h.pluginDef.SetLastSyncedArtifact(&greenhousev1alpha1.LastSyncedArtifact{
 		Registry:          registry,
 		ChartName:         chartName,
 		Version:           version,
 		Digest:            digest,
 		ReplicationStatus: greenhousev1alpha1.ReplicationStatusReplicated,
 	})
-	pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
+	h.pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
 		greenhousev1alpha1.OCIReplicationReadyCondition,
 		greenhousev1alpha1.OCIReplicationSucceededReason,
 		"Chart replicated successfully: "+chartRef))
