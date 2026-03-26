@@ -7,11 +7,19 @@ metadata:
   name: {{ include "authz.fullname" . }}
   labels:
     {{- include "authz.labels" . | nindent 4 }}
-spec:
-  type: {{ .Values.authzService.type }}
-  {{- with .Values.authzService.ports }}
-  ports:
-    {{- toYaml . | nindent 4 }}
+  {{- with include "authz.annotations" . }}
+  annotations:
+    {{- . | nindent 4 }}
   {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: webhook
+      port: {{ .Values.service.port }}
+      targetPort: webhook
+      protocol: TCP
+      {{- if .Values.service.nodePort }}
+      nodePort: {{ .Values.service.nodePort }}
+      {{- end }}
   selector:
     {{- include "authz.selectorLabels" . | nindent 4 }}

@@ -1,0 +1,536 @@
+{
+  "kind": "Dashboard",
+  "metadata": {
+    "name": "authz",
+    "project": "greenhouse"
+  },
+  "spec": {
+    "display": {
+      "name": "Greenhouse Authz Webhook",
+      "description": "Authorization webhook metrics — request outcomes, denial reasons, latency, and access patterns by support group"
+    },
+    "variables": [
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "name": "support_group",
+          "display": {
+            "name": "Support Group",
+            "hidden": false
+          },
+          "defaultValue": "$__all",
+          "allowAllValue": true,
+          "allowMultiple": true,
+          "sort": "alphabetical-ci-asc",
+          "plugin": {
+            "kind": "PrometheusLabelValuesVariable",
+            "spec": {
+              "labelName": "support_group",
+              "matchers": ["greenhouse_authz_access_total"]
+            }
+          }
+        }
+      }
+    ],
+    "panels": {
+      "stat_total": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Total Requests",
+            "description": "Total authorization requests"
+          },
+          "plugin": {
+            "kind": "StatChart",
+            "spec": {
+              "calculation": "last",
+              "format": { "unit": "decimal" },
+              "valueFontSize": 64
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "sum(greenhouse_authz_requests_total)",
+                    "seriesNameFormat": "Total"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "stat_allowed": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Allowed",
+            "description": "Total allowed requests"
+          },
+          "plugin": {
+            "kind": "StatChart",
+            "spec": {
+              "calculation": "last",
+              "format": { "unit": "decimal" },
+              "valueFontSize": 64,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "value": 0, "color": "#388e3c" }
+                ]
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "sum(greenhouse_authz_requests_total{result=\"allowed\"})",
+                    "seriesNameFormat": "Allowed"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "stat_denied": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Denied",
+            "description": "Total denied requests"
+          },
+          "plugin": {
+            "kind": "StatChart",
+            "spec": {
+              "calculation": "last",
+              "format": { "unit": "decimal" },
+              "valueFontSize": 64,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "value": 0, "color": "#388e3c" },
+                  { "value": 1, "color": "#d32f2f" }
+                ]
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "sum(greenhouse_authz_requests_total{result=\"denied\"})",
+                    "seriesNameFormat": "Denied"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "stat_p50": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "P50 Latency",
+            "description": "50th percentile (median) request duration"
+          },
+          "plugin": {
+            "kind": "StatChart",
+            "spec": {
+              "calculation": "last-number",
+              "format": { "unit": "milliseconds", "decimalPlaces": 1 },
+              "valueFontSize": 64,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "value": 0, "color": "#388e3c" },
+                  { "value": 100, "color": "#f57c00" },
+                  { "value": 500, "color": "#d32f2f" }
+                ]
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "histogram_quantile(0.50, sum by (le) (rate(greenhouse_authz_request_duration_seconds_bucket[5m]))) * 1000",
+                    "seriesNameFormat": "P50"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "stat_p95": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "P95 Latency",
+            "description": "95th percentile request duration"
+          },
+          "plugin": {
+            "kind": "StatChart",
+            "spec": {
+              "calculation": "last-number",
+              "format": { "unit": "milliseconds", "decimalPlaces": 1 },
+              "valueFontSize": 64,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "value": 0, "color": "#388e3c" },
+                  { "value": 100, "color": "#f57c00" },
+                  { "value": 500, "color": "#d32f2f" }
+                ]
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "histogram_quantile(0.95, sum by (le) (rate(greenhouse_authz_request_duration_seconds_bucket[5m]))) * 1000",
+                    "seriesNameFormat": "P95"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "stat_p99": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "P99 Latency",
+            "description": "99th percentile request duration"
+          },
+          "plugin": {
+            "kind": "StatChart",
+            "spec": {
+              "calculation": "last-number",
+              "format": { "unit": "milliseconds", "decimalPlaces": 1 },
+              "valueFontSize": 64,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "value": 0, "color": "#388e3c" },
+                  { "value": 100, "color": "#f57c00" },
+                  { "value": 500, "color": "#d32f2f" }
+                ]
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "histogram_quantile(0.99, sum by (le) (rate(greenhouse_authz_request_duration_seconds_bucket[5m]))) * 1000",
+                    "seriesNameFormat": "P99"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "ts_request_rate": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Request Rate",
+            "description": "Requests per second by result"
+          },
+          "plugin": {
+            "kind": "TimeSeriesChart",
+            "spec": {
+              "legend": { "position": "bottom", "mode": "list" },
+              "yAxis": { "format": { "unit": "requests/sec" } }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "sum by (result) (rate(greenhouse_authz_requests_total[5m]))",
+                    "seriesNameFormat": "{{result}}"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "ts_latency": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Request Latency",
+            "description": "P50, P95, P99 request duration"
+          },
+          "plugin": {
+            "kind": "TimeSeriesChart",
+            "spec": {
+              "legend": { "position": "bottom", "mode": "list" },
+              "yAxis": { "format": { "unit": "milliseconds" } }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "histogram_quantile(0.50, sum by (le) (rate(greenhouse_authz_request_duration_seconds_bucket[5m]))) * 1000",
+                    "seriesNameFormat": "P50"
+                  }
+                }
+              }
+            },
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "histogram_quantile(0.95, sum by (le) (rate(greenhouse_authz_request_duration_seconds_bucket[5m]))) * 1000",
+                    "seriesNameFormat": "P95"
+                  }
+                }
+              }
+            },
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "histogram_quantile(0.99, sum by (le) (rate(greenhouse_authz_request_duration_seconds_bucket[5m]))) * 1000",
+                    "seriesNameFormat": "P99"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "ts_denial_reasons": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Denial Reasons",
+            "description": "Denied requests broken down by reason"
+          },
+          "plugin": {
+            "kind": "TimeSeriesChart",
+            "spec": {
+              "legend": { "position": "bottom", "mode": "list" },
+              "yAxis": { "format": { "unit": "decimal" } }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "sum by (reason) (rate(greenhouse_authz_denied_total[5m]))",
+                    "seriesNameFormat": "{{reason}}"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "ts_access_by_group": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Access by Support Group",
+            "description": "Allowed and denied requests per support group"
+          },
+          "plugin": {
+            "kind": "TimeSeriesChart",
+            "spec": {
+              "legend": { "position": "bottom", "mode": "list" },
+              "yAxis": { "format": { "unit": "decimal" } }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "sum by (support_group, result) (rate(greenhouse_authz_access_total{support_group=~\"$support_group\"}[5m]))",
+                    "seriesNameFormat": "{{support_group}} / {{result}}"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "ts_kube_errors": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Kube Fetch Errors",
+            "description": "Errors fetching objects from the Kubernetes API"
+          },
+          "plugin": {
+            "kind": "TimeSeriesChart",
+            "spec": {
+              "legend": { "position": "bottom", "mode": "list" },
+              "yAxis": { "format": { "unit": "decimal" } }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "sum by (reason) (rate(greenhouse_authz_kube_fetch_errors_total[5m]))",
+                    "seriesNameFormat": "{{reason}}"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "ts_kind_errors": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Kind Resolution Errors",
+            "description": "Errors resolving GVR to GVK"
+          },
+          "plugin": {
+            "kind": "TimeSeriesChart",
+            "spec": {
+              "legend": { "position": "bottom", "mode": "list" },
+              "yAxis": { "format": { "unit": "decimal" } }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "sum(rate(greenhouse_authz_kind_resolution_errors_total[5m]))",
+                    "seriesNameFormat": "kind resolution errors"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "layouts": [
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "Overview",
+            "collapse": { "open": true }
+          },
+          "items": [
+            { "x": 0,  "y": 0, "width": 8,  "height": 4, "content": { "$ref": "#/spec/panels/stat_total" } },
+            { "x": 8,  "y": 0, "width": 8,  "height": 4, "content": { "$ref": "#/spec/panels/stat_allowed" } },
+            { "x": 16, "y": 0, "width": 8,  "height": 4, "content": { "$ref": "#/spec/panels/stat_denied" } }
+          ]
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "Latency Percentiles",
+            "collapse": { "open": true }
+          },
+          "items": [
+            { "x": 0,  "y": 0, "width": 8,  "height": 4, "content": { "$ref": "#/spec/panels/stat_p50" } },
+            { "x": 8,  "y": 0, "width": 8,  "height": 4, "content": { "$ref": "#/spec/panels/stat_p95" } },
+            { "x": 16, "y": 0, "width": 8,  "height": 4, "content": { "$ref": "#/spec/panels/stat_p99" } }
+          ]
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "Request Traffic",
+            "collapse": { "open": true }
+          },
+          "items": [
+            { "x": 0,  "y": 0, "width": 12, "height": 8, "content": { "$ref": "#/spec/panels/ts_request_rate" } },
+            { "x": 12, "y": 0, "width": 12, "height": 8, "content": { "$ref": "#/spec/panels/ts_latency" } }
+          ]
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "Access Patterns",
+            "collapse": { "open": true }
+          },
+          "items": [
+            { "x": 0,  "y": 0, "width": 12, "height": 8, "content": { "$ref": "#/spec/panels/ts_access_by_group" } },
+            { "x": 12, "y": 0, "width": 12, "height": 8, "content": { "$ref": "#/spec/panels/ts_denial_reasons" } }
+          ]
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "Errors",
+            "collapse": { "open": true }
+          },
+          "items": [
+            { "x": 0,  "y": 0, "width": 12, "height": 8, "content": { "$ref": "#/spec/panels/ts_kube_errors" } },
+            { "x": 12, "y": 0, "width": 12, "height": 8, "content": { "$ref": "#/spec/panels/ts_kind_errors" } }
+          ]
+        }
+      }
+    ],
+    "duration": "1h",
+    "refreshInterval": "30s"
+  }
+}
