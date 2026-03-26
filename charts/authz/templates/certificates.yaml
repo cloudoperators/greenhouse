@@ -1,0 +1,94 @@
+# SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+{{- if and .Values.tls.enabled .Values.tls.useSecret }}
+---
+# Self-signed bootstrap issuer for the CA
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ include "authz.fullname" . }}-ca-bootstrap
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "authz.labels" . | nindent 4 }}
+spec:
+  selfSigned: {}
+---
+# CA certificate
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "authz.fullname" . }}-ca
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "authz.labels" . | nindent 4 }}
+spec:
+  isCA: true
+  commonName: {{ include "authz.fullname" . }}-ca
+  secretName: {{ include "authz.fullname" . }}-ca
+  privateKey:
+    algorithm: RSA
+    size: 2048
+  issuerRef:
+    name: {{ include "authz.fullname" . }}-ca-bootstrap
+    kind: Issuer
+---
+# CA-backed issuer for serving and client certs
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ include "authz.fullname" . }}-ca
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "authz.labels" . | nindent 4 }}
+spec:
+  ca:
+    secretName: {{ include "authz.fullname" . }}-ca
+---
+# Serving cert for the authz Deployment
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "authz.servingCertsSecretName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "authz.labels" . | nindent 4 }}
+spec:
+  secretName: {{ include "authz.servingCertsSecretName" . }}
+  commonName: {{ include "authz.fullname" . }}
+  dnsNames:
+    - {{ include "authz.fullname" . }}
+    - {{ include "authz.fullname" . }}.{{ .Release.Namespace }}
+    - {{ include "authz.fullname" . }}.{{ .Release.Namespace }}.svc
+    - {{ include "authz.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
+  duration: 2160h
+  renewBefore: 360h
+  privateKey:
+    algorithm: RSA
+    size: 2048
+  issuerRef:
+    name: {{ include "authz.fullname" . }}-ca
+    kind: Issuer
+---
+# Client cert for kube-apiserver mTLS to the authz webhook
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "authz.fullname" . }}-apiserver-client
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "authz.labels" . | nindent 4 }}
+spec:
+  secretName: {{ include "authz.fullname" . }}-apiserver-client
+  commonName: kube-apiserver
+  usages:
+    - client auth
+  duration: 2160h
+  renewBefore: 360h
+  privateKey:
+    algorithm: RSA
+    size: 2048
+  issuerRef:
+    name: {{ include "authz.fullname" . }}-ca
+    kind: Issuer
+{{- end }}

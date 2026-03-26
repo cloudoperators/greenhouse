@@ -1,0 +1,35 @@
+# SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+image:
+  repository: greenhouse/manager
+  tag: local
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  type: NodePort
+  port: 9443
+  nodePort: 32443
+
+tls:
+  enabled: true
+  useSecret: false
+
+volumes:
+  - name: serving-certs
+    hostPath:
+      path: /etc/kubernetes/webhook/certs
+      type: Directory
+
+volumeMounts:
+  - name: serving-certs
+    mountPath: /tmp/k8s-webhook-server/serving-certs
+
+env:
+  - name: AUTHZ_TLS_DISABLED
+    value: "true"
+
+ha:
+  enabled: false

@@ -783,10 +783,12 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			Expect(clusterAKubeClient.Update(test.Ctx, remoteClusterRoleBinding)).To(Succeed(), "there should be no error updating the ClusterRoleBinding on the remote cluster")
 
 			By("triggering the reconcile of the central cluster TeamRoleBinding with a noop update")
-			Expect(k8sClient.Get(test.Ctx, types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}, trb)).To(Succeed(), "there should be no error getting the TeamRoleBinding from the central cluster")
-			// changing the labels to trigger the reconciliation in this test.
-			trb.SetLabels(map[string]string{"foo": "bar"})
-			Expect(k8sClient.Update(test.Ctx, trb)).To(Succeed(), "there should be no error updating the TeamRoleBinding on the central cluster")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(test.Ctx, types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}, trb)).To(Succeed(), "there should be no error getting the TeamRoleBinding from the central cluster")
+				// changing the labels to trigger the reconciliation in this test.
+				trb.SetLabels(map[string]string{"foo": "bar"})
+				g.Expect(k8sClient.Update(test.Ctx, trb)).To(Succeed(), "there should be no error updating the TeamRoleBinding on the central cluster")
+			}).Should(Succeed(), "there should be no error updating the TeamRoleBinding on the central cluster")
 
 			Eventually(func(g Gomega) bool {
 				g.Expect(clusterAKubeClient.Get(test.Ctx, remoteClusterRoleBindingName, remoteClusterRoleBinding)).To(Succeed(), "there should be no error getting the ClusterRoleBinding from the remote cluster")

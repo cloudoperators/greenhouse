@@ -53,6 +53,9 @@ helm.sh/chart: {{ include "authz.chart" . }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- with .Values.commonLabels }}
+{{ toYaml . }}
+{{- end }}
 {{- end }}
 
 {{/*
@@ -71,5 +74,21 @@ Create the name of the service account to use
 {{- default (include "authz.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
+{{- end }}
+{{- end }}
+
+{{/*
+Create the name of the serving certs secret to use
+*/}}
+{{- define "authz.servingCertsSecretName" -}}
+{{- default (printf "%s-serving-certs" (include "authz.fullname" .)) .Values.tls.secretName }}
+{{- end }}
+
+{{/*
+Annotations
+*/}}
+{{- define "authz.annotations" -}}
+{{- with .Values.commonAnnotations }}
+{{ toYaml . }}
 {{- end }}
 {{- end }}
