@@ -113,12 +113,10 @@ func (r *OrganizationReconciler) reconcileDexConnector(ctx context.Context, org 
 	var userNameKey = "login_name"
 	var skipEmailVerified = false
 	if org.Spec.Authentication.OIDCConfig.ExtraConfig != nil {
-		if org.Spec.Authentication.OIDCConfig.ExtraConfig.UserIDClaim == "" {
+		if org.Spec.Authentication.OIDCConfig.ExtraConfig.UserIDClaim != "" {
 			userNameKey = org.Spec.Authentication.OIDCConfig.ExtraConfig.UserIDClaim
 		}
-		if org.Spec.Authentication.OIDCConfig.ExtraConfig != nil {
-			skipEmailVerified = org.Spec.Authentication.OIDCConfig.ExtraConfig.InsecureSkipEmailVerified
-		}
+		skipEmailVerified = org.Spec.Authentication.OIDCConfig.ExtraConfig.InsecureSkipEmailVerified
 	}
 	oidcConfig := &oidc.Config{
 		Issuer:                    org.Spec.Authentication.OIDCConfig.Issuer,

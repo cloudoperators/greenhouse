@@ -458,15 +458,9 @@ export interface components {
                         /** @description Name of the node. */
                         name: string;
                     }[];
-                    /**
-                     * Format: int32
-                     * @description ReadyNodes represent the number of ready nodes in the cluster.
-                     */
+                    /** @description ReadyNodes represent the number of ready nodes in the cluster. */
                     ready?: number;
-                    /**
-                     * Format: int32
-                     * @description Total represent the number of all the nodes in the cluster.
-                     */
+                    /** @description Total represent the number of all the nodes in the cluster. */
                     total?: number;
                 };
                 /** @description StatusConditions contain the different conditions that constitute the status of the Cluster. */
@@ -546,12 +540,21 @@ export interface components {
                             /** @description Name of the secret in the same namespace. */
                             name: string;
                         };
-                        /**
-                         * @description InsecureSkipEmailVerified allows to skip the verification of the "email_verified" claim in ID tokens.
-                         * @default false
-                         * @enum {boolean}
-                         */
-                        insecureSkipEmailVerified: true | false;
+                        /** @description ExtraConfig contains additional OIDC configuration for claim mapping and token validation behavior. */
+                        extraConfig?: {
+                            /**
+                             * @description InsecureSkipEmailVerified if set to true, treats email_verified as true when the claim is absent from the ID token.
+                             *     This does not override an explicit email_verified=false. Only enable for providers that omit the claim entirely (e.g. some Okta, EntraID or CloudFoundry configurations).
+                             * @default false
+                             */
+                            insecureSkipEmailVerified: boolean;
+                            /**
+                             * @description UserIDClaim is the claim to be used as both user ID and username.
+                             *     When set, it overrides both UserIDKey and UserNameKey in the dex OIDC connector config.
+                             * @default login_name
+                             */
+                            userIDClaim: string;
+                        };
                         /** @description Issuer is the URL of the identity service. */
                         issuer: string;
                         /**
@@ -564,11 +567,6 @@ export interface components {
                          *     If none is specified, the Greenhouse ID proxy will be used.
                          */
                         redirectURI?: string;
-                        /**
-                         * @description UserIDClaim is the claim to be used as user ID.
-                         * @default login_name
-                         */
-                        userIDClaim: string;
                     };
                     /** @description SCIMConfig configures the SCIM client. */
                     scim?: {
@@ -1467,8 +1465,13 @@ export interface components {
                  *     If empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace.
                  */
                 namespaces?: string[];
-                /** @description TeamRef references a Greenhouse Team by name */
+                /**
+                 * @description Deprecated: Use TeamRefs instead.
+                 *     TeamRef references a Greenhouse Team by name
+                 */
                 teamRef?: string;
+                /** @description TeamRefs references Greenhouse Teams by name */
+                teamRefs?: string[];
                 /** @description TeamRoleRef references a Greenhouse TeamRole by name */
                 teamRoleRef?: string;
                 /** @description Usernames defines list of users to add to the (Cluster-)RoleBindings */

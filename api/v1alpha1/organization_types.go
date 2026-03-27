@@ -85,16 +85,17 @@ type OIDCConfig struct {
 	// OAuth2ClientRedirectURIs are a registered set of redirect URIs. When redirecting from the idproxy to
 	// the client application, the URI requested to redirect to must be contained in this list.
 	OAuth2ClientRedirectURIs []string `json:"oauth2ClientRedirectURIs,omitempty"`
-	// ExtraClaims contains additional configuration for extra claims.
+	// ExtraConfig contains additional OIDC configuration for claim mapping and token validation behavior.
 	ExtraConfig *OIDCExtraConfig `json:"extraConfig,omitempty"`
 }
 
 type OIDCExtraConfig struct {
-	// InsecureSkipEmailVerified allows to skip the verification of the "email_verified" claim in ID tokens.
+	// InsecureSkipEmailVerified if set to true, treats email_verified as true when the claim is absent from the ID token.
+	// This does not override an explicit email_verified=false. Only enable for providers that omit the claim entirely (e.g. some Okta, EntraID or CloudFoundry configurations).
 	// +kubebuilder:default:=false
-	// +kubebuilder:validation:Enum:=true;false
 	InsecureSkipEmailVerified bool `json:"insecureSkipEmailVerified,omitempty"`
-	// UserIDClaim is the claim to be used as user ID.
+	// UserIDClaim is the claim to be used as both user ID and username.
+	// When set, it overrides both UserIDKey and UserNameKey in the dex OIDC connector config.
 	// +kubebuilder:default:="login_name"
 	UserIDClaim string `json:"userIDClaim,omitempty"`
 }

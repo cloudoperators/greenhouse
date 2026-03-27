@@ -2001,7 +2001,7 @@ OIDCExtraConfig
 </em>
 </td>
 <td>
-<p>ExtraClaims contains additional configuration for extra claims.</p>
+<p>ExtraConfig contains additional OIDC configuration for claim mapping and token validation behavior.</p>
 </td>
 </tr>
 </tbody>
@@ -2032,7 +2032,8 @@ bool
 </em>
 </td>
 <td>
-<p>InsecureSkipEmailVerified allows to skip the verification of the &ldquo;email_verified&rdquo; claim in ID tokens.</p>
+<p>InsecureSkipEmailVerified if set to true, treats email_verified as true when the claim is absent from the ID token.
+This does not override an explicit email_verified=false. Only enable for providers that omit the claim entirely (e.g. some Okta, EntraID or CloudFoundry configurations).</p>
 </td>
 </tr>
 <tr>
@@ -2043,7 +2044,8 @@ string
 </em>
 </td>
 <td>
-<p>UserIDClaim is the claim to be used as user ID.</p>
+<p>UserIDClaim is the claim to be used as both user ID and username.
+When set, it overrides both UserIDKey and UserNameKey in the dex OIDC connector config.</p>
 </td>
 </tr>
 </tbody>

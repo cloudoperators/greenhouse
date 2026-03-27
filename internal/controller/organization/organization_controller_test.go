@@ -4,10 +4,12 @@
 package organization_test
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"slices"
 
+	dexoidc "github.com/dexidp/dex/connector/oidc"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -388,6 +390,61 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 					MatchFields(IgnoreExtras, Fields{"ID": Equal(oidcOrg.Name)}),
 				), "the oauth client list should not contain the deleted organization")
 			}
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
+		})
+
+		It("should propagate ExtraConfig to dex connector", func() {
+			team := setup.CreateTeam(test.Ctx, "test-team-extra", test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
+
+			defaultOrg := setup.CreateDefaultOrgWithOIDCSecret(test.Ctx, team.Name)
+			test.EventuallyCreated(test.Ctx, test.K8sClient, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: defaultOrg.Name}})
+			Eventually(func(g Gomega) {
+				err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: defaultOrg.Name}, defaultOrg)
+				g.Expect(err).ToNot(HaveOccurred())
+				oidcCondition := defaultOrg.Status.GetConditionByType(greenhousev1alpha1.OrganizationOICDConfigured)
+				g.Expect(oidcCondition).ToNot(BeNil())
+				g.Expect(oidcCondition.IsTrue()).To(BeTrue())
+			}).Should(Succeed())
+
+			By("creating a test organization with ExtraConfig")
+			extraConfigOrg := setup.CreateOrganization(test.Ctx, "test-extraconfig-org", test.WithMappedAdminIDPGroup("EXTRA_CONFIG_GROUP"))
+			test.EventuallyCreated(test.Ctx, test.K8sClient, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: extraConfigOrg.Name}})
+
+			oidcSecret := setup.CreateOrgOIDCSecret(test.Ctx, extraConfigOrg.Name, team.Name)
+			extraConfigOrg = setup.UpdateOrganization(test.Ctx,
+				extraConfigOrg.Name,
+				test.WithOIDCConfig(test.OIDCIssuer, oidcSecret.Name, test.OIDCClientIDKey, test.OIDCClientSecretKey),
+				test.WithOIDCExtraConfig("email", true),
+			)
+
+			By("checking Organization OIDC status is ready")
+			Eventually(func(g Gomega) {
+				err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: extraConfigOrg.Name}, extraConfigOrg)
+				g.Expect(err).ToNot(HaveOccurred())
+				oidcCondition := extraConfigOrg.Status.GetConditionByType(greenhousev1alpha1.OrganizationOICDConfigured)
+				g.Expect(oidcCondition).ToNot(BeNil(), "OrganizationOICDConfigured should be set")
+				g.Expect(oidcCondition.IsTrue()).To(BeTrue(), "OrganizationOICDConfigured should be True")
+			}).Should(Succeed())
+
+			if DexStorageType == dex.K8s {
+				By("verifying the dex connector config contains ExtraConfig values")
+				connectors := &dexapi.ConnectorList{}
+				err := setup.List(test.Ctx, connectors)
+				Expect(err).ToNot(HaveOccurred())
+
+				filteredConnectors := slices.DeleteFunc(connectors.Items, func(c dexapi.Connector) bool {
+					return c.ID != extraConfigOrg.Name
+				})
+				Expect(filteredConnectors).To(HaveLen(1), "there should be exactly one connector for the org")
+
+				var connectorConfig dexoidc.Config
+				Expect(json.Unmarshal(filteredConnectors[0].Config, &connectorConfig)).To(Succeed(), "connector config should be valid JSON")
+				Expect(connectorConfig.UserNameKey).To(Equal("email"), "UserNameKey should be set to the custom claim")
+				Expect(connectorConfig.UserIDKey).To(Equal("email"), "UserIDKey should be set to the custom claim")
+				Expect(connectorConfig.InsecureSkipEmailVerified).To(BeTrue(), "InsecureSkipEmailVerified should be true")
+			}
+
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, &greenhousev1alpha1.Organization{ObjectMeta: metav1.ObjectMeta{Name: extraConfigOrg.Name}})
 			test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
 		})
 	})
