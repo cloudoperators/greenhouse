@@ -60,5 +60,5 @@ Or access your logs sink for Greenhouse logs.
 
 ## Additional Resources
 
-- [Greenhouse Cluster Documentation](../../reference/api/cluster.md)
+- [Greenhouse Cluster Documentation](../../../../reference/components/cluster)
 - [Kubernetes Cluster Troubleshooting](https://kubernetes.io/docs/tasks/debug/)

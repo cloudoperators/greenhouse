@@ -783,10 +783,12 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			Expect(clusterAKubeClient.Update(test.Ctx, remoteClusterRoleBinding)).To(Succeed(), "there should be no error updating the ClusterRoleBinding on the remote cluster")
 
 			By("triggering the reconcile of the central cluster TeamRoleBinding with a noop update")
-			Expect(k8sClient.Get(test.Ctx, types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}, trb)).To(Succeed(), "there should be no error getting the TeamRoleBinding from the central cluster")
-			// changing the labels to trigger the reconciliation in this test.
-			trb.SetLabels(map[string]string{"foo": "bar"})
-			Expect(k8sClient.Update(test.Ctx, trb)).To(Succeed(), "there should be no error updating the TeamRoleBinding on the central cluster")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(test.Ctx, types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}, trb)).To(Succeed(), "there should be no error getting the TeamRoleBinding from the central cluster")
+				// changing the labels to trigger the reconciliation in this test.
+				trb.SetLabels(map[string]string{"foo": "bar"})
+				g.Expect(k8sClient.Update(test.Ctx, trb)).To(Succeed(), "there should be no error updating the TeamRoleBinding on the central cluster")
+			}).Should(Succeed(), "there should be no error updating the TeamRoleBinding on the central cluster")
 
 			Eventually(func(g Gomega) bool {
 				g.Expect(clusterAKubeClient.Get(test.Ctx, remoteClusterRoleBindingName, remoteClusterRoleBinding)).To(Succeed(), "there should be no error getting the ClusterRoleBinding from the remote cluster")
@@ -1039,6 +1041,210 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 
 			By("cleaning up the test")
 			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
+		})
+	})
+
+	Context("When referenced TeamRole or Team does not yet exist", func() {
+		It("should set RBACReady=False with TeamRoleNotFound when the referenced TeamRole does not exist", func() {
+			By("creating a TeamRoleBinding referencing a non-existent TeamRole")
+			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-missing-teamrole",
+				test.WithTeamRoleRef("non-existent-teamrole"),
+				test.WithTeamRef(teamUT.Name),
+				test.WithClusterName(clusterA.Name))
+			trbKey := types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}
+
+			By("validating the TeamRoleBinding status reflects the missing TeamRole")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(test.Ctx, trbKey, trb)).To(Succeed(), "there should be no error getting the TeamRoleBinding")
+				rbacReadyCondition := trb.Status.GetConditionByType(greenhousev1alpha2.RBACReady)
+				g.Expect(rbacReadyCondition).ToNot(BeNil(), "RBACReady condition on TeamRoleBinding should not be nil")
+				g.Expect(rbacReadyCondition.Status).To(Equal(metav1.ConditionFalse), "RBACReady condition should be False when TeamRole is missing")
+				g.Expect(rbacReadyCondition.Reason).To(Equal(greenhousev1alpha2.TeamRoleNotFound), "RBACReady condition reason should be TeamRoleNotFound")
+				g.Expect(rbacReadyCondition.Message).To(ContainSubstring("non-existent-teamrole"), "RBACReady condition message should reference the missing TeamRole")
+			}).Should(Succeed(), "the TeamRoleBinding status should reflect the missing TeamRole")
+
+			By("cleaning up the test")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
+		})
+
+		It("should set RBACReady=False with TeamNotFound when the referenced Team does not exist", func() {
+			By("creating a TeamRoleBinding referencing a non-existent Team")
+			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-missing-team",
+				test.WithTeamRoleRef(teamRoleUT.Name),
+				test.WithTeamRefs("non-existent-team"),
+				test.WithClusterName(clusterA.Name))
+			trbKey := types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}
+
+			By("validating the TeamRoleBinding status reflects the missing Team")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(test.Ctx, trbKey, trb)).To(Succeed(), "there should be no error getting the TeamRoleBinding")
+				rbacReadyCondition := trb.Status.GetConditionByType(greenhousev1alpha2.RBACReady)
+				g.Expect(rbacReadyCondition).ToNot(BeNil(), "RBACReady condition on TeamRoleBinding should not be nil")
+				g.Expect(rbacReadyCondition.Status).To(Equal(metav1.ConditionFalse), "RBACReady condition should be False when Team is missing")
+				g.Expect(rbacReadyCondition.Reason).To(Equal(greenhousev1alpha2.TeamNotFound), "RBACReady condition reason should be TeamNotFound")
+				g.Expect(rbacReadyCondition.Message).To(ContainSubstring("non-existent-team"), "RBACReady condition message should reference the missing Team")
+			}).Should(Succeed(), "the TeamRoleBinding status should reflect the missing Team")
+
+			By("cleaning up the test")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
+		})
+
+		It("should reconcile successfully once the missing TeamRole is created", func() {
+			lateTeamRoleName := setup.RandomizeName("late-teamrole")
+
+			By("creating a TeamRoleBinding referencing a non-existent TeamRole")
+			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-late-teamrole",
+				test.WithTeamRoleRef(lateTeamRoleName),
+				test.WithTeamRef(teamUT.Name),
+				test.WithClusterName(clusterA.Name))
+			trbKey := types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}
+
+			By("confirming the TeamRoleBinding status reflects the missing TeamRole")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(test.Ctx, trbKey, trb)).To(Succeed())
+				rbacReadyCondition := trb.Status.GetConditionByType(greenhousev1alpha2.RBACReady)
+				g.Expect(rbacReadyCondition).ToNot(BeNil())
+				g.Expect(rbacReadyCondition.Status).To(Equal(metav1.ConditionFalse))
+				g.Expect(rbacReadyCondition.Reason).To(Equal(greenhousev1alpha2.TeamRoleNotFound))
+			}).Should(Succeed(), "the TeamRoleBinding should report TeamRoleNotFound")
+
+			By("creating the missing TeamRole with the exact pre-computed name")
+			lateTeamRole := test.NewTeamRole(test.Ctx, lateTeamRoleName, setup.Namespace(), test.WithRules(teamRoleUT.Spec.Rules))
+			Expect(k8sClient.Create(test.Ctx, lateTeamRole)).To(Succeed(), "there should be no error creating the late TeamRole")
+
+			By("validating the TeamRoleBinding reconciles successfully after the TeamRole is created")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(test.Ctx, trbKey, trb)).To(Succeed())
+				rbacReadyCondition := trb.Status.GetConditionByType(greenhousev1alpha2.RBACReady)
+				g.Expect(rbacReadyCondition).ToNot(BeNil())
+				g.Expect(rbacReadyCondition.Status).To(Equal(metav1.ConditionTrue), "RBACReady condition should become True once TeamRole exists")
+				g.Expect(rbacReadyCondition.Reason).To(Equal(greenhousev1alpha2.RBACReconciled))
+			}).Should(Succeed(), "the TeamRoleBinding should reconcile successfully once the TeamRole is created")
+
+			By("cleaning up the test")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, lateTeamRole)
+		})
+	})
+
+	Context("When creating a TeamRoleBinding with multiple teamRefs", func() {
+		It("should create ClusterRoleBindings with subjects from all teams", func() {
+			teamB := setup.CreateTeam(test.Ctx, "test-team-b", test.WithMappedIDPGroup("test-team-b-idp-group"))
+
+			By("creating a TeamRoleBinding with multiple teamRefs")
+			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-multi-team-trb",
+				test.WithTeamRoleRef(teamRoleUT.Name),
+				test.WithTeamRefs(teamUT.Name, teamB.Name),
+				test.WithClusterName(clusterA.Name),
+				test.WithUsernames([]string{"test-user-1"}))
+
+			By("validating the ClusterRoleBinding has subjects from both teams")
+			remoteRoleBinding := &rbacv1.ClusterRoleBinding{}
+			remoteRoleBindingName := types.NamespacedName{Name: trb.GetRBACName()}
+			Eventually(func(g Gomega) {
+				g.Expect(clusterAKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)).To(Succeed())
+				g.Expect(remoteRoleBinding.Subjects).To(HaveLen(3))
+				g.Expect(remoteRoleBinding.Subjects).To(ContainElement(HaveField("Name", "test-user-1")))
+				g.Expect(remoteRoleBinding.Subjects).To(ContainElement(HaveField("Name", testTeamIDPGroup)))
+				g.Expect(remoteRoleBinding.Subjects).To(ContainElement(HaveField("Name", "test-team-b-idp-group")))
+			}).Should(Succeed(), "the ClusterRoleBinding should have subjects from both teams")
+
+			By("cleaning up")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, teamB)
+		})
+
+		It("should update RBAC when teamRefs is mutated", func() {
+			teamC := setup.CreateTeam(test.Ctx, "test-team-c", test.WithMappedIDPGroup("test-team-c-idp-group"))
+
+			By("creating a TeamRoleBinding with a single team via teamRefs")
+			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-mutable-trb",
+				test.WithTeamRoleRef(teamRoleUT.Name),
+				test.WithTeamRefs(teamUT.Name),
+				test.WithClusterName(clusterA.Name))
+
+			By("validating initial ClusterRoleBinding has 1 team group subject")
+			remoteRoleBinding := &rbacv1.ClusterRoleBinding{}
+			remoteRoleBindingName := types.NamespacedName{Name: trb.GetRBACName()}
+			Eventually(func(g Gomega) {
+				g.Expect(clusterAKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)).To(Succeed())
+				g.Expect(remoteRoleBinding.Subjects).To(HaveLen(1))
+				g.Expect(remoteRoleBinding.Subjects).To(ContainElement(HaveField("Name", testTeamIDPGroup)))
+			}).Should(Succeed())
+
+			By("adding a second team to teamRefs")
+			_, err := clientutil.CreateOrPatch(test.Ctx, k8sClient, trb, func() error {
+				trb.Spec.TeamRefs = []string{teamUT.Name, teamC.Name}
+				return nil
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			By("validating ClusterRoleBinding now has 2 team group subjects")
+			Eventually(func(g Gomega) {
+				g.Expect(clusterAKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)).To(Succeed())
+				g.Expect(remoteRoleBinding.Subjects).To(HaveLen(2))
+				g.Expect(remoteRoleBinding.Subjects).To(ContainElement(HaveField("Name", testTeamIDPGroup)))
+				g.Expect(remoteRoleBinding.Subjects).To(ContainElement(HaveField("Name", "test-team-c-idp-group")))
+			}).Should(Succeed(), "the ClusterRoleBinding should be updated with subjects from both teams")
+
+			By("cleaning up")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, teamC)
+		})
+
+		It("should reconcile TRBs created with the deprecated teamRef field", func() {
+			By("creating a TeamRoleBinding using only the deprecated teamRef field")
+			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-premigration-trb",
+				test.WithTeamRoleRef(teamRoleUT.Name),
+				test.WithTeamRef(teamUT.Name),
+				test.WithClusterName(clusterA.Name))
+
+			By("validating the ClusterRoleBinding has the team's group subject")
+			remoteRoleBinding := &rbacv1.ClusterRoleBinding{}
+			remoteRoleBindingName := types.NamespacedName{Name: trb.GetRBACName()}
+			Eventually(func(g Gomega) {
+				g.Expect(clusterAKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)).To(Succeed())
+				g.Expect(remoteRoleBinding.Subjects).To(HaveLen(1))
+				g.Expect(remoteRoleBinding.Subjects).To(ContainElement(HaveField("Name", testTeamIDPGroup)))
+			}).Should(Succeed(), "TRB created with deprecated teamRef should be reconciled after webhook migration")
+
+			By("cleaning up")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
+		})
+
+		It("should re-reconcile when a referenced Team's MappedIDPGroup changes", func() {
+			teamD := setup.CreateTeam(test.Ctx, "test-team-d", test.WithMappedIDPGroup("original-idp-group"))
+
+			By("creating a TeamRoleBinding referencing teamD")
+			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-team-change-trb",
+				test.WithTeamRoleRef(teamRoleUT.Name),
+				test.WithTeamRefs(teamD.Name),
+				test.WithClusterName(clusterA.Name))
+
+			By("validating the initial ClusterRoleBinding")
+			remoteRoleBinding := &rbacv1.ClusterRoleBinding{}
+			remoteRoleBindingName := types.NamespacedName{Name: trb.GetRBACName()}
+			Eventually(func(g Gomega) {
+				g.Expect(clusterAKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)).To(Succeed())
+				g.Expect(remoteRoleBinding.Subjects).To(ContainElement(HaveField("Name", "original-idp-group")))
+			}).Should(Succeed())
+
+			By("updating teamD's MappedIDPGroup")
+			_, err := clientutil.CreateOrPatch(test.Ctx, k8sClient, teamD, func() error {
+				teamD.Spec.MappedIDPGroup = "updated-idp-group"
+				return nil
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			By("validating the ClusterRoleBinding subjects are updated")
+			Eventually(func(g Gomega) {
+				g.Expect(clusterAKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)).To(Succeed())
+				g.Expect(remoteRoleBinding.Subjects).To(ContainElement(HaveField("Name", "updated-idp-group")))
+			}).Should(Succeed(), "the ClusterRoleBinding should reflect the updated MappedIDPGroup")
+
+			By("cleaning up")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, teamD)
 		})
 	})
 })

@@ -96,5 +96,5 @@ kubectl get organizations -o json | jq -r '.items[] | select(.status.statusCondi
 
 ## Additional Resources
 
-- [Greenhouse Architecture](../../../architecture/components.md)
+- [Greenhouse Architecture](../../../../architecture/high-level)
 - [Controller Runtime Metrics](https://book.kubebuilder.io/reference/metrics-reference.html)

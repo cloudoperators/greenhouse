@@ -82,7 +82,9 @@ func OffBoardRemoteCluster(ctx context.Context, adminClient, remoteClient client
 	Eventually(func(g Gomega) {
 		crb := &rbacv1.ClusterRoleBinding{}
 		err := remoteClient.Get(ctx, client.ObjectKey{Name: ManagedResourceName}, crb)
-		GinkgoWriter.Printf("crb err: %v\n", err)
+		if err != nil {
+			GinkgoWriter.Printf("crb err: %v\n", err)
+		}
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "cluster role binding should be deleted")
 		managedSA := &corev1.ServiceAccount{}
 		err = remoteClient.Get(ctx, client.ObjectKey{Name: ManagedResourceName, Namespace: namespace}, managedSA)

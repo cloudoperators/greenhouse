@@ -612,7 +612,13 @@ func WithTeamRoleRef(roleRef string) func(*greenhousev1alpha2.TeamRoleBinding) {
 
 func WithTeamRef(teamRef string) func(*greenhousev1alpha2.TeamRoleBinding) {
 	return func(trb *greenhousev1alpha2.TeamRoleBinding) {
-		trb.Spec.TeamRef = teamRef
+		trb.Spec.TeamRef = teamRef //nolint:staticcheck // kept for backwards compatibility
+	}
+}
+
+func WithTeamRefs(teamRefs ...string) func(*greenhousev1alpha2.TeamRoleBinding) {
+	return func(trb *greenhousev1alpha2.TeamRoleBinding) {
+		trb.Spec.TeamRefs = teamRefs
 	}
 }
 
