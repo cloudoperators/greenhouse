@@ -16,9 +16,9 @@ dependencies:
   version: 0.1.2
 - name: postgresql-ng
   repository: oci://ghcr.io/sapcc/helm-charts
-  version: 1.3.0
+  version: 2.2.17
 - name: authz
   repository: file://../authz
   version: 0.2.0
-digest: sha256:10dbd14119bd9567d2c5a492f266b1e5e7aae3b429b3dc18bb0a79d814ff822d
-generated: "2026-03-12T17:26:14.947808+01:00"
+digest: sha256:3288c02d2ed8fc37ccb56e06536cf3a81fd050b90f386fd000ec9750c6b8c34f
+generated: "2026-03-19T13:03:42.189887+01:00"

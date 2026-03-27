@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"time"
 
 	authv1 "k8s.io/api/authorization/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -24,6 +25,7 @@ const supportGroupClaimPrefix = "support-group:"
 
 func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, mapper meta.RESTMapper) {
 	ctx := r.Context()
+	start := time.Now()
 
 	if r.Method != http.MethodPost {
 		http.Error(w, "invalid method", http.StatusMethodNotAllowed)
@@ -32,17 +34,20 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, ma
 
 	var review authv1.SubjectAccessReview
 	if err := json.NewDecoder(r.Body).Decode(&review); err != nil {
+		authzDeniedTotal.WithLabelValues(reasonDecodeError).Inc()
 		http.Error(w, fmt.Sprintf("decode: %v", err), http.StatusBadRequest)
 		return
 	}
 
 	attrs := review.Spec.ResourceAttributes
 	if attrs == nil || attrs.Name == "" {
+		recordDenied("", "", reasonMissingAttributes, nil, start)
 		respond(w, review, false, "missing resource attributes")
 		return
 	}
 
-	logAuthz.Info("Received request", "user", review.Spec.User, "verb", attrs.Verb, "resource", attrs.Resource, "ns", attrs.Namespace)
+	verb := attrs.Verb
+	logger.Info("Received request", "user", review.Spec.User, "verb", verb, "resource", attrs.Resource, "ns", attrs.Namespace)
 
 	var userSupportGroups []string
 	for _, group := range review.Spec.Groups {
@@ -53,19 +58,25 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, ma
 	}
 
 	if len(userSupportGroups) == 0 {
+		recordDenied(verb, attrs.Resource, reasonNoSupportGroupClaims, nil, start)
 		respond(w, review, false, "user has no support-group claims")
 		return
 	}
-	logAuthz.Info("User has the following support-group claims: " + strings.Join(userSupportGroups, ", "))
+	logger.Info("User has the following support-group claims: " + strings.Join(userSupportGroups, ", "))
 
 	gvr := schema.GroupVersionResource{
 		Group:    attrs.Group,
-		Version:  attrs.Version,
 		Resource: attrs.Resource,
+	}
+	if attrs.Version != "" && attrs.Version != "*" {
+		gvr.Version = attrs.Version
 	}
 	gvk, err := mapper.KindFor(gvr)
 	if err != nil {
+		authzKindResolutionErrorsTotal.Inc()
+		recordDenied(verb, attrs.Resource, reasonKindResolutionFailed, userSupportGroups, start)
 		respond(w, review, false, "failed to get Kind for the requested resource")
+		return
 	}
 
 	// Try to fetch the resource
@@ -73,6 +84,8 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, ma
 	obj.SetGroupVersionKind(gvk)
 	key := types.NamespacedName{Namespace: attrs.Namespace, Name: attrs.Name}
 	if err := c.Get(ctx, key, obj); err != nil {
+		authzKubeFetchErrorsTotal.WithLabelValues(err.Error()).Inc()
+		recordDenied(verb, attrs.Resource, reasonObjectNotFound, userSupportGroups, start)
 		respond(w, review, false, fmt.Sprintf("failed to fetch object: %v", err))
 		return
 	}
@@ -80,25 +93,28 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, ma
 	labels := obj.GetLabels()
 	ownedByValue, ok := labels[greenhouseapis.LabelKeyOwnedBy]
 	if !ok {
+		recordDenied(verb, attrs.Resource, reasonNoOwnedByLabel, userSupportGroups, start)
 		respond(w, review, false, "requested resource has no owned-by label set")
 		return
 	}
-	logAuthz.Info("Requested resource is owned by: " + ownedByValue)
+	logger.Info("Requested resource is owned by: " + ownedByValue)
 
 	// If the support-group matches the greenhouse.sap/owned-by label on the resources the user should get full permissions on the resource.
 	if slices.Contains(userSupportGroups, ownedByValue) {
+		recordAllowed(verb, attrs.Resource, ownedByValue, start)
 		respond(w, review, true, "user has a support-group claim for the requested resource: "+ownedByValue)
 		return
 	}
 
+	recordDenied(verb, attrs.Resource, reasonSupportGroupMismatch, userSupportGroups, start)
 	respond(w, review, false, "")
 }
 
 func respond(w http.ResponseWriter, review authv1.SubjectAccessReview, allowed bool, msg string) {
 	if allowed {
-		logAuthz.Info("[ALLOWED] " + msg)
+		logger.Info("[ALLOWED] " + msg)
 	} else {
-		logAuthz.Info("[DENIED] " + msg)
+		logger.Info("[DENIED] " + msg)
 	}
 	review.Status = authv1.SubjectAccessReviewStatus{
 		Allowed: allowed,
@@ -106,6 +122,6 @@ func respond(w http.ResponseWriter, review authv1.SubjectAccessReview, allowed b
 	}
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(review); err != nil {
-		logAuthz.Error(err, "encode SubjectAccessReview failed")
+		logger.Error(err, "encode SubjectAccessReview failed")
 	}
 }

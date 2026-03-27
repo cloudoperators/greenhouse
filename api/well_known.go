@@ -102,8 +102,8 @@ const (
 	// RolebindingTeamRoleRefField is the field in the RoleBinding spec that references the TeamRole.
 	RolebindingTeamRoleRefField = ".spec.teamRoleRef"
 
-	// RolebindingTeamRefField is the field in the RoleBinding spec that references the Team.
-	RolebindingTeamRefField = ".spec.teamRef"
+	// RolebindingTeamRefsField is the field in the RoleBinding spec that references the Teams.
+	RolebindingTeamRefsField = ".spec.teamRefs"
 
 	// ConfigMapRefField is the field in the Organization spec that references the ConfigMap containing organizational configuration data.
 	ConfigMapRefField = ".spec.configMapRef"
