@@ -1,10 +1,13 @@
-# SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
-# SPDX-License-Identifier: Apache-2.0
+{{/*
+SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+SPDX-License-Identifier: Apache-2.0
+*/}}
 
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "authz.fullname" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "authz.labels" . | nindent 4 }}
   {{- with include "authz.annotations" . }}
@@ -80,6 +83,9 @@ spec:
           ports:
             - name: webhook
               containerPort: {{ .Values.service.port }}
+              protocol: TCP
+            - name: metrics
+              containerPort: 6543
               protocol: TCP
           {{- with .Values.env }}
           env:

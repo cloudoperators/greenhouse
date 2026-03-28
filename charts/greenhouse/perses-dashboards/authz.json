@@ -7,31 +7,9 @@
   "spec": {
     "display": {
       "name": "Greenhouse Authz Webhook",
-      "description": "Authorization webhook metrics — request outcomes, denial reasons, latency, and access patterns by support group"
+      "description": "Authorization webhook metrics \u2014 request outcomes, denial reasons, latency, and access patterns by support group"
     },
-    "variables": [
-      {
-        "kind": "ListVariable",
-        "spec": {
-          "name": "support_group",
-          "display": {
-            "name": "Support Group",
-            "hidden": false
-          },
-          "defaultValue": "$__all",
-          "allowAllValue": true,
-          "allowMultiple": true,
-          "sort": "alphabetical-ci-asc",
-          "plugin": {
-            "kind": "PrometheusLabelValuesVariable",
-            "spec": {
-              "labelName": "support_group",
-              "matchers": ["greenhouse_authz_access_total"]
-            }
-          }
-        }
-      }
-    ],
+    "variables": [],
     "panels": {
       "stat_total": {
         "kind": "Panel",
@@ -44,7 +22,9 @@
             "kind": "StatChart",
             "spec": {
               "calculation": "last",
-              "format": { "unit": "decimal" },
+              "format": {
+                "unit": "decimal"
+              },
               "valueFontSize": 64
             }
           },
@@ -75,12 +55,17 @@
             "kind": "StatChart",
             "spec": {
               "calculation": "last",
-              "format": { "unit": "decimal" },
+              "format": {
+                "unit": "decimal"
+              },
               "valueFontSize": 64,
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
-                  { "value": 0, "color": "#388e3c" }
+                  {
+                    "value": 0,
+                    "color": "#388e3c"
+                  }
                 ]
               }
             }
@@ -112,13 +97,21 @@
             "kind": "StatChart",
             "spec": {
               "calculation": "last",
-              "format": { "unit": "decimal" },
+              "format": {
+                "unit": "decimal"
+              },
               "valueFontSize": 64,
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
-                  { "value": 0, "color": "#388e3c" },
-                  { "value": 1, "color": "#d32f2f" }
+                  {
+                    "value": 0,
+                    "color": "#388e3c"
+                  },
+                  {
+                    "value": 1,
+                    "color": "#d32f2f"
+                  }
                 ]
               }
             }
@@ -150,14 +143,26 @@
             "kind": "StatChart",
             "spec": {
               "calculation": "last-number",
-              "format": { "unit": "milliseconds", "decimalPlaces": 1 },
+              "format": {
+                "unit": "milliseconds",
+                "decimalPlaces": 1
+              },
               "valueFontSize": 64,
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
-                  { "value": 0, "color": "#388e3c" },
-                  { "value": 100, "color": "#f57c00" },
-                  { "value": 500, "color": "#d32f2f" }
+                  {
+                    "value": 0,
+                    "color": "#388e3c"
+                  },
+                  {
+                    "value": 100,
+                    "color": "#f57c00"
+                  },
+                  {
+                    "value": 500,
+                    "color": "#d32f2f"
+                  }
                 ]
               }
             }
@@ -189,14 +194,26 @@
             "kind": "StatChart",
             "spec": {
               "calculation": "last-number",
-              "format": { "unit": "milliseconds", "decimalPlaces": 1 },
+              "format": {
+                "unit": "milliseconds",
+                "decimalPlaces": 1
+              },
               "valueFontSize": 64,
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
-                  { "value": 0, "color": "#388e3c" },
-                  { "value": 100, "color": "#f57c00" },
-                  { "value": 500, "color": "#d32f2f" }
+                  {
+                    "value": 0,
+                    "color": "#388e3c"
+                  },
+                  {
+                    "value": 100,
+                    "color": "#f57c00"
+                  },
+                  {
+                    "value": 500,
+                    "color": "#d32f2f"
+                  }
                 ]
               }
             }
@@ -228,14 +245,26 @@
             "kind": "StatChart",
             "spec": {
               "calculation": "last-number",
-              "format": { "unit": "milliseconds", "decimalPlaces": 1 },
+              "format": {
+                "unit": "milliseconds",
+                "decimalPlaces": 1
+              },
               "valueFontSize": 64,
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
-                  { "value": 0, "color": "#388e3c" },
-                  { "value": 100, "color": "#f57c00" },
-                  { "value": 500, "color": "#d32f2f" }
+                  {
+                    "value": 0,
+                    "color": "#388e3c"
+                  },
+                  {
+                    "value": 100,
+                    "color": "#f57c00"
+                  },
+                  {
+                    "value": 500,
+                    "color": "#d32f2f"
+                  }
                 ]
               }
             }
@@ -266,8 +295,15 @@
           "plugin": {
             "kind": "TimeSeriesChart",
             "spec": {
-              "legend": { "position": "bottom", "mode": "list" },
-              "yAxis": { "format": { "unit": "requests/sec" } }
+              "legend": {
+                "position": "bottom",
+                "mode": "list"
+              },
+              "yAxis": {
+                "format": {
+                  "unit": "requests/sec"
+                }
+              }
             }
           },
           "queries": [
@@ -296,8 +332,15 @@
           "plugin": {
             "kind": "TimeSeriesChart",
             "spec": {
-              "legend": { "position": "bottom", "mode": "list" },
-              "yAxis": { "format": { "unit": "milliseconds" } }
+              "legend": {
+                "position": "bottom",
+                "mode": "list"
+              },
+              "yAxis": {
+                "format": {
+                  "unit": "milliseconds"
+                }
+              }
             }
           },
           "queries": [
@@ -350,8 +393,15 @@
           "plugin": {
             "kind": "TimeSeriesChart",
             "spec": {
-              "legend": { "position": "bottom", "mode": "list" },
-              "yAxis": { "format": { "unit": "decimal" } }
+              "legend": {
+                "position": "bottom",
+                "mode": "list"
+              },
+              "yAxis": {
+                "format": {
+                  "unit": "decimal"
+                }
+              }
             }
           },
           "queries": [
@@ -380,8 +430,15 @@
           "plugin": {
             "kind": "TimeSeriesChart",
             "spec": {
-              "legend": { "position": "bottom", "mode": "list" },
-              "yAxis": { "format": { "unit": "decimal" } }
+              "legend": {
+                "position": "bottom",
+                "mode": "list"
+              },
+              "yAxis": {
+                "format": {
+                  "unit": "decimal"
+                }
+              }
             }
           },
           "queries": [
@@ -391,7 +448,7 @@
                 "plugin": {
                   "kind": "PrometheusTimeSeriesQuery",
                   "spec": {
-                    "query": "sum by (support_group, result) (rate(greenhouse_authz_access_total{support_group=~\"$support_group\"}[5m]))",
+                    "query": "sum by (support_group, result) (rate(greenhouse_authz_access_total[5m]))",
                     "seriesNameFormat": "{{support_group}} / {{result}}"
                   }
                 }
@@ -410,8 +467,15 @@
           "plugin": {
             "kind": "TimeSeriesChart",
             "spec": {
-              "legend": { "position": "bottom", "mode": "list" },
-              "yAxis": { "format": { "unit": "decimal" } }
+              "legend": {
+                "position": "bottom",
+                "mode": "list"
+              },
+              "yAxis": {
+                "format": {
+                  "unit": "decimal"
+                }
+              }
             }
           },
           "queries": [
@@ -440,8 +504,15 @@
           "plugin": {
             "kind": "TimeSeriesChart",
             "spec": {
-              "legend": { "position": "bottom", "mode": "list" },
-              "yAxis": { "format": { "unit": "decimal" } }
+              "legend": {
+                "position": "bottom",
+                "mode": "list"
+              },
+              "yAxis": {
+                "format": {
+                  "unit": "decimal"
+                }
+              }
             }
           },
           "queries": [
@@ -467,12 +538,38 @@
         "spec": {
           "display": {
             "title": "Overview",
-            "collapse": { "open": true }
+            "collapse": {
+              "open": true
+            }
           },
           "items": [
-            { "x": 0,  "y": 0, "width": 8,  "height": 4, "content": { "$ref": "#/spec/panels/stat_total" } },
-            { "x": 8,  "y": 0, "width": 8,  "height": 4, "content": { "$ref": "#/spec/panels/stat_allowed" } },
-            { "x": 16, "y": 0, "width": 8,  "height": 4, "content": { "$ref": "#/spec/panels/stat_denied" } }
+            {
+              "x": 0,
+              "y": 0,
+              "width": 8,
+              "height": 4,
+              "content": {
+                "$ref": "#/spec/panels/stat_total"
+              }
+            },
+            {
+              "x": 8,
+              "y": 0,
+              "width": 8,
+              "height": 4,
+              "content": {
+                "$ref": "#/spec/panels/stat_allowed"
+              }
+            },
+            {
+              "x": 16,
+              "y": 0,
+              "width": 8,
+              "height": 4,
+              "content": {
+                "$ref": "#/spec/panels/stat_denied"
+              }
+            }
           ]
         }
       },
@@ -481,12 +578,38 @@
         "spec": {
           "display": {
             "title": "Latency Percentiles",
-            "collapse": { "open": true }
+            "collapse": {
+              "open": true
+            }
           },
           "items": [
-            { "x": 0,  "y": 0, "width": 8,  "height": 4, "content": { "$ref": "#/spec/panels/stat_p50" } },
-            { "x": 8,  "y": 0, "width": 8,  "height": 4, "content": { "$ref": "#/spec/panels/stat_p95" } },
-            { "x": 16, "y": 0, "width": 8,  "height": 4, "content": { "$ref": "#/spec/panels/stat_p99" } }
+            {
+              "x": 0,
+              "y": 0,
+              "width": 8,
+              "height": 4,
+              "content": {
+                "$ref": "#/spec/panels/stat_p50"
+              }
+            },
+            {
+              "x": 8,
+              "y": 0,
+              "width": 8,
+              "height": 4,
+              "content": {
+                "$ref": "#/spec/panels/stat_p95"
+              }
+            },
+            {
+              "x": 16,
+              "y": 0,
+              "width": 8,
+              "height": 4,
+              "content": {
+                "$ref": "#/spec/panels/stat_p99"
+              }
+            }
           ]
         }
       },
@@ -495,11 +618,29 @@
         "spec": {
           "display": {
             "title": "Request Traffic",
-            "collapse": { "open": true }
+            "collapse": {
+              "open": true
+            }
           },
           "items": [
-            { "x": 0,  "y": 0, "width": 12, "height": 8, "content": { "$ref": "#/spec/panels/ts_request_rate" } },
-            { "x": 12, "y": 0, "width": 12, "height": 8, "content": { "$ref": "#/spec/panels/ts_latency" } }
+            {
+              "x": 0,
+              "y": 0,
+              "width": 12,
+              "height": 8,
+              "content": {
+                "$ref": "#/spec/panels/ts_request_rate"
+              }
+            },
+            {
+              "x": 12,
+              "y": 0,
+              "width": 12,
+              "height": 8,
+              "content": {
+                "$ref": "#/spec/panels/ts_latency"
+              }
+            }
           ]
         }
       },
@@ -508,11 +649,29 @@
         "spec": {
           "display": {
             "title": "Access Patterns",
-            "collapse": { "open": true }
+            "collapse": {
+              "open": true
+            }
           },
           "items": [
-            { "x": 0,  "y": 0, "width": 12, "height": 8, "content": { "$ref": "#/spec/panels/ts_access_by_group" } },
-            { "x": 12, "y": 0, "width": 12, "height": 8, "content": { "$ref": "#/spec/panels/ts_denial_reasons" } }
+            {
+              "x": 0,
+              "y": 0,
+              "width": 12,
+              "height": 8,
+              "content": {
+                "$ref": "#/spec/panels/ts_access_by_group"
+              }
+            },
+            {
+              "x": 12,
+              "y": 0,
+              "width": 12,
+              "height": 8,
+              "content": {
+                "$ref": "#/spec/panels/ts_denial_reasons"
+              }
+            }
           ]
         }
       },
@@ -521,11 +680,29 @@
         "spec": {
           "display": {
             "title": "Errors",
-            "collapse": { "open": true }
+            "collapse": {
+              "open": true
+            }
           },
           "items": [
-            { "x": 0,  "y": 0, "width": 12, "height": 8, "content": { "$ref": "#/spec/panels/ts_kube_errors" } },
-            { "x": 12, "y": 0, "width": 12, "height": 8, "content": { "$ref": "#/spec/panels/ts_kind_errors" } }
+            {
+              "x": 0,
+              "y": 0,
+              "width": 12,
+              "height": 8,
+              "content": {
+                "$ref": "#/spec/panels/ts_kube_errors"
+              }
+            },
+            {
+              "x": 12,
+              "y": 0,
+              "width": 12,
+              "height": 8,
+              "content": {
+                "$ref": "#/spec/panels/ts_kind_errors"
+              }
+            }
           ]
         }
       }
