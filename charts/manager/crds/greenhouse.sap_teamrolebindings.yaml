@@ -23,8 +23,8 @@ spec:
     - jsonPath: .spec.teamRoleRef
       name: Team Role
       type: string
-    - jsonPath: .spec.teamRef
-      name: Team
+    - jsonPath: .spec.teamRefs
+      name: Teams
       type: string
     - jsonPath: .status.statusConditions.conditions[?(@.type == "Ready")].status
       name: Ready
@@ -124,8 +124,15 @@ spec:
                   type: string
                 type: array
               teamRef:
-                description: TeamRef references a Greenhouse Team by name
+                description: |-
+                  Deprecated: Use TeamRefs instead.
+                  TeamRef references a Greenhouse Team by name
                 type: string
+              teamRefs:
+                description: TeamRefs references Greenhouse Teams by name
+                items:
+                  type: string
+                type: array
               teamRoleRef:
                 description: TeamRoleRef references a Greenhouse TeamRole by name
                 type: string

@@ -69,12 +69,12 @@ type oidcConnector struct {
 	keepUpstreamGroups bool
 }
 
-func (c *oidcConnector) LoginURL(s connector.Scopes, callbackURL, state string) (string, error) {
+func (c *oidcConnector) LoginURL(s connector.Scopes, callbackURL, state string) (string, []byte, error) { //nolint:gocritic
 	return c.conn.(connector.CallbackConnector).LoginURL(s, callbackURL, state)
 }
 
-func (c *oidcConnector) HandleCallback(s connector.Scopes, r *http.Request) (connector.Identity, error) {
-	identity, err := c.conn.(connector.CallbackConnector).HandleCallback(s, r)
+func (c *oidcConnector) HandleCallback(s connector.Scopes, connData []byte, r *http.Request) (connector.Identity, error) {
+	identity, err := c.conn.(connector.CallbackConnector).HandleCallback(s, connData, r)
 	if err != nil {
 		return identity, err
 	}

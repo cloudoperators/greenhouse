@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	clusterFromContext = promhttp.WithLabelFromCtx("cluster", func(ctx context.Context) string {
+	clusterFromContext = promhttp.WithLabelFromCtx("clusterName", func(ctx context.Context) string {
 		cluster, _ := ctx.Value(contextClusterKey{}).(string)
 		return cluster
 	})
@@ -36,7 +36,7 @@ func InstrumentHandler(pm *ProxyManager, registry prometheus.Registerer) http.Ha
 			Name: "http_requests_total",
 			Help: "A counter for requests to the wrapped handler.",
 		},
-		[]string{"code", "method", "cluster", "namespace", "name"},
+		[]string{"code", "method", "clusterName", "namespace", "name"},
 	)
 	registry.MustRegister(requestCounter)
 
@@ -46,7 +46,7 @@ func InstrumentHandler(pm *ProxyManager, registry prometheus.Registerer) http.Ha
 			Help:    "A histogram of latencies for requests.",
 			Buckets: []float64{.25, .5, 1, 2.5, 5, 10},
 		},
-		[]string{"code", "method", "cluster", "namespace", "name"},
+		[]string{"code", "method", "clusterName", "namespace", "name"},
 	)
 	registry.MustRegister(requestDuration)
 
@@ -56,7 +56,7 @@ func InstrumentHandler(pm *ProxyManager, registry prometheus.Registerer) http.Ha
 			Help:    "A histogram of response sizes for requests.",
 			Buckets: []float64{0, 512, 4096, 16384, 65536, 262144, 1048576, 4194304, 16777216},
 		},
-		[]string{"code", "method", "cluster", "namespace", "name"},
+		[]string{"code", "method", "clusterName", "namespace", "name"},
 	)
 	registry.MustRegister(responseSizeHistogram)
 

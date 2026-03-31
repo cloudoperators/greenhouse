@@ -67,5 +67,5 @@ Or access your logs sink for Greenhouse logs.
 
 ## Additional Resources
 
-- [Greenhouse Team Documentation](../../../getting-started/core-concepts/teams.md)
-- [Greenhouse Organization Documentation](../../../reference/components/organization)
+- [Greenhouse Team Documentation](../../../../getting-started/core-concepts/teams)
+- [Greenhouse Organization Documentation](../../../../reference/components/organization)

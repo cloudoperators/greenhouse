@@ -18,7 +18,7 @@ Each controller uses a workqueue to process reconciliation requests. When the wo
 This could be due to:
 
 - High rate of resource changes overwhelming the controller
-- Slow reconciliation operations (see also [OperatorReconcileDurationHigher10Min](operator-reconcile-duration-higher-10min.md))
+- Slow reconciliation operations (see also [OperatorReconcileDurationHigher10Min](../operator-reconcile-duration-higher-10min))
 - Controller pod being resource-constrained
 - Deadlocks or stuck reconciliation loops
 - External systems being slow or unavailable
@@ -102,6 +102,6 @@ kubectl get organizations -o json | jq -r '.items[] | select(.status.statusCondi
 
 ## Additional Resources
 
-- [Greenhouse Architecture](../../../architecture/components.md)
+- [Greenhouse Architecture](../../../../architecture/high-level)
 - [Controller Runtime Metrics](https://book.kubebuilder.io/reference/metrics-reference.html)
 - [Workqueue Metrics](https://book.kubebuilder.io/reference/metrics-reference.html#workqueue-metrics)

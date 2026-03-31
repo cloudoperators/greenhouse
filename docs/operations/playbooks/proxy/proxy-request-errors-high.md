@@ -105,5 +105,5 @@ kubectl describe pod -n greenhouse -l app=<service-name>
 
 ## Additional Resources
 
-- [Greenhouse Architecture](../../../architecture/components.md)
-- [Service Proxy Documentation](../../../user-guides/plugin/plugin-deployment.md#urls-for-exposed-services-and-ingresses)
+- [Greenhouse Architecture](../../../../architecture/high-level)
+- [Service Proxy Documentation](../../../../user-guides/plugin/plugin-deployment#urls-for-exposed-services-and-ingresses)

@@ -94,5 +94,5 @@ Ensure that:
 
 ## Additional Resources
 
-- [Greenhouse Team Documentation](../../../getting-started/core-concepts/teams.md)
-- [Resource Ownership](../../../getting-started/operations/ownership.md)
+- [Greenhouse Team Documentation](../../../../getting-started/core-concepts/teams)
+- [Resource Ownership](../../../../getting-started/operations/ownership)
