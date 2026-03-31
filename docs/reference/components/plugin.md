@@ -58,7 +58,7 @@ spec:
         key: secret-key
 ```
 
-| :information_source: A defaulting webhook automatically merges the OptionValues with the defaults set in the PluginDefinition. The defaulting does not update OptionValues when the defaults change and does not remove values when they are removed from the PluginDefinition. |
+> :information_source: A defaulting webhook automatically merges the OptionValues with the defaults set in the PluginDefinition. The defaulting does not update OptionValues when the defaults change and does not remove values when they are removed from the PluginDefinition. Only when the Plugin is managed via a PluginPreset, the OptionValues will be automatically updated when the defaults in the PluginDefinition change. Standalone Plugins will need to be reconciled by annotating with the [reconcile annotation](./../plugin/#triggering-reconciliation-of-the-plugins-managed-resources) to apply the new defaults.
 
 `.spec.optionValues[].expression` is an optional field that allows you to define dynamic values using [CEL (Common Expression Language)](https://github.com/google/cel-spec) expressions. Expressions use `${...}` placeholders that reference `global.greenhouse.*` variables such as `global.greenhouse.clusterName` or [Cluster Metadata](./../cluster#setting-metadata-labels) via `global.greenhouse.metadata.*`. For available CEL string functions, see the [CEL string extension documentation](https://github.com/google/cel-go/tree/master/ext#strings). See [Using Metadata Labels and Expressions](./../../../user-guides/plugin/metadata-expressions) for detailed examples.
 
@@ -68,7 +68,7 @@ spec:
     expression: "https://api.${global.greenhouse.metadata.region}.example.com"
 ```
 
-| :warning: CEL expression evaluation requires the `expressionEvaluationEnabled` feature flag to be enabled. When disabled, expressions are treated as literal strings. |
+> :warning: CEL expression evaluation requires the `expressionEvaluationEnabled` feature flag to be enabled. When disabled, expressions are treated as literal strings.
 
 `.spec.waitFor` is an optional field that specifies PluginPresets or Plugins which have to be successfully deployed before this Plugin can be deployed. This can be used to express dependencies between Plugins. This can be useful if one Plugin depends on Custom Resource Definitions or other resources created by another Plugin.
 
@@ -81,7 +81,7 @@ spec:
       name: cert-manager-example-cluster
 ```
 
-| :information_source: The dependency on a PluginPreset ensures that a Plugin created by this PluginPreset has been deployed to the same cluster. The dependency on a Plugin is fulfilled if the referenced Plugin is deployed to the same cluster. |
+> :information_source: The dependency on a PluginPreset ensures that a Plugin created by this PluginPreset has been deployed to the same cluster. The dependency on a Plugin is fulfilled if the referenced Plugin is deployed to the same cluster.
 
 `.spec.ignoreDifferences` is an optional field that is used to suppress specific differences detected by the drift detection of the deployment tool. This can be useful to ignore differences in fields that are managed by other controllers or tools. [Example configuration](https://fluxcd.io/flux/components/helm/helmreleases/#ignore-rules) with Flux.
 
