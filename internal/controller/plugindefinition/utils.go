@@ -221,25 +221,23 @@ func (h *helmer) ensureChartReplication(ctx context.Context) error {
 		return nil
 	}
 
-	replicator, err := ocimirror.NewOCIReplicator(ctx, h.k8sClient, mirrorConfig, h.namespaceName)
+	mirror, err := ocimirror.NewImageMirror(ctx, h.k8sClient, mirrorConfig, h.namespaceName)
 	if err != nil {
-		return failReplication(err, "failed to create OCI replicator")
+		return failReplication(err, "failed to create image mirror")
 	}
 
 	chartRef := registry + "/" + chartName + ":" + version
-	mirroredRef := replicator.BuildMirroredOCIRef(chartRef)
-	if mirroredRef == "" {
+	replicatedRef, manifest, err := mirror.EnsureReplicated(ctx, chartRef)
+	if err != nil {
+		return failReplication(err, "chart replication failed")
+	}
+	if replicatedRef == "" {
 		logger.Info("no mirror configured for chart registry, skipping replication", "chart", chartRef)
 		h.pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
 			greenhousev1alpha1.OCIReplicationReadyCondition,
 			greenhousev1alpha1.OCIReplicationNotConfiguredReason,
 			"No mirror configured for chart registry"))
 		return nil
-	}
-
-	manifest, err := replicator.TriggerReplication(ctx, mirroredRef)
-	if err != nil {
-		return failReplication(err, "chart replication failed")
 	}
 
 	digest := fmt.Sprintf("sha256:%x", sha256.Sum256(manifest))
