@@ -166,14 +166,14 @@ func authorizeServiceAccount(ctx context.Context, c client.Client, mapper meta.R
 	if !ok {
 		return false, "requested resource has no owned-by label set"
 	}
-	logAuthz.Info("Requested resource is owned by: " + ownedByValue)
+	logger.Info("Requested resource is owned by: " + ownedByValue)
 
 	// Check if the ServiceAccount's team matches the resource's owned-by label
 	if teamName == ownedByValue {
 		return true, fmt.Sprintf("ServiceAccount for support-group team %s is authorized to access resource owned by %s", teamName, ownedByValue)
 	}
 
-	logAuthz.Info("ServiceAccount team does not match resource owner", "serviceAccountTeam", teamName, "resourceOwner", ownedByValue)
+	logger.Info("ServiceAccount team does not match resource owner", "serviceAccountTeam", teamName, "resourceOwner", ownedByValue)
 	return false, fmt.Sprintf("ServiceAccount team %s does not match resource owner %s", teamName, ownedByValue)
 }
 
