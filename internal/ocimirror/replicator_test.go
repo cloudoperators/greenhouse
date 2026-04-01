@@ -78,6 +78,19 @@ var _ = Describe("EnsureReplicated", func() {
 		Expect(fetchCount).To(Equal(0))
 	})
 
+	It("should pass platform option to manifest fetcher", func() {
+		var receivedOpts []crane.Option
+		mirror := newTestImageMirror(mirrorConfig, func(ref string, opts ...crane.Option) ([]byte, error) {
+			receivedOpts = opts
+			return []byte(`{}`), nil
+		})
+
+		_, _, err := mirror.EnsureReplicated(context.Background(), "ghcr.io/cloudoperators/greenhouse:main")
+		Expect(err).NotTo(HaveOccurred())
+		// At minimum: WithAuth + WithPlatform = 2 options
+		Expect(len(receivedOpts)).To(BeNumerically(">=", 2))
+	})
+
 	It("should propagate replication errors", func() {
 		mirror := newTestImageMirror(mirrorConfig, func(ref string, opts ...crane.Option) ([]byte, error) {
 			return nil, errors.New("connection refused")
