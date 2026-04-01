@@ -4,11 +4,15 @@
 package plugin
 
 import (
+	"context"
+	"errors"
+
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/ocimirror"
 )
 
@@ -160,5 +164,93 @@ var _ = Describe("createRegistryMirrorPostRenderer", func() {
 			"mirror.example.com/dockerhub-mirror/library/nginx",
 			"mirror.example.com/dockerhub-mirror/myorg/myapp",
 		))
+	})
+})
+
+var _ = Describe("ensureImageReplication", func() {
+	var (
+		plugin *greenhousev1alpha1.Plugin
+		mirror *ocimirror.ImageMirror
+	)
+
+	BeforeEach(func() {
+		plugin = &greenhousev1alpha1.Plugin{}
+		plugin.Name = "test-plugin"
+		plugin.Namespace = "test-ns"
+	})
+
+	It("should replicate images and update status", func() {
+		fetchedRefs := make([]string, 0)
+		mirror = ocimirror.NewImageMirrorForTest(&ocimirror.RegistryMirrorConfig{
+			RegistryMirrors: map[string]ocimirror.RegistryMirror{
+				"ghcr.io": {BaseDomain: "mirror.example.com", SubPath: "ghcr-mirror"},
+			},
+		}, authn.Anonymous, func(ref string, opts ...crane.Option) ([]byte, error) {
+			fetchedRefs = append(fetchedRefs, ref)
+			return []byte("{}"), nil
+		})
+
+		manifests := "image: ghcr.io/cloudoperators/greenhouse:main"
+		err := ensureImageReplication(context.Background(), mirror, plugin, manifests)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(plugin.Status.ImageReplication).To(ContainElement("ghcr.io/cloudoperators/greenhouse:main"))
+		Expect(fetchedRefs).To(HaveLen(1))
+
+		cond := plugin.Status.GetConditionByType(greenhousev1alpha1.ImageReplicationReadyCondition)
+		Expect(cond.IsTrue()).To(BeTrue())
+	})
+
+	It("should skip already replicated images", func() {
+		fetchCount := 0
+		mirror = ocimirror.NewImageMirrorForTest(&ocimirror.RegistryMirrorConfig{
+			RegistryMirrors: map[string]ocimirror.RegistryMirror{
+				"ghcr.io": {BaseDomain: "mirror.example.com", SubPath: "ghcr-mirror"},
+			},
+		}, authn.Anonymous, func(ref string, opts ...crane.Option) ([]byte, error) {
+			fetchCount++
+			return []byte("{}"), nil
+		})
+
+		plugin.Status.ImageReplication = []string{"ghcr.io/cloudoperators/greenhouse:main"}
+		manifests := "image: ghcr.io/cloudoperators/greenhouse:main"
+		err := ensureImageReplication(context.Background(), mirror, plugin, manifests)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(fetchCount).To(Equal(0))
+	})
+
+	It("should return error and set condition on replication failure", func() {
+		mirror = ocimirror.NewImageMirrorForTest(&ocimirror.RegistryMirrorConfig{
+			RegistryMirrors: map[string]ocimirror.RegistryMirror{
+				"ghcr.io": {BaseDomain: "mirror.example.com", SubPath: "ghcr-mirror"},
+			},
+		}, authn.Anonymous, func(ref string, opts ...crane.Option) ([]byte, error) {
+			return nil, errors.New("connection refused")
+		})
+
+		manifests := "image: ghcr.io/cloudoperators/greenhouse:main"
+		err := ensureImageReplication(context.Background(), mirror, plugin, manifests)
+		Expect(err).To(HaveOccurred())
+
+		cond := plugin.Status.GetConditionByType(greenhousev1alpha1.ImageReplicationReadyCondition)
+		Expect(cond.IsFalse()).To(BeTrue())
+	})
+
+	It("should set NotConfigured when no images match any mirror", func() {
+		mirror = ocimirror.NewImageMirrorForTest(&ocimirror.RegistryMirrorConfig{
+			RegistryMirrors: map[string]ocimirror.RegistryMirror{
+				"ghcr.io": {BaseDomain: "mirror.example.com", SubPath: "ghcr-mirror"},
+			},
+		}, authn.Anonymous, func(ref string, opts ...crane.Option) ([]byte, error) {
+			return []byte("{}"), nil
+		})
+
+		manifests := "image: registry.k8s.io/pause:3.9"
+		err := ensureImageReplication(context.Background(), mirror, plugin, manifests)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(plugin.Status.ImageReplication).To(BeEmpty())
+
+		cond := plugin.Status.GetConditionByType(greenhousev1alpha1.ImageReplicationReadyCondition)
+		Expect(cond.IsTrue()).To(BeTrue())
+		Expect(string(cond.Reason)).To(Equal(string(greenhousev1alpha1.ImageReplicationNotConfiguredReason)))
 	})
 })
