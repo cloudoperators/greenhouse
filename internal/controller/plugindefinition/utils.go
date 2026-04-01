@@ -209,7 +209,9 @@ func (h *helmer) ensureChartReplication(ctx context.Context) error {
 		return nil
 	}
 
-	registry, chartName, version := parseChartRef(helmChart)
+	chartRef := strings.TrimPrefix(helmChart.Repository, "oci://") + "/" + helmChart.Name + ":" + helmChart.Version
+	registry, chartName, tagOrDigest := ocimirror.SplitOCIRef(chartRef)
+	version := strings.TrimPrefix(tagOrDigest, ":")
 
 	// Skip replication if the current chart version was already replicated (idempotency).
 	if artifact := h.pluginDef.GetLastSyncedArtifact(); artifact != nil &&
@@ -225,8 +227,6 @@ func (h *helmer) ensureChartReplication(ctx context.Context) error {
 	if err != nil {
 		return failReplication(err, "failed to create image mirror")
 	}
-
-	chartRef := registry + "/" + chartName + ":" + version
 	replicatedRef, manifest, err := mirror.EnsureReplicated(ctx, chartRef)
 	if err != nil {
 		return failReplication(err, "chart replication failed")
@@ -256,16 +256,3 @@ func (h *helmer) ensureChartReplication(ctx context.Context) error {
 	return nil
 }
 
-// parseChartRef extracts registry, chart name, and version from a HelmChartReference.
-func parseChartRef(helmChart *greenhousev1alpha1.HelmChartReference) (registry, chartName, version string) {
-	ref := strings.TrimPrefix(helmChart.Repository, "oci://")
-	if idx := strings.Index(ref, "/"); idx > 0 {
-		registry = ref[:idx]
-		chartName = ref[idx+1:] + "/" + helmChart.Name
-	} else {
-		registry = ref
-		chartName = helmChart.Name
-	}
-	version = helmChart.Version
-	return registry, chartName, version
-}
