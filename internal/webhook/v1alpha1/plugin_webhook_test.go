@@ -15,7 +15,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
@@ -74,10 +73,10 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 		Entry("Value and ValueFrom not nil, Expression is nil", test.MustReturnJSONFor("test"), &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret"}}, nil, true),
 		Entry("Value not nil", test.MustReturnJSONFor("test"), nil, nil, false),
 		Entry("ValueFrom not nil", nil, &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, nil, false),
-		Entry("Expression not nil", nil, nil, ptr.To("${global.greenhouse.clusterName}"), false),
-		Entry("Value and Expression not nil, ValueFrom nil", test.MustReturnJSONFor("test"), nil, ptr.To("${global.greenhouse.clusterName}"), true),
-		Entry("ValueFrom and Expression not nil, Value nil", nil, &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, ptr.To("${global.greenhouse.clusterName}"), true),
-		Entry("Value, ValueFrom, and Expression all not nil", test.MustReturnJSONFor("test"), &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, ptr.To("${global.greenhouse.clusterName}"), true),
+		Entry("Expression not nil", nil, nil, new("${global.greenhouse.clusterName}"), false),
+		Entry("Value and Expression not nil, ValueFrom nil", test.MustReturnJSONFor("test"), nil, new("${global.greenhouse.clusterName}"), true),
+		Entry("ValueFrom and Expression not nil, Value nil", nil, &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, new("${global.greenhouse.clusterName}"), true),
+		Entry("Value, ValueFrom, and Expression all not nil", test.MustReturnJSONFor("test"), &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, new("${global.greenhouse.clusterName}"), true),
 	)
 
 	DescribeTable("Validate PluginOptionValue is consistent with PluginOption Type", func(defaultValue any, defaultType greenhousev1alpha1.PluginOptionType, actValue any, expErr bool) {
@@ -211,7 +210,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 		Entry("required option provided with Expression", []greenhousev1alpha1.PluginOptionValue{
 			{
 				Name:       "test",
-				Expression: ptr.To("${global.greenhouse.clusterName}"),
+				Expression: new("${global.greenhouse.clusterName}"),
 			},
 		}, false),
 	)
@@ -339,7 +338,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
-			test.WithPluginOptionValueExpression("expressionOption", ptr.To("${global.greenhouse.clusterName}")))
+			test.WithPluginOptionValueExpression("expressionOption", new("${global.greenhouse.clusterName}")))
 
 		By("checking that the label is kept after merging options and optionvalues")
 		actPlugin := &greenhousev1alpha1.Plugin{}
@@ -653,7 +652,7 @@ var _ = Describe("Validate Plugin with OwnerReference from PluginPresets", func(
 		APIVersion: "greenhouse.cloud.sap/v1alpha1",
 		Kind:       "PluginPreset",
 		Name:       "test-preset",
-		Controller: ptr.To(false),
+		Controller: new(false),
 	}
 
 	It("should return a warning if the Plugin has an OwnerReference from a PluginPreset", func() {

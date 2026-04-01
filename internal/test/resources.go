@@ -12,7 +12,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
@@ -811,7 +810,7 @@ func WithRepositoryBranch(branch string) func(source *greenhousev1alpha1.Catalog
 		if source.Ref == nil {
 			source.Ref = &greenhousev1alpha1.GitRef{}
 		}
-		source.Ref.Branch = ptr.To(branch)
+		source.Ref.Branch = new(branch)
 	}
 }
 
@@ -820,7 +819,7 @@ func WithRepositoryTag(tag string) func(source *greenhousev1alpha1.CatalogSource
 		if source.Ref == nil {
 			source.Ref = &greenhousev1alpha1.GitRef{}
 		}
-		source.Ref.Tag = ptr.To(tag)
+		source.Ref.Tag = new(tag)
 	}
 }
 
@@ -829,7 +828,7 @@ func WithRepositorySHA(sha string) func(source *greenhousev1alpha1.CatalogSource
 		if source.Ref == nil {
 			source.Ref = &greenhousev1alpha1.GitRef{}
 		}
-		source.Ref.SHA = ptr.To(sha)
+		source.Ref.SHA = new(sha)
 	}
 }
 

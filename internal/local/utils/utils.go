@@ -48,10 +48,6 @@ func NewKLog(ctx context.Context) logr.Logger {
 	return klog.FromContext(ctx)
 }
 
-func Int32P(i int32) *int32 {
-	return &i
-}
-
 func StringP(s string) *string {
 	if strings.TrimSpace(s) == "" {
 		return nil
