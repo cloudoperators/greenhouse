@@ -23,32 +23,15 @@ func SetupServiceAccountWebhookWithManager(mgr ctrl.Manager) error {
 	return webhook.SetupWebhook(mgr,
 		&corev1.ServiceAccount{},
 		webhook.WebhookFuncs[*corev1.ServiceAccount]{
-			DefaultFunc:        DefaultServiceAccount,
-			ValidateCreateFunc: ValidateCreateServiceAccount,
 			ValidateUpdateFunc: ValidateUpdateServiceAccount,
-			ValidateDeleteFunc: ValidateDeleteServiceAccount,
 		},
 	)
 }
 
-//+kubebuilder:webhook:path=/mutate--v1-serviceaccount,mutating=true,failurePolicy=fail,sideEffects=None,groups="",resources=serviceaccounts,verbs=create;update,versions=v1,name=mserviceaccount.kb.io,admissionReviewVersions=v1
-
-func DefaultServiceAccount(_ context.Context, _ client.Client, _ *corev1.ServiceAccount) error {
-	return nil
-}
-
 //+kubebuilder:webhook:path=/validate--v1-serviceaccount,mutating=false,failurePolicy=fail,sideEffects=None,groups="",resources=serviceaccounts,verbs=update,versions=v1,name=vserviceaccount.kb.io,admissionReviewVersions=v1
-
-func ValidateCreateServiceAccount(_ context.Context, _ client.Client, _ *corev1.ServiceAccount) (admission.Warnings, error) {
-	return nil, nil
-}
 
 func ValidateUpdateServiceAccount(_ context.Context, _ client.Client, oldSA, newSA *corev1.ServiceAccount) (admission.Warnings, error) {
 	return nil, validateOwnedByLabelImmutable(oldSA, newSA)
-}
-
-func ValidateDeleteServiceAccount(_ context.Context, _ client.Client, _ *corev1.ServiceAccount) (admission.Warnings, error) {
-	return nil, nil
 }
 
 // validateOwnedByLabelImmutable ensures that the greenhouse.sap/owned-by label cannot be
