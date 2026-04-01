@@ -4,10 +4,12 @@
 package organization
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/dexidp/dex/connector/oidc"
@@ -22,6 +24,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/common"
+	dexstore "github.com/cloudoperators/greenhouse/internal/dex"
 )
 
 const (
@@ -127,11 +130,16 @@ func (r *OrganizationReconciler) reconcileDexConnector(ctx context.Context, org 
 	oidcConnector, err := r.dex.GetConnector(ctx, org.Name)
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
+			rv := ""
+			if r.DexStorageType == dexstore.Postgres {
+				rv = "0"
+			}
 			if err = r.dex.CreateConnector(ctx, storage.Connector{
-				ID:     org.Name,
-				Type:   dexConnectorTypeGreenhouse,
-				Name:   cases.Title(language.English).String(org.Name),
-				Config: configByte,
+				ID:              org.Name,
+				Type:            dexConnectorTypeGreenhouse,
+				Name:            cases.Title(language.English).String(org.Name),
+				ResourceVersion: rv,
+				Config:          configByte,
 			}); err != nil {
 				log.FromContext(ctx).Error(err, "failed to create dex connector", "name", org.Name)
 				return err
@@ -142,10 +150,15 @@ func (r *OrganizationReconciler) reconcileDexConnector(ctx context.Context, org 
 		log.FromContext(ctx).Error(err, "failed to get dex connector", "name", org.Name)
 		return err
 	}
+	if bytes.Equal(oidcConnector.Config, configByte) {
+		log.FromContext(ctx).Info("dex connector is up to date, no update needed", "name", org.Name)
+		return nil
+	}
 	if err = r.dex.UpdateConnector(ctx, oidcConnector.ID, func(c storage.Connector) (storage.Connector, error) {
 		c.ID = org.Name
 		c.Type = dexConnectorTypeGreenhouse
 		c.Name = cases.Title(language.English).String(org.Name)
+		c.ResourceVersion = incrementResourceVersion(r.DexStorageType, c.ResourceVersion)
 		c.Config = configByte
 		return c, nil
 	}); err != nil {
@@ -246,6 +259,22 @@ func getRedirects(orgName string, redirectURIs []string) []string {
 
 func getRedirectForOrg(orgName string) string {
 	return fmt.Sprintf("https://%s.dashboard.%s", orgName, common.DNSDomain)
+}
+
+// incrementResourceVersion increments the resource version by 1.
+// This is necessary for the SQL storage backend where the resource version
+// is not automatically incremented on updates. Without this, the dex server's
+// in-memory connector cache never detects changes because the cached and stored
+// resource versions always match.
+func incrementResourceVersion(storageType, resourceVersion string) string {
+	if storageType != dexstore.Postgres {
+		return resourceVersion
+	}
+	v, err := strconv.ParseInt(resourceVersion, 10, 64)
+	if err != nil {
+		return "1"
+	}
+	return strconv.FormatInt(v+1, 10)
 }
 
 // appendRedirects - appends newRedirects to the redirects slice if it does not exist

@@ -53,6 +53,7 @@ func ChartURLToName(repositoryURL string) (repositoryName string) {
 
 	repositoryName = strings.ReplaceAll(repositoryName, ".", "-")
 	repositoryName = strings.ReplaceAll(repositoryName, "/", "-")
+	repositoryName = strings.ReplaceAll(repositoryName, ":", "-")
 	return
 }
 
