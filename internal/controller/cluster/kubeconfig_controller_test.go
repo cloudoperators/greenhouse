@@ -352,16 +352,18 @@ users:
 			}),
 		)
 
-		clusterToBeUpdated := v1alpha1.Cluster{}
-		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterToBeUpdated)).To(Succeed())
-		if clusterToBeUpdated.Annotations == nil {
-			clusterToBeUpdated.Annotations = make(map[string]string)
-		}
-		clusterToBeUpdated.Annotations["greenhouse.sap/oidc-override"] = fmt.Sprintf(`{
-			"clientIDReference": {"name": "%s", "key": "%s"},
-			"clientSecretReference": {"name": "%s", "key": "%s"}
-		}`, overrideSecret2.Name, oidcClientIDKey, overrideSecret2.Name, oidcClientSecretKey)
-		Expect(test.K8sClient.Update(test.Ctx, &clusterToBeUpdated)).To(Succeed())
+		Eventually(func(g Gomega) {
+			clusterToBeUpdated := v1alpha1.Cluster{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterToBeUpdated)).To(Succeed())
+			if clusterToBeUpdated.Annotations == nil {
+				clusterToBeUpdated.Annotations = make(map[string]string)
+			}
+			clusterToBeUpdated.Annotations["greenhouse.sap/oidc-override"] = fmt.Sprintf(`{
+				"clientIDReference": {"name": "%s", "key": "%s"},
+				"clientSecretReference": {"name": "%s", "key": "%s"}
+			}`, overrideSecret2.Name, oidcClientIDKey, overrideSecret2.Name, oidcClientSecretKey)
+			g.Expect(test.K8sClient.Update(test.Ctx, &clusterToBeUpdated)).To(Succeed())
+		}).To(Succeed(), "cluster should be updated")
 
 		Eventually(func(g Gomega) string {
 			fresh := v1alpha1.ClusterKubeconfig{}

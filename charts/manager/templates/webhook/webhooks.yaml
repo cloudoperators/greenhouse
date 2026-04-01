@@ -193,6 +193,12 @@ webhooks:
         resources:
           - serviceaccounts
     sideEffects: None
+    namespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values:
+            - kube-system
   - admissionReviewVersions:
       - v1
     clientConfig:
@@ -435,6 +441,12 @@ webhooks:
         resources:
           - serviceaccounts
     sideEffects: None
+    namespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values:
+            - kube-system
   - admissionReviewVersions:
       - v1
     clientConfig:
