@@ -1,35 +1,45 @@
 # SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
 
+# -- Overrides the chart name.
 nameOverride: ""
-fullnameOverride: "greenhouse-authz"
+# -- Overrides the full name of the chart.
+fullnameOverride: ""
 
+# -- Number of replicas.
 replicaCount: 1
 
 image:
+  # -- Image repository.
   repository: ghcr.io/cloudoperators/greenhouse
+  # -- Image pull policy.
   pullPolicy: IfNotPresent
-  # Overrides the image tag. Defaults to the chart appVersion.
+  # -- Overrides the image tag. Defaults to the chart appVersion.
   tag: ""
-  # digest takes precedence over tag if set
+  # -- Image digest. Takes precedence over tag if set.
   digest: ""
 
+# -- Image pull secrets.
 imagePullSecrets: []
 
 serviceAccount:
+  # -- Whether to create a ServiceAccount.
   create: true
-  automount: true
+  # -- Annotations to add to the ServiceAccount.
   annotations: {}
-  # The name of the service account to use.
-  # If not set, a name is generated using the fullname template.
+  # -- The name of the ServiceAccount to use. If not set, a name is generated using the fullname template.
   name: ""
 
+# -- Annotations to add to all resources.
 commonAnnotations: {}
+# -- Labels to add to all resources.
 commonLabels: {}
 
+# -- Pod security context.
 podSecurityContext: {}
   # fsGroup: 2000
 
+# -- Container security context.
 securityContext: {}
   # capabilities:
   #   drop:
@@ -39,44 +49,60 @@ securityContext: {}
   # runAsUser: 1000
 
 service:
+  # -- Kubernetes service type.
   type: ClusterIP
+  # -- Port the service listens on.
   port: 9443
+  # -- Static ClusterIP. Required as the DNSEntry target when `dnsEntry.enabled` is true.
+  clusterIP: ""
+  # -- Annotations to add to the Service.
+  annotations: {}
+
+dnsEntry:
+  # -- Enable DNSEntry resource. Set to true when using Gardener shoot-dns-service to register a DNS record for the webhook.
+  enabled: false
+  # -- DNS name to register. Required when `dnsEntry.enabled` is true.
+  dnsName: ""
+  # -- Annotations to add to the DNSEntry. Set `dns.gardener.cloud/class: garden` to enable shoot-dns-service processing.
+  annotations: {}
 
 tls:
-  # Set to false to disable auto-mounting of serving certs (e.g. local debugger running outside cluster).
-  # Set to true with useSecret=true to auto-mount the cert-manager Secret as serving-certs volume.
-  # Set to true with useSecret=false to supply the serving-certs volume yourself via volumes/volumeMounts.
+  # -- Enable TLS serving certs. Set to false for local debugging outside the cluster.
   enabled: true
-  # When enabled=true and useSecret=true, the chart mounts the cert-manager Secret as the serving-certs volume.
-  # When enabled=true and useSecret=false, supply the serving-certs volume/mount via volumes/volumeMounts below.
+  # -- When true, mounts the cert-manager Secret as the serving-certs volume. When false, supply the volume yourself via `volumes`/`volumeMounts`.
   useSecret: true
-  # Name of the cert-manager generated Secret. Defaults to <fullname>-serving-certs.
+  # -- Name of the cert-manager generated Secret. Defaults to `<fullname>-serving-certs`.
   secretName: ""
+  # -- Additional DNS SANs to add to the serving certificate.
+  # @default -- `[]`
+  # Example:
+  # extraDNSNames:
+  #   - "greenhouse-authz.example.tld"
+  extraDNSNames: []
 
-# Additional volumes to add to the deployment.
-# Example for kind hostPath (tls.enabled=true, tls.useSecret=false):
+# -- Additional volumes to add to the Deployment.
+# Example:
 # volumes:
 #   - name: serving-certs
 #     hostPath:
 #       path: /etc/kubernetes/webhook/certs
+volumes: []
 
-# Additional volumeMounts to add to the container.
-# Example for kind hostPath (tls.enabled=true, tls.useSecret=false):
+# -- Additional volumeMounts to add to the container.
+# Example:
 # volumeMounts:
 #   - name: serving-certs
 #     mountPath: /tmp/k8s-webhook-server/serving-certs
 #     readOnly: true
+volumeMounts: []
 
-# Additional environment variables.
-# env:
-#   - name: AUTHZ_TLS_DISABLED
-#     value: "true"
+# -- Additional environment variables.
 env: []
 
-# Additional args to pass to the authz binary.
-# Use --webhook-client-ca-name="" to disable mTLS client cert verification.
+# -- Additional args to pass to the authz binary.
 args: []
 
+# -- Resource requests and limits.
 resources: {}
   # limits:
   #   cpu: 500m
@@ -85,6 +111,6 @@ resources: {}
   #   cpu: 10m
   #   memory: 64Mi
 
-# When enabled, configures podAntiAffinity and topologySpreadConstraints for high availability.
 ha:
-  enabled: true
+  # -- When enabled, configures podAntiAffinity and topologySpreadConstraints for high availability.
+  enabled: false
