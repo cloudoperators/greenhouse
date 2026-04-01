@@ -1,7 +1,7 @@
 name: Build Docker images and push to registry
 
 on:
-  workflow_dispatch: { }
+  workflow_dispatch: {}
   push:
     branches:
       - main
@@ -21,7 +21,7 @@ env:
 jobs:
   build:
     name: Build
-    runs-on: [ ubuntu-latest ]
+    runs-on: [ubuntu-latest]
     permissions:
       contents: read
       packages: write
@@ -37,11 +37,11 @@ jobs:
       - name: Install cosign
         if: github.event_name != 'pull_request'
         uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
-      
+
       # Set up QEMU for cross-platform builds
       - name: Set up QEMU
         uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
-      
+
       # Set up BuildKit Docker container builder to be able to build
       # multi-platform images and export cache
       # https://github.com/docker/setup-buildx-action
@@ -120,17 +120,17 @@ jobs:
       security-events: write
     name: Vulnerability Scan
     needs: build
-    runs-on: [ ubuntu-latest ]
+    runs-on: [ubuntu-latest]
     steps:
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@e368e328979b113139d6f9068e03accaed98a518 # 0.34.1
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         if: success()
         with:
           image-ref: ${{ env.REGISTRY }}/${{ github.repository_owner }}/greenhouse:${{ github.sha }}
           ignore-unfixed: true
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH,MEDIUM'
+          format: "sarif"
+          output: "trivy-results.sarif"
+          severity: "CRITICAL,HIGH,MEDIUM"
 
       - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@89a39a4e59826350b863aa6b6252a07ad50cf83e # v4.32.4
