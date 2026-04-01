@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
+	v1 "github.com/google/go-containerregistry/pkg/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -161,7 +162,10 @@ func (m *ImageMirror) buildMirroredOCIRef(imageRef string) string {
 // triggerReplication fetches the manifest for the given ref to warm the pull-through cache.
 func (m *ImageMirror) triggerReplication(ctx context.Context, ref string, extraOpts ...crane.Option) ([]byte, error) {
 	log.FromContext(ctx).V(1).Info("triggering replication", "ref", ref)
-	opts := append([]crane.Option{crane.WithAuth(m.auth)}, extraOpts...)
+	opts := append([]crane.Option{
+		crane.WithAuth(m.auth),
+		crane.WithPlatform(&v1.Platform{OS: "linux", Architecture: "amd64"}),
+	}, extraOpts...)
 	manifest, err := m.manifestFetcher(ref, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch manifest for %s: %w", ref, err)
