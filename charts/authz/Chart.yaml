@@ -3,7 +3,7 @@
 
 apiVersion: v2
 name: authz
-description: A Helm chart for Kubernetes
+description: Authorization server for Greenhouse, enabling support-group-scoped access control via Kubernetes authorizer webhook.
 
 # A chart can be either an 'application' or a 'library' chart.
 #

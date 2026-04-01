@@ -6,12 +6,12 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
-      - 'internal/**'
-      - 'e2e/**'
-      - 'cmd/**'
-      - 'Dockerfile*'
-      - 'go.mod'
-      - 'go.sum'
+      - "internal/**"
+      - "e2e/**"
+      - "cmd/**"
+      - "Dockerfile*"
+      - "go.mod"
+      - "go.sum"
   schedule:
     - cron: "20 08 * * 1"
 
@@ -21,12 +21,12 @@ jobs:
       security-events: write
       actions: read
       contents: read
-    uses: cloudoperators/common/.github/workflows/shared-codeql.yaml@main
+    uses: cloudoperators/common/.github/workflows/shared-codeql.yaml@c12810ffe8dfb7f4f907959e9e85632d5ed5469e # main
     with:
       runs-on: "['ubuntu-latest']"
       language: "['go']"
       go-check: true
-      go-version: "['1.25']"
+      go-version: "['1.26']"
       node-check: false
       autobuild: false
       build_query: "make build"

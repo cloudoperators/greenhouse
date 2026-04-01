@@ -26,15 +26,24 @@ func init() {
 }
 
 func UpdateTeamrbacMetrics(teamRoleBinding *greenhousev1alpha2.TeamRoleBinding) {
-	teamRBACReadyLabels := prometheus.Labels{
+	teamRBACReadyGauge.DeletePartialMatch(prometheus.Labels{
 		"team_role_binding": teamRoleBinding.Name,
-		"team":              teamRoleBinding.Spec.TeamRef,
 		"namespace":         teamRoleBinding.Namespace,
-		"owned_by":          teamRoleBinding.GetLabels()[greenhouseapis.LabelKeyOwnedBy],
-	}
+	})
+
+	teamRefs := resolveTeamRefs(teamRoleBinding)
+
+	var value float64
 	if teamRoleBinding.Status.IsReadyTrue() {
-		teamRBACReadyGauge.With(teamRBACReadyLabels).Set(1)
-	} else {
-		teamRBACReadyGauge.With(teamRBACReadyLabels).Set(0)
+		value = 1
+	}
+
+	for _, team := range teamRefs {
+		teamRBACReadyGauge.With(prometheus.Labels{
+			"team_role_binding": teamRoleBinding.Name,
+			"team":              team,
+			"namespace":         teamRoleBinding.Namespace,
+			"owned_by":          teamRoleBinding.GetLabels()[greenhouseapis.LabelKeyOwnedBy],
+		}).Set(value)
 	}
 }

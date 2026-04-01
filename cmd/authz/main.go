@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package main
@@ -34,7 +34,7 @@ const authzTLSDisabledEnv = "AUTHZ_TLS_DISABLED"
 
 var (
 	scheme          = runtime.NewScheme()
-	logAuthz        = ctrl.Log.WithName("webhooks").WithName("authz")
+	logger          = ctrl.Log.WithName("webhooks").WithName("authz")
 	metricsAddr     string
 	healthzAddr     string
 	webhookPort     int
@@ -47,8 +47,8 @@ func init() {
 		Development: true,
 		TimeEncoder: zapcore.RFC3339TimeEncoder,
 	}
-	logAuthz = zap.New(zap.UseFlagOptions(&opts))
-	ctrl.SetLogger(logAuthz)
+	logger = zap.New(zap.UseFlagOptions(&opts))
+	ctrl.SetLogger(logger)
 
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(greenhousev1alpha1.AddToScheme(scheme))
@@ -65,7 +65,7 @@ func init() {
 }
 
 func main() {
-	logAuthz.Info("Authorization Webhook", "version", version.GitCommit, "build_date", version.BuildDate, "go", version.GoVersion)
+	logger.Info("Authorization Webhook", "version", version.GitCommit, "build_date", version.BuildDate, "go", version.GoVersion)
 
 	flag.Parse()
 
@@ -94,7 +94,7 @@ func main() {
 	}
 
 	mgrOptions := ctrl.Options{
-		Logger:                 logAuthz,
+		Logger:                 logger,
 		Scheme:                 scheme,
 		Metrics:                metricsServerOptions,
 		HealthProbeBindAddress: healthzAddr,
@@ -112,14 +112,14 @@ func main() {
 	client := mgr.GetClient()
 	mapper := mgr.GetRESTMapper()
 
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := instrumentHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handleAuthorize(w, r, client, mapper)
-	})
+	}))
 
 	if secure {
 		mgr.GetWebhookServer().Register("/authorize", handler)
 	} else {
-		logAuthz.Info("Setting up insecure HTTP server")
+		logger.Info("Setting up insecure HTTP server")
 		handleError(addInsecureWebhookServer(mgr, webhookPort, "/authorize", handler), "Failed to add insecure webhook server")
 	}
 
@@ -131,7 +131,7 @@ func main() {
 
 func handleError(err error, msg string) {
 	if err != nil {
-		logAuthz.Error(err, msg)
+		logger.Error(err, msg)
 		os.Exit(1)
 	}
 }

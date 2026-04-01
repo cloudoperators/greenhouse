@@ -1071,7 +1071,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			By("creating a TeamRoleBinding referencing a non-existent Team")
 			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-missing-team",
 				test.WithTeamRoleRef(teamRoleUT.Name),
-				test.WithTeamRef("non-existent-team"),
+				test.WithTeamRefs("non-existent-team"),
 				test.WithClusterName(clusterA.Name))
 			trbKey := types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}
 
@@ -1090,9 +1090,6 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 		})
 
 		It("should reconcile successfully once the missing TeamRole is created", func() {
-			// Pre-compute the exact TeamRole name so both the TRB reference and the actual
-			// TeamRole object share the same name. The Watch-based re-enqueue indexes TRBs by
-			// .spec.teamRoleRef, so the names must match exactly.
 			lateTeamRoleName := setup.RandomizeName("late-teamrole")
 
 			By("creating a TeamRoleBinding referencing a non-existent TeamRole")
@@ -1127,6 +1124,127 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			By("cleaning up the test")
 			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
 			test.EventuallyDeleted(test.Ctx, test.K8sClient, lateTeamRole)
+		})
+	})
+
+	Context("When creating a TeamRoleBinding with multiple teamRefs", func() {
+		It("should create ClusterRoleBindings with subjects from all teams", func() {
+			teamB := setup.CreateTeam(test.Ctx, "test-team-b", test.WithMappedIDPGroup("test-team-b-idp-group"))
+
+			By("creating a TeamRoleBinding with multiple teamRefs")
+			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-multi-team-trb",
+				test.WithTeamRoleRef(teamRoleUT.Name),
+				test.WithTeamRefs(teamUT.Name, teamB.Name),
+				test.WithClusterName(clusterA.Name),
+				test.WithUsernames([]string{"test-user-1"}))
+
+			By("validating the ClusterRoleBinding has subjects from both teams")
+			remoteRoleBinding := &rbacv1.ClusterRoleBinding{}
+			remoteRoleBindingName := types.NamespacedName{Name: trb.GetRBACName()}
+			Eventually(func(g Gomega) {
+				g.Expect(clusterAKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)).To(Succeed())
+				g.Expect(remoteRoleBinding.Subjects).To(HaveLen(3))
+				g.Expect(remoteRoleBinding.Subjects).To(ContainElement(HaveField("Name", "test-user-1")))
+				g.Expect(remoteRoleBinding.Subjects).To(ContainElement(HaveField("Name", testTeamIDPGroup)))
+				g.Expect(remoteRoleBinding.Subjects).To(ContainElement(HaveField("Name", "test-team-b-idp-group")))
+			}).Should(Succeed(), "the ClusterRoleBinding should have subjects from both teams")
+
+			By("cleaning up")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, teamB)
+		})
+
+		It("should update RBAC when teamRefs is mutated", func() {
+			teamC := setup.CreateTeam(test.Ctx, "test-team-c", test.WithMappedIDPGroup("test-team-c-idp-group"))
+
+			By("creating a TeamRoleBinding with a single team via teamRefs")
+			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-mutable-trb",
+				test.WithTeamRoleRef(teamRoleUT.Name),
+				test.WithTeamRefs(teamUT.Name),
+				test.WithClusterName(clusterA.Name))
+
+			By("validating initial ClusterRoleBinding has 1 team group subject")
+			remoteRoleBinding := &rbacv1.ClusterRoleBinding{}
+			remoteRoleBindingName := types.NamespacedName{Name: trb.GetRBACName()}
+			Eventually(func(g Gomega) {
+				g.Expect(clusterAKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)).To(Succeed())
+				g.Expect(remoteRoleBinding.Subjects).To(HaveLen(1))
+				g.Expect(remoteRoleBinding.Subjects).To(ContainElement(HaveField("Name", testTeamIDPGroup)))
+			}).Should(Succeed())
+
+			By("adding a second team to teamRefs")
+			_, err := clientutil.CreateOrPatch(test.Ctx, k8sClient, trb, func() error {
+				trb.Spec.TeamRefs = []string{teamUT.Name, teamC.Name}
+				return nil
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			By("validating ClusterRoleBinding now has 2 team group subjects")
+			Eventually(func(g Gomega) {
+				g.Expect(clusterAKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)).To(Succeed())
+				g.Expect(remoteRoleBinding.Subjects).To(HaveLen(2))
+				g.Expect(remoteRoleBinding.Subjects).To(ContainElement(HaveField("Name", testTeamIDPGroup)))
+				g.Expect(remoteRoleBinding.Subjects).To(ContainElement(HaveField("Name", "test-team-c-idp-group")))
+			}).Should(Succeed(), "the ClusterRoleBinding should be updated with subjects from both teams")
+
+			By("cleaning up")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, teamC)
+		})
+
+		It("should reconcile TRBs created with the deprecated teamRef field", func() {
+			By("creating a TeamRoleBinding using only the deprecated teamRef field")
+			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-premigration-trb",
+				test.WithTeamRoleRef(teamRoleUT.Name),
+				test.WithTeamRef(teamUT.Name),
+				test.WithClusterName(clusterA.Name))
+
+			By("validating the ClusterRoleBinding has the team's group subject")
+			remoteRoleBinding := &rbacv1.ClusterRoleBinding{}
+			remoteRoleBindingName := types.NamespacedName{Name: trb.GetRBACName()}
+			Eventually(func(g Gomega) {
+				g.Expect(clusterAKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)).To(Succeed())
+				g.Expect(remoteRoleBinding.Subjects).To(HaveLen(1))
+				g.Expect(remoteRoleBinding.Subjects).To(ContainElement(HaveField("Name", testTeamIDPGroup)))
+			}).Should(Succeed(), "TRB created with deprecated teamRef should be reconciled after webhook migration")
+
+			By("cleaning up")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
+		})
+
+		It("should re-reconcile when a referenced Team's MappedIDPGroup changes", func() {
+			teamD := setup.CreateTeam(test.Ctx, "test-team-d", test.WithMappedIDPGroup("original-idp-group"))
+
+			By("creating a TeamRoleBinding referencing teamD")
+			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-team-change-trb",
+				test.WithTeamRoleRef(teamRoleUT.Name),
+				test.WithTeamRefs(teamD.Name),
+				test.WithClusterName(clusterA.Name))
+
+			By("validating the initial ClusterRoleBinding")
+			remoteRoleBinding := &rbacv1.ClusterRoleBinding{}
+			remoteRoleBindingName := types.NamespacedName{Name: trb.GetRBACName()}
+			Eventually(func(g Gomega) {
+				g.Expect(clusterAKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)).To(Succeed())
+				g.Expect(remoteRoleBinding.Subjects).To(ContainElement(HaveField("Name", "original-idp-group")))
+			}).Should(Succeed())
+
+			By("updating teamD's MappedIDPGroup")
+			_, err := clientutil.CreateOrPatch(test.Ctx, k8sClient, teamD, func() error {
+				teamD.Spec.MappedIDPGroup = "updated-idp-group"
+				return nil
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			By("validating the ClusterRoleBinding subjects are updated")
+			Eventually(func(g Gomega) {
+				g.Expect(clusterAKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)).To(Succeed())
+				g.Expect(remoteRoleBinding.Subjects).To(ContainElement(HaveField("Name", "updated-idp-group")))
+			}).Should(Succeed(), "the ClusterRoleBinding should reflect the updated MappedIDPGroup")
+
+			By("cleaning up")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, teamD)
 		})
 	})
 })

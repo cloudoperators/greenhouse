@@ -1,0 +1,52 @@
+# Greenhouse {{ template "chart.name" . }}
+
+{{ template "chart.description" . }}
+
+## Prerequisites
+
+- Kubernetes 1.30+
+- [cert-manager](https://cert-manager.io/) for TLS certificate management
+
+## Installing the Chart
+
+```shell
+helm upgrade --install greenhouse-authz oci://ghcr.io/cloudoperators/greenhouse/charts/authz \
+  --namespace greenhouse \
+  --create-namespace
+```
+
+## Gardener Usage
+
+Use [shoot-dns-service](https://gardener.cloud/docs/extensions/shoot-dns-service/) and [HA VPN](https://gardener.cloud/docs/gardener/high-availability/) to make the webhook reachable from the seed.
+
+### How it works
+
+1. **HA VPN** — makes ClusterIPs reachable from the seed. See [Gardener docs](https://gardener.cloud/docs/gardener/reversed-vpn-tunnel/#high-availability-for-reversed-vpn-tunnel).
+2. **DNSEntry** — shoot-dns-service registers a DNS record pointing to the static ClusterIP. See [Gardener docs](https://gardener.cloud/docs/guides/networking/DNS-extension/#creating-a-dnsentry-resource-explicitly).
+3. **TLS SAN** — the serving certificate includes the DNS hostname as a SAN.
+
+### Requirements
+
+- [shoot-dns-service](https://gardener.cloud/docs/extensions/shoot-dns-service/) extension enabled on the shoot
+- [HA VPN](https://gardener.cloud/docs/gardener/high-availability/) enabled on the shoot
+
+### Configuration
+
+Pick a static `ClusterIP` from the shoot's service CIDR (check `spec.networking.services` in the shoot resource)
+
+Example configuration:
+
+```yaml
+service:
+  clusterIP: "100.104.1.10"
+
+tls:
+  extraDNSNames:
+    - "greenhouse-authz.your-shoot.example.tld"
+
+dnsEntry:
+  annotations:
+    dns.gardener.cloud/class: garden
+```
+
+{{ template "chart.valuesSection" . }}

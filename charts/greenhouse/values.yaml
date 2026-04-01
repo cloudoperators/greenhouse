@@ -26,20 +26,18 @@ global:
 postgresqlng:
   enabled: true
   global:
-    linkerd_enabled: false
-    region: greenhouse
-    # The registry where the image is stored
+    # The container image registry used for the postgresql-ng image.
+    # This value is required by the postgresql-ng chart; set it to your deployment registry.
     registry:
   alerts:
     support_group: greenhouse
   resources: {}
-  # The database that will be created in the database
-  postgresDatabase: dex
+  # The databases that will be created in the PostgreSQL server.
+  # Each database name must have a matching entry in `users` with the same name.
+  databases:
+    dex: {}
   users:
-    dex:         # The user that will be created in the database
-      grant:         # The grants that will be given to the user
-      - 'GRANT ALL PRIVILEGES ON DATABASE "%PGDATABASE%"'
-  tableOwner:         # The owner of the tables in the database
+    dex: {}         # Must match the database name above; this user becomes the database owner
 
 # demo organization
 demo:

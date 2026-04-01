@@ -69,7 +69,7 @@ func InitPluginStatus(plugin *greenhousev1alpha1.Plugin) greenhousev1alpha1.Plug
 	return plugin.Status
 }
 
-// initClientGetter returns a RestClientGetter for the given Plugin.
+// initClientGetter returns a RestClientGetter & Cluster for the given Plugin.
 // If the Plugin has a clusterName set, the RestClientGetter is initialized from the cluster secret.
 // Otherwise, the RestClientGetter is initialized with in-cluster config
 func initClientGetter(
@@ -77,7 +77,7 @@ func initClientGetter(
 	k8sClient client.Client,
 	kubeClientOpts []clientutil.KubeClientOption,
 	plugin *greenhousev1alpha1.Plugin,
-) (genericclioptions.RESTClientGetter, error) {
+) (genericclioptions.RESTClientGetter, *greenhousev1alpha1.Cluster, error) {
 
 	// early return if spec.clusterName is not set
 	if plugin.Spec.ClusterName == "" {
@@ -86,14 +86,14 @@ func initClientGetter(
 			err = fmt.Errorf("cannot access greenhouse cluster: %w", err)
 			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 				greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.ClusterAccessFailedReason, err.Error()))
-			return nil, err
+			return nil, nil, err
 		}
 		c := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
 		if c != nil && c.Reason == greenhousev1alpha1.ClusterAccessFailedReason {
 			plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
 				greenhousev1alpha1.HelmReleaseCreatedCondition, "", ""))
 		}
-		return restClientGetter, nil
+		return restClientGetter, nil, nil
 	}
 
 	// get restClientGetter from cluster if clusterName is set
@@ -103,7 +103,7 @@ func initClientGetter(
 		err = fmt.Errorf("failed to get cluster %s: %w", plugin.Spec.ClusterName, err)
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.ClusterAccessFailedReason, err.Error()))
-		return nil, err
+		return nil, nil, err
 	}
 
 	readyConditionInCluster := cluster.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
@@ -111,7 +111,7 @@ func initClientGetter(
 		err = fmt.Errorf("cluster %s is not ready", plugin.Spec.ClusterName)
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.ClusterAccessFailedReason, err.Error()))
-		return nil, err
+		return nil, nil, err
 	}
 
 	secret := corev1.Secret{}
@@ -120,21 +120,21 @@ func initClientGetter(
 		err = fmt.Errorf("failed to get secret for cluster %s: %w", plugin.Spec.ClusterName, err)
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.ClusterAccessFailedReason, err.Error()))
-		return nil, err
+		return nil, nil, err
 	}
 	restClientGetter, err := clientutil.NewRestClientGetterFromSecret(&secret, plugin.Spec.ReleaseNamespace, kubeClientOpts...)
 	if err != nil {
 		err = fmt.Errorf("cannot access cluster %s: %w", plugin.Spec.ClusterName, err)
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.ClusterAccessFailedReason, err.Error()))
-		return nil, err
+		return nil, nil, err
 	}
 	c := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
 	if c != nil && c.Reason == greenhousev1alpha1.ClusterAccessFailedReason {
 		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
 			greenhousev1alpha1.HelmReleaseCreatedCondition, "", ""))
 	}
-	return restClientGetter, nil
+	return restClientGetter, cluster, nil
 }
 
 func getPortForExposedService(o runtime.Object) (*corev1.ServicePort, error) {

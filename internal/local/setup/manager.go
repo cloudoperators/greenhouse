@@ -72,7 +72,7 @@ func (m *Manifest) modifyManagerDeployment(deploymentResource map[string]any) (m
 		return nil, errors.New("manager container not found in deployment")
 	}
 	deployment.Spec.Template.Spec.Containers[index].Image = LocalDevIMG
-	deployment.Spec.Replicas = utils.Int32P(1)
+	deployment.Spec.Replicas = new(int32(1))
 	if m.enableLocalPluginDev {
 		m.setHostPathVolume(deployment)
 		m.setHostPathVolumeMount(index, deployment)

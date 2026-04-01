@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package common
+package ocimirror
 
 import (
 	"context"
@@ -84,6 +84,94 @@ registryMirrors:
 					BaseDomain: "mirror.registry.com",
 					SubPath:    "dockerhub-mirror",
 				}))
+			})
+
+			It("should leave SecretName empty when not explicitly set", func() {
+				config, err := GetRegistryMirrorConfig(ctx, fakeClient, orgName)
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(config).NotTo(BeNil())
+				Expect(config.SecretName).To(BeEmpty())
+			})
+		})
+
+		Context("when config has explicit secretName", func() {
+			BeforeEach(func() {
+				org := &greenhousev1alpha1.Organization{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: orgName,
+					},
+					Spec: greenhousev1alpha1.OrganizationSpec{
+						ConfigMapRef: "test-configmap",
+					},
+				}
+
+				configMap := &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-configmap",
+						Namespace: orgName,
+					},
+					Data: map[string]string{
+						registryMirrorConfigKey: `primaryMirror: "primary.registry.com"
+secretName: "custom-secret"
+registryMirrors:
+  ghcr.io:
+    baseDomain: "europe.registry.com"
+    subPath: "ghcr-mirror"`,
+					},
+				}
+
+				fakeClient = fake.NewClientBuilder().
+					WithScheme(scheme).
+					WithObjects(org, configMap).
+					Build()
+			})
+
+			It("should use the explicit SecretName", func() {
+				config, err := GetRegistryMirrorConfig(ctx, fakeClient, orgName)
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(config).NotTo(BeNil())
+				Expect(config.SecretName).To(Equal("custom-secret"))
+			})
+		})
+
+		Context("when PrimaryMirror is empty, SecretName should not be defaulted", func() {
+			BeforeEach(func() {
+				org := &greenhousev1alpha1.Organization{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: orgName,
+					},
+					Spec: greenhousev1alpha1.OrganizationSpec{
+						ConfigMapRef: "test-configmap",
+					},
+				}
+
+				configMap := &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-configmap",
+						Namespace: orgName,
+					},
+					Data: map[string]string{
+						registryMirrorConfigKey: `registryMirrors:
+  ghcr.io:
+    baseDomain: "europe.registry.com"
+    subPath: "ghcr-mirror"`,
+					},
+				}
+
+				fakeClient = fake.NewClientBuilder().
+					WithScheme(scheme).
+					WithObjects(org, configMap).
+					Build()
+			})
+
+			It("should leave SecretName empty", func() {
+				config, err := GetRegistryMirrorConfig(ctx, fakeClient, orgName)
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(config).NotTo(BeNil())
+				Expect(config.SecretName).To(BeEmpty())
 			})
 		})
 

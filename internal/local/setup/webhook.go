@@ -92,7 +92,7 @@ func (m *Manifest) modifyWebhookDeployment(deploymentResource map[string]any) (m
 		return nil, errors.New("manager container not found in deployment")
 	}
 	deployment.Spec.Template.Spec.Containers[index].Image = LocalDevIMG
-	deployment.Spec.Replicas = utils.Int32P(1)
+	deployment.Spec.Replicas = new(int32(1))
 	depBytes, err := utils.FromK8sObjectToYaml(deployment, appsv1.SchemeGroupVersion)
 	if err != nil {
 		return nil, err
@@ -177,7 +177,7 @@ func (m *Manifest) modifyWebhook(resource map[string]any, hook client.Object, we
 				modifiedHook.Webhooks[i].ClientConfig.URL = utils.StringP(url)
 				modifiedHook.Webhooks[i].ClientConfig.Service = nil
 			}
-			modifiedHook.Webhooks[i].TimeoutSeconds = utils.Int32P(30)
+			modifiedHook.Webhooks[i].TimeoutSeconds = new(int32(30))
 		}
 		// convert from aregv1.MutatingWebhookConfiguration{} to yaml
 		return utils.FromK8sObjectToYaml(modifiedHook, aregv1.SchemeGroupVersion)
@@ -190,7 +190,7 @@ func (m *Manifest) modifyWebhook(resource map[string]any, hook client.Object, we
 				modifiedHook.Webhooks[i].ClientConfig.URL = utils.StringP(url)
 				modifiedHook.Webhooks[i].ClientConfig.Service = nil
 			}
-			modifiedHook.Webhooks[i].TimeoutSeconds = utils.Int32P(30)
+			modifiedHook.Webhooks[i].TimeoutSeconds = new(int32(30))
 		}
 		// convert from aregv1.ValidatingWebhookConfiguration{} to yaml
 		return utils.FromK8sObjectToYaml(modifiedHook, aregv1.SchemeGroupVersion)

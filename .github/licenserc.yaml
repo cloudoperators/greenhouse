@@ -24,6 +24,7 @@ header:
     - 'hack/typescript/metadata.yaml'
     - 'docs/**'
     - '**/*.md'
+    - '**/*.md.gotmpl'
     - 'LICENSE'
     - 'NOTICE'
     - 'PROJECT'

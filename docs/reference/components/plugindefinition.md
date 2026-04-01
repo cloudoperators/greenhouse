@@ -84,9 +84,11 @@ spec:
     type: bool
 ```
 
-`.required` indicates whether the option is mandatory when creating a Plugin from this PluginDefinition. `.default` contains the default value for the option if the Plugin does not provide a value for it. `.type` is used to enforce validation of the value. The following types are supported: `string`, `bool`, `int`, `list`, `map` and `secret`.
+`.required` indicates whether the option is mandatory when creating a Plugin from this PluginDefinition. `.default` contains the default value for the option if the Plugin does not already provide a value for it. Changes to the default value will only be automatically applied when Plugins are owned by a PluginPreset. `.type` is used to enforce validation of the value. The following types are supported: `string`, `bool`, `int`, `list`, `map` and `secret`.
 
-| :information_source: The type secret requires a secret reference, disallowing clear-text credentials. Vault/OpenBao references will be allowed with [1211](https://github.com/cloudoperators/greenhouse/issues/1211)|
+> :information_source: The defaults provided in a (Cluster-)PluginDefinition are applied when a Plugin is going through the admission webhook when being created or updated. As a result, changes to a PluginOption's default will not be reflected immediately on existing Plugins. Plugins managed through a PluginPreset will be automatically updated. Standalone Plugins will need to be reconciled by annotating with the [reconcile annotation](./../plugin/#triggering-reconciliation-of-the-plugins-managed-resources) to apply the new defaults.
+
+> :information_source: The type secret requires a secret reference, disallowing clear-text credentials. Vault/OpenBao references will be allowed with [1211](https://github.com/cloudoperators/greenhouse/issues/1211)
 
 ## Next Steps
 

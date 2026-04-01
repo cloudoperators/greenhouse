@@ -30,6 +30,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/helm"
+	"github.com/cloudoperators/greenhouse/internal/ocimirror"
 	"github.com/cloudoperators/greenhouse/internal/util"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
@@ -146,10 +147,19 @@ func (r *PluginReconciler) ensureHelmRelease(
 	release.SetName(plugin.Name)
 	release.SetNamespace(plugin.Namespace)
 
-	mirrorConfig, err := common.GetRegistryMirrorConfig(ctx, r.Client, plugin.GetNamespace())
+	mirrorConfig, err := ocimirror.GetRegistryMirrorConfig(ctx, r.Client, plugin.GetNamespace())
 	if err != nil {
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseCreatedCondition, "", "Failed to read Organization registry mirror configuration"))
 		return fmt.Errorf("failed to read registry mirror configuration for Plugin %s: %w", plugin.Name, err)
+	}
+
+	var mirror *ocimirror.ImageMirror
+	if mirrorConfig != nil && len(mirrorConfig.RegistryMirrors) > 0 {
+		mirror, err = ocimirror.NewImageMirror(ctx, r.Client, mirrorConfig, plugin.GetNamespace())
+		if err != nil {
+			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseCreatedCondition, "", "Failed to create image mirror"))
+			return fmt.Errorf("failed to create image mirror for Plugin %s: %w", plugin.Name, err)
+		}
 	}
 
 	values, err := generateHelmValues(ctx, optionValues)
@@ -197,8 +207,8 @@ func (r *PluginReconciler) ensureHelmRelease(
 			WithStorageNamespace(plugin.Spec.ReleaseNamespace).
 			WithTargetNamespace(plugin.Spec.ReleaseNamespace)
 
-		if mirrorConfig != nil && len(mirrorConfig.RegistryMirrors) > 0 {
-			restClientGetter, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, plugin)
+		if mirror != nil {
+			restClientGetter, _, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, plugin)
 			if err != nil {
 				return fmt.Errorf("failed to init client getter for Plugin %s: %w", plugin.Name, err)
 			}
@@ -208,7 +218,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 				return fmt.Errorf("failed to template helm chart for Plugin %s: %w", plugin.Name, err)
 			}
 
-			postRenderer := createRegistryMirrorPostRenderer(mirrorConfig, helmRelease.Manifest)
+			postRenderer := createRegistryMirrorPostRenderer(mirror, helmRelease.Manifest)
 			if postRenderer != nil {
 				builder = builder.WithPostRenderers([]helmv2.PostRenderer{*postRenderer})
 			}
@@ -244,7 +254,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 func (r *PluginReconciler) computeReadyConditionFlux(ctx context.Context, plugin *greenhousev1alpha1.Plugin) greenhousemetav1alpha1.Condition {
 	readyCondition := *plugin.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 
-	restClientGetter, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, plugin)
+	restClientGetter, cluster, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, plugin)
 	if err != nil {
 		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonClusterAccessFailed)
 		readyCondition.Status = metav1.ConditionFalse
@@ -267,7 +277,7 @@ func (r *PluginReconciler) computeReadyConditionFlux(ctx context.Context, plugin
 	plugin.Status.Weight = pluginDefinitionSpec.Weight
 	plugin.Status.Description = pluginDefinitionSpec.Description
 
-	r.fetchReleaseStatus(ctx, restClientGetter, plugin, *pluginDefinitionSpec, &plugin.Status)
+	r.fetchReleaseStatus(ctx, restClientGetter, plugin, *pluginDefinitionSpec, &plugin.Status, cluster.IsExposedServicesDisabled())
 
 	if err := r.reconcileTechnicalLabels(ctx, plugin); err != nil {
 		log.FromContext(ctx).Error(err, "failed to reconcile technical labels")
@@ -315,6 +325,7 @@ func (r *PluginReconciler) fetchReleaseStatus(ctx context.Context,
 	plugin *greenhousev1alpha1.Plugin,
 	pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec,
 	pluginStatus *greenhousev1alpha1.PluginStatus,
+	exposedServicesDisabled bool,
 ) {
 
 	var (
@@ -340,21 +351,31 @@ func (r *PluginReconciler) fetchReleaseStatus(ctx context.Context,
 	helmRelease := &helmv2.HelmRelease{}
 	err := r.Get(ctx, types.NamespacedName{Name: plugin.Name, Namespace: plugin.Namespace}, helmRelease)
 	if err != nil {
+		// helm release does not exist or cannot be accessed
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ExposedServicesSyncedCondition, "", "failed to load Flux HelmRelease: "+err.Error()))
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseDeployedCondition, "", "failed to load Flux HelmRelease: "+err.Error()))
-	} else {
-		helmSDKRelease, err := helm.GetReleaseForHelmChartFromPlugin(ctx, restClientGetter, plugin)
-		if err != nil {
-			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
-				greenhousev1alpha1.ExposedServicesSyncedCondition, "", "failed to fetch Helm release from remote cluster: "+err.Error()))
-		} else {
-			serviceList, err := getAllExposedServicesForPlugin(restClientGetter, helmSDKRelease, plugin)
+	}
+	if exposedServicesDisabled {
+		// exposed services are disabled for the cluster
+		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.ExposedServicesSyncedCondition, greenhousev1alpha1.ExposedServicesDisabledReason, "Exposed services are disabled for cluster "+plugin.Spec.ClusterName))
+	}
+	if err == nil {
+		// helm release exists
+		if !exposedServicesDisabled {
+			// exposed services are not disabled, attempt to fetch exposed services from the cluster
+			helmSDKRelease, err := helm.GetReleaseForHelmChartFromPlugin(ctx, restClientGetter, plugin)
 			if err != nil {
 				plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
-					greenhousev1alpha1.ExposedServicesSyncedCondition, "", "failed to get exposed services: "+err.Error()))
+					greenhousev1alpha1.ExposedServicesSyncedCondition, "", "failed to fetch Helm release from remote cluster: "+err.Error()))
 			} else {
-				exposedServices = serviceList
-				plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.ExposedServicesSyncedCondition, "", "Fetched exposed services successfully"))
+				serviceList, err := getAllExposedServicesForPlugin(restClientGetter, helmSDKRelease, plugin)
+				if err != nil {
+					plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
+						greenhousev1alpha1.ExposedServicesSyncedCondition, "", "failed to get exposed services: "+err.Error()))
+				} else {
+					exposedServices = serviceList
+					plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.ExposedServicesSyncedCondition, "", "Fetched exposed services successfully"))
+				}
 			}
 		}
 

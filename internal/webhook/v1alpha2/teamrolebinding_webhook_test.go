@@ -14,6 +14,81 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
+var _ = Describe("Default RoleBinding", Ordered, func() {
+	It("should merge teamRef into teamRefs when only teamRef is set", func() {
+		rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", "default",
+			test.WithTeamRef("team-a"),
+		)
+		err := DefaultRoleBinding(test.Ctx, test.K8sClient, rb)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(rb.Spec.TeamRefs).To(ConsistOf("team-a"))
+	})
+
+	It("should not duplicate teamRef in teamRefs when already present", func() {
+		rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", "default",
+			test.WithTeamRef("team-a"),
+			test.WithTeamRefs("team-a", "team-b"),
+		)
+		err := DefaultRoleBinding(test.Ctx, test.K8sClient, rb)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(rb.Spec.TeamRefs).To(ConsistOf("team-a", "team-b"))
+	})
+
+	It("should merge teamRef into teamRefs when teamRef is not in teamRefs", func() {
+		rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", "default",
+			test.WithTeamRef("team-a"),
+			test.WithTeamRefs("team-b", "team-c"),
+		)
+		err := DefaultRoleBinding(test.Ctx, test.K8sClient, rb)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(rb.Spec.TeamRefs).To(ConsistOf("team-a", "team-b", "team-c"))
+	})
+
+	It("should not modify teamRefs when teamRef is empty", func() {
+		rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", "default",
+			test.WithTeamRefs("team-b"),
+		)
+		err := DefaultRoleBinding(test.Ctx, test.K8sClient, rb)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(rb.Spec.TeamRefs).To(ConsistOf("team-b"))
+	})
+
+	It("should deduplicate teamRefs", func() {
+		rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", "default",
+			test.WithTeamRefs("team-b", "team-a", "team-b"),
+		)
+		err := DefaultRoleBinding(test.Ctx, test.K8sClient, rb)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(rb.Spec.TeamRefs).To(Equal([]string{"team-a", "team-b"}))
+	})
+
+	It("should filter out empty and whitespace-only teamRefs", func() {
+		rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", "default",
+			test.WithTeamRefs("team-a", "", "  ", "team-b"),
+		)
+		err := DefaultRoleBinding(test.Ctx, test.K8sClient, rb)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(rb.Spec.TeamRefs).To(Equal([]string{"team-a", "team-b"}))
+	})
+
+	It("should deduplicate when teamRef duplicates an entry in teamRefs", func() {
+		rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", "default",
+			test.WithTeamRef("team-a"),
+			test.WithTeamRefs("team-a"),
+		)
+		err := DefaultRoleBinding(test.Ctx, test.K8sClient, rb)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(rb.Spec.TeamRefs).To(Equal([]string{"team-a"}))
+	})
+
+	It("should leave teamRefs empty when both teamRef and teamRefs are empty", func() {
+		rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", "default")
+		err := DefaultRoleBinding(test.Ctx, test.K8sClient, rb)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(rb.Spec.TeamRefs).To(BeEmpty())
+	})
+})
+
 var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 	var (
 		setup    *test.TestSetup
@@ -54,20 +129,46 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 			)
 
 			warns, err := ValidateCreateRoleBinding(test.Ctx, test.K8sClient, rb)
-			Expect(warns).To(BeNil(), "expected no warnings")
 			Expect(err).ToNot(HaveOccurred(), "expected no error when TeamRole does not exist")
+			Expect(warns).To(ContainElement(ContainSubstring("spec.teamRef is deprecated")), "expected deprecation warning for teamRef")
 		})
-		It("should allow creation even if the Team does not exist yet", func() {
+		It("should allow creation even if a team in teamRefs does not exist yet", func() {
 			rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
 				test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
-				test.WithTeamRef("non-existent-team"),
+				test.WithTeamRefs(team.Name, "non-existent-team"),
 				test.WithClusterName(cluster.Name),
 			)
 
 			warns, err := ValidateCreateRoleBinding(test.Ctx, test.K8sClient, rb)
 			Expect(warns).To(BeNil(), "expected no warnings")
 			Expect(err).ToNot(HaveOccurred(), "expected no error when Team does not exist")
+		})
+		It("should accept empty teamRefs", func() {
+			rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
+				test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
+				test.WithTeamRoleRef(teamRole.Name),
+				test.WithClusterName(cluster.Name),
+			)
+
+			warns, err := ValidateCreateRoleBinding(test.Ctx, test.K8sClient, rb)
+			Expect(err).ToNot(HaveOccurred(), "expected no error")
+			Expect(warns).To(BeNil(), "expected no warnings")
+		})
+		It("should accept multiple valid teams in teamRefs", func() {
+			team2 := setup.CreateTeam(test.Ctx, "test-setup-team-2")
+			defer test.EventuallyDeleted(test.Ctx, test.K8sClient, team2)
+
+			rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
+				test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
+				test.WithTeamRoleRef(teamRole.Name),
+				test.WithTeamRefs(team.Name, team2.Name),
+				test.WithClusterName(cluster.Name),
+			)
+
+			warns, err := ValidateCreateRoleBinding(test.Ctx, test.K8sClient, rb)
+			Expect(err).ToNot(HaveOccurred(), "expected no error")
+			Expect(warns).To(BeNil(), "expected no warnings")
 		})
 		It("should return an error if both clusterName and clusterSelector not specified", func() {
 			rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
@@ -202,25 +303,27 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 			Expect(err).To(MatchError(ContainSubstring("cannot change TeamRoleRef of an existing TeamRoleBinding")))
 		})
 
-		It("Should deny changing the TeamRef", func() {
+		It("Should allow changing TeamRefs", func() {
 			oldRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
 				test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
-				test.WithTeamRef(team.Name),
+				test.WithTeamRefs(team.Name),
 				test.WithClusterName(cluster.Name),
 			)
+
+			team2 := setup.CreateTeam(test.Ctx, "test-setup-team-3")
+			defer test.EventuallyDeleted(test.Ctx, test.K8sClient, team2)
 
 			curRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
 				test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
-				test.WithTeamRef("differentTeam"),
+				test.WithTeamRefs(team.Name, team2.Name),
 				test.WithClusterName(cluster.Name),
 			)
 
 			warns, err := ValidateUpdateRoleBinding(test.Ctx, test.K8sClient, oldRB, curRB)
 			Expect(warns).To(BeNil(), "expected no warnings")
-			Expect(err).To(HaveOccurred(), "expected an error")
-			Expect(err).To(MatchError(ContainSubstring("cannot change TeamRef of an existing TeamRoleBinding")))
+			Expect(err).ToNot(HaveOccurred(), "expected no error")
 		})
 
 		It("Should return a warning when the owner Team is in another namespace", func() {
