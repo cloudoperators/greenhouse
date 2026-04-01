@@ -69,6 +69,15 @@ func MustRemoveAnnotation(ctx context.Context, c client.Client, o client.Object,
 	}).Should(Succeed(), "there should be no error removing the annotation")
 }
 
+func MustRemoveLabel(ctx context.Context, c client.Client, o client.Object, key string) {
+	GinkgoHelper()
+	Eventually(func(g Gomega) {
+		g.Expect(c.Get(ctx, client.ObjectKeyFromObject(o), o)).To(Succeed(), "there must be no error getting the object")
+		delete(o.GetLabels(), key)
+		g.Expect(c.Update(ctx, o)).To(Succeed(), "there must be no error updating the object")
+	}).Should(Succeed(), "there should be no error removing the label")
+}
+
 // MustDeleteCluster is used in the test context only and removes a cluster by namespaced name.
 func MustDeleteCluster(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster) {
 	GinkgoHelper()

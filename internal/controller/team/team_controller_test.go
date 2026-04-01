@@ -272,6 +272,39 @@ var _ = Describe("TeamController", Ordered, func() {
 				g.Expect(sa.OwnerReferences[0].Name).To(Equal(team.Name), "SA owner reference should point to the Team")
 			}).Should(Succeed(), "ServiceAccount should be created for support-group team")
 		})
+
+		It("should delete the ServiceAccount when support-group label is removed from Team", func() {
+			By("creating a support-group team")
+			team := setup.CreateTeam(test.Ctx, supportGroupTeamName,
+				test.WithMappedIDPGroup(validIdpGroupName),
+				test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"),
+			)
+
+			expectedSAName := team.Name + "-sa"
+
+			By("waiting for the ServiceAccount to be created")
+			Eventually(func(g Gomega) {
+				sa := &corev1.ServiceAccount{}
+				err := setup.Get(test.Ctx, types.NamespacedName{
+					Name:      expectedSAName,
+					Namespace: setup.Namespace(),
+				}, sa)
+				g.Expect(err).ShouldNot(HaveOccurred(), "ServiceAccount should have been created")
+			}).Should(Succeed(), "ServiceAccount should be created for support-group team")
+
+			By("removing the support-group label from the Team")
+			test.MustRemoveLabel(test.Ctx, setup.Client, team, greenhouseapis.LabelKeySupportGroup)
+
+			By("ensuring the ServiceAccount is deleted")
+			Eventually(func(g Gomega) {
+				sa := &corev1.ServiceAccount{}
+				err := setup.Get(test.Ctx, types.NamespacedName{
+					Name:      expectedSAName,
+					Namespace: setup.Namespace(),
+				}, sa)
+				g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "ServiceAccount should have been deleted after label removal")
+			}).Should(Succeed(), "ServiceAccount should be deleted when support-group label is removed")
+		})
 	})
 
 	Context("reconciling with missing SCIM config in Organization", func() {

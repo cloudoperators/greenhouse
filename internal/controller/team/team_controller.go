@@ -52,7 +52,7 @@ type TeamController struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teams/finalizers,verbs=update
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get
 //+kubebuilder:rbac:groups="events.k8s.io",resources=events,verbs=get;list;watch;update;patch
-//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;patch
+//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *TeamController) SetupWithManager(name string, mgr ctrl.Manager) error {
@@ -166,6 +166,11 @@ func (r *TeamController) EnsureCreated(ctx context.Context, object lifecycle.Run
 		if err := r.reconcileSupportGroupServiceAccount(ctx, team); err != nil {
 			return ctrl.Result{}, lifecycle.Failed, err
 		}
+	} else {
+		// If the support-group label was removed, delete the SA if it still exists.
+		if err := r.deleteSupportGroupServiceAccountIfExists(ctx, team); err != nil {
+			return ctrl.Result{}, lifecycle.Failed, err
+		}
 	}
 
 	return ctrl.Result{
@@ -272,6 +277,23 @@ func (r *TeamController) reconcileSupportGroupServiceAccount(ctx context.Context
 		r.recorder.Eventf(team, serviceAccount, corev1.EventTypeNormal, "UpdatedServiceAccount", "reconciling support group service account", "Updated ServiceAccount %s/%s", serviceAccount.Namespace, serviceAccount.Name)
 	}
 
+	return nil
+}
+
+func (r *TeamController) deleteSupportGroupServiceAccountIfExists(ctx context.Context, team *greenhousev1alpha1.Team) error {
+	serviceAccount := &corev1.ServiceAccount{}
+	err := r.Get(ctx, types.NamespacedName{
+		Name:      team.Name + "-sa",
+		Namespace: team.Namespace,
+	}, serviceAccount)
+	if err != nil {
+		return client.IgnoreNotFound(err)
+	}
+	if err := r.Delete(ctx, serviceAccount); err != nil {
+		return client.IgnoreNotFound(err)
+	}
+	log.FromContext(ctx).Info("deleted support group service account", "name", serviceAccount.Name, "namespace", serviceAccount.Namespace)
+	r.recorder.Eventf(team, serviceAccount, corev1.EventTypeNormal, "DeletedServiceAccount", "support-group label removed", "Deleted ServiceAccount %s/%s", serviceAccount.Namespace, serviceAccount.Name)
 	return nil
 }
 
