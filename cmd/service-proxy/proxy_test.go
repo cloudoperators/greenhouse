@@ -133,12 +133,12 @@ func TestURLGenerationWithProtocols(t *testing.T) {
 		},
 		{
 			name:            "explicit_http_protocol",
-			protocol:        pointer("http"),
+			protocol:        new("http"),
 			expectedURLPath: "/api/v1/namespaces/namespace/services/test:8080/proxy",
 		},
 		{
 			name:            "explicit_https_protocol",
-			protocol:        pointer("https"),
+			protocol:        new("https"),
 			expectedURLPath: "/api/v1/namespaces/namespace/services/https:test:8080/proxy",
 		},
 	}
@@ -279,9 +279,4 @@ func TestModifyResponse(t *testing.T) {
 			}
 		})
 	}
-}
-
-// helper function to create string pointer
-func pointer(s string) *string {
-	return &s
 }

@@ -1,5 +1,7 @@
-# SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
-# SPDX-License-Identifier: Apache-2.0
+{{/*
+SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+SPDX-License-Identifier: Apache-2.0
+*/}}
 
 {{- if and .Values.tls.enabled .Values.tls.useSecret }}
 ---
@@ -11,6 +13,10 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "authz.labels" . | nindent 4 }}
+  {{- with include "authz.annotations" . }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
 spec:
   selfSigned: {}
 ---
@@ -22,6 +28,10 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "authz.labels" . | nindent 4 }}
+  {{- with include "authz.annotations" . }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
 spec:
   isCA: true
   commonName: {{ include "authz.fullname" . }}-ca
@@ -29,6 +39,7 @@ spec:
   privateKey:
     algorithm: RSA
     size: 2048
+    rotationPolicy: Always
   issuerRef:
     name: {{ include "authz.fullname" . }}-ca-bootstrap
     kind: Issuer
@@ -41,6 +52,10 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "authz.labels" . | nindent 4 }}
+  {{- with include "authz.annotations" . }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
 spec:
   ca:
     secretName: {{ include "authz.fullname" . }}-ca
@@ -53,6 +68,10 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "authz.labels" . | nindent 4 }}
+  {{- with include "authz.annotations" . }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
 spec:
   secretName: {{ include "authz.servingCertsSecretName" . }}
   commonName: {{ include "authz.fullname" . }}
@@ -61,11 +80,18 @@ spec:
     - {{ include "authz.fullname" . }}.{{ .Release.Namespace }}
     - {{ include "authz.fullname" . }}.{{ .Release.Namespace }}.svc
     - {{ include "authz.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
+    {{- range .Values.tls.extraDNSNames }}
+    - {{ . }}
+    {{- end }}
+    {{- if and .Values.dnsEntry.enabled .Values.dnsEntry.dnsName }}
+    - {{ .Values.dnsEntry.dnsName }}
+    {{- end }}
   duration: 2160h
   renewBefore: 360h
   privateKey:
     algorithm: RSA
     size: 2048
+    rotationPolicy: Always
   issuerRef:
     name: {{ include "authz.fullname" . }}-ca
     kind: Issuer
@@ -78,6 +104,10 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "authz.labels" . | nindent 4 }}
+  {{- with include "authz.annotations" . }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
 spec:
   secretName: {{ include "authz.fullname" . }}-apiserver-client
   commonName: kube-apiserver
@@ -88,6 +118,7 @@ spec:
   privateKey:
     algorithm: RSA
     size: 2048
+    rotationPolicy: Always
   issuerRef:
     name: {{ include "authz.fullname" . }}-ca
     kind: Issuer

@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Generate GitHub App Token
         id: github-app-token
-        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+        uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3.0.0
         with:
           app-id: ${{ secrets.CLOUDOPERATOR_APP_ID }}
           private-key: ${{ secrets.CLOUDOPERATOR_APP_PRIVATE_KEY }}
@@ -24,6 +24,6 @@ jobs:
     permissions:
       # Only used when `apply_header: true` else the permission is `read` see: https://github.com/cloudoperators/common/blob/8f15c13b6f4c1631c7e6f6dff5c3300452e9b5b6/.github/workflows/shared-license.yaml#L21-L22
       contents: write 
-    uses: cloudoperators/common/.github/workflows/shared-license.yaml@main
+    uses: cloudoperators/common/.github/workflows/shared-license.yaml@c12810ffe8dfb7f4f907959e9e85632d5ed5469e # main
     secrets:
       pas: ${{ needs.generate-token.outputs.token }}

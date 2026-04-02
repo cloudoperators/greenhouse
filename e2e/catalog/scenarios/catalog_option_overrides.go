@@ -13,7 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
@@ -34,7 +33,7 @@ func baseCatalog(name, namespace, secretName string) (*greenhousev1alpha1.Catalo
 			"plugindefinitions/pd-cert-manager.yaml",
 		}),
 	)
-	source.SecretName = ptr.To[string](secretName)
+	source.SecretName = new(secretName)
 	catalog.SetLabels(map[string]string{
 		"greenhouse.sap/managed-by": "e2e",
 	})
@@ -44,7 +43,7 @@ func baseCatalog(name, namespace, secretName string) (*greenhousev1alpha1.Catalo
 func overriddenCatalog(name, namespace, secretName string) (*greenhousev1alpha1.Catalog, greenhousev1alpha1.CatalogSource) {
 	GinkgoHelper()
 	catalog, source := baseCatalog(name, namespace, secretName)
-	source.Ref.Branch = ptr.To[string]("dev")
+	source.Ref.Branch = new("dev")
 	source.Overrides = append(source.Overrides, greenhousev1alpha1.CatalogOverrides{
 		Name:       "cert-manager",
 		Alias:      "cert-manager-override",

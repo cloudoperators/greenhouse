@@ -54,7 +54,7 @@ app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- with .Values.commonLabels }}
-{{ toYaml . }}
+{{- toYaml . | nindent 0 }}
 {{- end }}
 {{- end }}
 
@@ -85,10 +85,10 @@ Create the name of the serving certs secret to use
 {{- end }}
 
 {{/*
-Annotations
+Annotations — returns empty string if commonAnnotations is empty/nil, safe for fromYaml and with blocks.
 */}}
 {{- define "authz.annotations" -}}
-{{- with .Values.commonAnnotations }}
-{{ toYaml . }}
+{{- if .Values.commonAnnotations }}
+{{- toYaml .Values.commonAnnotations }}
 {{- end }}
 {{- end }}

@@ -33,12 +33,12 @@ func Test_DexFeatures(t *testing.T) {
 		{
 			name:          "it should return kubernetes as storage type from feature-flags cm",
 			configMapData: map[string]string{DexFeatureKey: "storage: kubernetes\n"},
-			expectedValue: clientutil.Ptr("kubernetes"),
+			expectedValue: new("kubernetes"),
 		},
 		{
 			name:          "it should return postgres as storage type from feature-flags cm",
 			configMapData: map[string]string{DexFeatureKey: "storage: postgres\n"},
-			expectedValue: clientutil.Ptr("postgres"),
+			expectedValue: new("postgres"),
 		},
 		{
 			name:          "it should return nil when storage type is not found in feature-flags cm",

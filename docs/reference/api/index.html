@@ -1306,6 +1306,19 @@ Greenhouse meta/v1alpha1.StatusConditions
 <p>StatusConditions contain the different conditions that constitute the status of the Plugin.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>lastSyncedArtifact</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.LastSyncedArtifact">
+LastSyncedArtifact
+</a>
+</em>
+</td>
+<td>
+<p>LastSyncedArtifact tracks the last synced chart artifact and its replication status.</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -1753,6 +1766,85 @@ string
 </td>
 <td>
 <p>Paths is a list of JSON paths to ignore when detecting drifts.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.LastSyncedArtifact">LastSyncedArtifact
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterPluginDefinitionStatus">ClusterPluginDefinitionStatus</a>, 
+<a href="#greenhouse.sap/v1alpha1.PluginDefinitionStatus">PluginDefinitionStatus</a>)
+</p>
+<p>LastSyncedArtifact tracks the last synced chart artifact and its replication status.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>registry</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Registry is the source registry of the chart.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>chartName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ChartName is the name of the chart.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Version is the chart version.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>digest</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Digest is the sha256 digest of the chart manifest.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>replicationStatus</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ReplicationStatusType">
+ReplicationStatusType
+</a>
+</em>
+</td>
+<td>
+<p>ReplicationStatus indicates the outcome of replication to the mirror registry.</p>
 </td>
 </tr>
 </tbody>
@@ -2841,6 +2933,19 @@ Greenhouse meta/v1alpha1.StatusConditions
 <p>StatusConditions contain the different conditions that constitute the status of the Plugin.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>lastSyncedArtifact</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.LastSyncedArtifact">
+LastSyncedArtifact
+</a>
+</em>
+</td>
+<td>
+<p>LastSyncedArtifact tracks the last synced chart artifact and its replication status.</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -3682,6 +3787,13 @@ ExternalValueSource
 </table>
 </div>
 </div>
+<h3 id="greenhouse.sap/v1alpha1.ReplicationStatusType">ReplicationStatusType
+(<code>string</code> alias)</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.LastSyncedArtifact">LastSyncedArtifact</a>)
+</p>
+<p>ReplicationStatusType represents the outcome of chart replication to a mirror registry.</p>
 <h3 id="greenhouse.sap/v1alpha1.SCIMConfig">SCIMConfig
 </h3>
 <p>

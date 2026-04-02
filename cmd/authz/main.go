@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package main
@@ -112,9 +112,9 @@ func main() {
 	client := mgr.GetClient()
 	mapper := mgr.GetRESTMapper()
 
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := instrumentHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handleAuthorize(w, r, client, mapper)
-	})
+	}))
 
 	if secure {
 		mgr.GetWebhookServer().Register("/authorize", handler)

@@ -1,0 +1,27 @@
+{{/*
+SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+SPDX-License-Identifier: Apache-2.0
+*/}}
+
+{{- if .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "authz.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "authz.labels" . | nindent 4 }}
+    plugin: kube-monitoring
+  {{- with include "authz.annotations" . }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "authz.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: metrics
+      scheme: http
+      path: /metrics
+{{- end }}

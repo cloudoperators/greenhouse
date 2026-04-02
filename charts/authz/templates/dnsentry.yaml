@@ -1,0 +1,30 @@
+{{/*
+SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+SPDX-License-Identifier: Apache-2.0
+*/}}
+
+{{- if .Values.dnsEntry.enabled }}
+{{- if not .Values.service.clusterIP }}
+{{- fail "dnsEntry.enabled requires service.clusterIP to be set as the DNSEntry target" }}
+{{- end }}
+{{- if not .Values.dnsEntry.dnsName }}
+{{- fail "dnsEntry.enabled requires dnsEntry.dnsName to be set" }}
+{{- end }}
+---
+apiVersion: dns.gardener.cloud/v1alpha1
+kind: DNSEntry
+metadata:
+  name: {{ include "authz.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "authz.labels" . | nindent 4 }}
+  {{- with merge (.Values.dnsEntry.annotations | default dict) (include "authz.annotations" . | fromYaml | default dict) }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  dnsName: {{ .Values.dnsEntry.dnsName | quote }}
+  ttl: 120
+  targets:
+    - {{ .Values.service.clusterIP | quote }}
+{{- end }}

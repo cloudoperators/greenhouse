@@ -69,6 +69,15 @@ const (
 	// PluginDefinitionProgressingReason is the reason when PluginDefinition reconciliation is in progress
 	PluginDefinitionProgressingReason greenhousemetav1alpha1.ConditionReason = "ReconcileProgressing"
 
+	// OCIReplicationReadyCondition reflects if OCI replication to the mirror registry is complete.
+	OCIReplicationReadyCondition greenhousemetav1alpha1.ConditionType = "OCIReplicationReady"
+	// OCIReplicationFailedReason is the reason when OCI replication has failed.
+	OCIReplicationFailedReason greenhousemetav1alpha1.ConditionReason = "OCIReplicationFailed"
+	// OCIReplicationSucceededReason is the reason when all OCI artifacts have been replicated successfully.
+	OCIReplicationSucceededReason greenhousemetav1alpha1.ConditionReason = "OCIReplicationSucceeded"
+	// OCIReplicationNotConfiguredReason is the reason when no mirror registry is configured.
+	OCIReplicationNotConfiguredReason greenhousemetav1alpha1.ConditionReason = "OCIReplicationNotConfigured"
+
 	// PluginOptionTypeString is a valid value for PluginOptionType.
 	PluginOptionTypeString PluginOptionType = "string"
 	// PluginOptionTypeSecret is a valid value for PluginOptionType.
@@ -226,10 +235,39 @@ func (p *PluginDefinition) FluxHelmChartResourceName() string {
 	return p.Name + "-" + p.Spec.HelmChart.Version
 }
 
+// ReplicationStatusType represents the outcome of chart replication to a mirror registry.
+// +kubebuilder:validation:Enum=Replicated;Failed;Skipped
+type ReplicationStatusType string
+
+const (
+	// ReplicationStatusReplicated indicates the chart was successfully replicated.
+	ReplicationStatusReplicated ReplicationStatusType = "Replicated"
+	// ReplicationStatusFailed indicates the chart replication failed.
+	ReplicationStatusFailed ReplicationStatusType = "Failed"
+	// ReplicationStatusSkipped indicates the chart replication was skipped.
+	ReplicationStatusSkipped ReplicationStatusType = "Skipped"
+)
+
+// LastSyncedArtifact tracks the last synced chart artifact and its replication status.
+type LastSyncedArtifact struct {
+	// Registry is the source registry of the chart.
+	Registry string `json:"registry"`
+	// ChartName is the name of the chart.
+	ChartName string `json:"chartName"`
+	// Version is the chart version.
+	Version string `json:"version"`
+	// Digest is the sha256 digest of the chart manifest.
+	Digest string `json:"digest,omitempty"`
+	// ReplicationStatus indicates the outcome of replication to the mirror registry.
+	ReplicationStatus ReplicationStatusType `json:"replicationStatus"`
+}
+
 // PluginDefinitionStatus defines the observed state of PluginDefinition
 type PluginDefinitionStatus struct {
 	// StatusConditions contain the different conditions that constitute the status of the Plugin.
 	greenhousemetav1alpha1.StatusConditions `json:"statusConditions,omitempty"`
+	// LastSyncedArtifact tracks the last synced chart artifact and its replication status.
+	LastSyncedArtifact *LastSyncedArtifact `json:"lastSyncedArtifact,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -268,6 +306,14 @@ func (p *PluginDefinition) GetConditions() greenhousemetav1alpha1.StatusConditio
 
 func (p *PluginDefinition) SetCondition(condition greenhousemetav1alpha1.Condition) {
 	p.Status.SetConditions(condition)
+}
+
+func (p *PluginDefinition) GetLastSyncedArtifact() *LastSyncedArtifact {
+	return p.Status.LastSyncedArtifact
+}
+
+func (p *PluginDefinition) SetLastSyncedArtifact(artifact *LastSyncedArtifact) {
+	p.Status.LastSyncedArtifact = artifact
 }
 
 func (p *PluginDefinition) RemoveCondition(conditionType greenhousemetav1alpha1.ConditionType) {

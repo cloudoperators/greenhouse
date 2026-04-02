@@ -1,12 +1,13 @@
-// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package main
 
 import (
-	"time"
+	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	crmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
@@ -27,15 +28,6 @@ var (
 			Help: "Total number of authorization requests labeled by result and verb.",
 		},
 		[]string{"result", "verb"},
-	)
-
-	authzRequestDuration = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    "greenhouse_authz_request_duration_seconds",
-			Help:    "Duration of authorization requests in seconds.",
-			Buckets: prometheus.DefBuckets,
-		},
-		[]string{"result"},
 	)
 
 	authzDeniedTotal = prometheus.NewCounterVec(
@@ -68,28 +60,40 @@ var (
 			Help: "Total number of errors resolving GVR to GVK.",
 		},
 	)
+
+	authzRequestDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "greenhouse_authz_request_duration_seconds",
+			Help:    "End-to-end request duration of authorization requests.",
+			Buckets: []float64{.005, .01, .025, .05, .1, .25, .5},
+		},
+		[]string{"code", "method"},
+	)
 )
 
 func init() {
 	crmetrics.Registry.MustRegister(
 		authzRequestsTotal,
-		authzRequestDuration,
 		authzDeniedTotal,
 		authzAccessTotal,
 		authzKubeFetchErrorsTotal,
 		authzKindResolutionErrorsTotal,
+		authzRequestDuration,
 	)
 }
 
-func recordAllowed(verb, resource, supportGroup string, start time.Time) {
+// instrumentHandler wraps h with prometheus duration instrumentation using fine-grained buckets.
+func instrumentHandler(h http.Handler) http.Handler {
+	return promhttp.InstrumentHandlerDuration(authzRequestDuration, h)
+}
+
+func recordAllowed(verb, resource, supportGroup string) {
 	authzRequestsTotal.With(prometheus.Labels{"result": "allowed", "verb": verb}).Inc()
-	authzRequestDuration.With(prometheus.Labels{"result": "allowed"}).Observe(time.Since(start).Seconds())
 	authzAccessTotal.With(prometheus.Labels{"support_group": supportGroup, "resource": resource, "result": "allowed"}).Inc()
 }
 
-func recordDenied(verb, resource, reason string, supportGroups []string, start time.Time) {
+func recordDenied(verb, resource, reason string, supportGroups []string) {
 	authzRequestsTotal.With(prometheus.Labels{"result": "denied", "verb": verb}).Inc()
-	authzRequestDuration.With(prometheus.Labels{"result": "denied"}).Observe(time.Since(start).Seconds())
 	authzDeniedTotal.With(prometheus.Labels{"reason": reason}).Inc()
 	for _, sg := range supportGroups {
 		authzAccessTotal.With(prometheus.Labels{"support_group": sg, "resource": resource, "result": "denied"}).Inc()

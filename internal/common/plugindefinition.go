@@ -22,6 +22,8 @@ type GenericPluginDefinition interface {
 	lifecycle.RuntimeObject
 	GetPluginDefinitionSpec() *greenhousev1alpha1.PluginDefinitionSpec
 	FluxHelmChartResourceName() string
+	GetLastSyncedArtifact() *greenhousev1alpha1.LastSyncedArtifact
+	SetLastSyncedArtifact(artifact *greenhousev1alpha1.LastSyncedArtifact)
 }
 
 func GetPluginDefinitionFromPlugin(ctx context.Context, c client.Client, pluginDefRef greenhousev1alpha1.PluginDefinitionReference, resourceNamespace string) (GenericPluginDefinition, error) {
