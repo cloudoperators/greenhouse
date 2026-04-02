@@ -5,10 +5,10 @@ package scenarios
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
-	"math/rand"
+	"math/big"
 	"slices"
-	"time"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	. "github.com/onsi/ginkgo/v2"
@@ -36,9 +36,13 @@ const (
 	directReferencePluginName  = "direct-reference-plugin"
 )
 
-var (
-	rng = rand.New(rand.NewSource(time.Now().UnixNano()))
-)
+func randIntn(n int) int {
+	v, err := rand.Int(rand.Reader, big.NewInt(int64(n)))
+	if err != nil {
+		panic(err)
+	}
+	return int(v.Int64())
+}
 
 func generateRandomEnvs(prefix string) (*apiextensionsv1.JSON, error) {
 	envVars := []map[string]string{
@@ -79,7 +83,7 @@ func randomLogLevel() string {
 		"panic",
 		"fatal",
 	}
-	return logLevels[rng.Intn(len(logLevels))]
+	return logLevels[randIntn(len(logLevels))]
 }
 
 // randomRegion returns a random AWS-like region
@@ -92,7 +96,7 @@ func randomRegion() string {
 		"ap-southeast-1",
 		"ap-northeast-1",
 	}
-	return regions[rng.Intn(len(regions))]
+	return regions[randIntn(len(regions))]
 }
 
 // randomSessionID generates a random session ID
@@ -100,7 +104,7 @@ func randomSessionID() string {
 	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
 	b := make([]byte, 8)
 	for i := range b {
-		b[i] = charset[rng.Intn(len(charset))]
+		b[i] = charset[randIntn(len(charset))]
 	}
 	return string(b)
 }
@@ -113,12 +117,12 @@ func randomMode() string {
 		"development",
 		"testing",
 	}
-	return modes[rng.Intn(len(modes))]
+	return modes[randIntn(len(modes))]
 }
 
 // containsExpectedEnvs checks if all environment variables from rawExtraEnvs are present in the envVars slice
 // The envVars may have additional environment variables that we don't care about
-func containsExpectedEnvs(envVars []corev1.EnvVar, rawExtraEnvs interface{}) bool {
+func containsExpectedEnvs(envVars []corev1.EnvVar, rawExtraEnvs any) bool {
 	// Parse rawExtraEnvs into a slice of maps
 	rawEnvsBytes, err := json.Marshal(rawExtraEnvs)
 	if err != nil {
@@ -141,7 +145,7 @@ func containsExpectedEnvs(envVars []corev1.EnvVar, rawExtraEnvs interface{}) boo
 	return true
 }
 
-func PluginIntegrationByDirectReference(ctx context.Context, adminClient client.Client, remoteClient client.Client, env *shared.TestEnv, remoteClusterName string) {
+func PluginIntegrationByDirectReference(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName string) {
 	By("creating plugin definition")
 	testPluginDefinition := fixtures.PreparePodInfoPluginDefinition("podinfo", env.TestNamespace, "6.9.0")
 	err := adminClient.Create(ctx, testPluginDefinition)
@@ -252,7 +256,7 @@ func PluginIntegrationByDirectReference(ctx context.Context, adminClient client.
 	}).Should(Succeed(), "the deployment should be present in the remote cluster with expected envs")
 }
 
-func PluginIntegrationBySelector(ctx context.Context, adminClient client.Client, remoteClient client.Client, env *shared.TestEnv, remoteClusterName string) {
+func PluginIntegrationBySelector(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName string) {
 	By("creating plugin definition")
 	testPluginDefinition := fixtures.PreparePodInfoPluginDefinition("podinfo-latest", env.TestNamespace, "6.11.0")
 	err := adminClient.Create(ctx, testPluginDefinition)
@@ -373,7 +377,7 @@ func PluginIntegrationBySelector(ctx context.Context, adminClient client.Client,
 
 		// Since the resolver plugin references multiple plugins with a selector, the expected extraEnvs in the HelmRelease should be a combination of the extraEnvs from both plugins
 		// We verify that all envs from both plugins are present, regardless of order (since selector results and helm value ordering are non-deterministic)
-		var pluginAEnvsSlice, pluginBEnvsSlice []map[string]interface{}
+		var pluginAEnvsSlice, pluginBEnvsSlice []map[string]any
 		err = json.Unmarshal(pluginAEnvs.Raw, &pluginAEnvsSlice)
 		g.Expect(err).NotTo(HaveOccurred(), "there should be no error unmarshalling plugin A envs")
 		err = json.Unmarshal(pluginBEnvs.Raw, &pluginBEnvsSlice)
