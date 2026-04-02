@@ -21,6 +21,7 @@ formatters:
       - third_party$
       - builtin$
       - examples$
+      - ^bin/
 
 issues:
   # '0' disables the following options
@@ -211,6 +212,7 @@ linters:
       - third_party$
       - builtin$
       - examples$
+      - ^bin/
 
 output:
   formats:
