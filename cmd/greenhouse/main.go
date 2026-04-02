@@ -20,7 +20,6 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -177,9 +176,9 @@ func main() {
 		LeaderElection:                isEnableLeaderElection,
 		LeaderElectionID:              "operator.greenhouse.sap",
 		LeaderElectionReleaseOnCancel: true,
-		LeaseDuration:                 ptr.To(leaseDuration),
-		RenewDeadline:                 ptr.To(renewDeadline),
-		RetryPeriod:                   ptr.To(retryPeriod),
+		LeaseDuration:                 new(leaseDuration),
+		RenewDeadline:                 new(renewDeadline),
+		RetryPeriod:                   new(retryPeriod),
 	})
 	handleError(err, "unable to start manager")
 

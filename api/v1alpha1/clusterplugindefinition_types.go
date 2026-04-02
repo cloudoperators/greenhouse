@@ -22,6 +22,8 @@ const (
 type ClusterPluginDefinitionStatus struct {
 	// StatusConditions contain the different conditions that constitute the status of the Plugin.
 	greenhousemetav1alpha1.StatusConditions `json:"statusConditions,omitempty"`
+	// LastSyncedArtifact tracks the last synced chart artifact and its replication status.
+	LastSyncedArtifact *LastSyncedArtifact `json:"lastSyncedArtifact,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -67,6 +69,14 @@ func (c *ClusterPluginDefinition) GetConditions() greenhousemetav1alpha1.StatusC
 
 func (c *ClusterPluginDefinition) SetCondition(condition greenhousemetav1alpha1.Condition) {
 	c.Status.SetConditions(condition)
+}
+
+func (c *ClusterPluginDefinition) GetLastSyncedArtifact() *LastSyncedArtifact {
+	return c.Status.LastSyncedArtifact
+}
+
+func (c *ClusterPluginDefinition) SetLastSyncedArtifact(artifact *LastSyncedArtifact) {
+	c.Status.LastSyncedArtifact = artifact
 }
 
 func (c *ClusterPluginDefinition) RemoveCondition(conditionType greenhousemetav1alpha1.ConditionType) {

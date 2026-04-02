@@ -4,18 +4,26 @@
 package plugin
 
 import (
+	"github.com/google/go-containerregistry/pkg/authn"
+	"github.com/google/go-containerregistry/pkg/crane"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/cloudoperators/greenhouse/internal/common"
+	"github.com/cloudoperators/greenhouse/internal/ocimirror"
 )
 
+func newTestMirror(config *ocimirror.RegistryMirrorConfig) *ocimirror.ImageMirror {
+	return ocimirror.NewImageMirrorForTest(config, authn.Anonymous, func(ref string, opts ...crane.Option) ([]byte, error) {
+		return []byte("{}"), nil
+	})
+}
+
 var _ = Describe("createRegistryMirrorPostRenderer", func() {
-	var mirrorConfig *common.RegistryMirrorConfig
+	var mirror *ocimirror.ImageMirror
 
 	BeforeEach(func() {
-		mirrorConfig = &common.RegistryMirrorConfig{
-			RegistryMirrors: map[string]common.RegistryMirror{
+		mirror = newTestMirror(&ocimirror.RegistryMirrorConfig{
+			RegistryMirrors: map[string]ocimirror.RegistryMirror{
 				"ghcr.io": {
 					BaseDomain: "mirror.example.com",
 					SubPath:    "ghcr-mirror",
@@ -25,21 +33,12 @@ var _ = Describe("createRegistryMirrorPostRenderer", func() {
 					SubPath:    "dockerhub-mirror",
 				},
 			},
-		}
+		})
 	})
 
-	It("should return nil when config is nil", func() {
+	It("should return nil when mirror is nil", func() {
 		manifest := `image: ghcr.io/cloudoperators/greenhouse:main`
 		postRenderer := createRegistryMirrorPostRenderer(nil, manifest)
-		Expect(postRenderer).To(BeNil())
-	})
-
-	It("should return nil when no mirrors configured", func() {
-		emptyConfig := &common.RegistryMirrorConfig{
-			RegistryMirrors: map[string]common.RegistryMirror{},
-		}
-		manifest := `image: ghcr.io/cloudoperators/greenhouse:main`
-		postRenderer := createRegistryMirrorPostRenderer(emptyConfig, manifest)
 		Expect(postRenderer).To(BeNil())
 	})
 
@@ -52,19 +51,19 @@ var _ = Describe("createRegistryMirrorPostRenderer", func() {
 		data:
 		key: value
 		`
-		postRenderer := createRegistryMirrorPostRenderer(mirrorConfig, manifest)
+		postRenderer := createRegistryMirrorPostRenderer(mirror, manifest)
 		Expect(postRenderer).To(BeNil())
 	})
 
 	It("should return nil when no matching mirrors", func() {
 		manifest := `image: registry.k8s.io/pause:3.9`
-		postRenderer := createRegistryMirrorPostRenderer(mirrorConfig, manifest)
+		postRenderer := createRegistryMirrorPostRenderer(mirror, manifest)
 		Expect(postRenderer).To(BeNil())
 	})
 
 	It("should create transformation preserving full image path", func() {
 		manifest := `image: ghcr.io/cloudoperators/greenhouse:main`
-		postRenderer := createRegistryMirrorPostRenderer(mirrorConfig, manifest)
+		postRenderer := createRegistryMirrorPostRenderer(mirror, manifest)
 		Expect(postRenderer).NotTo(BeNil())
 		Expect(postRenderer.Kustomize.Images).To(HaveLen(1))
 		Expect(postRenderer.Kustomize.Images[0].Name).To(Equal("ghcr.io/cloudoperators/greenhouse"))
@@ -78,7 +77,7 @@ var _ = Describe("createRegistryMirrorPostRenderer", func() {
 		- image: docker.io/library/nginx:latest
 		- image: registry.k8s.io/pause:3.9
 		`
-		postRenderer := createRegistryMirrorPostRenderer(mirrorConfig, manifest)
+		postRenderer := createRegistryMirrorPostRenderer(mirror, manifest)
 		Expect(postRenderer).NotTo(BeNil())
 		Expect(postRenderer.Kustomize.Images).To(HaveLen(2))
 
@@ -96,7 +95,7 @@ var _ = Describe("createRegistryMirrorPostRenderer", func() {
 		- image: ghcr.io/cloudoperators/greenhouse:main
 		- image: ghcr.io/cloudoperators/greenhouse:main
 		`
-		postRenderer := createRegistryMirrorPostRenderer(mirrorConfig, manifest)
+		postRenderer := createRegistryMirrorPostRenderer(mirror, manifest)
 		Expect(postRenderer).NotTo(BeNil())
 		Expect(postRenderer.Kustomize.Images).To(HaveLen(1))
 		Expect(postRenderer.Kustomize.Images[0].Name).To(Equal("ghcr.io/cloudoperators/greenhouse"))
@@ -105,15 +104,15 @@ var _ = Describe("createRegistryMirrorPostRenderer", func() {
 
 	It("should preserve nested repository paths", func() {
 		manifest := `image: ghcr.io/org/team/project/app:v1.0`
-		postRenderer := createRegistryMirrorPostRenderer(mirrorConfig, manifest)
+		postRenderer := createRegistryMirrorPostRenderer(mirror, manifest)
 		Expect(postRenderer).NotTo(BeNil())
 		Expect(postRenderer.Kustomize.Images[0].Name).To(Equal("ghcr.io/org/team/project/app"))
 		Expect(postRenderer.Kustomize.Images[0].NewName).To(Equal("mirror.example.com/ghcr-mirror/org/team/project/app"))
 	})
 
 	It("should handle images with digest", func() {
-		manifest := `image: ghcr.io/cloudoperators/greenhouse@sha256:abc123`
-		postRenderer := createRegistryMirrorPostRenderer(mirrorConfig, manifest)
+		manifest := `image: ghcr.io/cloudoperators/greenhouse@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
+		postRenderer := createRegistryMirrorPostRenderer(mirror, manifest)
 		Expect(postRenderer).NotTo(BeNil())
 		Expect(postRenderer.Kustomize.Images[0].Name).To(Equal("ghcr.io/cloudoperators/greenhouse"))
 		Expect(postRenderer.Kustomize.Images[0].NewName).To(Equal("mirror.example.com/ghcr-mirror/cloudoperators/greenhouse"))
@@ -125,7 +124,7 @@ var _ = Describe("createRegistryMirrorPostRenderer", func() {
 		- image: "ghcr.io/cloudoperators/greenhouse:main"
 		- image: 'docker.io/library/nginx:latest'
 		`
-		postRenderer := createRegistryMirrorPostRenderer(mirrorConfig, manifest)
+		postRenderer := createRegistryMirrorPostRenderer(mirror, manifest)
 		Expect(postRenderer).NotTo(BeNil())
 
 		names := []string{postRenderer.Kustomize.Images[0].Name, postRenderer.Kustomize.Images[1].Name}
@@ -146,7 +145,7 @@ var _ = Describe("createRegistryMirrorPostRenderer", func() {
 		- image: nginx:latest
 		- image: myorg/myapp:v1.0
 		`
-		postRenderer := createRegistryMirrorPostRenderer(mirrorConfig, manifest)
+		postRenderer := createRegistryMirrorPostRenderer(mirror, manifest)
 		Expect(postRenderer).NotTo(BeNil())
 		Expect(postRenderer.Kustomize.Images).To(HaveLen(2))
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package main
@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"slices"
 	"strings"
-	"time"
 
 	authv1 "k8s.io/api/authorization/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -25,7 +24,6 @@ const supportGroupClaimPrefix = "support-group:"
 
 func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, mapper meta.RESTMapper) {
 	ctx := r.Context()
-	start := time.Now()
 
 	if r.Method != http.MethodPost {
 		http.Error(w, "invalid method", http.StatusMethodNotAllowed)
@@ -41,7 +39,7 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, ma
 
 	attrs := review.Spec.ResourceAttributes
 	if attrs == nil || attrs.Name == "" {
-		recordDenied("", "", reasonMissingAttributes, nil, start)
+		recordDenied("", "", reasonMissingAttributes, nil)
 		respond(w, review, false, "missing resource attributes")
 		return
 	}
@@ -58,7 +56,7 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, ma
 	}
 
 	if len(userSupportGroups) == 0 {
-		recordDenied(verb, attrs.Resource, reasonNoSupportGroupClaims, nil, start)
+		recordDenied(verb, attrs.Resource, reasonNoSupportGroupClaims, nil)
 		respond(w, review, false, "user has no support-group claims")
 		return
 	}
@@ -74,7 +72,7 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, ma
 	gvk, err := mapper.KindFor(gvr)
 	if err != nil {
 		authzKindResolutionErrorsTotal.Inc()
-		recordDenied(verb, attrs.Resource, reasonKindResolutionFailed, userSupportGroups, start)
+		recordDenied(verb, attrs.Resource, reasonKindResolutionFailed, userSupportGroups)
 		respond(w, review, false, "failed to get Kind for the requested resource")
 		return
 	}
@@ -85,7 +83,7 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, ma
 	key := types.NamespacedName{Namespace: attrs.Namespace, Name: attrs.Name}
 	if err := c.Get(ctx, key, obj); err != nil {
 		authzKubeFetchErrorsTotal.WithLabelValues(err.Error()).Inc()
-		recordDenied(verb, attrs.Resource, reasonObjectNotFound, userSupportGroups, start)
+		recordDenied(verb, attrs.Resource, reasonObjectNotFound, userSupportGroups)
 		respond(w, review, false, fmt.Sprintf("failed to fetch object: %v", err))
 		return
 	}
@@ -93,7 +91,7 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, ma
 	labels := obj.GetLabels()
 	ownedByValue, ok := labels[greenhouseapis.LabelKeyOwnedBy]
 	if !ok {
-		recordDenied(verb, attrs.Resource, reasonNoOwnedByLabel, userSupportGroups, start)
+		recordDenied(verb, attrs.Resource, reasonNoOwnedByLabel, userSupportGroups)
 		respond(w, review, false, "requested resource has no owned-by label set")
 		return
 	}
@@ -101,12 +99,12 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, ma
 
 	// If the support-group matches the greenhouse.sap/owned-by label on the resources the user should get full permissions on the resource.
 	if slices.Contains(userSupportGroups, ownedByValue) {
-		recordAllowed(verb, attrs.Resource, ownedByValue, start)
+		recordAllowed(verb, attrs.Resource, ownedByValue)
 		respond(w, review, true, "user has a support-group claim for the requested resource: "+ownedByValue)
 		return
 	}
 
-	recordDenied(verb, attrs.Resource, reasonSupportGroupMismatch, userSupportGroups, start)
+	recordDenied(verb, attrs.Resource, reasonSupportGroupMismatch, userSupportGroups)
 	respond(w, review, false, "")
 }
 

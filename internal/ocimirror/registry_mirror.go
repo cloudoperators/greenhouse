@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package common
+package ocimirror
 
 import (
 	"context"
@@ -17,14 +17,13 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
-const (
-	registryMirrorConfigKey = "containerRegistryConfig"
-)
+const registryMirrorConfigKey = "containerRegistryConfig"
 
 // RegistryMirrorConfig represents the registry mirror configuration structure.
 type RegistryMirrorConfig struct {
 	PrimaryMirror   string                    `yaml:"primaryMirror"`
 	RegistryMirrors map[string]RegistryMirror `yaml:"registryMirrors"`
+	SecretName      string                    `yaml:"secretName,omitempty"`
 }
 
 // RegistryMirror represents a single registry mirror configuration.
@@ -71,6 +70,27 @@ func GetRegistryMirrorConfig(ctx context.Context, k8sClient client.Reader, orgNa
 	}
 
 	return &mirrorConfig, nil
+}
+
+// ResolvedOCIRef holds the result of resolving an OCI reference against a mirror configuration.
+type ResolvedOCIRef struct {
+	Registry    string
+	Mirror      RegistryMirror
+	Repository  string
+	TagOrDigest string
+}
+
+// ResolveOCIRef looks up the mirror configuration for an OCI reference.
+func (c *RegistryMirrorConfig) ResolveOCIRef(imageRef string) *ResolvedOCIRef {
+	if c == nil {
+		return nil
+	}
+	registry, repo, tagOrDigest := SplitOCIRef(imageRef)
+	mirror, ok := c.RegistryMirrors[registry]
+	if !ok {
+		return nil
+	}
+	return &ResolvedOCIRef{Registry: registry, Mirror: mirror, Repository: repo, TagOrDigest: tagOrDigest}
 }
 
 // validateRegistryMirrorConfig validates the registry mirror configuration.

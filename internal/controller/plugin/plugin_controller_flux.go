@@ -30,6 +30,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/helm"
+	"github.com/cloudoperators/greenhouse/internal/ocimirror"
 	"github.com/cloudoperators/greenhouse/internal/util"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
@@ -146,10 +147,19 @@ func (r *PluginReconciler) ensureHelmRelease(
 	release.SetName(plugin.Name)
 	release.SetNamespace(plugin.Namespace)
 
-	mirrorConfig, err := common.GetRegistryMirrorConfig(ctx, r.Client, plugin.GetNamespace())
+	mirrorConfig, err := ocimirror.GetRegistryMirrorConfig(ctx, r.Client, plugin.GetNamespace())
 	if err != nil {
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseCreatedCondition, "", "Failed to read Organization registry mirror configuration"))
 		return fmt.Errorf("failed to read registry mirror configuration for Plugin %s: %w", plugin.Name, err)
+	}
+
+	var mirror *ocimirror.ImageMirror
+	if mirrorConfig != nil && len(mirrorConfig.RegistryMirrors) > 0 {
+		mirror, err = ocimirror.NewImageMirror(ctx, r.Client, mirrorConfig, plugin.GetNamespace())
+		if err != nil {
+			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseCreatedCondition, "", "Failed to create image mirror"))
+			return fmt.Errorf("failed to create image mirror for Plugin %s: %w", plugin.Name, err)
+		}
 	}
 
 	values, err := generateHelmValues(ctx, optionValues)
@@ -197,7 +207,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 			WithStorageNamespace(plugin.Spec.ReleaseNamespace).
 			WithTargetNamespace(plugin.Spec.ReleaseNamespace)
 
-		if mirrorConfig != nil && len(mirrorConfig.RegistryMirrors) > 0 {
+		if mirror != nil {
 			restClientGetter, _, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, plugin)
 			if err != nil {
 				return fmt.Errorf("failed to init client getter for Plugin %s: %w", plugin.Name, err)
@@ -208,7 +218,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 				return fmt.Errorf("failed to template helm chart for Plugin %s: %w", plugin.Name, err)
 			}
 
-			postRenderer := createRegistryMirrorPostRenderer(mirrorConfig, helmRelease.Manifest)
+			postRenderer := createRegistryMirrorPostRenderer(mirror, helmRelease.Manifest)
 			if postRenderer != nil {
 				builder = builder.WithPostRenderers([]helmv2.PostRenderer{*postRenderer})
 			}

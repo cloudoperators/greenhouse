@@ -9,7 +9,6 @@ import (
 
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	fluxmeta "github.com/fluxcd/pkg/apis/meta"
@@ -57,7 +56,7 @@ func (b *HelmReleaseBuilder) WithMaxHistory(num int) *HelmReleaseBuilder {
 	if num < 0 {
 		return b
 	}
-	b.spec.MaxHistory = ptr.To(num)
+	b.spec.MaxHistory = new(num)
 	return b
 }
 

@@ -11,7 +11,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -74,7 +73,7 @@ func (f *Features) resolveDexFeatures() error {
 
 func (f *Features) GetDexStorageType(ctx context.Context) *string {
 	if f.dex != nil {
-		return ptr.To(f.dex.Storage)
+		return new(f.dex.Storage)
 	}
 	if err := f.resolveDexFeatures(); err != nil {
 		ctrl.LoggerFrom(ctx).Error(err, "failed to resolve dex features")
@@ -83,7 +82,7 @@ func (f *Features) GetDexStorageType(ctx context.Context) *string {
 	if f.dex.Storage == "" {
 		return nil
 	}
-	return ptr.To(f.dex.Storage)
+	return new(f.dex.Storage)
 }
 
 func (f *Features) resolvePluginFeatures() error {
