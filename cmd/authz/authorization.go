@@ -18,6 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
 const supportGroupClaimPrefix = "support-group:"
@@ -96,6 +97,19 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, ma
 		return
 	}
 	logger.Info("Requested resource is owned by: " + ownedByValue)
+
+	// Validate that the Team referenced in the owned-by label actually exists
+	// Optimization: if the resource being accessed is the Team itself, we've already validated its existence
+	if gvk.Kind != "Team" || attrs.Name != ownedByValue {
+		team := &greenhousev1alpha1.Team{}
+		teamKey := types.NamespacedName{Namespace: attrs.Namespace, Name: ownedByValue}
+		if err := c.Get(ctx, teamKey, team); err != nil {
+			authzKubeFetchErrorsTotal.WithLabelValues(err.Error()).Inc()
+			recordDenied(verb, attrs.Resource, reasonObjectNotFound, userSupportGroups)
+			respond(w, review, false, fmt.Sprintf("team %s referenced in owned-by label does not exist: %v", ownedByValue, err))
+			return
+		}
+	}
 
 	// If the support-group matches the greenhouse.sap/owned-by label on the resources the user should get full permissions on the resource.
 	if slices.Contains(userSupportGroups, ownedByValue) {
