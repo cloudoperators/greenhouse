@@ -210,8 +210,8 @@ func (h *helmer) ensureChartReplication(ctx context.Context) error {
 	}
 
 	chartRef := strings.TrimPrefix(helmChart.Repository, "oci://") + "/" + helmChart.Name + ":" + helmChart.Version
-	registry, chartName, tagOrDigest := ocimirror.SplitOCIRef(chartRef)
-	version := strings.TrimPrefix(tagOrDigest, ":")
+	registry, chartName, _ := ocimirror.SplitOCIRef(chartRef)
+	version := helmChart.Version
 
 	// Skip replication if the current chart version was already replicated (idempotency).
 	if artifact := h.pluginDef.GetLastSyncedArtifact(); artifact != nil &&
@@ -255,4 +255,3 @@ func (h *helmer) ensureChartReplication(ctx context.Context) error {
 		"Chart replicated successfully: "+chartRef))
 	return nil
 }
-

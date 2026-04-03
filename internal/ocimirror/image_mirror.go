@@ -6,7 +6,6 @@ package ocimirror
 import (
 	"context"
 	"fmt"
-	"slices"
 	"strings"
 
 	"github.com/google/go-containerregistry/pkg/authn"
@@ -105,11 +104,12 @@ func (m *ImageMirror) BuildImageTransformations(manifests string) []ImageTransfo
 	return transforms
 }
 
-// ReplicateOCIArtifacts triggers replication for new OCI artifacts found in renderedManifests, skipping alreadyReplicated ones.
+// ReplicateOCIArtifacts triggers replication for OCI artifacts found in renderedManifests.
+// The returned list is scoped to the current manifest - stale refs from prior chart versions are pruned.
 func (m *ImageMirror) ReplicateOCIArtifacts(ctx context.Context, renderedManifests string, alreadyReplicated []string) ([]string, error) {
 	imageRefs := ExtractUniqueOCIRefs(renderedManifests)
 	if len(imageRefs) == 0 {
-		return alreadyReplicated, nil
+		return nil, nil
 	}
 
 	alreadySet := make(map[string]struct{}, len(alreadyReplicated))
@@ -117,11 +117,11 @@ func (m *ImageMirror) ReplicateOCIArtifacts(ctx context.Context, renderedManifes
 		alreadySet[img] = struct{}{}
 	}
 
-	replicated := slices.Clone(alreadyReplicated)
-
+	var replicated []string
 	var replicationErrors []string
 	for _, imageRef := range imageRefs {
 		if _, ok := alreadySet[imageRef]; ok {
+			replicated = append(replicated, imageRef)
 			continue
 		}
 

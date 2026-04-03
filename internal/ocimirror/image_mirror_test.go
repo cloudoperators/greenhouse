@@ -236,7 +236,7 @@ containers:
 		Expect(replicated).NotTo(ContainElement("ghcr.io/cloudoperators/greenhouse:main"))
 	})
 
-	It("should return existing list when no images in manifests", func() {
+	It("should return nil when no images in manifests", func() {
 		mirror := newTestImageMirror(mirrorConfig, func(ref string, opts ...crane.Option) ([]byte, error) {
 			return []byte("{}"), nil
 		})
@@ -245,10 +245,9 @@ containers:
 apiVersion: v1
 kind: ConfigMap
 `
-		existing := []string{"some-image:latest"}
-		replicated, err := mirror.ReplicateOCIArtifacts(context.Background(), manifests, existing)
+		replicated, err := mirror.ReplicateOCIArtifacts(context.Background(), manifests, []string{"some-image:latest"})
 		Expect(err).NotTo(HaveOccurred())
-		Expect(replicated).To(Equal(existing))
+		Expect(replicated).To(BeNil())
 	})
 })
 
