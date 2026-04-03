@@ -3735,6 +3735,19 @@ string
 Each entry is in the format &ldquo;kind/name&rdquo; (e.g., &ldquo;Plugin/my-plugin&rdquo;).</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>imageReplication</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>ImageReplication contains a list of container image references that have been
+successfully replicated to the configured mirror registry.
+Used to skip redundant replication on subsequent reconciliations.</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
