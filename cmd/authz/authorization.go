@@ -98,8 +98,8 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, ma
 	}
 	logger.Info("Requested resource is owned by: " + ownedByValue)
 
-	// Validate that the Team referenced in the owned-by label actually exists
-	// Optimization: if the resource being accessed is the Team itself, we've already validated its existence
+	// Validate that the Team referenced in the owned-by label actually exists and is a support-group.
+	// Optimization: if the resource being accessed is the Team itself, we've already validated its existence.
 	if gvk.Kind != "Team" || attrs.Name != ownedByValue {
 		team := &greenhousev1alpha1.Team{}
 		teamKey := types.NamespacedName{Namespace: attrs.Namespace, Name: ownedByValue}
@@ -107,6 +107,13 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, ma
 			authzKubeFetchErrorsTotal.WithLabelValues(err.Error()).Inc()
 			recordDenied(verb, attrs.Resource, reasonObjectNotFound, userSupportGroups)
 			respond(w, review, false, fmt.Sprintf("team %s referenced in owned-by label does not exist: %v", ownedByValue, err))
+			return
+		}
+		// Validate that the Team is marked as a support-group.
+		supportGroup, ok := team.Labels[greenhouseapis.LabelKeySupportGroup]
+		if !ok || supportGroup != "true" {
+			recordDenied(verb, attrs.Resource, reasonObjectNotFound, userSupportGroups)
+			respond(w, review, false, fmt.Sprintf("team %s is not a support-group", ownedByValue))
 			return
 		}
 	}
