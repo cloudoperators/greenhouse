@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	authv1 "k8s.io/api/authorization/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -48,11 +49,11 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, ma
 	verb := attrs.Verb
 	logger.Info("Received request", "user", review.Spec.User, "verb", verb, "resource", attrs.Resource, "ns", attrs.Namespace)
 
-	// Check if the request is from a support-group ServiceAccount
-	serviceAccountTeam := extractTeamFromServiceAccount(review.Spec.User, attrs.Namespace)
-	if serviceAccountTeam != "" {
-		logger.Info("Request is from support-group ServiceAccount", "team", serviceAccountTeam)
-		allowed, reason := authorizeServiceAccount(ctx, c, mapper, attrs, serviceAccountTeam)
+	// Check if the request is from a ServiceAccount
+	serviceAccountName := extractServiceAccountName(review.Spec.User, attrs.Namespace)
+	if serviceAccountName != "" {
+		logger.Info("Request is from ServiceAccount", "serviceAccount", serviceAccountName)
+		allowed, reason := authorizeServiceAccount(ctx, c, mapper, attrs, serviceAccountName)
 		if allowed {
 			respond(w, review, true, reason)
 			return
@@ -123,26 +124,37 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, ma
 	respond(w, review, false, "")
 }
 
-// extractTeamFromServiceAccount checks if the user is a support-group ServiceAccount
-// and returns the team name if it matches the pattern system:serviceaccount:{namespace}:{team-name}-sa
-func extractTeamFromServiceAccount(username, namespace string) string {
+// extractServiceAccountName extracts the ServiceAccount name from the username
+// if it's in the format system:serviceaccount:{namespace}:{serviceaccount-name}
+func extractServiceAccountName(username, namespace string) string {
 	// ServiceAccount username format: system:serviceaccount:{namespace}:{serviceaccount-name}
 	prefix := "system:serviceaccount:" + namespace + ":"
 	serviceAccountName, found := strings.CutPrefix(username, prefix)
 	if !found {
 		return ""
 	}
-
-	// Check if ServiceAccount follows the pattern {team-name}-sa
-	teamName, found := strings.CutSuffix(serviceAccountName, "-sa")
-	if !found {
-		return ""
-	}
-	return teamName
+	return serviceAccountName
 }
 
 // authorizeServiceAccount checks if a ServiceAccount is authorized to access the resource.
-func authorizeServiceAccount(ctx context.Context, c client.Client, mapper meta.RESTMapper, attrs *authv1.ResourceAttributes, teamName string) (allowed bool, reason string) {
+func authorizeServiceAccount(ctx context.Context, c client.Client, mapper meta.RESTMapper, attrs *authv1.ResourceAttributes, serviceAccountName string) (allowed bool, reason string) {
+	// 1. Fetch ServiceAccount and verify its owned-by label
+	sa := &corev1.ServiceAccount{}
+	saKey := types.NamespacedName{
+		Namespace: attrs.Namespace,
+		Name:      serviceAccountName,
+	}
+	if err := c.Get(ctx, saKey, sa); err != nil {
+		return false, fmt.Sprintf("failed to fetch ServiceAccount: %v", err)
+	}
+
+	teamName, ok := sa.Labels[greenhouseapis.LabelKeyOwnedBy]
+	if !ok {
+		return false, "ServiceAccount missing owned-by label"
+	}
+	logger.Info("ServiceAccount ownership verified", "serviceAccountName", sa.Name, "team", teamName)
+
+	// 2. Fetch the resource to check its owned-by label
 	gvr := schema.GroupVersionResource{
 		Group:    attrs.Group,
 		Version:  attrs.Version,
@@ -153,7 +165,6 @@ func authorizeServiceAccount(ctx context.Context, c client.Client, mapper meta.R
 		return false, "failed to get Kind for the requested resource"
 	}
 
-	// Fetch the resource to check its owned-by label
 	obj := &unstructured.Unstructured{}
 	obj.SetGroupVersionKind(gvk)
 	key := types.NamespacedName{Namespace: attrs.Namespace, Name: attrs.Name}
@@ -168,9 +179,9 @@ func authorizeServiceAccount(ctx context.Context, c client.Client, mapper meta.R
 	}
 	logger.Info("Requested resource is owned by: " + ownedByValue)
 
-	// Check if the ServiceAccount's team matches the resource's owned-by label
+	// 3. Check if the ServiceAccount's team matches the resource's owned-by label
 	if teamName == ownedByValue {
-		return true, fmt.Sprintf("ServiceAccount for support-group team %s is authorized to access resource owned by %s", teamName, ownedByValue)
+		return true, fmt.Sprintf("ServiceAccount %s for team %s is authorized to access resource owned by %s", serviceAccountName, teamName, ownedByValue)
 	}
 
 	logger.Info("ServiceAccount team does not match resource owner", "serviceAccountTeam", teamName, "resourceOwner", ownedByValue)

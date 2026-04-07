@@ -18,7 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
@@ -26,26 +26,24 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
-var _ = Describe("extractTeamFromServiceAccount", func() {
-	DescribeTable("extracting team name from service account username",
+var _ = Describe("extractServiceAccountName", func() {
+	DescribeTable("extracting service account name from username",
 		func(username string, namespace string, expected string) {
-			result := extractTeamFromServiceAccount(username, namespace)
-			Expect(result).To(Equal(expected), "should correctly extract team name from service account username")
+			result := extractServiceAccountName(username, namespace)
+			Expect(result).To(Equal(expected), "should correctly extract SA name from username")
 		},
-		Entry("valid support-group SA returns team name",
-			"system:serviceaccount:my-org:demo-sa", "my-org", "demo"),
-		Entry("SA without -sa suffix returns empty string",
-			"system:serviceaccount:my-org:demo", "my-org", ""),
+		Entry("valid SA returns name",
+			"system:serviceaccount:my-org:demo-sa", "my-org", "demo-sa"),
+		Entry("SA with any name returns the name",
+			"system:serviceaccount:my-org:demo", "my-org", "demo"),
 		Entry("SA in a different namespace returns empty string",
 			"system:serviceaccount:other-ns:demo-sa", "my-org", ""),
 		Entry("regular user (not a service account) returns empty string",
 			"demo-user", "my-org", ""),
-		Entry("SA with hyphenated team name returns team name",
-			"system:serviceaccount:my-org:my-team-name-sa", "my-org", "my-team-name"),
+		Entry("SA with hyphenated name returns full name",
+			"system:serviceaccount:my-org:my-team-name-sa", "my-org", "my-team-name-sa"),
 		Entry("empty username returns empty string",
 			"", "my-org", ""),
-		Entry("SA with only -sa as name returns empty string",
-			"system:serviceaccount:my-org:-sa", "my-org", ""),
 	)
 })
 
@@ -165,7 +163,14 @@ var _ = Describe("handleAuthorize", func() {
 		It("should allow service account that owns the resource", func() {
 			plugin := test.NewPlugin(test.Ctx, "plugin-demo", "my-org",
 				test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, "demo"))
-			h := makeHandler(plugin)
+			sa := &corev1.ServiceAccount{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "demo-sa",
+					Namespace: "my-org",
+					Labels:    map[string]string{greenhouseapis.LabelKeyOwnedBy: "demo"},
+				},
+			}
+			h := makeHandler(plugin, sa)
 
 			review := authv1.SubjectAccessReview{
 				Spec: authv1.SubjectAccessReviewSpec{
@@ -181,7 +186,14 @@ var _ = Describe("handleAuthorize", func() {
 		It("should deny service account from different team", func() {
 			plugin := test.NewPlugin(test.Ctx, "plugin-demo", "my-org",
 				test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, "demo"))
-			h := makeHandler(plugin)
+			sa := &corev1.ServiceAccount{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "other-team-sa",
+					Namespace: "my-org",
+					Labels:    map[string]string{greenhouseapis.LabelKeyOwnedBy: "other-team"},
+				},
+			}
+			h := makeHandler(plugin, sa)
 
 			review := authv1.SubjectAccessReview{
 				Spec: authv1.SubjectAccessReviewSpec{
@@ -241,7 +253,7 @@ var _ = Describe("handleAuthorize", func() {
 
 var _ = Describe("authorizeServiceAccount", func() {
 	var (
-		c      ctrlclient.Client
+		c      client.Client
 		mapper meta.RESTMapper
 	)
 
@@ -249,16 +261,56 @@ var _ = Describe("authorizeServiceAccount", func() {
 		mapper = buildRESTMapper()
 	})
 
-	Context("when resource owner matches service account team", func() {
+	Context("when ServiceAccount and resource owner match", func() {
 		It("should allow access", func() {
 			plugin := test.NewPlugin(test.Ctx, "plugin-demo", "my-org",
 				test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, "demo"))
-			c = buildFakeClient(plugin)
+			sa := &corev1.ServiceAccount{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "demo-sa",
+					Namespace: "my-org",
+					Labels:    map[string]string{greenhouseapis.LabelKeyOwnedBy: "demo"},
+				},
+			}
+			c = buildFakeClient(plugin, sa)
 
 			attrs := pluginAttrs("plugin-demo")
-			allowed, reason := authorizeServiceAccount(context.Background(), c, mapper, attrs, "demo")
+			allowed, reason := authorizeServiceAccount(context.Background(), c, mapper, attrs, "demo-sa")
 			Expect(allowed).To(BeTrue(), "service account with matching team should be allowed")
 			Expect(reason).To(ContainSubstring("demo"), "approval reason should mention the team name")
+		})
+	})
+
+	Context("when ServiceAccount does not exist", func() {
+		It("should deny access", func() {
+			plugin := test.NewPlugin(test.Ctx, "plugin-demo", "my-org",
+				test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, "demo"))
+			c = buildFakeClient(plugin) // no SA pre-seeded
+
+			attrs := pluginAttrs("plugin-demo")
+			allowed, reason := authorizeServiceAccount(context.Background(), c, mapper, attrs, "demo-sa")
+			Expect(allowed).To(BeFalse(), "access without ServiceAccount should be denied")
+			Expect(reason).To(ContainSubstring("failed to fetch ServiceAccount"), "denial reason should indicate SA not found")
+		})
+	})
+
+	Context("when ServiceAccount missing owned-by label", func() {
+		It("should deny access", func() {
+			plugin := test.NewPlugin(test.Ctx, "plugin-demo", "my-org",
+				test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, "demo"))
+			sa := &corev1.ServiceAccount{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "demo-sa",
+					Namespace: "my-org",
+					// No owned-by label
+				},
+			}
+			c = buildFakeClient(plugin, sa)
+
+			attrs := pluginAttrs("plugin-demo")
+			allowed, reason := authorizeServiceAccount(context.Background(), c, mapper, attrs, "demo-sa")
+			Expect(allowed).To(BeFalse(), "access with unlabeled SA should be denied")
+			Expect(reason).To(ContainSubstring("missing owned-by label"), "denial reason should mention missing label")
 		})
 	})
 
@@ -266,21 +318,35 @@ var _ = Describe("authorizeServiceAccount", func() {
 		It("should deny access", func() {
 			plugin := test.NewPlugin(test.Ctx, "plugin-demo", "my-org",
 				test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, "demo"))
-			c = buildFakeClient(plugin)
+			sa := &corev1.ServiceAccount{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "other-team-sa",
+					Namespace: "my-org",
+					Labels:    map[string]string{greenhouseapis.LabelKeyOwnedBy: "other-team"},
+				},
+			}
+			c = buildFakeClient(plugin, sa)
 
 			attrs := pluginAttrs("plugin-demo")
-			allowed, reason := authorizeServiceAccount(context.Background(), c, mapper, attrs, "other-team")
-			Expect(allowed).To(BeFalse(), "service account with non-matching team should be denied")
+			allowed, reason := authorizeServiceAccount(context.Background(), c, mapper, attrs, "other-team-sa")
+			Expect(allowed).To(BeFalse(), "service account with non-matching resource owner should be denied")
 			Expect(reason).To(ContainSubstring("other-team"), "denial reason should mention the SA's team")
 		})
 	})
 
 	Context("when resource does not exist", func() {
 		It("should deny access", func() {
-			c = buildFakeClient(nil) // no plugin pre-seeded
+			sa := &corev1.ServiceAccount{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "demo-sa",
+					Namespace: "my-org",
+					Labels:    map[string]string{greenhouseapis.LabelKeyOwnedBy: "demo"},
+				},
+			}
+			c = buildFakeClient(sa) // SA exists but no plugin pre-seeded
 
 			attrs := pluginAttrs("nonexistent-plugin")
-			allowed, reason := authorizeServiceAccount(context.Background(), c, mapper, attrs, "demo")
+			allowed, reason := authorizeServiceAccount(context.Background(), c, mapper, attrs, "demo-sa")
 			Expect(allowed).To(BeFalse(), "access to non-existent resource should be denied")
 			Expect(reason).To(ContainSubstring("failed to fetch object"), "denial reason should indicate resource not found")
 		})
@@ -298,15 +364,22 @@ func buildRESTMapper() meta.RESTMapper {
 	return mapper
 }
 
-// buildFakeClient creates a fake client with the given Plugin pre-seeded.
-func buildFakeClient(plugin *greenhousev1alpha1.Plugin) ctrlclient.Client {
+// buildFakeClient creates a fake client with the given objects pre-seeded.
+func buildFakeClient(objects ...client.Object) client.Client {
 	scheme := runtime.NewScheme()
 	Expect(corev1.AddToScheme(scheme)).To(Succeed())
 	Expect(greenhousev1alpha1.SchemeBuilder.AddToScheme(scheme)).To(Succeed())
 
 	builder := fake.NewClientBuilder().WithScheme(scheme)
-	if plugin != nil {
-		builder = builder.WithObjects(plugin)
+	// Filter out nil objects
+	var validObjects []client.Object
+	for _, obj := range objects {
+		if obj != nil {
+			validObjects = append(validObjects, obj)
+		}
+	}
+	if len(validObjects) > 0 {
+		builder = builder.WithObjects(validObjects...)
 	}
 	return builder.Build()
 }
@@ -328,8 +401,8 @@ func postReview(h http.Handler, review authv1.SubjectAccessReview) authv1.Subjec
 	return resp
 }
 
-func makeHandler(plugin *greenhousev1alpha1.Plugin) http.Handler {
-	c := buildFakeClient(plugin)
+func makeHandler(objects ...client.Object) http.Handler {
+	c := buildFakeClient(objects...)
 	mapper := buildRESTMapper()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handleAuthorize(w, r, c, mapper)
