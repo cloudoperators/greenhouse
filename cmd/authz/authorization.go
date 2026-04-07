@@ -53,12 +53,14 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, ma
 	serviceAccountName := extractServiceAccountName(review.Spec.User, attrs.Namespace)
 	if serviceAccountName != "" {
 		logger.Info("Request is from ServiceAccount", "serviceAccount", serviceAccountName)
-		allowed, reason := authorizeServiceAccount(ctx, c, mapper, attrs, serviceAccountName)
+		allowed, reason, ownedByValue := authorizeServiceAccount(ctx, c, mapper, attrs, serviceAccountName)
 		if allowed {
+			recordAllowed(verb, attrs.Resource, ownedByValue)
 			respond(w, review, true, reason)
 			return
 		}
 		// If ServiceAccount authorization fails, deny the request
+		recordDenied(verb, attrs.Resource, reason, nil)
 		respond(w, review, false, reason)
 		return
 	}
@@ -137,7 +139,7 @@ func extractServiceAccountName(username, namespace string) string {
 }
 
 // authorizeServiceAccount checks if a ServiceAccount is authorized to access the resource.
-func authorizeServiceAccount(ctx context.Context, c client.Client, mapper meta.RESTMapper, attrs *authv1.ResourceAttributes, serviceAccountName string) (allowed bool, reason string) {
+func authorizeServiceAccount(ctx context.Context, c client.Client, mapper meta.RESTMapper, attrs *authv1.ResourceAttributes, serviceAccountName string) (allowed bool, reason, ownedByValue string) {
 	// 1. Fetch ServiceAccount and verify its owned-by label
 	sa := &corev1.ServiceAccount{}
 	saKey := types.NamespacedName{
@@ -145,12 +147,12 @@ func authorizeServiceAccount(ctx context.Context, c client.Client, mapper meta.R
 		Name:      serviceAccountName,
 	}
 	if err := c.Get(ctx, saKey, sa); err != nil {
-		return false, fmt.Sprintf("failed to fetch ServiceAccount: %v", err)
+		return false, fmt.Sprintf("failed to fetch ServiceAccount: %v", err), ""
 	}
 
 	teamName, ok := sa.Labels[greenhouseapis.LabelKeyOwnedBy]
 	if !ok {
-		return false, "ServiceAccount missing owned-by label"
+		return false, "ServiceAccount missing owned-by label", ""
 	}
 	logger.Info("ServiceAccount ownership verified", "serviceAccountName", sa.Name, "team", teamName)
 
@@ -162,30 +164,30 @@ func authorizeServiceAccount(ctx context.Context, c client.Client, mapper meta.R
 	}
 	gvk, err := mapper.KindFor(gvr)
 	if err != nil {
-		return false, "failed to get Kind for the requested resource"
+		return false, "failed to get Kind for the requested resource", ""
 	}
 
 	obj := &unstructured.Unstructured{}
 	obj.SetGroupVersionKind(gvk)
 	key := types.NamespacedName{Namespace: attrs.Namespace, Name: attrs.Name}
 	if err := c.Get(ctx, key, obj); err != nil {
-		return false, fmt.Sprintf("failed to fetch object: %v", err)
+		return false, fmt.Sprintf("failed to fetch object: %v", err), ""
 	}
 
 	labels := obj.GetLabels()
-	ownedByValue, ok := labels[greenhouseapis.LabelKeyOwnedBy]
+	ownedByValue, ok = labels[greenhouseapis.LabelKeyOwnedBy]
 	if !ok {
-		return false, "requested resource has no owned-by label set"
+		return false, "requested resource has no owned-by label set", ""
 	}
 	logger.Info("Requested resource is owned by: " + ownedByValue)
 
 	// 3. Check if the ServiceAccount's team matches the resource's owned-by label
 	if teamName == ownedByValue {
-		return true, fmt.Sprintf("ServiceAccount %s for team %s is authorized to access resource owned by %s", serviceAccountName, teamName, ownedByValue)
+		return true, fmt.Sprintf("ServiceAccount %s for team %s is authorized to access resource owned by %s", serviceAccountName, teamName, ownedByValue), ownedByValue
 	}
 
 	logger.Info("ServiceAccount team does not match resource owner", "serviceAccountTeam", teamName, "resourceOwner", ownedByValue)
-	return false, fmt.Sprintf("ServiceAccount team %s does not match resource owner %s", teamName, ownedByValue)
+	return false, fmt.Sprintf("ServiceAccount team %s does not match resource owner %s", teamName, ownedByValue), ""
 }
 
 func respond(w http.ResponseWriter, review authv1.SubjectAccessReview, allowed bool, msg string) {

@@ -275,9 +275,10 @@ var _ = Describe("authorizeServiceAccount", func() {
 			c = buildFakeClient(plugin, sa)
 
 			attrs := pluginAttrs("plugin-demo")
-			allowed, reason := authorizeServiceAccount(context.Background(), c, mapper, attrs, "demo-sa")
+			allowed, reason, ownedBy := authorizeServiceAccount(context.Background(), c, mapper, attrs, "demo-sa")
 			Expect(allowed).To(BeTrue(), "service account with matching team should be allowed")
 			Expect(reason).To(ContainSubstring("demo"), "approval reason should mention the team name")
+			Expect(ownedBy).To(Equal("demo"), "ownedBy should be returned")
 		})
 	})
 
@@ -288,9 +289,10 @@ var _ = Describe("authorizeServiceAccount", func() {
 			c = buildFakeClient(plugin) // no SA pre-seeded
 
 			attrs := pluginAttrs("plugin-demo")
-			allowed, reason := authorizeServiceAccount(context.Background(), c, mapper, attrs, "demo-sa")
+			allowed, reason, ownedBy := authorizeServiceAccount(context.Background(), c, mapper, attrs, "demo-sa")
 			Expect(allowed).To(BeFalse(), "access without ServiceAccount should be denied")
 			Expect(reason).To(ContainSubstring("failed to fetch ServiceAccount"), "denial reason should indicate SA not found")
+			Expect(ownedBy).To(Equal(""), "ownedBy should be empty on failure")
 		})
 	})
 
@@ -308,9 +310,10 @@ var _ = Describe("authorizeServiceAccount", func() {
 			c = buildFakeClient(plugin, sa)
 
 			attrs := pluginAttrs("plugin-demo")
-			allowed, reason := authorizeServiceAccount(context.Background(), c, mapper, attrs, "demo-sa")
+			allowed, reason, ownedBy := authorizeServiceAccount(context.Background(), c, mapper, attrs, "demo-sa")
 			Expect(allowed).To(BeFalse(), "access with unlabeled SA should be denied")
 			Expect(reason).To(ContainSubstring("missing owned-by label"), "denial reason should mention missing label")
+			Expect(ownedBy).To(Equal(""), "ownedBy should be empty on failure")
 		})
 	})
 
@@ -328,9 +331,10 @@ var _ = Describe("authorizeServiceAccount", func() {
 			c = buildFakeClient(plugin, sa)
 
 			attrs := pluginAttrs("plugin-demo")
-			allowed, reason := authorizeServiceAccount(context.Background(), c, mapper, attrs, "other-team-sa")
+			allowed, reason, ownedBy := authorizeServiceAccount(context.Background(), c, mapper, attrs, "other-team-sa")
 			Expect(allowed).To(BeFalse(), "service account with non-matching resource owner should be denied")
 			Expect(reason).To(ContainSubstring("other-team"), "denial reason should mention the SA's team")
+			Expect(ownedBy).To(Equal(""), "ownedBy should be empty on failure")
 		})
 	})
 
@@ -346,9 +350,10 @@ var _ = Describe("authorizeServiceAccount", func() {
 			c = buildFakeClient(sa) // SA exists but no plugin pre-seeded
 
 			attrs := pluginAttrs("nonexistent-plugin")
-			allowed, reason := authorizeServiceAccount(context.Background(), c, mapper, attrs, "demo-sa")
+			allowed, reason, ownedBy := authorizeServiceAccount(context.Background(), c, mapper, attrs, "demo-sa")
 			Expect(allowed).To(BeFalse(), "access to non-existent resource should be denied")
 			Expect(reason).To(ContainSubstring("failed to fetch object"), "denial reason should indicate resource not found")
+			Expect(ownedBy).To(Equal(""), "ownedBy should be empty on failure")
 		})
 	})
 })
