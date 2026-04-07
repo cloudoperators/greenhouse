@@ -183,11 +183,16 @@ func (r *PluginReconciler) ensureHelmRelease(
 			return fmt.Errorf("failed to template helm chart for Plugin %s: %w", plugin.Name, err)
 		}
 
-		if err := ensureImageReplication(ctx, mirror, plugin, helmRelease.Manifest); err != nil {
+		manifestSets := []string{helmRelease.Manifest}
+		for _, h := range helmRelease.Hooks {
+			manifestSets = append(manifestSets, h.Manifest)
+		}
+
+		if err := ensureImageReplication(ctx, mirror, plugin, manifestSets...); err != nil {
 			return err
 		}
 
-		postRenderer = createRegistryMirrorPostRenderer(mirror, helmRelease.Manifest)
+		postRenderer = createRegistryMirrorPostRenderer(mirror, manifestSets...)
 	}
 
 	result, err := controllerutil.CreateOrPatch(ctx, r.Client, release, func() error {

@@ -81,34 +81,51 @@ func (m *ImageMirror) EnsureReplicated(ctx context.Context, ociRef string) (repl
 	return "", nil, nil
 }
 
-// BuildImageTransformations extracts image refs from rendered manifests and returns
-// upstream-to-mirror rewrites. Refs already on a mirror are skipped.
-func (m *ImageMirror) BuildImageTransformations(manifests string) []ImageTransform {
-	imageRefs := ExtractUniqueOCIRefs(manifests)
-
+// BuildImageTransformations extracts image refs from the given rendered manifest
+// sets and returns the upstream-to-mirror rewrites for them, skipping refs that
+// already point at a mirror and deduplicating across sets.
+func (m *ImageMirror) BuildImageTransformations(manifestSets ...string) []ImageTransform {
+	seen := make(map[string]struct{})
 	var transforms []ImageTransform
-	for _, imageRef := range imageRefs {
-		resolved := m.config.ResolveOCIRef(imageRef)
-		if resolved == nil {
-			continue
+	for _, manifests := range manifestSets {
+		for _, imageRef := range ExtractUniqueOCIRefs(manifests) {
+			resolved := m.config.ResolveOCIRef(imageRef)
+			if resolved == nil {
+				continue
+			}
+
+			original := fmt.Sprintf("%s/%s", resolved.Registry, resolved.Repository)
+			if _, ok := seen[original]; ok {
+				continue
+			}
+			seen[original] = struct{}{}
+
+			mirrored := fmt.Sprintf("%s/%s/%s", resolved.Mirror.BaseDomain, resolved.Mirror.SubPath, resolved.Repository)
+			transforms = append(transforms, ImageTransform{
+				Original: original,
+				Mirrored: mirrored,
+			})
 		}
-
-		original := fmt.Sprintf("%s/%s", resolved.Registry, resolved.Repository)
-		mirrored := fmt.Sprintf("%s/%s/%s", resolved.Mirror.BaseDomain, resolved.Mirror.SubPath, resolved.Repository)
-
-		transforms = append(transforms, ImageTransform{
-			Original: original,
-			Mirrored: mirrored,
-		})
 	}
 
 	return transforms
 }
 
-// ReplicateOCIArtifacts triggers replication for OCI artifacts found in renderedManifests.
-// The returned list is scoped to the current manifest - stale refs from prior chart versions are pruned.
-func (m *ImageMirror) ReplicateOCIArtifacts(ctx context.Context, renderedManifests string, alreadyReplicated []string) ([]string, error) {
-	imageRefs := ExtractUniqueOCIRefs(renderedManifests)
+// ReplicateOCIArtifacts triggers replication for OCI artifacts found in the
+// given manifest sets, skipping already-replicated refs and deduplicating
+// across sets.
+func (m *ImageMirror) ReplicateOCIArtifacts(ctx context.Context, alreadyReplicated []string, manifestSets ...string) ([]string, error) {
+	seen := make(map[string]struct{})
+	var imageRefs []string
+	for _, manifests := range manifestSets {
+		for _, ref := range ExtractUniqueOCIRefs(manifests) {
+			if _, ok := seen[ref]; ok {
+				continue
+			}
+			seen[ref] = struct{}{}
+			imageRefs = append(imageRefs, ref)
+		}
+	}
 	if len(imageRefs) == 0 {
 		return nil, nil
 	}

@@ -172,7 +172,7 @@ containers:
 - image: ghcr.io/cloudoperators/greenhouse:main
 - image: docker.io/library/nginx:latest
 `
-		replicated, err := mirror.ReplicateOCIArtifacts(context.Background(), manifests, nil)
+		replicated, err := mirror.ReplicateOCIArtifacts(context.Background(), nil, manifests)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(replicated).To(HaveLen(2))
 		Expect(fetchedRefs).To(HaveLen(2))
@@ -193,7 +193,7 @@ containers:
 - image: docker.io/library/nginx:latest
 `
 		alreadyReplicated := []string{"ghcr.io/cloudoperators/greenhouse:main"}
-		replicated, err := mirror.ReplicateOCIArtifacts(context.Background(), manifests, alreadyReplicated)
+		replicated, err := mirror.ReplicateOCIArtifacts(context.Background(), alreadyReplicated, manifests)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(replicated).To(HaveLen(2))
 		Expect(fetchCount).To(Equal(1))
@@ -210,7 +210,7 @@ containers:
 containers:
 - image: registry.k8s.io/pause:3.9
 `
-		replicated, err := mirror.ReplicateOCIArtifacts(context.Background(), manifests, nil)
+		replicated, err := mirror.ReplicateOCIArtifacts(context.Background(), nil, manifests)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(replicated).To(BeEmpty())
 		Expect(fetchCount).To(Equal(0))
@@ -229,7 +229,7 @@ containers:
 - image: ghcr.io/cloudoperators/greenhouse:main
 - image: docker.io/library/nginx:latest
 `
-		replicated, err := mirror.ReplicateOCIArtifacts(context.Background(), manifests, nil)
+		replicated, err := mirror.ReplicateOCIArtifacts(context.Background(), nil, manifests)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("connection refused"))
 		Expect(replicated).To(ContainElement("docker.io/library/nginx:latest"))
@@ -245,7 +245,7 @@ containers:
 apiVersion: v1
 kind: ConfigMap
 `
-		replicated, err := mirror.ReplicateOCIArtifacts(context.Background(), manifests, []string{"some-image:latest"})
+		replicated, err := mirror.ReplicateOCIArtifacts(context.Background(), []string{"some-image:latest"}, manifests)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(replicated).To(BeNil())
 	})

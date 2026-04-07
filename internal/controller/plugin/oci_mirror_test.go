@@ -165,6 +165,36 @@ var _ = Describe("createRegistryMirrorPostRenderer", func() {
 			"mirror.example.com/dockerhub-mirror/myorg/myapp",
 		))
 	})
+
+	It("should include image refs from helm hook manifests", func() {
+		mainManifest := `image: ghcr.io/cloudoperators/greenhouse:main`
+		hookManifest := `image: docker.io/library/busybox:1.36`
+		postRenderer := createRegistryMirrorPostRenderer(mirror, mainManifest, hookManifest)
+		Expect(postRenderer).NotTo(BeNil())
+		Expect(postRenderer.Kustomize.Images).To(HaveLen(2))
+
+		names := []string{postRenderer.Kustomize.Images[0].Name, postRenderer.Kustomize.Images[1].Name}
+		Expect(names).To(ConsistOf(
+			"ghcr.io/cloudoperators/greenhouse",
+			"docker.io/library/busybox",
+		))
+	})
+
+	It("should deduplicate image refs across manifest and hooks", func() {
+		mainManifest := `image: ghcr.io/cloudoperators/greenhouse:main`
+		hookManifest := `image: ghcr.io/cloudoperators/greenhouse:main`
+		postRenderer := createRegistryMirrorPostRenderer(mirror, mainManifest, hookManifest)
+		Expect(postRenderer).NotTo(BeNil())
+		Expect(postRenderer.Kustomize.Images).To(HaveLen(1))
+	})
+
+	It("should pick up image refs even when only present in a hook", func() {
+		hookManifest := `image: ghcr.io/cloudoperators/greenhouse:main`
+		postRenderer := createRegistryMirrorPostRenderer(mirror, "", hookManifest)
+		Expect(postRenderer).NotTo(BeNil())
+		Expect(postRenderer.Kustomize.Images).To(HaveLen(1))
+		Expect(postRenderer.Kustomize.Images[0].Name).To(Equal("ghcr.io/cloudoperators/greenhouse"))
+	})
 })
 
 var _ = Describe("ensureImageReplication", func() {

@@ -15,12 +15,12 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/ocimirror"
 )
 
-func createRegistryMirrorPostRenderer(mirror *ocimirror.ImageMirror, renderedManifests string) *helmv2.PostRenderer {
+func createRegistryMirrorPostRenderer(mirror *ocimirror.ImageMirror, manifestSets ...string) *helmv2.PostRenderer {
 	if mirror == nil {
 		return nil
 	}
 
-	transforms := mirror.BuildImageTransformations(renderedManifests)
+	transforms := mirror.BuildImageTransformations(manifestSets...)
 	if len(transforms) == 0 {
 		return nil
 	}
@@ -43,8 +43,8 @@ func createRegistryMirrorPostRenderer(mirror *ocimirror.ImageMirror, renderedMan
 // ensureImageReplication pre-replicates container images referenced in renderedManifests.
 // On failure it flags HelmReleaseCreatedCondition with ImageReplicationFailedReason and keeps
 // the previous status.ImageReplication list intact, so transient errors dont wipe history.
-func ensureImageReplication(ctx context.Context, mirror *ocimirror.ImageMirror, plugin *greenhousev1alpha1.Plugin, renderedManifests string) error {
-	replicated, err := mirror.ReplicateOCIArtifacts(ctx, renderedManifests, plugin.Status.ImageReplication)
+func ensureImageReplication(ctx context.Context, mirror *ocimirror.ImageMirror, plugin *greenhousev1alpha1.Plugin, manifestSets ...string) error {
+	replicated, err := mirror.ReplicateOCIArtifacts(ctx, plugin.Status.ImageReplication, manifestSets...)
 	if err != nil {
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.HelmReleaseCreatedCondition,
