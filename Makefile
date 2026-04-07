@@ -290,9 +290,6 @@ E2E_RESULT_DIR ?= $(shell pwd)/bin
 # Include authz-related targets from hack/authz/authz.mk
 include hack/authz/authz.mk
 
-.PHONY: setup-authz
-setup-authz: setup-manager-authz setup-dashboard setup-demo
-
 .PHONY: setup
 setup: setup-manager setup-dashboard setup-demo
 
@@ -307,10 +304,6 @@ setup-controller-dev:
 .PHONY: setup-manager
 setup-manager: cli
 	CONTROLLER_ENABLED=$(WITH_CONTROLLER) PLUGIN_PATH=$(PLUGIN_DIR) $(CLI) dev setup -f dev-env/dev.config.yaml d=$(DEV_MODE)
-
-.PHONY: setup-manager-authz
-setup-manager-authz: cli authz-certs
-	CONTROLLER_ENABLED=$(WITH_CONTROLLER) PLUGIN_PATH=$(PLUGIN_DIR) $(CLI) dev setup -f dev-env/authz.config.yaml d=$(DEV_MODE)
 
 .PHONY: setup-dashboard
 setup-dashboard: cli
