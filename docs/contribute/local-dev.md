@@ -81,7 +81,7 @@ make setup
 - This will install the operator, the dashboard, cors-proxy and a sample organization with an onboarded remote cluster
 - port-forward the `cors-proxy` by `kubectl port-forward svc/greenhouse-cors-proxy 9090:80 -n greenhouse &`
 - port-forward the `dashboard` by `kubectl port-forward svc/greenhouse-dashboard 5001:80 -n greenhouse &`
-- Access the local `demo` organization on the Greenhouse dashboard on [localhost:5001](http://localhost:5001/?org=demo)
+- Access the local `demo` organization on the Greenhouse dashboard on [demo.dashboard.localhost:5001](http://demo.dashboard.localhost:5001)
 
 ### Develop Controllers locally and run the webhook server in-cluster
 
