@@ -49,37 +49,78 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, ma
 	}
 
 	verb := attrs.Verb
-	logger.Info("Received request", "user", review.Spec.User, "verb", verb, "resource", attrs.Resource, "ns", attrs.Namespace)
 
-	// Check if the request is from a ServiceAccount
-	serviceAccountName := extractServiceAccountName(review.Spec.User, attrs.Namespace)
-	if serviceAccountName != "" {
-		logger.Info("Request is from ServiceAccount", "serviceAccount", serviceAccountName)
-		allowed, reasonCode, ownedByValue := authorizeServiceAccount(ctx, c, mapper, attrs, serviceAccountName)
-		if allowed {
-			recordAllowed(verb, attrs.Resource, ownedByValue)
-			respond(w, review, true, fmt.Sprintf("ServiceAccount %s authorized to access resource owned by %s", serviceAccountName, ownedByValue))
-			return
-		}
-		// If ServiceAccount authorization fails, deny the request
+	// Get support-groups from identity (either SA team or user claims)
+	supportGroups, reasonCode, err := getSupportGroups(ctx, c, review.Spec.User, review.Spec.Groups, attrs.Namespace)
+	if err != nil {
+		logger.Info("Authorization denied",
+			"user", review.Spec.User,
+			"verb", verb,
+			"resource", attrs.Resource,
+			"namespace", attrs.Namespace,
+			"allowed", false,
+			"reason", err.Error())
 		recordDenied(verb, attrs.Resource, reasonCode, nil)
-		var denyMsg string
-		switch reasonCode {
-		case reasonServiceAccountNotFound:
-			denyMsg = fmt.Sprintf("ServiceAccount %s not found", serviceAccountName)
-		case reasonNoOwnedByLabel:
-			denyMsg = "ServiceAccount or resource missing owned-by label"
-		case reasonSupportGroupMismatch:
-			denyMsg = "ServiceAccount team does not match resource owner"
-		default:
-			denyMsg = "authorization failed: " + reasonCode
-		}
-		respond(w, review, false, denyMsg)
+		respond(w, review, false, err.Error())
 		return
 	}
 
+	// Authorize access using unified flow
+	allowed, reasonCode, ownedByValue, message := authorizeAccess(ctx, c, mapper, attrs, supportGroups)
+
+	// Log authorization decision
+	logger.Info("Authorization decision",
+		"user", review.Spec.User,
+		"verb", verb,
+		"resource", attrs.Resource,
+		"namespace", attrs.Namespace,
+		"allowed", allowed,
+		"ownedBy", ownedByValue,
+		"supportGroups", supportGroups,
+		"reason", message)
+
+	// Record metrics and respond
+	if allowed {
+		recordAllowed(verb, attrs.Resource, ownedByValue)
+		respond(w, review, true, message)
+	} else {
+		recordDenied(verb, attrs.Resource, reasonCode, supportGroups)
+		respond(w, review, false, message)
+	}
+}
+
+// getSupportGroups gets support-groups from the request identity.
+// For ServiceAccounts, it fetches the SA and extracts its team from the owned-by label.
+// For users, it extracts support-group claims from the groups.
+func getSupportGroups(
+	ctx context.Context, c client.Client, username string, groups []string, namespace string,
+) (supportGroups []string, reasonCode string, err error) {
+
+	// Check if this is a ServiceAccount
+	serviceAccountName := extractServiceAccountName(username, namespace)
+	if serviceAccountName != "" {
+		// Fetch ServiceAccount
+		sa := &corev1.ServiceAccount{}
+		saKey := types.NamespacedName{
+			Namespace: namespace,
+			Name:      serviceAccountName,
+		}
+		if err := c.Get(ctx, saKey, sa); err != nil {
+			return nil, reasonServiceAccountNotFound, fmt.Errorf("ServiceAccount %s not found", serviceAccountName)
+		}
+
+		// Extract team name from SA's owned-by label
+		teamName, ok := sa.Labels[greenhouseapis.LabelKeyOwnedBy]
+		if !ok {
+			return nil, reasonNoOwnedByLabel, errors.New("ServiceAccount missing owned-by label")
+		}
+
+		return []string{teamName}, "", nil
+	}
+
+	// Extract support-group claims from user groups
 	var userSupportGroups []string
-	for _, group := range review.Spec.Groups {
+	for _, group := range groups {
 		supportGroupName, found := strings.CutPrefix(group, supportGroupClaimPrefix)
 		if found {
 			userSupportGroups = append(userSupportGroups, supportGroupName)
@@ -87,55 +128,47 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, ma
 	}
 
 	if len(userSupportGroups) == 0 {
-		recordDenied(verb, attrs.Resource, reasonNoSupportGroupClaims, nil)
-		respond(w, review, false, "user has no support-group claims and is not an authorized ServiceAccount")
-		return
-	}
-	logger.Info("User has the following support-group claims: " + strings.Join(userSupportGroups, ", "))
-
-	// Fetch the resource and extract its owned-by label
-	ownedByValue, reasonCode, err := fetchResourceWithOwnership(ctx, c, mapper, attrs)
-	if err != nil {
-		recordDenied(verb, attrs.Resource, reasonCode, userSupportGroups)
-		respond(w, review, false, fmt.Sprintf("failed to fetch object: %v", err))
-		return
-	}
-	logger.Info("Requested resource is owned by: " + ownedByValue)
-
-	// Validate that the Team referenced in the owned-by label actually exists and is a support-group.
-	// Optimization: if the resource being accessed is the Team itself, we've already validated its existence.
-	if gvk.Kind != "Team" || attrs.Name != ownedByValue {
-		team := &greenhousev1alpha1.Team{}
-		teamKey := types.NamespacedName{Namespace: attrs.Namespace, Name: ownedByValue}
-		if err := c.Get(ctx, teamKey, team); err != nil {
-			authzKubeFetchErrorsTotal.WithLabelValues(err.Error()).Inc()
-			recordDenied(verb, attrs.Resource, reasonObjectNotFound, userSupportGroups)
-			respond(w, review, false, fmt.Sprintf("team %s referenced in owned-by label does not exist: %v", ownedByValue, err))
-			return
-		}
-		// Validate that the Team is marked as a support-group.
-		supportGroup, ok := team.Labels[greenhouseapis.LabelKeySupportGroup]
-		if !ok || supportGroup != "true" {
-			recordDenied(verb, attrs.Resource, reasonObjectNotFound, userSupportGroups)
-			respond(w, review, false, fmt.Sprintf("team %s is not a support-group", ownedByValue))
-			return
-		}
+		return nil, reasonNoSupportGroupClaims, errors.New("user has no support-group claims and is not an authorized ServiceAccount")
 	}
 
-	// If the support-group matches the greenhouse.sap/owned-by label on the resources the user should get full permissions on the resource.
-	if slices.Contains(userSupportGroups, ownedByValue) {
-		recordAllowed(verb, attrs.Resource, ownedByValue)
-		respond(w, review, true, "user has a support-group claim for the requested resource: "+ownedByValue)
-		return
-	}
-
-	recordDenied(verb, attrs.Resource, reasonSupportGroupMismatch, userSupportGroups)
-	respond(w, review, false, "")
+	return userSupportGroups, "", nil
 }
 
-// fetchResourceWithOwnership fetches a resource and extracts its owned-by label.
-// Returns the ownedByValue on success, or an error with a reason code on failure.
-func fetchResourceWithOwnership(ctx context.Context, c client.Client, mapper meta.RESTMapper, attrs *authv1.ResourceAttributes) (ownedByValue, reasonCode string, err error) {
+// authorizeAccess performs the unified authorization flow for both users and ServiceAccounts.
+// It fetches the resource, validates the Team, and checks if the identity is authorized.
+func authorizeAccess(
+	ctx context.Context, c client.Client, mapper meta.RESTMapper, attrs *authv1.ResourceAttributes, supportGroups []string,
+) (allowed bool, reasonCode, ownedByValue, message string) {
+
+	// 1. Fetch resource and extract GVK + owned-by label
+	ownedByValue, gvk, reasonCode, err := fetchResourceWithOwnershipAndGVK(ctx, c, mapper, attrs)
+	if err != nil {
+		return false, reasonCode, "", fmt.Sprintf("failed to fetch object: %v", err)
+	}
+
+	// 2. Validate Team exists and is a support-group
+	// Optimization: if the resource being accessed is the Team itself, we've already validated its existence
+	if gvk.Kind != "Team" || attrs.Name != ownedByValue {
+		reasonCode, err := validateTeam(ctx, c, attrs.Namespace, ownedByValue)
+		if err != nil {
+			return false, reasonCode, "", err.Error()
+		}
+	}
+
+	// 3. Check if any support-group matches the resource owner
+	if slices.Contains(supportGroups, ownedByValue) {
+		return true, "", ownedByValue, "authorized to access resource owned by " + ownedByValue
+	}
+
+	// No matching support-group found
+	return false, reasonSupportGroupMismatch, "", "support-group does not match resource owner"
+}
+
+// fetchResourceWithOwnershipAndGVK fetches a resource and extracts its GVK and owned-by label.
+func fetchResourceWithOwnershipAndGVK(
+	ctx context.Context, c client.Client, mapper meta.RESTMapper, attrs *authv1.ResourceAttributes,
+) (ownedByValue string, gvk schema.GroupVersionKind, reasonCode string, err error) {
+
 	gvr := schema.GroupVersionResource{
 		Group:    attrs.Group,
 		Resource: attrs.Resource,
@@ -144,10 +177,10 @@ func fetchResourceWithOwnership(ctx context.Context, c client.Client, mapper met
 		gvr.Version = attrs.Version
 	}
 
-	gvk, err := mapper.KindFor(gvr)
+	gvk, err = mapper.KindFor(gvr)
 	if err != nil {
 		authzKindResolutionErrorsTotal.Inc()
-		return "", reasonKindResolutionFailed, err
+		return "", schema.GroupVersionKind{}, reasonKindResolutionFailed, err
 	}
 
 	obj := &unstructured.Unstructured{}
@@ -155,16 +188,34 @@ func fetchResourceWithOwnership(ctx context.Context, c client.Client, mapper met
 	key := types.NamespacedName{Namespace: attrs.Namespace, Name: attrs.Name}
 	if err := c.Get(ctx, key, obj); err != nil {
 		authzKubeFetchErrorsTotal.WithLabelValues(err.Error()).Inc()
-		return "", reasonObjectNotFound, err
+		return "", schema.GroupVersionKind{}, reasonObjectNotFound, err
 	}
 
 	labels := obj.GetLabels()
 	ownedByValue, ok := labels[greenhouseapis.LabelKeyOwnedBy]
 	if !ok {
-		return "", reasonNoOwnedByLabel, errors.New("resource has no owned-by label")
+		return "", schema.GroupVersionKind{}, reasonNoOwnedByLabel, errors.New("resource has no owned-by label")
 	}
 
-	return ownedByValue, "", nil
+	return ownedByValue, gvk, "", nil
+}
+
+// validateTeam checks that the Team referenced in the owned-by label exists and is a support-group.
+func validateTeam(ctx context.Context, c client.Client, namespace, teamName string) (reasonCode string, err error) {
+	team := &greenhousev1alpha1.Team{}
+	teamKey := types.NamespacedName{Namespace: namespace, Name: teamName}
+	if err := c.Get(ctx, teamKey, team); err != nil {
+		authzKubeFetchErrorsTotal.WithLabelValues(err.Error()).Inc()
+		return reasonObjectNotFound, fmt.Errorf("team %s referenced in owned-by label does not exist: %w", teamName, err)
+	}
+
+	// Validate that the Team is marked as a support-group
+	supportGroup, ok := team.Labels[greenhouseapis.LabelKeySupportGroup]
+	if !ok || supportGroup != "true" {
+		return reasonObjectNotFound, fmt.Errorf("team %s is not a support-group", teamName)
+	}
+
+	return "", nil
 }
 
 // extractServiceAccountName extracts the ServiceAccount name from the username
@@ -179,47 +230,7 @@ func extractServiceAccountName(username, namespace string) string {
 	return serviceAccountName
 }
 
-// authorizeServiceAccount checks if a ServiceAccount is authorized to access the resource.
-// Returns allowed status, reason code (from metrics.go constants), and ownedByValue.
-func authorizeServiceAccount(ctx context.Context, c client.Client, mapper meta.RESTMapper, attrs *authv1.ResourceAttributes, serviceAccountName string) (allowed bool, reasonCode, ownedByValue string) {
-	// 1. Fetch ServiceAccount and verify its owned-by label
-	sa := &corev1.ServiceAccount{}
-	saKey := types.NamespacedName{
-		Namespace: attrs.Namespace,
-		Name:      serviceAccountName,
-	}
-	if err := c.Get(ctx, saKey, sa); err != nil {
-		return false, reasonServiceAccountNotFound, ""
-	}
-
-	teamName, ok := sa.Labels[greenhouseapis.LabelKeyOwnedBy]
-	if !ok {
-		return false, reasonNoOwnedByLabel, ""
-	}
-	logger.Info("ServiceAccount ownership verified", "serviceAccountName", sa.Name, "team", teamName)
-
-	// 2. Fetch the resource and extract its owned-by label using shared helper
-	ownedByValue, reasonCode, err := fetchResourceWithOwnership(ctx, c, mapper, attrs)
-	if err != nil {
-		return false, reasonCode, ""
-	}
-	logger.Info("Requested resource is owned by: " + ownedByValue)
-
-	// 3. Check if the ServiceAccount's team matches the resource's owned-by label
-	if teamName == ownedByValue {
-		return true, "", ownedByValue
-	}
-
-	logger.Info("ServiceAccount team does not match resource owner", "serviceAccountTeam", teamName, "resourceOwner", ownedByValue)
-	return false, reasonSupportGroupMismatch, ""
-}
-
 func respond(w http.ResponseWriter, review authv1.SubjectAccessReview, allowed bool, msg string) {
-	if allowed {
-		logger.Info("[ALLOWED] " + msg)
-	} else {
-		logger.Info("[DENIED] " + msg)
-	}
 	review.Status = authv1.SubjectAccessReviewStatus{
 		Allowed: allowed,
 		Reason:  msg,

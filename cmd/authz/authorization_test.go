@@ -26,6 +26,11 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
+var (
+	testTeam = test.NewTeam(test.Ctx, "demo", "my-org",
+		test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
+)
+
 var _ = Describe("extractServiceAccountName", func() {
 	DescribeTable("extracting service account name from username",
 		func(username string, namespace string, expected string) {
@@ -78,7 +83,7 @@ var _ = Describe("handleAuthorize", func() {
 		It("should allow user with matching support-group", func() {
 			plugin := test.NewPlugin(test.Ctx, "plugin-demo", "my-org",
 				test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, "demo"))
-			h := makeHandler(plugin)
+			h := makeHandler(plugin, testTeam)
 
 			review := authv1.SubjectAccessReview{
 				Spec: authv1.SubjectAccessReviewSpec{
@@ -95,7 +100,7 @@ var _ = Describe("handleAuthorize", func() {
 		It("should deny user with non-matching support-group", func() {
 			plugin := test.NewPlugin(test.Ctx, "plugin-demo", "my-org",
 				test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, "demo"))
-			h := makeHandler(plugin)
+			h := makeHandler(plugin, testTeam)
 
 			review := authv1.SubjectAccessReview{
 				Spec: authv1.SubjectAccessReviewSpec{
@@ -128,7 +133,7 @@ var _ = Describe("handleAuthorize", func() {
 		It("should allow user with multiple support-groups when one matches", func() {
 			plugin := test.NewPlugin(test.Ctx, "plugin-demo", "my-org",
 				test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, "demo"))
-			h := makeHandler(plugin)
+			h := makeHandler(plugin, testTeam)
 
 			review := authv1.SubjectAccessReview{
 				Spec: authv1.SubjectAccessReviewSpec{
@@ -145,7 +150,7 @@ var _ = Describe("handleAuthorize", func() {
 		It("should deny user with multiple support-groups when none match", func() {
 			plugin := test.NewPlugin(test.Ctx, "plugin-demo", "my-org",
 				test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, "demo"))
-			h := makeHandler(plugin)
+			h := makeHandler(plugin, testTeam)
 
 			review := authv1.SubjectAccessReview{
 				Spec: authv1.SubjectAccessReviewSpec{
@@ -170,7 +175,7 @@ var _ = Describe("handleAuthorize", func() {
 					Labels:    map[string]string{greenhouseapis.LabelKeyOwnedBy: "demo"},
 				},
 			}
-			h := makeHandler(plugin, sa)
+			h := makeHandler(plugin, sa, testTeam)
 
 			review := authv1.SubjectAccessReview{
 				Spec: authv1.SubjectAccessReviewSpec{
@@ -193,7 +198,7 @@ var _ = Describe("handleAuthorize", func() {
 					Labels:    map[string]string{greenhouseapis.LabelKeyOwnedBy: "other-team"},
 				},
 			}
-			h := makeHandler(plugin, sa)
+			h := makeHandler(plugin, sa, testTeam)
 
 			review := authv1.SubjectAccessReview{
 				Spec: authv1.SubjectAccessReviewSpec{
@@ -272,12 +277,17 @@ var _ = Describe("authorizeServiceAccount", func() {
 					Labels:    map[string]string{greenhouseapis.LabelKeyOwnedBy: "demo"},
 				},
 			}
-			c = buildFakeClient(plugin, sa)
+			c = buildFakeClient(plugin, sa, testTeam)
 
 			attrs := pluginAttrs("plugin-demo")
-			allowed, reason, ownedBy := authorizeServiceAccount(context.Background(), c, mapper, attrs, "demo-sa")
+			supportGroups, reasonCode, err := getSupportGroups(test.Ctx, c, "system:serviceaccount:my-org:demo-sa", nil, "my-org")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(reasonCode).To(BeEmpty(), "reason should be empty on success")
+			Expect(supportGroups).To(Equal([]string{"demo"}))
+
+			allowed, reasonCode, ownedBy, _ := authorizeAccess(test.Ctx, c, mapper, attrs, supportGroups)
 			Expect(allowed).To(BeTrue(), "service account with matching team should be allowed")
-			Expect(reason).To(BeEmpty(), "reason should be empty on success")
+			Expect(reasonCode).To(BeEmpty(), "reason should be empty on success")
 			Expect(ownedBy).To(Equal("demo"), "ownedBy should be returned")
 		})
 	})
@@ -288,11 +298,10 @@ var _ = Describe("authorizeServiceAccount", func() {
 				test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, "demo"))
 			c = buildFakeClient(plugin) // no SA pre-seeded
 
-			attrs := pluginAttrs("plugin-demo")
-			allowed, reason, ownedBy := authorizeServiceAccount(context.Background(), c, mapper, attrs, "demo-sa")
-			Expect(allowed).To(BeFalse(), "access without ServiceAccount should be denied")
-			Expect(reason).To(Equal(reasonServiceAccountNotFound), "denial reason should be service_account_not_found constant")
-			Expect(ownedBy).To(Equal(""), "ownedBy should be empty on failure")
+			supportGroups, reasonCode, err := getSupportGroups(test.Ctx, c, "system:serviceaccount:my-org:demo-sa", nil, "my-org")
+			Expect(err).To(HaveOccurred(), "getSupportGroups should fail when SA doesn't exist")
+			Expect(reasonCode).To(Equal(reasonServiceAccountNotFound), "should return service_account_not_found constant")
+			Expect(supportGroups).To(BeNil())
 		})
 	})
 
@@ -309,11 +318,9 @@ var _ = Describe("authorizeServiceAccount", func() {
 			}
 			c = buildFakeClient(plugin, sa)
 
-			attrs := pluginAttrs("plugin-demo")
-			allowed, reason, ownedBy := authorizeServiceAccount(context.Background(), c, mapper, attrs, "demo-sa")
-			Expect(allowed).To(BeFalse(), "access with unlabeled SA should be denied")
-			Expect(reason).To(Equal(reasonNoOwnedByLabel), "denial reason should be no_owned_by_label constant")
-			Expect(ownedBy).To(Equal(""), "ownedBy should be empty on failure")
+			_, reasonCode, err := getSupportGroups(test.Ctx, c, "system:serviceaccount:my-org:demo-sa", nil, "my-org")
+			Expect(err).To(HaveOccurred(), "getSupportGroups should fail when SA missing owned-by label")
+			Expect(reasonCode).To(Equal(reasonNoOwnedByLabel), "should return no_owned_by_label constant")
 		})
 	})
 
@@ -328,13 +335,16 @@ var _ = Describe("authorizeServiceAccount", func() {
 					Labels:    map[string]string{greenhouseapis.LabelKeyOwnedBy: "other-team"},
 				},
 			}
-			c = buildFakeClient(plugin, sa)
+			c = buildFakeClient(plugin, sa, testTeam)
 
 			attrs := pluginAttrs("plugin-demo")
-			allowed, reason, ownedBy := authorizeServiceAccount(context.Background(), c, mapper, attrs, "other-team-sa")
+			supportGroups, _, err := getSupportGroups(test.Ctx, c, "system:serviceaccount:my-org:other-team-sa", nil, "my-org")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(supportGroups).To(Equal([]string{"other-team"}))
+
+			allowed, reasonCode, _, _ := authorizeAccess(test.Ctx, c, mapper, attrs, supportGroups)
 			Expect(allowed).To(BeFalse(), "service account with non-matching resource owner should be denied")
-			Expect(reason).To(Equal(reasonSupportGroupMismatch), "denial reason should be support_group_mismatch constant")
-			Expect(ownedBy).To(Equal(""), "ownedBy should be empty on failure")
+			Expect(reasonCode).To(Equal(reasonSupportGroupMismatch), "should return support_group_mismatch constant")
 		})
 	})
 
@@ -350,21 +360,28 @@ var _ = Describe("authorizeServiceAccount", func() {
 			c = buildFakeClient(sa) // SA exists but no plugin pre-seeded
 
 			attrs := pluginAttrs("nonexistent-plugin")
-			allowed, reason, ownedBy := authorizeServiceAccount(context.Background(), c, mapper, attrs, "demo-sa")
+			supportGroups, _, err := getSupportGroups(test.Ctx, c, "system:serviceaccount:my-org:demo-sa", nil, "my-org")
+			Expect(err).ToNot(HaveOccurred())
+
+			allowed, reasonCode, _, _ := authorizeAccess(test.Ctx, c, mapper, attrs, supportGroups)
 			Expect(allowed).To(BeFalse(), "access to non-existent resource should be denied")
-			Expect(reason).To(Equal(reasonObjectNotFound), "denial reason should be object_not_found constant")
-			Expect(ownedBy).To(Equal(""), "ownedBy should be empty on failure")
+			Expect(reasonCode).To(Equal(reasonObjectNotFound), "should return object_not_found constant")
 		})
 	})
 })
 
-// buildRESTMapper creates a simple REST mapper that maps Plugin GVR -> GVK.
+// buildRESTMapper creates a simple REST mapper that maps Plugin and Team GVR -> GVK.
 func buildRESTMapper() meta.RESTMapper {
 	mapper := meta.NewDefaultRESTMapper(nil)
 	mapper.Add(schema.GroupVersionKind{
 		Group:   greenhousev1alpha1.GroupVersion.Group,
 		Version: greenhousev1alpha1.GroupVersion.Version,
 		Kind:    "Plugin",
+	}, meta.RESTScopeNamespace)
+	mapper.Add(schema.GroupVersionKind{
+		Group:   greenhousev1alpha1.GroupVersion.Group,
+		Version: greenhousev1alpha1.GroupVersion.Version,
+		Kind:    "Team",
 	}, meta.RESTScopeNamespace)
 	return mapper
 }
