@@ -140,19 +140,16 @@ func authorizeAccess(
 	ctx context.Context, c client.Client, mapper meta.RESTMapper, attrs *authv1.ResourceAttributes, supportGroups []string,
 ) (allowed bool, reasonCode, ownedByValue, message string) {
 
-	// 1. Fetch resource and extract GVK + owned-by label
-	ownedByValue, gvk, reasonCode, err := fetchResourceWithOwnershipAndGVK(ctx, c, mapper, attrs)
+	// 1. Fetch resource and extract owned-by label
+	ownedByValue, reasonCode, err := fetchResourceWithOwnership(ctx, c, mapper, attrs)
 	if err != nil {
 		return false, reasonCode, "", fmt.Sprintf("failed to fetch object: %v", err)
 	}
 
 	// 2. Validate Team exists and is a support-group
-	// Optimization: if the resource being accessed is the Team itself, we've already validated its existence
-	if gvk.Kind != "Team" || attrs.Name != ownedByValue {
-		reasonCode, err := validateTeam(ctx, c, attrs.Namespace, ownedByValue)
-		if err != nil {
-			return false, reasonCode, "", err.Error()
-		}
+	reasonCode, err = validateTeam(ctx, c, attrs.Namespace, ownedByValue)
+	if err != nil {
+		return false, reasonCode, "", err.Error()
 	}
 
 	// 3. Check if any support-group matches the resource owner
@@ -164,10 +161,10 @@ func authorizeAccess(
 	return false, reasonSupportGroupMismatch, "", "support-group does not match resource owner"
 }
 
-// fetchResourceWithOwnershipAndGVK fetches a resource and extracts its GVK and owned-by label.
-func fetchResourceWithOwnershipAndGVK(
+// fetchResourceWithOwnership fetches a resource and extracts its owned-by label.
+func fetchResourceWithOwnership(
 	ctx context.Context, c client.Client, mapper meta.RESTMapper, attrs *authv1.ResourceAttributes,
-) (ownedByValue string, gvk schema.GroupVersionKind, reasonCode string, err error) {
+) (ownedByValue, reasonCode string, err error) {
 
 	gvr := schema.GroupVersionResource{
 		Group:    attrs.Group,
@@ -177,10 +174,10 @@ func fetchResourceWithOwnershipAndGVK(
 		gvr.Version = attrs.Version
 	}
 
-	gvk, err = mapper.KindFor(gvr)
+	gvk, err := mapper.KindFor(gvr)
 	if err != nil {
 		authzKindResolutionErrorsTotal.Inc()
-		return "", schema.GroupVersionKind{}, reasonKindResolutionFailed, err
+		return "", reasonKindResolutionFailed, err
 	}
 
 	obj := &unstructured.Unstructured{}
@@ -188,16 +185,16 @@ func fetchResourceWithOwnershipAndGVK(
 	key := types.NamespacedName{Namespace: attrs.Namespace, Name: attrs.Name}
 	if err := c.Get(ctx, key, obj); err != nil {
 		authzKubeFetchErrorsTotal.WithLabelValues(err.Error()).Inc()
-		return "", schema.GroupVersionKind{}, reasonObjectNotFound, err
+		return "", reasonObjectNotFound, err
 	}
 
 	labels := obj.GetLabels()
 	ownedByValue, ok := labels[greenhouseapis.LabelKeyOwnedBy]
 	if !ok {
-		return "", schema.GroupVersionKind{}, reasonNoOwnedByLabel, errors.New("resource has no owned-by label")
+		return "", reasonNoOwnedByLabel, errors.New("resource has no owned-by label")
 	}
 
-	return ownedByValue, gvk, "", nil
+	return ownedByValue, "", nil
 }
 
 // validateTeam checks that the Team referenced in the owned-by label exists and is a support-group.
