@@ -12,13 +12,14 @@ import (
 )
 
 const (
-	reasonNoSupportGroupClaims = "no_support_group_claims"
-	reasonNoOwnedByLabel       = "no_owned_by_label"
-	reasonSupportGroupMismatch = "support_group_mismatch"
-	reasonObjectNotFound       = "object_not_found"
-	reasonKindResolutionFailed = "kind_resolution_failed"
-	reasonDecodeError          = "decode_error"
-	reasonMissingAttributes    = "missing_attributes"
+	reasonNoSupportGroupClaims   = "no_support_group_claims"
+	reasonNoOwnedByLabel         = "no_owned_by_label"
+	reasonSupportGroupMismatch   = "support_group_mismatch"
+	reasonObjectNotFound         = "object_not_found"
+	reasonKindResolutionFailed   = "kind_resolution_failed"
+	reasonDecodeError            = "decode_error"
+	reasonMissingAttributes      = "missing_attributes"
+	reasonServiceAccountNotFound = "service_account_not_found"
 )
 
 var (

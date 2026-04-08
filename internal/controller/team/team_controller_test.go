@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
@@ -25,6 +26,7 @@ const (
 	validIdpGroupName      = "SOME_IDP_GROUP_NAME"
 	otherValidIdpGroupName = "SOME_OTHER_IDP_GROUP_NAME"
 	nonExistingGroupName   = "NON_EXISTING_GROUP_NAME"
+	supportGroupTeamName   = "support-group-team"
 )
 
 var (
@@ -240,6 +242,68 @@ var _ = Describe("TeamController", Ordered, func() {
 				err := setup.Get(test.Ctx, types.NamespacedName{Namespace: setup.Namespace(), Name: firstTeamName}, team)
 				g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "Team should be deleted")
 			}).Should(Succeed())
+		})
+	})
+
+	Context("reconciling ServiceAccount for support-group teams", func() {
+		BeforeEach(func() {
+			setup = test.NewTestSetup(test.Ctx, test.K8sClient, test.TestNamespace)
+			createTestOrgWithSecret(setup.Namespace())
+		})
+
+		It("should create a ServiceAccount for a support-group Team", func() {
+			By("creating a support-group team")
+			team := setup.CreateTeam(test.Ctx, supportGroupTeamName,
+				test.WithMappedIDPGroup(validIdpGroupName),
+				test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"),
+			)
+
+			expectedSAName := team.Name + "-sa"
+
+			Eventually(func(g Gomega) {
+				sa := &corev1.ServiceAccount{}
+				err := setup.Get(test.Ctx, types.NamespacedName{
+					Name:      expectedSAName,
+					Namespace: setup.Namespace(),
+				}, sa)
+				g.Expect(err).ShouldNot(HaveOccurred(), "ServiceAccount should have been created")
+				g.Expect(sa.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyOwnedBy, team.Name), "SA should carry the owned-by label")
+				g.Expect(sa.OwnerReferences).To(HaveLen(1), "SA should have exactly one owner reference")
+				g.Expect(sa.OwnerReferences[0].Name).To(Equal(team.Name), "SA owner reference should point to the Team")
+			}).Should(Succeed(), "ServiceAccount should be created for support-group team")
+		})
+
+		It("should delete the ServiceAccount when support-group label is removed from Team", func() {
+			By("creating a support-group team")
+			team := setup.CreateTeam(test.Ctx, supportGroupTeamName,
+				test.WithMappedIDPGroup(validIdpGroupName),
+				test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"),
+			)
+
+			expectedSAName := team.Name + "-sa"
+
+			By("waiting for the ServiceAccount to be created")
+			Eventually(func(g Gomega) {
+				sa := &corev1.ServiceAccount{}
+				err := setup.Get(test.Ctx, types.NamespacedName{
+					Name:      expectedSAName,
+					Namespace: setup.Namespace(),
+				}, sa)
+				g.Expect(err).ShouldNot(HaveOccurred(), "ServiceAccount should have been created")
+			}).Should(Succeed(), "ServiceAccount should be created for support-group team")
+
+			By("removing the support-group label from the Team")
+			test.MustRemoveLabel(test.Ctx, setup.Client, team, greenhouseapis.LabelKeySupportGroup)
+
+			By("ensuring the ServiceAccount is deleted")
+			Eventually(func(g Gomega) {
+				sa := &corev1.ServiceAccount{}
+				err := setup.Get(test.Ctx, types.NamespacedName{
+					Name:      expectedSAName,
+					Namespace: setup.Namespace(),
+				}, sa)
+				g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "ServiceAccount should have been deleted after label removal")
+			}).Should(Succeed(), "ServiceAccount should be deleted when support-group label is removed")
 		})
 	})
 

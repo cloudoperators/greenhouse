@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -16,10 +17,12 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
@@ -49,6 +52,7 @@ type TeamController struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teams/finalizers,verbs=update
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get
 //+kubebuilder:rbac:groups="events.k8s.io",resources=events,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *TeamController) SetupWithManager(name string, mgr ctrl.Manager) error {
@@ -157,6 +161,18 @@ func (r *TeamController) EnsureCreated(ctx context.Context, object lifecycle.Run
 
 	UpdateTeamMembersCountMetric(team, len(users))
 
+	// Reconcile ServiceAccount for support group teams
+	if team.Labels[greenhouseapis.LabelKeySupportGroup] == "true" {
+		if err := r.reconcileSupportGroupServiceAccount(ctx, team); err != nil {
+			return ctrl.Result{}, lifecycle.Failed, err
+		}
+	} else {
+		// If the support-group label was removed, delete the SA if it still exists.
+		if err := r.deleteSupportGroupServiceAccountIfExists(ctx, team); err != nil {
+			return ctrl.Result{}, lifecycle.Failed, err
+		}
+	}
+
 	return ctrl.Result{
 			RequeueAfter: wait.Jitter(RequeueInterval, 0.1),
 		},
@@ -230,6 +246,55 @@ func initTeamStatus(team *greenhousev1alpha1.Team) {
 			team.SetCondition(greenhousemetav1alpha1.UnknownCondition(t, "", ""))
 		}
 	}
+}
+
+func (r *TeamController) reconcileSupportGroupServiceAccount(ctx context.Context, team *greenhousev1alpha1.Team) error {
+	serviceAccount := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      team.Name + "-sa",
+			Namespace: team.Namespace,
+		},
+	}
+
+	result, err := clientutil.CreateOrPatch(ctx, r.Client, serviceAccount, func() error {
+		if serviceAccount.Labels == nil {
+			serviceAccount.Labels = make(map[string]string)
+		}
+		serviceAccount.Labels[greenhouseapis.LabelKeyOwnedBy] = team.Name
+		return controllerutil.SetControllerReference(team, serviceAccount, r.Scheme())
+	})
+
+	if err != nil {
+		return err
+	}
+
+	switch result {
+	case clientutil.OperationResultCreated:
+		log.FromContext(ctx).Info("created support group service account", "name", serviceAccount.Name, "namespace", serviceAccount.Namespace)
+		r.recorder.Eventf(team, serviceAccount, corev1.EventTypeNormal, "CreatedServiceAccount", "reconciling support group service account", "Created ServiceAccount %s/%s", serviceAccount.Namespace, serviceAccount.Name)
+	case clientutil.OperationResultUpdated:
+		log.FromContext(ctx).Info("updated support group service account", "name", serviceAccount.Name, "namespace", serviceAccount.Namespace)
+		r.recorder.Eventf(team, serviceAccount, corev1.EventTypeNormal, "UpdatedServiceAccount", "reconciling support group service account", "Updated ServiceAccount %s/%s", serviceAccount.Namespace, serviceAccount.Name)
+	}
+
+	return nil
+}
+
+func (r *TeamController) deleteSupportGroupServiceAccountIfExists(ctx context.Context, team *greenhousev1alpha1.Team) error {
+	serviceAccount := &corev1.ServiceAccount{}
+	err := r.Get(ctx, types.NamespacedName{
+		Name:      team.Name + "-sa",
+		Namespace: team.Namespace,
+	}, serviceAccount)
+	if err != nil {
+		return client.IgnoreNotFound(err)
+	}
+	if err := r.Delete(ctx, serviceAccount); err != nil {
+		return client.IgnoreNotFound(err)
+	}
+	log.FromContext(ctx).Info("deleted support group service account", "name", serviceAccount.Name, "namespace", serviceAccount.Namespace)
+	r.recorder.Eventf(team, serviceAccount, corev1.EventTypeNormal, "DeletedServiceAccount", "support-group label removed", "Deleted ServiceAccount %s/%s", serviceAccount.Namespace, serviceAccount.Name)
+	return nil
 }
 
 func (r *TeamController) computeReadyCondition(

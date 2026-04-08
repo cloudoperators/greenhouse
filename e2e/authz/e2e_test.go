@@ -7,12 +7,18 @@ package authz
 
 import (
 	"context"
+	"fmt"
+	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -23,6 +29,7 @@ import (
 	"github.com/cloudoperators/greenhouse/e2e/authz/fixtures"
 	"github.com/cloudoperators/greenhouse/e2e/shared"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/internal/scim"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
@@ -34,6 +41,7 @@ var (
 	adminClient   client.Client
 	remoteClient  client.Client
 	testStartTime time.Time
+	groupsServer  *httptest.Server
 
 	// Test resources
 	teamDemo         *greenhousev1alpha1.Team
@@ -53,6 +61,12 @@ var _ = BeforeSuite(func() {
 	ctx = context.Background()
 	env = shared.NewExecutionEnv()
 
+	By("mocking SCIM server")
+	groupsServer = scim.ReturnCombinedGroupAndUserResponseMockServer()
+
+	// Replace 127.0.0.1 with host.docker.internal for Kind cluster accessibility
+	scimBaseURL := strings.Replace(groupsServer.URL, "127.0.0.1", "host.docker.internal", 1) + "/scim"
+
 	var err error
 	adminClient, err = clientutil.NewK8sClientFromRestClientGetter(env.AdminRestClientGetter)
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the admin client")
@@ -62,11 +76,74 @@ var _ = BeforeSuite(func() {
 	env = env.WithOrganization(ctx, adminClient, "./testdata/organization.yaml")
 	testStartTime = time.Now().UTC()
 
+	By("creating secret for SCIM config")
+	mockScimSecret := &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: corev1.GroupName,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mock-scim-secret",
+			Namespace: env.TestNamespace,
+		},
+		Data: map[string][]byte{
+			"username": []byte("mock-user"),
+			"password": []byte("mock-password"),
+		},
+	}
+	err = adminClient.Create(ctx, mockScimSecret)
+	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred(), "should create mock SCIM secret")
+
+	By("updating Organization with SCIM config pointing to mock server")
+	org := &greenhousev1alpha1.Organization{}
+	err = adminClient.Get(ctx, types.NamespacedName{Name: env.TestNamespace}, org)
+	Expect(err).ToNot(HaveOccurred(), "should get Organization")
+
+	org.Spec.Authentication = &greenhousev1alpha1.Authentication{
+		SCIMConfig: &greenhousev1alpha1.SCIMConfig{
+			BaseURL:  scimBaseURL,
+			AuthType: scim.Basic,
+			BasicAuthUser: &greenhousev1alpha1.ValueFromSource{
+				Secret: &greenhousev1alpha1.SecretKeyReference{
+					Name: "mock-scim-secret",
+					Key:  "username",
+				},
+			},
+			BasicAuthPw: &greenhousev1alpha1.ValueFromSource{
+				Secret: &greenhousev1alpha1.SecretKeyReference{
+					Name: "mock-scim-secret",
+					Key:  "password",
+				},
+			},
+		},
+	}
+	// Add a label to trigger reconciliation
+	if org.Labels == nil {
+		org.Labels = make(map[string]string)
+	}
+	org.Labels["scim-test"] = "trigger"
+
+	err = adminClient.Update(ctx, org)
+	Expect(err).ToNot(HaveOccurred(), "should update Organization with SCIM config")
+
+	By("waiting for Organization SCIM status to be ready")
+	Eventually(func(g Gomega) {
+		err := adminClient.Get(ctx, types.NamespacedName{Name: env.TestNamespace}, org)
+		g.Expect(err).ToNot(HaveOccurred(), "should get Organization")
+		scimCondition := org.Status.GetConditionByType(greenhousev1alpha1.SCIMAPIAvailableCondition)
+		g.Expect(scimCondition).ToNot(BeNil(), "SCIMAPIAvailableCondition should be set")
+		g.Expect(scimCondition.IsTrue()).To(BeTrue(), "SCIMAPIAvailableCondition should be true")
+	}).Should(Succeed(), "Organization SCIM status should be ready")
+
 	By("creating test Teams")
-	teamDemo = test.NewTeam(ctx, "demo", env.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
+	teamDemo = test.NewTeam(ctx, "demo", env.TestNamespace,
+		test.WithMappedIDPGroup("SOME_IDP_GROUP_NAME"),
+		test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 	err = adminClient.Create(ctx, teamDemo)
 	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred(), "should create Team demo")
-	teamForbidden = test.NewTeam(ctx, "forbidden", env.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
+	teamForbidden = test.NewTeam(ctx, "forbidden", env.TestNamespace,
+		test.WithMappedIDPGroup("ANOTHER_IDP_GROUP"),
+		test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 	err = adminClient.Create(ctx, teamForbidden)
 	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred(), "should create Team forbidden")
 
@@ -109,6 +186,11 @@ var _ = AfterSuite(func() {
 
 	test.EventuallyDeleted(ctx, adminClient, teamDemo)
 	test.EventuallyDeleted(ctx, adminClient, teamForbidden)
+
+	By("shutting down mock SCIM server")
+	if groupsServer != nil {
+		groupsServer.Close()
+	}
 
 	env.GenerateGreenhouseControllerLogs(ctx, testStartTime)
 })
@@ -202,6 +284,92 @@ var _ = Describe("Authorization Webhook E2E", Ordered, func() {
 			plugin.Namespace = pluginForbidden.Namespace
 			err = impClient.Delete(ctx, plugin)
 			Expect(err).To(HaveOccurred(), "demo-user should NOT be able to DELETE plugin-forbidden")
+			Expect(apierrors.IsForbidden(err)).To(BeTrue(), "error should indicate forbidden access")
+		})
+	})
+})
+
+var _ = Describe("ServiceAccount Authorization E2E", Ordered, func() {
+	Describe("ServiceAccount GET operations", func() {
+		It("should allow the demo team's ServiceAccount to GET their team's plugin", func() {
+			By("waiting for the demo team's ServiceAccount to be created by the TeamController")
+			saName := teamDemo.Name + "-sa"
+			Eventually(func(g Gomega) {
+				sa := &corev1.ServiceAccount{}
+				err := adminClient.Get(ctx, types.NamespacedName{
+					Name:      saName,
+					Namespace: env.TestNamespace,
+				}, sa)
+				g.Expect(err).ToNot(HaveOccurred(), "ServiceAccount should have been created by the TeamController")
+			}).Should(Succeed(), "ServiceAccount should be created for support-group team")
+
+			saUsername := fmt.Sprintf("system:serviceaccount:%s:%s", env.TestNamespace, saName)
+			impClient, err := createImpersonatedClient(saUsername, nil)
+			Expect(err).ToNot(HaveOccurred(), "should create SA-impersonated client")
+
+			plugin := &greenhousev1alpha1.Plugin{}
+			err = impClient.Get(ctx, client.ObjectKeyFromObject(pluginDemo), plugin)
+			Expect(err).ToNot(HaveOccurred(), "demo team's SA should be able to GET plugin-demo")
+		})
+
+		It("should deny the demo team's ServiceAccount to GET another team's plugin", func() {
+			saName := teamDemo.Name + "-sa"
+			saUsername := fmt.Sprintf("system:serviceaccount:%s:%s", env.TestNamespace, saName)
+			impClient, err := createImpersonatedClient(saUsername, nil)
+			Expect(err).ToNot(HaveOccurred(), "should create SA-impersonated client")
+
+			plugin := &greenhousev1alpha1.Plugin{}
+			err = impClient.Get(ctx, client.ObjectKeyFromObject(pluginForbidden), plugin)
+			Expect(err).To(HaveOccurred(), "demo team's SA should NOT be able to GET plugin-forbidden")
+			Expect(apierrors.IsForbidden(err)).To(BeTrue(), "error should indicate forbidden access")
+		})
+	})
+
+	Describe("ServiceAccount UPDATE operations", func() {
+		It("should allow the demo team's ServiceAccount to UPDATE their team's plugin", func() {
+			saName := teamDemo.Name + "-sa"
+			saUsername := fmt.Sprintf("system:serviceaccount:%s:%s", env.TestNamespace, saName)
+			impClient, err := createImpersonatedClient(saUsername, nil)
+			Expect(err).ToNot(HaveOccurred(), "should create SA-impersonated client")
+
+			plugin := &greenhousev1alpha1.Plugin{}
+			err = adminClient.Get(ctx, client.ObjectKeyFromObject(pluginDemo), plugin)
+			Expect(err).ToNot(HaveOccurred(), "should get current plugin")
+
+			plugin.Spec.DisplayName = "plugin-demo updated by SA"
+			err = impClient.Update(ctx, plugin)
+			Expect(err).ToNot(HaveOccurred(), "demo team's SA should be able to UPDATE plugin-demo")
+		})
+
+		It("should deny the demo team's ServiceAccount to UPDATE another team's plugin", func() {
+			saName := teamDemo.Name + "-sa"
+			saUsername := fmt.Sprintf("system:serviceaccount:%s:%s", env.TestNamespace, saName)
+			impClient, err := createImpersonatedClient(saUsername, nil)
+			Expect(err).ToNot(HaveOccurred(), "should create SA-impersonated client")
+
+			plugin := &greenhousev1alpha1.Plugin{}
+			err = adminClient.Get(ctx, client.ObjectKeyFromObject(pluginForbidden), plugin)
+			Expect(err).ToNot(HaveOccurred(), "should get current plugin")
+
+			plugin.Spec.DisplayName = "plugin-forbidden updated by SA"
+			err = impClient.Update(ctx, plugin)
+			Expect(err).To(HaveOccurred(), "demo team's SA should NOT be able to UPDATE plugin-forbidden")
+			Expect(apierrors.IsForbidden(err)).To(BeTrue(), "error should indicate forbidden access")
+		})
+	})
+
+	Describe("ServiceAccount DELETE operations", func() {
+		It("should deny the demo team's ServiceAccount to DELETE another team's plugin", func() {
+			saName := teamDemo.Name + "-sa"
+			saUsername := fmt.Sprintf("system:serviceaccount:%s:%s", env.TestNamespace, saName)
+			impClient, err := createImpersonatedClient(saUsername, nil)
+			Expect(err).ToNot(HaveOccurred(), "should create SA-impersonated client")
+
+			plugin := &greenhousev1alpha1.Plugin{}
+			plugin.Name = pluginForbidden.Name
+			plugin.Namespace = pluginForbidden.Namespace
+			err = impClient.Delete(ctx, plugin)
+			Expect(err).To(HaveOccurred(), "demo team's SA should NOT be able to DELETE plugin-forbidden")
 			Expect(apierrors.IsForbidden(err)).To(BeTrue(), "error should indicate forbidden access")
 		})
 	})
