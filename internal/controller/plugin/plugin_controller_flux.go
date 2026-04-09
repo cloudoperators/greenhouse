@@ -149,7 +149,8 @@ func (r *PluginReconciler) ensureHelmRelease(
 
 	mirrorConfig, err := ocimirror.GetRegistryMirrorConfig(ctx, r.Client, plugin.GetNamespace())
 	if err != nil {
-		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseCreatedCondition, "", "Failed to read Organization registry mirror configuration"))
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
+			greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.ImageReplicationFailedReason, "Failed to read Organization registry mirror configuration: "+err.Error()))
 		return fmt.Errorf("failed to read registry mirror configuration for Plugin %s: %w", plugin.Name, err)
 	}
 
@@ -157,7 +158,8 @@ func (r *PluginReconciler) ensureHelmRelease(
 	if mirrorConfig != nil && len(mirrorConfig.RegistryMirrors) > 0 {
 		mirror, err = ocimirror.NewImageMirror(ctx, r.Client, mirrorConfig, plugin.GetNamespace())
 		if err != nil {
-			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseCreatedCondition, "", "Failed to create image mirror"))
+			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
+				greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.ImageReplicationFailedReason, "Failed to create image mirror: "+err.Error()))
 			return fmt.Errorf("failed to create image mirror for Plugin %s: %w", plugin.Name, err)
 		}
 	}
@@ -167,6 +169,25 @@ func (r *PluginReconciler) ensureHelmRelease(
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.PluginOptionValueInvalidReason, err.Error()))
 		return fmt.Errorf("failed to generate HelmRelease values for Plugin %s: %w", plugin.Name, err)
+	}
+
+	var postRenderer *helmv2.PostRenderer
+	if mirror != nil {
+		restClientGetter, _, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, plugin)
+		if err != nil {
+			return fmt.Errorf("failed to init client getter for Plugin %s: %w", plugin.Name, err)
+		}
+
+		helmRelease, err := helm.TemplateHelmChartFromPluginOptionValues(ctx, r.Client, restClientGetter, &pluginDefinitionSpec, plugin, optionValues)
+		if err != nil {
+			return fmt.Errorf("failed to template helm chart for Plugin %s: %w", plugin.Name, err)
+		}
+
+		if err := ensureImageReplication(ctx, mirror, plugin, helmRelease.Manifest); err != nil {
+			return err
+		}
+
+		postRenderer = createRegistryMirrorPostRenderer(mirror, helmRelease.Manifest)
 	}
 
 	result, err := controllerutil.CreateOrPatch(ctx, r.Client, release, func() error {
@@ -207,25 +228,8 @@ func (r *PluginReconciler) ensureHelmRelease(
 			WithStorageNamespace(plugin.Spec.ReleaseNamespace).
 			WithTargetNamespace(plugin.Spec.ReleaseNamespace)
 
-		if mirror != nil {
-			restClientGetter, _, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, plugin)
-			if err != nil {
-				return fmt.Errorf("failed to init client getter for Plugin %s: %w", plugin.Name, err)
-			}
-
-			helmRelease, err := helm.TemplateHelmChartFromPluginOptionValues(ctx, r.Client, restClientGetter, &pluginDefinitionSpec, plugin, optionValues)
-			if err != nil {
-				return fmt.Errorf("failed to template helm chart for Plugin %s: %w", plugin.Name, err)
-			}
-
-			if err := ensureImageReplication(ctx, mirror, plugin, helmRelease.Manifest); err != nil {
-				return err
-			}
-
-			postRenderer := createRegistryMirrorPostRenderer(mirror, helmRelease.Manifest)
-			if postRenderer != nil {
-				builder = builder.WithPostRenderers([]helmv2.PostRenderer{*postRenderer})
-			}
+		if postRenderer != nil {
+			builder = builder.WithPostRenderers([]helmv2.PostRenderer{*postRenderer})
 		}
 
 		spec, err := builder.Build()

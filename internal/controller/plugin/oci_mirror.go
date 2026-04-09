@@ -40,31 +40,19 @@ func createRegistryMirrorPostRenderer(mirror *ocimirror.ImageMirror, renderedMan
 	}
 }
 
-// ensureImageReplication triggers pre-replication of container images found in renderedManifests.
-// It updates the Plugin's ImageReplication status and sets the ImageReplicationReady condition.
+// ensureImageReplication pre-replicates container images referenced in renderedManifests.
+// On failure it flags HelmReleaseCreatedCondition with ImageReplicationFailedReason and keeps
+// the previous status.ImageReplication list intact, so transient errors dont wipe history.
 func ensureImageReplication(ctx context.Context, mirror *ocimirror.ImageMirror, plugin *greenhousev1alpha1.Plugin, renderedManifests string) error {
 	replicated, err := mirror.ReplicateOCIArtifacts(ctx, renderedManifests, plugin.Status.ImageReplication)
-	plugin.Status.ImageReplication = replicated
-
 	if err != nil {
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
-			greenhousev1alpha1.ImageReplicationReadyCondition,
+			greenhousev1alpha1.HelmReleaseCreatedCondition,
 			greenhousev1alpha1.ImageReplicationFailedReason,
 			err.Error()))
 		return fmt.Errorf("image replication failed for Plugin %s: %w", plugin.Name, err)
 	}
 
-	if len(replicated) == 0 {
-		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
-			greenhousev1alpha1.ImageReplicationReadyCondition,
-			greenhousev1alpha1.ImageReplicationNotConfiguredReason,
-			"no container images matched configured mirrors"))
-		return nil
-	}
-
-	plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
-		greenhousev1alpha1.ImageReplicationReadyCondition,
-		greenhousev1alpha1.ImageReplicationSucceededReason,
-		fmt.Sprintf("replicated %d container images", len(replicated))))
+	plugin.Status.ImageReplication = replicated
 	return nil
 }

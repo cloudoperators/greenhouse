@@ -173,14 +173,9 @@ const (
 	// ClusterAccessFailedReason is set when the controller cannot access the target cluster.
 	ClusterAccessFailedReason greenhousemetav1alpha1.ConditionReason = "ClusterAccessFailed"
 
-	// ImageReplicationReadyCondition reflects if container image replication to the mirror registry is complete.
-	ImageReplicationReadyCondition greenhousemetav1alpha1.ConditionType = "ImageReplicationReady"
-	// ImageReplicationFailedReason is the reason when image replication has failed.
+	// ImageReplicationFailedReason is set on HelmReleaseCreatedCondition when container image
+	// pre-replication to the configured mirror registry has failed.
 	ImageReplicationFailedReason greenhousemetav1alpha1.ConditionReason = "ImageReplicationFailed"
-	// ImageReplicationSucceededReason is the reason when all container images have been replicated.
-	ImageReplicationSucceededReason greenhousemetav1alpha1.ConditionReason = "ImageReplicationSucceeded"
-	// ImageReplicationNotConfiguredReason is the reason when no mirror registry is configured.
-	ImageReplicationNotConfiguredReason greenhousemetav1alpha1.ConditionReason = "ImageReplicationNotConfigured"
 )
 
 // PluginStatus defines the observed state of Plugin

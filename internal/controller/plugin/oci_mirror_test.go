@@ -195,9 +195,6 @@ var _ = Describe("ensureImageReplication", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(plugin.Status.ImageReplication).To(ContainElement("ghcr.io/cloudoperators/greenhouse:main"))
 		Expect(fetchedRefs).To(HaveLen(1))
-
-		cond := plugin.Status.GetConditionByType(greenhousev1alpha1.ImageReplicationReadyCondition)
-		Expect(cond.IsTrue()).To(BeTrue())
 	})
 
 	It("should skip already replicated images", func() {
@@ -227,12 +224,18 @@ var _ = Describe("ensureImageReplication", func() {
 			return nil, errors.New("connection refused")
 		})
 
+		plugin.Status.ImageReplication = []string{"ghcr.io/cloudoperators/previous:v1"}
+
 		manifests := "image: ghcr.io/cloudoperators/greenhouse:main"
 		err := ensureImageReplication(context.Background(), mirror, plugin, manifests)
 		Expect(err).To(HaveOccurred())
 
-		cond := plugin.Status.GetConditionByType(greenhousev1alpha1.ImageReplicationReadyCondition)
+		Expect(plugin.Status.ImageReplication).To(Equal([]string{"ghcr.io/cloudoperators/previous:v1"}))
+
+		cond := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
+		Expect(cond).NotTo(BeNil())
 		Expect(cond.IsFalse()).To(BeTrue())
+		Expect(string(cond.Reason)).To(Equal(string(greenhousev1alpha1.ImageReplicationFailedReason)))
 	})
 
 	It("should set NotConfigured when no images match any mirror", func() {
@@ -248,9 +251,5 @@ var _ = Describe("ensureImageReplication", func() {
 		err := ensureImageReplication(context.Background(), mirror, plugin, manifests)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(plugin.Status.ImageReplication).To(BeEmpty())
-
-		cond := plugin.Status.GetConditionByType(greenhousev1alpha1.ImageReplicationReadyCondition)
-		Expect(cond.IsTrue()).To(BeTrue())
-		Expect(string(cond.Reason)).To(Equal(string(greenhousev1alpha1.ImageReplicationNotConfiguredReason)))
 	})
 })

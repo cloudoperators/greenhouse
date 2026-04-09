@@ -5,8 +5,9 @@ package ocimirror
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"strings"
+	"sort"
 
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
@@ -118,7 +119,7 @@ func (m *ImageMirror) ReplicateOCIArtifacts(ctx context.Context, renderedManifes
 	}
 
 	var replicated []string
-	var replicationErrors []string
+	var replicationErrors []error
 	for _, imageRef := range imageRefs {
 		if _, ok := alreadySet[imageRef]; ok {
 			replicated = append(replicated, imageRef)
@@ -127,7 +128,7 @@ func (m *ImageMirror) ReplicateOCIArtifacts(ctx context.Context, renderedManifes
 
 		replicatedRef, _, err := m.EnsureReplicated(ctx, imageRef)
 		if err != nil {
-			replicationErrors = append(replicationErrors, fmt.Sprintf("%s: %v", imageRef, err))
+			replicationErrors = append(replicationErrors, fmt.Errorf("%s: %w", imageRef, err))
 			continue
 		}
 		if replicatedRef == "" {
@@ -137,8 +138,10 @@ func (m *ImageMirror) ReplicateOCIArtifacts(ctx context.Context, renderedManifes
 		replicated = append(replicated, imageRef)
 	}
 
+	sort.Strings(replicated)
+
 	if len(replicationErrors) > 0 {
-		return replicated, fmt.Errorf("failed to replicate images: %s", strings.Join(replicationErrors, "; "))
+		return replicated, fmt.Errorf("failed to replicate images: %w", errors.Join(replicationErrors...))
 	}
 
 	return replicated, nil
