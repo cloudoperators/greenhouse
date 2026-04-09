@@ -5,7 +5,6 @@ package ocimirror
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sort"
 
@@ -14,6 +13,7 @@ import (
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -140,11 +140,7 @@ func (m *ImageMirror) ReplicateOCIArtifacts(ctx context.Context, renderedManifes
 
 	sort.Strings(replicated)
 
-	if len(replicationErrors) > 0 {
-		return replicated, fmt.Errorf("failed to replicate images: %w", errors.Join(replicationErrors...))
-	}
-
-	return replicated, nil
+	return replicated, utilerrors.NewAggregate(replicationErrors)
 }
 
 // buildMirroredOCIRef resolves imageRef against the mirror config and returns the mirrored reference.
