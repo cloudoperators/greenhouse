@@ -185,7 +185,7 @@ HELM_DOCS ?= $(LOCALBIN)/helm-docs
 KUSTOMIZE_VERSION ?= 5.8.1
 CERT_MANAGER_VERSION ?= v1.17.1
 CONTROLLER_TOOLS_VERSION ?= 0.20.0
-GOLINT_VERSION ?= 2.11.3
+GOLINT_VERSION ?= 2.11.4
 GINKGOLINTER_VERSION ?= 0.23.0
 HELM_DOCS_VERSION ?= 1.14.2
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
