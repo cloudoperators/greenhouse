@@ -180,6 +180,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 
 		helmRelease, err := helm.TemplateHelmChartFromPluginOptionValues(ctx, r.Client, restClientGetter, &pluginDefinitionSpec, plugin, optionValues)
 		if err != nil {
+			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.PluginHelmTemplateFailedReason, err.Error()))
 			return fmt.Errorf("failed to template helm chart for Plugin %s: %w", plugin.Name, err)
 		}
 
