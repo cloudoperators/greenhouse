@@ -328,15 +328,17 @@ func getExposedIngressesForPluginFromHelmRelease(restClientGetter genericcliopti
 //   - Protocol automatically detected from TLS configuration
 //
 // If either service or ingress discovery encounters an error, the entire operation fails.
-func getAllExposedServicesForPlugin(restClientGetter genericclioptions.RESTClientGetter, helmRelease *release.Release, plugin *greenhousev1alpha1.Plugin) (map[string]greenhousev1alpha1.Service, error) {
+func getAllExposedServicesForPlugin(restClientGetter genericclioptions.RESTClientGetter, helmRelease *release.Release, plugin *greenhousev1alpha1.Plugin, exposeServices bool) (map[string]greenhousev1alpha1.Service, error) {
 	var errorMessages []string
 	exposedServices := make(map[string]greenhousev1alpha1.Service)
 
-	serviceList, err := getExposedServicesForPluginFromHelmRelease(restClientGetter, helmRelease, plugin)
-	if err != nil {
-		errorMessages = append(errorMessages, "services: "+err.Error())
-	} else {
-		maps.Copy(exposedServices, serviceList)
+	if exposeServices {
+		serviceList, err := getExposedServicesForPluginFromHelmRelease(restClientGetter, helmRelease, plugin)
+		if err != nil {
+			errorMessages = append(errorMessages, "services: "+err.Error())
+		} else {
+			maps.Copy(exposedServices, serviceList)
+		}
 	}
 
 	ingressList, err := getExposedIngressesForPluginFromHelmRelease(restClientGetter, helmRelease)

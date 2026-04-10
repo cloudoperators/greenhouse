@@ -21,7 +21,7 @@ var _ = Describe("Cluster.IsExposedServicesDisabled", func() {
 					Annotations: annotations,
 				},
 			}
-			Expect(cluster.IsExposedServicesDisabled()).To(Equal(expected))
+			Expect(cluster.ExposedServicesEnabled()).To(Equal(expected))
 		},
 		Entry("no annotations", nil, false),
 		Entry("annotation not present", map[string]string{"some-other-annotation": "value"}, false),
@@ -35,6 +35,6 @@ var _ = Describe("Cluster.IsExposedServicesDisabled", func() {
 
 	It("should return false for a nil cluster", func() {
 		var cluster *greenhousev1alpha1.Cluster
-		Expect(cluster.IsExposedServicesDisabled()).To(BeFalse())
+		Expect(cluster.ExposedServicesEnabled()).To(BeFalse())
 	})
 })

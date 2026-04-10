@@ -105,6 +105,10 @@ The annotation `greenhouse.sap/suspend` can be added to a Plugin resource to tem
 
 The annotation `greenhouse.sap/reconcile` can be added to a Plugin resource to trigger a reconciliation of the Plugin and its managed resources. When the Plugin is deployed using FluxCD this annotation is propagated to the Flux HelmRelease resource and triggers a reconciliation of the Helm release on the target cluster. This can be useful to trigger a reconciliation even if no changes were made to the Plugin resource.
 
+### Exposed Services
+
+The Plugin status contains `.status.exposedServices` which is a list of Service and Ingress resources that are annotated for exposure. In the case of Kubernetes Services they are exposed via the service-proxy. See [disabling service-proxy for a Cluster](./../cluster/#disabling-service-proxy-for-a-cluster) for how to disable the service-proxy for a Cluster.
+
 ## Next Steps
 
 - [Cluster reference](./../cluster)

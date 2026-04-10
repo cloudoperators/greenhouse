@@ -175,18 +175,16 @@ func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClien
 	By("Disabling exposed services for the cluster")
 	test.MustSetAnnotation(ctx, adminClient, remoteCluster, greenhousev1alpha1.ServiceProxyDisabledKey, "true")
 
-	By("verifying exposed services are nil and condition reflects disabled state")
+	By("verifying exposed services are not-nil and condition reflects synced state if ingress are present but service-proxy is disabled")
 	Eventually(func(g Gomega) {
 		err := adminClient.Get(ctx, client.ObjectKeyFromObject(plugin), plugin)
 		g.Expect(err).ToNot(HaveOccurred(), "failed to get Plugin")
 
-		g.Expect(plugin.Status.ExposedServices).To(BeNil(), "ExposedServices should be nil when service-proxy is disabled")
+		g.Expect(plugin.Status.ExposedServices).NotTo(BeNil(), "ExposedServices should be not be nil when service-proxy is disabled and Chart contains an ingress with greenhouse.sap/expose annotation")
 
 		exposedServicesSyncedCondition := plugin.Status.GetConditionByType(greenhousev1alpha1.ExposedServicesSyncedCondition)
 		g.Expect(exposedServicesSyncedCondition).ToNot(BeNil(), "ExposedServicesSynced condition should be set")
 		g.Expect(exposedServicesSyncedCondition.IsTrue()).To(BeTrue(), "ExposedServicesSynced condition should be true")
-		g.Expect(exposedServicesSyncedCondition.Reason).To(Equal(greenhousev1alpha1.ExposedServicesDisabledReason),
-			"ExposedServicesSynced condition should have ExposedServicesDisabled reason")
 	}).Should(Succeed())
 
 	By("removing the service-proxy-disabled annotation from the cluster")
