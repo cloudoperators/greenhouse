@@ -39,3 +39,5 @@ config:
           valuesPath: dev-env/dev.values.yaml
   - cluster:
       name: greenhouse-remote
+      postSetup:
+        - command: make zot

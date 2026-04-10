@@ -30,6 +30,9 @@ testbin/*
 *.swo
 *~
 .vscode
+.claude
+.cursor
+.copilot
 
 # symlinked main.go
 /main.go

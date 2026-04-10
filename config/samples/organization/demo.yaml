@@ -17,7 +17,9 @@ data:
   clientID: Zm9vYmFy
   clientSecret: VG9wU2VjcmV0ISEh
 ---
-
+# when running the controller locally, change the primaryMirror to localhost:5000
+# when running the controller in-cluster (KinD) the primaryMirror should be registry:5000
+# Flux and Greenhouse controllers running in-cluster will use the KinD network to access the registry
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -25,14 +27,25 @@ metadata:
   namespace: demo
 data:
   containerRegistryConfig: |
-    primaryMirror: "mirror.registry.example.com"
+    primaryMirror: "registry:5000"
+    insecure: true
     registryMirrors:
-      ghcr.io:
-        baseDomain: "mirror.registry.example.com"
-        subPath: "ghcr-mirror"
       docker.io:
-        baseDomain: "mirror.registry.example.com"
-        subPath: "dockerhub-mirror"
+        baseDomain: "registry:5000"
+        subPath: "greenhouse-dockerhub-mirror"
+      gcr.io:
+        baseDomain: "registry:5000"
+        subPath: "greenhouse-gcr-mirror"
+      ghcr.io:
+        baseDomain: "registry:5000"
+        subPath: "greenhouse-ghcr-io-mirror"
+      quay.io:
+        baseDomain: "registry:5000"
+        subPath: "greenhouse-quay-mirror"
+      registry.k8s.io:
+        baseDomain: "registry:5000"
+        subPath: "greenhouse-registry-k8s-io-mirror"
+
 ---
 
 apiVersion: greenhouse.sap/v1alpha1
@@ -43,13 +56,13 @@ spec:
   description: Greenhouse Demo Organization
   mappedOrgAdminIdPGroup: DEMO_ORG_ADMIN
   configMapRef: demo-config
-  authentication:
-    oidc:
-      clientIDReference:
-        key: clientID
-        name: demo-oidc
-      clientSecretReference:
-        key: clientSecret
-        name: demo-oidc
-      issuer: https://global.accounts.dev
-      redirectURI: https://bogus.accounts.foo
+#  authentication:
+#    oidc:
+#      clientIDReference:
+#        key: clientID
+#        name: demo-oidc
+#      clientSecretReference:
+#        key: clientSecret
+#        name: demo-oidc
+#      issuer: https://global.accounts.dev
+#      redirectURI: https://bogus.accounts.foo
