@@ -117,7 +117,7 @@ func (h *helmer) createUpdateHelmRepository(ctx context.Context) (*sourcev1.Helm
 
 	result, err := controllerutil.CreateOrUpdate(ctx, h.k8sClient, helmRepository, func() error {
 		helmRepository.Spec.Type = flux.GetSourceRepositoryType(repositoryURL)
-		helmRepository.Spec.Interval = metav1.Duration{Duration: 5 * time.Minute}
+		helmRepository.Spec.Interval = metav1.Duration{Duration: 24 * time.Hour}
 		helmRepository.Spec.URL = repositoryURL
 		return controllerutil.SetOwnerReference(h.pluginDef, helmRepository, h.k8sClient.Scheme())
 	})
@@ -146,7 +146,7 @@ func (h *helmer) createUpdateHelmChart(ctx context.Context, helmRepo *sourcev1.H
 	result, err := controllerutil.CreateOrUpdate(ctx, h.k8sClient, helmChart, func() error {
 		helmChart.Spec = sourcev1.HelmChartSpec{
 			Chart:             pluginDefSpec.HelmChart.Name,
-			Interval:          metav1.Duration{Duration: 5 * time.Minute},
+			Interval:          metav1.Duration{Duration: 24 * time.Hour},
 			ReconcileStrategy: sourcev1.ReconcileStrategyChartVersion,
 			SourceRef: sourcev1.LocalHelmChartSourceReference{
 				Kind: sourcev1.HelmRepositoryKind,
