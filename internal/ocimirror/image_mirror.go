@@ -69,11 +69,12 @@ func (m *ImageMirror) EnsureReplicated(ctx context.Context, ociRef string) (repl
 		return mirroredRef, manifest, err
 	}
 
-	// Already on a mirror. Replicate directly.
-	registry, _, _ := SplitOCIRef(ociRef)
+	// Already on a mirror. Rewrite to primaryMirror for replication.
+	registry, repo, tagOrDigest := SplitOCIRef(ociRef)
 	for _, mirror := range m.config.RegistryMirrors {
 		if mirror.BaseDomain == registry {
-			manifest, err := m.triggerReplication(ctx, ociRef)
+			primaryRef := fmt.Sprintf("%s/%s", m.config.PrimaryMirror, repo) + tagOrDigest
+			manifest, err := m.triggerReplication(ctx, primaryRef)
 			return ociRef, manifest, err
 		}
 	}
@@ -167,7 +168,7 @@ func (m *ImageMirror) buildMirroredOCIRef(imageRef string) string {
 		return ""
 	}
 
-	mirroredRef := fmt.Sprintf("%s/%s/%s", resolved.Mirror.BaseDomain, resolved.Mirror.SubPath, resolved.Repository)
+	mirroredRef := fmt.Sprintf("%s/%s/%s", m.config.PrimaryMirror, resolved.Mirror.SubPath, resolved.Repository)
 	if resolved.TagOrDigest != "" {
 		mirroredRef += resolved.TagOrDigest
 	}

@@ -17,11 +17,11 @@ var mirrorConfig = &RegistryMirrorConfig{
 	PrimaryMirror: "primary.registry.com",
 	RegistryMirrors: map[string]RegistryMirror{
 		"ghcr.io": {
-			BaseDomain: "primary.registry.com",
+			BaseDomain: "global.registry.com",
 			SubPath:    "ghcr-mirror",
 		},
 		"docker.io": {
-			BaseDomain: "primary.registry.com",
+			BaseDomain: "global.registry.com",
 			SubPath:    "dockerhub-mirror",
 		},
 	},
@@ -57,9 +57,9 @@ var _ = Describe("EnsureReplicated", func() {
 			return []byte(`{"test":"manifest"}`), nil
 		})
 
-		replicatedRef, manifest, err := mirror.EnsureReplicated(context.Background(), "primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:v1.0")
+		replicatedRef, manifest, err := mirror.EnsureReplicated(context.Background(), "global.registry.com/ghcr-mirror/cloudoperators/greenhouse:v1.0")
 		Expect(err).NotTo(HaveOccurred())
-		Expect(replicatedRef).To(Equal("primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:v1.0"))
+		Expect(replicatedRef).To(Equal("global.registry.com/ghcr-mirror/cloudoperators/greenhouse:v1.0"))
 		Expect(fetchedRef).To(Equal("primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:v1.0"))
 		Expect(manifest).NotTo(BeEmpty())
 	})
@@ -114,11 +114,11 @@ containers:
 		Expect(transforms).To(HaveLen(2))
 		Expect(transforms).To(ContainElement(ImageTransform{
 			Original: "docker.io/library/nginx",
-			Mirrored: "primary.registry.com/dockerhub-mirror/library/nginx",
+			Mirrored: "global.registry.com/dockerhub-mirror/library/nginx",
 		}))
 		Expect(transforms).To(ContainElement(ImageTransform{
 			Original: "ghcr.io/cloudoperators/greenhouse",
-			Mirrored: "primary.registry.com/ghcr-mirror/cloudoperators/greenhouse",
+			Mirrored: "global.registry.com/ghcr-mirror/cloudoperators/greenhouse",
 		}))
 	})
 
@@ -127,7 +127,7 @@ containers:
 
 		manifests := `
 containers:
-- image: primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:main
+- image: global.registry.com/ghcr-mirror/cloudoperators/greenhouse:main
 `
 		transforms := mirror.BuildImageTransformations(manifests)
 		Expect(transforms).To(BeEmpty())
@@ -150,7 +150,7 @@ containers:
 		manifests := `
 containers:
 - image: ghcr.io/cloudoperators/greenhouse:main
-- image: primary.registry.com/ghcr-mirror/already-mirrored:v1
+- image: global.registry.com/ghcr-mirror/already-mirrored:v1
 - image: registry.k8s.io/pause:3.9
 `
 		transforms := mirror.BuildImageTransformations(manifests)
@@ -178,6 +178,23 @@ containers:
 		Expect(fetchedRefs).To(HaveLen(2))
 		Expect(fetchedRefs).To(ContainElement("primary.registry.com/dockerhub-mirror/library/nginx:latest"))
 		Expect(fetchedRefs).To(ContainElement("primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:main"))
+	})
+
+	It("should replicate via primaryMirror when ref is on baseDomain", func() {
+		var fetchedRef string
+		mirror := newTestImageMirror(mirrorConfig, func(ref string, opts ...crane.Option) ([]byte, error) {
+			fetchedRef = ref
+			return []byte("{}"), nil
+		})
+
+		manifests := `
+containers:
+- image: global.registry.com/ghcr-mirror/cloudoperators/greenhouse:main
+`
+		replicated, err := mirror.ReplicateOCIArtifacts(context.Background(), nil, manifests)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(replicated).To(HaveLen(1))
+		Expect(fetchedRef).To(Equal("primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:main"))
 	})
 
 	It("should skip already replicated images", func() {

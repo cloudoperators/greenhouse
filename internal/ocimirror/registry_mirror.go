@@ -95,6 +95,9 @@ func (c *RegistryMirrorConfig) ResolveOCIRef(imageRef string) *ResolvedOCIRef {
 
 // validateRegistryMirrorConfig validates the registry mirror configuration.
 func validateRegistryMirrorConfig(config *RegistryMirrorConfig) error {
+	if config.PrimaryMirror == "" {
+		return errors.New("primaryMirror cannot be empty")
+	}
 	if len(config.RegistryMirrors) == 0 {
 		return errors.New("registryMirrors cannot be empty")
 	}
