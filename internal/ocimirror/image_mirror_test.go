@@ -64,6 +64,20 @@ var _ = Describe("EnsureReplicated", func() {
 		Expect(manifest).NotTo(BeEmpty())
 	})
 
+	It("should replicate directly when ref is already on primaryMirror", func() {
+		var fetchedRef string
+		mirror := newTestImageMirror(mirrorConfig, func(ref string, opts ...crane.Option) ([]byte, error) {
+			fetchedRef = ref
+			return []byte(`{"test":"manifest"}`), nil
+		})
+
+		replicatedRef, manifest, err := mirror.EnsureReplicated(context.Background(), "primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:v1.0")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(replicatedRef).To(Equal("primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:v1.0"))
+		Expect(fetchedRef).To(Equal("primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:v1.0"))
+		Expect(manifest).NotTo(BeEmpty())
+	})
+
 	It("should return empty when no mirror relationship exists", func() {
 		fetchCount := 0
 		mirror := newTestImageMirror(mirrorConfig, func(ref string, opts ...crane.Option) ([]byte, error) {
