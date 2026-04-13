@@ -463,6 +463,7 @@ func (r *PluginReconciler) fetchReleaseStatus(ctx context.Context,
 	default:
 		releaseStatus.Status = "progressing"
 	}
+	pluginStatus.Version = pluginVersion
 	pluginStatus.HelmReleaseStatus = releaseStatus
 
 	oldChecksum := ""
