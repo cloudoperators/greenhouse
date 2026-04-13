@@ -8,7 +8,7 @@ global:
   plugin:
     expressionEvaluationEnabled: true
     integrationEnabled: true
-    ociMirroringEnabled: false
+    ociMirroringEnabled: true
 alerts:
   enabled: false
 certManager:
