@@ -164,6 +164,9 @@ const (
 	// PluginOptionValueInvalidReason is set when option values could not be converted to Helm values
 	PluginOptionValueInvalidReason greenhousemetav1alpha1.ConditionReason = "PluginOptionValueInvalid"
 
+	// PluginHelmTemplateFailedReason is set when templating the Helm chart for the Plugin failed.
+	PluginHelmTemplateFailedReason greenhousemetav1alpha1.ConditionReason = "PluginHelmTemplateFailed"
+
 	// FluxHelmReleaseConfigInvalidReason is set when the generated Flux HelmRelease manifest is invalid and cannot be applied to the cluster.
 	FluxHelmReleaseConfigInvalidReason greenhousemetav1alpha1.ConditionReason = "FluxHelmReleaseConfigInvalid"
 
