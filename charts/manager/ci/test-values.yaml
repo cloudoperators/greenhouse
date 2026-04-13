@@ -12,6 +12,7 @@ global:
   plugin:
     expressionEvaluationEnabled: false
     integrationEnabled: false
+    ociMirroringEnabled: false
 
 controllerManager:
   args:

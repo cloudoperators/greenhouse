@@ -22,6 +22,7 @@ global:
   plugin:
     expressionEvaluationEnabled: false
     integrationEnabled: false
+    ociMirroringEnabled: false
 
 postgresqlng:
   enabled: true

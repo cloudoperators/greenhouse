@@ -38,7 +38,7 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	"pluginPreset": (&plugincontrollers.PluginPresetReconciler{}).SetupWithManager,
 
 	"catalog":                 startCatalogReconciler,
-	"pluginDefinition":        (&plugindefinitioncontroller.PluginDefinitionReconciler{}).SetupWithManager,
+	"pluginDefinition":        startPluginDefinitionReconciler,
 	"clusterPluginDefinition": (&plugindefinitioncontroller.ClusterPluginDefinitionReconciler{}).SetupWithManager,
 
 	// Cluster controllers
@@ -87,6 +87,13 @@ func startPluginReconciler(name string, mgr ctrl.Manager) error {
 		KubeRuntimeOpts:             kubeClientOpts,
 		ExpressionEvaluationEnabled: featureFlags.IsExpressionEvaluationEnabled(),
 		IntegrationEnabled:          featureFlags.IsIntegrationEnabled(),
+		OCIMirroringEnabled:         featureFlags.IsOCIMirroringEnabled(),
+	}).SetupWithManager(name, mgr)
+}
+
+func startPluginDefinitionReconciler(name string, mgr ctrl.Manager) error {
+	return (&plugindefinitioncontroller.PluginDefinitionReconciler{
+		OCIMirroringEnabled: featureFlags.IsOCIMirroringEnabled(),
 	}).SetupWithManager(name, mgr)
 }
 

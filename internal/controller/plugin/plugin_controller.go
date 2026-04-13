@@ -40,6 +40,7 @@ type PluginReconciler struct {
 	kubeClientOpts              []clientutil.KubeClientOption
 	ExpressionEvaluationEnabled bool
 	IntegrationEnabled          bool
+	OCIMirroringEnabled         bool
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch;create;update;patch;delete

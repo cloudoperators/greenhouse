@@ -114,3 +114,6 @@ Define postgresql helpers
 {{- define "plugin.integrationEnabled" -}}
   {{- printf "%t" (required "global.plugin.integrationEnabled missing" .Values.global.plugin.integrationEnabled) }}
 {{- end }}
+{{- define "plugin.ociMirroringEnabled" -}}
+  {{- printf "%t" (required "global.plugin.ociMirroringEnabled missing" .Values.global.plugin.ociMirroringEnabled) }}
+{{- end }}

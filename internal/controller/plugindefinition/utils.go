@@ -29,10 +29,11 @@ import (
 )
 
 type helmer struct {
-	k8sClient     client.Client
-	recorder      events.EventRecorder
-	pluginDef     common.GenericPluginDefinition
-	namespaceName string
+	k8sClient           client.Client
+	recorder            events.EventRecorder
+	pluginDef           common.GenericPluginDefinition
+	namespaceName       string
+	ociMirroringEnabled bool
 }
 
 // initializeConditions sets the provided conditions to Unknown if they do not already exist.
@@ -174,6 +175,14 @@ func (h *helmer) createUpdateHelmChart(ctx context.Context, helmRepo *sourcev1.H
 
 // ensureChartReplication triggers replication for the Helm chart OCI artifact to the configured mirror registry.
 func (h *helmer) ensureChartReplication(ctx context.Context) error {
+	if !h.ociMirroringEnabled {
+		h.pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.OCIReplicationReadyCondition,
+			greenhousev1alpha1.OCIReplicationNotConfiguredReason,
+			"OCI mirroring is disabled"))
+		return nil
+	}
+
 	logger := log.FromContext(ctx)
 
 	// Check if the chart is OCI before making any API calls — non-OCI charts cannot be replicated.

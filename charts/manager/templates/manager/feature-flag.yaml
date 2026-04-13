@@ -20,11 +20,15 @@ data:
     # set to true to enable expression evaluation (expressions will be evaluated using CEL)
     # integrationEnabled allows you to enable or disable plugin to plugin integration features
     # set true to enable value references from another plugin via CEL expressions
+    # ociMirroringEnabled allows you to enable or disable OCI mirroring
+    # set to true to enable OCI mirroring, defaults to false
     plugin: |
       expressionEvaluationEnabled: false / true
       integrationEnabled: false / true
+      ociMirroringEnabled: false / true
   dex: |
     storage: {{ include "dex.backend" $ }}
   plugin: |
     expressionEvaluationEnabled: {{ include "plugin.expressionEvaluationEnabled" $ }}
     integrationEnabled: {{ include "plugin.integrationEnabled" $ }}
+    ociMirroringEnabled: {{ include "plugin.ociMirroringEnabled" $ }}

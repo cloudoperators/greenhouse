@@ -24,8 +24,9 @@ import (
 // PluginDefinitionReconciler reconciles a PluginDefinition object.
 type PluginDefinitionReconciler struct {
 	client.Client
-	Scheme   *runtime.Scheme
-	recorder events.EventRecorder
+	Scheme              *runtime.Scheme
+	recorder            events.EventRecorder
+	OCIMirroringEnabled bool
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -82,10 +83,11 @@ func (r *PluginDefinitionReconciler) EnsureCreated(ctx context.Context, obj life
 	}
 
 	h := &helmer{
-		k8sClient:     r.Client,
-		recorder:      r.recorder,
-		pluginDef:     pluginDef,
-		namespaceName: pluginDef.Namespace,
+		k8sClient:           r.Client,
+		recorder:            r.recorder,
+		pluginDef:           pluginDef,
+		namespaceName:       pluginDef.Namespace,
+		ociMirroringEnabled: r.OCIMirroringEnabled,
 	}
 
 	helmRepo, err := h.createUpdateHelmRepository(ctx)
