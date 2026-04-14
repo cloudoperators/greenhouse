@@ -313,6 +313,12 @@ func (r *PluginReconciler) fetchReleaseStatus(ctx context.Context,
 		}
 	)
 
+	// Capture the old checksum before plugin.Status is overwritten below.
+	oldChecksum := ""
+	if plugin.Status.HelmReleaseStatus != nil && plugin.Status.HelmReleaseStatus.PluginOptionChecksum != "" {
+		oldChecksum = plugin.Status.HelmReleaseStatus.PluginOptionChecksum
+	}
+
 	// early return if the plugin is not backed by a Helm chart, to avoid unnecessary attempts to fetch the Helm release and exposed services
 	if pluginDefinitionSpec.HelmChart == nil {
 		pluginStatus.HelmChart = nil
@@ -427,14 +433,13 @@ func (r *PluginReconciler) fetchReleaseStatus(ctx context.Context,
 	pluginStatus.Version = pluginVersion
 	pluginStatus.HelmReleaseStatus = releaseStatus
 
-	oldChecksum := ""
 	newChecksum := ""
-	if plugin.Status.HelmReleaseStatus != nil && plugin.Status.HelmReleaseStatus.PluginOptionChecksum != "" {
-		oldChecksum = plugin.Status.HelmReleaseStatus.PluginOptionChecksum
-	}
 	if plugin.Spec.OptionValues != nil {
-		newChecksum, err = helm.CalculatePluginOptionChecksum(ctx, r.Client, plugin)
+		// Include exposed services in the checksum
+		// digest changes when either computed URL or exposed service struct changes (e.g. port or path) to trigger re-reconciliation of tracking plugins.
+		newChecksum, err = helm.CalculatePluginOptionChecksum(ctx, r.Client, plugin, pluginStatus.ExposedServices)
 		if err != nil {
+			ctrl.LoggerFrom(ctx).Error(err, "failed to calculate plugin option checksum", "namespace", plugin.Namespace, "name", plugin.Name)
 			releaseStatus.PluginOptionChecksum = ""
 		} else {
 			releaseStatus.PluginOptionChecksum = newChecksum
@@ -621,15 +626,14 @@ func (r *PluginReconciler) triggerReconcileForTracker(ctx context.Context, plugi
 	}
 
 	// Update the resource with reconcile annotation
-	err = updateResourceWithAnnotation(ctx, r.Client, gvk, key)
-
-	if err != nil {
+	if err = updateResourceWithAnnotation(ctx, r.Client, gvk, key); err != nil {
 		log.FromContext(ctx).Error(err, "failed to annotate tracking object with reconcile request",
 			"kind", kind,
 			"namespace", plugin.GetNamespace(),
 			"name", name)
 		return err
 	}
+	ctrl.LoggerFrom(ctx).Info("triggered reconcile request for tracking resource", "kind", kind, "namespace", plugin.GetNamespace(), "name", name)
 
 	return nil
 }

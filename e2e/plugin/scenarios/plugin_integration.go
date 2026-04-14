@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"math/big"
 	"slices"
+	"time"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	. "github.com/onsi/ginkgo/v2"
@@ -25,15 +26,18 @@ import (
 	"github.com/cloudoperators/greenhouse/e2e/plugin/fixtures"
 	"github.com/cloudoperators/greenhouse/e2e/shared"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 const (
-	multiRefPluginLabelKey     = "e2e.greenhouse.sap/multi-ref-plugin"
-	selectorRefPluginA         = "selector-ref-plugin-a"
-	selectorRefPluginB         = "selector-ref-plugin-b"
-	selectorResolverPluginName = "selector-resolver-plugin"
-	directResolverPluginName   = "direct-resolver-plugin"
-	directReferencePluginName  = "direct-reference-plugin"
+	multiRefPluginLabelKey         = "e2e.greenhouse.sap/multi-ref-plugin"
+	selectorRefPluginA             = "selector-ref-plugin-a"
+	selectorRefPluginB             = "selector-ref-plugin-b"
+	selectorResolverPluginName     = "selector-resolver-plugin"
+	directResolverPluginName       = "direct-resolver-plugin"
+	directReferencePluginName      = "direct-reference-plugin"
+	exposedSvcReferencedPluginName = "exposed-svc-referenced-plugin"
+	exposedSvcResolverPluginName   = "exposed-svc-resolver-plugin"
 )
 
 func randIntn(n int) int {
@@ -404,4 +408,140 @@ func PluginIntegrationBySelector(ctx context.Context, adminClient, remoteClient 
 		// Verify that the expected envs from extraEnvsFromHR are present in the deployment
 		g.Expect(containsExpectedEnvs(envVars, extraEnvsFromHR)).To(BeTrue(), "the deployment should contain all expected environment variables from the HelmRelease")
 	}).Should(Succeed(), "the deployment should be present in the remote cluster with expected envs")
+}
+
+func PluginIntegrationExposedServiceChecksum(ctx context.Context, adminClient client.Client, env *shared.TestEnv, remoteClusterName string) {
+	By("creating plugin definition for exposed service checksum test")
+	testPluginDefinition := fixtures.PreparePodInfoPluginDefinition("podinfo-expose", env.TestNamespace, "6.9.0")
+	err := adminClient.Create(ctx, testPluginDefinition)
+	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
+
+	By("checking the test plugin definition is ready")
+	Eventually(func(g Gomega) {
+		err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPluginDefinition), testPluginDefinition)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(testPluginDefinition.Status.IsReadyTrue()).To(BeTrue(), "the plugin definition should be ready")
+	}).Should(Succeed())
+
+	By("creating the referenced plugin with an exposed service on port 9898")
+	referencedPlugin := test.NewPlugin(ctx, exposedSvcReferencedPluginName, env.TestNamespace)
+	_, err = controllerutil.CreateOrPatch(ctx, adminClient, referencedPlugin, func() error {
+		referencedPlugin.Spec = test.NewPlugin(ctx, exposedSvcReferencedPluginName, env.TestNamespace,
+			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}),
+			test.WithPluginOptionValue("service.externalPort", &apiextensionsv1.JSON{Raw: []byte("9898")}),
+			test.WithPluginOptionValue("service.annotations", test.MustReturnJSONFor(map[string]string{
+				"greenhouse.sap/expose": "true",
+			})),
+			test.WithReleaseName(exposedSvcReferencedPluginName+"-release"),
+			test.WithReleaseNamespace(exposedSvcReferencedPluginName+"-namespace"),
+			test.WithCluster(remoteClusterName),
+		).Spec
+		return nil
+	})
+	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the referenced plugin")
+
+	By("checking the referenced plugin is ready and has exposed services populated")
+	Eventually(func(g Gomega) {
+		err = adminClient.Get(ctx, client.ObjectKeyFromObject(referencedPlugin), referencedPlugin)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(referencedPlugin.Status.IsReadyTrue()).To(BeTrue(), "the referenced plugin should be ready")
+		g.Expect(referencedPlugin.Status.ExposedServices).NotTo(BeEmpty(), "the referenced plugin should have exposed services")
+		g.Expect(referencedPlugin.Status.HelmReleaseStatus).NotTo(BeNil())
+		g.Expect(referencedPlugin.Status.HelmReleaseStatus.PluginOptionChecksum).NotTo(BeEmpty(), "the checksum should be set")
+	}).Should(Succeed(), "the referenced plugin should be ready with exposed services and a checksum")
+
+	By("creating the resolver plugin referencing the port from the referenced plugin's exposed service")
+	resolverPlugin := test.NewPlugin(ctx, exposedSvcResolverPluginName, env.TestNamespace)
+	_, err = controllerutil.CreateOrPatch(ctx, adminClient, resolverPlugin, func() error {
+		resolverPlugin.Spec = test.NewPlugin(ctx, exposedSvcResolverPluginName, env.TestNamespace,
+			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}),
+			test.WithReleaseName(exposedSvcResolverPluginName+"-release"),
+			test.WithReleaseNamespace(exposedSvcResolverPluginName+"-namespace"),
+			test.WithCluster(remoteClusterName),
+			test.WithPluginOptionValueFromRef("service.externalPort", &greenhousev1alpha1.ExternalValueSource{
+				Name:       referencedPlugin.Name,
+				Expression: "object.status.exposedServices.transformList(k, v, v.port)[0]",
+			}),
+		).Spec
+		return nil
+	})
+	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the resolver plugin")
+
+	By("checking the resolver plugin is ready")
+	Eventually(func(g Gomega) {
+		err = adminClient.Get(ctx, client.ObjectKeyFromObject(resolverPlugin), resolverPlugin)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(resolverPlugin.Status.IsReadyTrue()).To(BeTrue(), "the resolver plugin should be ready")
+	}).Should(Succeed(), "the resolver plugin should be ready")
+
+	By("verifying the tracking-id annotation is set on the referenced plugin")
+	Eventually(func(g Gomega) {
+		g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(referencedPlugin), referencedPlugin)).To(Succeed())
+		annotations := referencedPlugin.GetAnnotations()
+		g.Expect(annotations).NotTo(BeNil())
+		g.Expect(annotations[greenhouseapis.AnnotationKeyPluginTackingID]).To(Equal("Plugin/"+resolverPlugin.Name),
+			"the tracking ID annotation should match the resolver plugin name")
+	}).Should(Succeed(), "the referenced plugin should have the tracking ID annotation")
+
+	By("verifying the resolver plugin's HelmRelease has the port value from the referenced plugin")
+	hr := &helmv2.HelmRelease{}
+	hr.SetName(resolverPlugin.Name)
+	hr.SetNamespace(resolverPlugin.Namespace)
+	Eventually(func(g Gomega) {
+		g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(hr), hr)).To(Succeed())
+		var valuesMap map[string]any
+		g.Expect(json.Unmarshal(hr.Spec.Values.Raw, &valuesMap)).To(Succeed())
+		svc, ok := valuesMap["service"].(map[string]any)
+		g.Expect(ok).To(BeTrue(), "service key should be present in HelmRelease values")
+		g.Expect(svc["externalPort"]).To(BeEquivalentTo(9898), "the resolver plugin should have the port from the referenced plugin")
+	}).Should(Succeed(), "the resolver HelmRelease should have the port value from the referenced plugin's exposed service")
+
+	By("recording initial checksum and exposed services from the referenced plugin")
+	err = adminClient.Get(ctx, client.ObjectKeyFromObject(referencedPlugin), referencedPlugin)
+	Expect(err).NotTo(HaveOccurred())
+	initialChecksum := referencedPlugin.Status.HelmReleaseStatus.PluginOptionChecksum
+	initialExposedServices := referencedPlugin.Status.ExposedServices
+
+	By("updating the referenced plugin's service externalPort to 8080")
+	_, err = controllerutil.CreateOrPatch(ctx, adminClient, referencedPlugin, func() error {
+		for i, v := range referencedPlugin.Spec.OptionValues {
+			if v.Name == "service.externalPort" {
+				referencedPlugin.Spec.OptionValues[i].Value = &apiextensionsv1.JSON{Raw: []byte("8080")}
+				break
+			}
+		}
+		return nil
+	})
+	Expect(err).ToNot(HaveOccurred(), "there should be no error updating the referenced plugin's service externalPort")
+
+	By("waiting for the referenced plugin to be ready with the new port")
+	Eventually(func(g Gomega) {
+		g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(referencedPlugin), referencedPlugin)).To(Succeed())
+		g.Expect(referencedPlugin.Status.IsReadyTrue()).To(BeTrue(), "the referenced plugin should be ready after port update")
+		g.Expect(referencedPlugin.Status.ExposedServices).NotTo(Equal(initialExposedServices),
+			"the exposed services should reflect the new port")
+		g.Expect(referencedPlugin.Status.HelmReleaseStatus.PluginOptionChecksum).NotTo(Equal(initialChecksum),
+			"the checksum should change after the exposed services change")
+	}).Should(Succeed(), "the referenced plugin should reflect the port change in exposed services and checksum")
+
+	By("verifying the resolver plugin picks up the new port from the referenced plugin's exposed service")
+	Eventually(func(g Gomega) {
+		g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(resolverPlugin), resolverPlugin)).To(Succeed())
+		annotations := resolverPlugin.GetAnnotations()
+		if annotations == nil {
+			annotations = make(map[string]string)
+		}
+		annotations[lifecycle.ReconcileAnnotation] = metav1.Now().UTC().Format(time.DateTime)
+		resolverPlugin.SetAnnotations(annotations)
+		g.Expect(adminClient.Update(ctx, resolverPlugin)).To(Succeed())
+
+		g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(hr), hr)).To(Succeed())
+		var valuesMap map[string]any
+		g.Expect(json.Unmarshal(hr.Spec.Values.Raw, &valuesMap)).To(Succeed())
+		svc, ok := valuesMap["service"].(map[string]any)
+		g.Expect(ok).To(BeTrue(), "service key should be present in HelmRelease values")
+		g.Expect(svc["externalPort"]).To(BeEquivalentTo(8080), "the resolver plugin should have the updated port")
+	}).Should(Succeed(), "the resolver plugin's HelmRelease should be updated with the new port from the referenced plugin")
 }

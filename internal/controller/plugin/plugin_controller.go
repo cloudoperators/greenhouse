@@ -245,7 +245,7 @@ func getExposedServicesForPluginFromHelmRelease(restClientGetter genericclioptio
 	if err != nil {
 		return nil, err
 	}
-	var exposedServices = make(map[string]greenhousev1alpha1.Service, 0)
+	var exposedServices = make(map[string]greenhousev1alpha1.Service)
 	if len(exposedServiceList) == 0 {
 		return exposedServices, nil
 	}
@@ -295,7 +295,7 @@ func getExposedIngressesForPluginFromHelmRelease(restClientGetter genericcliopti
 		return nil, err
 	}
 
-	var exposedServices = make(map[string]greenhousev1alpha1.Service, 0)
+	var exposedServices = make(map[string]greenhousev1alpha1.Service)
 	for _, ingress := range exposedIngressList {
 		fullURL, err := getURLForExposedIngress(ingress.Object)
 		if err != nil {

@@ -11,6 +11,7 @@ import (
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/common/types"
 	"github.com/google/cel-go/common/types/ref"
+	"github.com/google/cel-go/ext"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -111,6 +112,7 @@ func EvaluateWithData(expression string, env *cel.Env, data map[string]any) (any
 func compileExpression(expression string) (cel.Program, error) {
 	env, err := cel.NewEnv(
 		cel.Variable("object", cel.DynType),
+		ext.TwoVarComprehensions(),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create CEL environment: %w", err)
