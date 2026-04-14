@@ -236,7 +236,7 @@ func (h *helmer) ensureChartReplication(ctx context.Context) error {
 	if err != nil {
 		return failReplication(err, "failed to create image mirror")
 	}
-	replicatedRef, manifest, err := mirror.EnsureReplicated(ctx, chartRef)
+	replicatedRef, manifest, err := mirror.EnsureChartReplicated(ctx, chartRef)
 	if err != nil {
 		return failReplication(err, "chart replication failed")
 	}

@@ -35,29 +35,15 @@ func newTestImageMirror(config *RegistryMirrorConfig, fetcher manifestFetcherFun
 	}
 }
 
-var _ = Describe("EnsureReplicated", func() {
-	It("should rewrite upstream ref to mirror and replicate", func() {
+var _ = Describe("EnsureChartReplicated", func() {
+	It("should replicate via primaryMirror when ref is on baseDomain", func() {
 		var fetchedRef string
 		mirror := newTestImageMirror(mirrorConfig, func(ref string, opts ...crane.Option) ([]byte, error) {
 			fetchedRef = ref
 			return []byte(`{"test":"manifest"}`), nil
 		})
 
-		replicatedRef, manifest, err := mirror.EnsureReplicated(context.Background(), "ghcr.io/cloudoperators/greenhouse:main")
-		Expect(err).NotTo(HaveOccurred())
-		Expect(replicatedRef).To(Equal("primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:main"))
-		Expect(fetchedRef).To(Equal("primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:main"))
-		Expect(manifest).NotTo(BeEmpty())
-	})
-
-	It("should replicate directly when ref is already on a mirror", func() {
-		var fetchedRef string
-		mirror := newTestImageMirror(mirrorConfig, func(ref string, opts ...crane.Option) ([]byte, error) {
-			fetchedRef = ref
-			return []byte(`{"test":"manifest"}`), nil
-		})
-
-		replicatedRef, manifest, err := mirror.EnsureReplicated(context.Background(), "global.registry.com/ghcr-mirror/cloudoperators/greenhouse:v1.0")
+		replicatedRef, manifest, err := mirror.EnsureChartReplicated(context.Background(), "global.registry.com/ghcr-mirror/cloudoperators/greenhouse:v1.0")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(replicatedRef).To(Equal("global.registry.com/ghcr-mirror/cloudoperators/greenhouse:v1.0"))
 		Expect(fetchedRef).To(Equal("primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:v1.0"))
@@ -71,7 +57,89 @@ var _ = Describe("EnsureReplicated", func() {
 			return []byte(`{"test":"manifest"}`), nil
 		})
 
-		replicatedRef, manifest, err := mirror.EnsureReplicated(context.Background(), "primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:v1.0")
+		replicatedRef, manifest, err := mirror.EnsureChartReplicated(context.Background(), "primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:v1.0")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(replicatedRef).To(Equal("primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:v1.0"))
+		Expect(fetchedRef).To(Equal("primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:v1.0"))
+		Expect(manifest).NotTo(BeEmpty())
+	})
+
+	It("should return empty for upstream refs (charts should not be upstream)", func() {
+		fetchCount := 0
+		mirror := newTestImageMirror(mirrorConfig, func(ref string, opts ...crane.Option) ([]byte, error) {
+			fetchCount++
+			return []byte("{}"), nil
+		})
+
+		replicatedRef, manifest, err := mirror.EnsureChartReplicated(context.Background(), "ghcr.io/cloudoperators/greenhouse:main")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(replicatedRef).To(BeEmpty())
+		Expect(manifest).To(BeNil())
+		Expect(fetchCount).To(Equal(0))
+	})
+
+	It("should return empty when no mirror relationship exists", func() {
+		fetchCount := 0
+		mirror := newTestImageMirror(mirrorConfig, func(ref string, opts ...crane.Option) ([]byte, error) {
+			fetchCount++
+			return []byte("{}"), nil
+		})
+
+		replicatedRef, manifest, err := mirror.EnsureChartReplicated(context.Background(), "registry.k8s.io/pause:3.9")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(replicatedRef).To(BeEmpty())
+		Expect(manifest).To(BeNil())
+		Expect(fetchCount).To(Equal(0))
+	})
+
+	It("should propagate replication errors", func() {
+		mirror := newTestImageMirror(mirrorConfig, func(ref string, opts ...crane.Option) ([]byte, error) {
+			return nil, errors.New("connection refused")
+		})
+
+		_, _, err := mirror.EnsureChartReplicated(context.Background(), "primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:v1.0")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("connection refused"))
+	})
+})
+
+var _ = Describe("EnsureImageReplicated", func() {
+	It("should rewrite upstream ref to mirror and replicate", func() {
+		var fetchedRef string
+		mirror := newTestImageMirror(mirrorConfig, func(ref string, opts ...crane.Option) ([]byte, error) {
+			fetchedRef = ref
+			return []byte(`{"test":"manifest"}`), nil
+		})
+
+		replicatedRef, manifest, err := mirror.EnsureImageReplicated(context.Background(), "ghcr.io/cloudoperators/greenhouse:main")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(replicatedRef).To(Equal("primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:main"))
+		Expect(fetchedRef).To(Equal("primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:main"))
+		Expect(manifest).NotTo(BeEmpty())
+	})
+
+	It("should replicate via primaryMirror when ref is on baseDomain", func() {
+		var fetchedRef string
+		mirror := newTestImageMirror(mirrorConfig, func(ref string, opts ...crane.Option) ([]byte, error) {
+			fetchedRef = ref
+			return []byte(`{"test":"manifest"}`), nil
+		})
+
+		replicatedRef, manifest, err := mirror.EnsureImageReplicated(context.Background(), "global.registry.com/ghcr-mirror/cloudoperators/greenhouse:v1.0")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(replicatedRef).To(Equal("global.registry.com/ghcr-mirror/cloudoperators/greenhouse:v1.0"))
+		Expect(fetchedRef).To(Equal("primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:v1.0"))
+		Expect(manifest).NotTo(BeEmpty())
+	})
+
+	It("should replicate directly when ref is already on primaryMirror", func() {
+		var fetchedRef string
+		mirror := newTestImageMirror(mirrorConfig, func(ref string, opts ...crane.Option) ([]byte, error) {
+			fetchedRef = ref
+			return []byte(`{"test":"manifest"}`), nil
+		})
+
+		replicatedRef, manifest, err := mirror.EnsureImageReplicated(context.Background(), "primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:v1.0")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(replicatedRef).To(Equal("primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:v1.0"))
 		Expect(fetchedRef).To(Equal("primary.registry.com/ghcr-mirror/cloudoperators/greenhouse:v1.0"))
@@ -85,7 +153,7 @@ var _ = Describe("EnsureReplicated", func() {
 			return []byte("{}"), nil
 		})
 
-		replicatedRef, manifest, err := mirror.EnsureReplicated(context.Background(), "registry.k8s.io/pause:3.9")
+		replicatedRef, manifest, err := mirror.EnsureImageReplicated(context.Background(), "registry.k8s.io/pause:3.9")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(replicatedRef).To(BeEmpty())
 		Expect(manifest).To(BeNil())
@@ -99,7 +167,7 @@ var _ = Describe("EnsureReplicated", func() {
 			return []byte(`{}`), nil
 		})
 
-		_, _, err := mirror.EnsureReplicated(context.Background(), "ghcr.io/cloudoperators/greenhouse:main")
+		_, _, err := mirror.EnsureImageReplicated(context.Background(), "ghcr.io/cloudoperators/greenhouse:main")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(receivedOpts)).To(BeNumerically(">=", 2))
 	})
@@ -109,7 +177,7 @@ var _ = Describe("EnsureReplicated", func() {
 			return nil, errors.New("connection refused")
 		})
 
-		_, _, err := mirror.EnsureReplicated(context.Background(), "ghcr.io/cloudoperators/greenhouse:main")
+		_, _, err := mirror.EnsureImageReplicated(context.Background(), "ghcr.io/cloudoperators/greenhouse:main")
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("connection refused"))
 	})
