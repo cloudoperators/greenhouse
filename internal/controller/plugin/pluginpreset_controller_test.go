@@ -666,13 +666,6 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		Expect(expPlugin.Spec.WaitFor).To(Equal(pluginPreset.Spec.WaitFor), "the plugin should have the same plugin references as preset")
 
 		By("removing plugin preset")
-		Eventually(func(g Gomega) {
-			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(pluginPreset), pluginPreset)
-			g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
-			pluginPreset.Annotations = map[string]string{}
-			g.Expect(test.K8sClient.Update(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
-		}).Should(Succeed(), "failed to update PluginPreset")
-		Expect(test.K8sClient.Delete(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
 	})
 

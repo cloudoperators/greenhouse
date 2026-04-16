@@ -136,7 +136,7 @@ registryMirrors:
 			})
 		})
 
-		Context("when PrimaryMirror is empty, SecretName should not be defaulted", func() {
+		Context("when PrimaryMirror is empty", func() {
 			BeforeEach(func() {
 				org := &greenhousev1alpha1.Organization{
 					ObjectMeta: metav1.ObjectMeta{
@@ -166,12 +166,12 @@ registryMirrors:
 					Build()
 			})
 
-			It("should leave SecretName empty", func() {
+			It("should return a validation error", func() {
 				config, err := GetRegistryMirrorConfig(ctx, fakeClient, orgName)
 
-				Expect(err).NotTo(HaveOccurred())
-				Expect(config).NotTo(BeNil())
-				Expect(config.SecretName).To(BeEmpty())
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("primaryMirror cannot be empty"))
+				Expect(config).To(BeNil())
 			})
 		})
 
@@ -336,7 +336,7 @@ registryMirrors:
 						},
 					},
 				}, true, ""),
-			Entry("valid configuration with empty primary mirror",
+			Entry("empty primary mirror should fail",
 				&RegistryMirrorConfig{
 					PrimaryMirror: "",
 					RegistryMirrors: map[string]RegistryMirror{
@@ -345,7 +345,7 @@ registryMirrors:
 							SubPath:    "dockerhub-mirror",
 						},
 					},
-				}, true, ""),
+				}, false, "primaryMirror cannot be empty"),
 			Entry("empty subPath should fail",
 				&RegistryMirrorConfig{
 					PrimaryMirror: "primary.registry.com",

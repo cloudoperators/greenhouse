@@ -30,7 +30,6 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/helm"
-	"github.com/cloudoperators/greenhouse/internal/ocimirror"
 	"github.com/cloudoperators/greenhouse/internal/util"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
@@ -147,21 +146,6 @@ func (r *PluginReconciler) ensureHelmRelease(
 	release.SetName(plugin.Name)
 	release.SetNamespace(plugin.Namespace)
 
-	mirrorConfig, err := ocimirror.GetRegistryMirrorConfig(ctx, r.Client, plugin.GetNamespace())
-	if err != nil {
-		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseCreatedCondition, "", "Failed to read Organization registry mirror configuration"))
-		return fmt.Errorf("failed to read registry mirror configuration for Plugin %s: %w", plugin.Name, err)
-	}
-
-	var mirror *ocimirror.ImageMirror
-	if mirrorConfig != nil && len(mirrorConfig.RegistryMirrors) > 0 {
-		mirror, err = ocimirror.NewImageMirror(ctx, r.Client, mirrorConfig, plugin.GetNamespace())
-		if err != nil {
-			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseCreatedCondition, "", "Failed to create image mirror"))
-			return fmt.Errorf("failed to create image mirror for Plugin %s: %w", plugin.Name, err)
-		}
-	}
-
 	values, err := generateHelmValues(ctx, optionValues)
 	if err != nil {
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
@@ -207,21 +191,12 @@ func (r *PluginReconciler) ensureHelmRelease(
 			WithStorageNamespace(plugin.Spec.ReleaseNamespace).
 			WithTargetNamespace(plugin.Spec.ReleaseNamespace)
 
-		if mirror != nil {
-			restClientGetter, _, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, plugin)
-			if err != nil {
-				return fmt.Errorf("failed to init client getter for Plugin %s: %w", plugin.Name, err)
-			}
-
-			helmRelease, err := helm.TemplateHelmChartFromPluginOptionValues(ctx, r.Client, restClientGetter, &pluginDefinitionSpec, plugin, optionValues)
-			if err != nil {
-				return fmt.Errorf("failed to template helm chart for Plugin %s: %w", plugin.Name, err)
-			}
-
-			postRenderer := createRegistryMirrorPostRenderer(mirror, helmRelease.Manifest)
-			if postRenderer != nil {
-				builder = builder.WithPostRenderers([]helmv2.PostRenderer{*postRenderer})
-			}
+		postRenderer, err := r.createRegistryMirrorPostRenderer(ctx, plugin, pluginDefinitionSpec, optionValues)
+		if err != nil {
+			return err
+		}
+		if postRenderer != nil {
+			builder = builder.WithPostRenderers([]helmv2.PostRenderer{*postRenderer})
 		}
 
 		spec, err := builder.Build()
@@ -277,7 +252,7 @@ func (r *PluginReconciler) computeReadyConditionFlux(ctx context.Context, plugin
 	plugin.Status.Weight = pluginDefinitionSpec.Weight
 	plugin.Status.Description = pluginDefinitionSpec.Description
 
-	r.fetchReleaseStatus(ctx, restClientGetter, plugin, *pluginDefinitionSpec, &plugin.Status, cluster.IsExposedServicesDisabled())
+	r.fetchReleaseStatus(ctx, restClientGetter, plugin, *pluginDefinitionSpec, &plugin.Status, cluster.ExposedServicesEnabled())
 
 	if err := r.reconcileTechnicalLabels(ctx, plugin); err != nil {
 		log.FromContext(ctx).Error(err, "failed to reconcile technical labels")
@@ -325,7 +300,7 @@ func (r *PluginReconciler) fetchReleaseStatus(ctx context.Context,
 	plugin *greenhousev1alpha1.Plugin,
 	pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec,
 	pluginStatus *greenhousev1alpha1.PluginStatus,
-	exposedServicesDisabled bool,
+	exposeServices bool,
 ) {
 
 	var (
@@ -347,111 +322,6 @@ func (r *PluginReconciler) fetchReleaseStatus(ctx context.Context,
 		return
 	}
 
-	// Collect status from the Helm release.
-	helmRelease := &helmv2.HelmRelease{}
-	err := r.Get(ctx, types.NamespacedName{Name: plugin.Name, Namespace: plugin.Namespace}, helmRelease)
-	if err != nil {
-		// helm release does not exist or cannot be accessed
-		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ExposedServicesSyncedCondition, "", "failed to load Flux HelmRelease: "+err.Error()))
-		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseDeployedCondition, "", "failed to load Flux HelmRelease: "+err.Error()))
-	}
-	if exposedServicesDisabled {
-		// exposed services are disabled for the cluster
-		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.ExposedServicesSyncedCondition, greenhousev1alpha1.ExposedServicesDisabledReason, "Exposed services are disabled for cluster "+plugin.Spec.ClusterName))
-	}
-	if err == nil {
-		// helm release exists
-		if !exposedServicesDisabled {
-			// exposed services are not disabled, attempt to fetch exposed services from the cluster
-			helmSDKRelease, err := helm.GetReleaseForHelmChartFromPlugin(ctx, restClientGetter, plugin)
-			if err != nil {
-				plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
-					greenhousev1alpha1.ExposedServicesSyncedCondition, "", "failed to fetch Helm release from remote cluster: "+err.Error()))
-			} else {
-				serviceList, err := getAllExposedServicesForPlugin(restClientGetter, helmSDKRelease, plugin)
-				if err != nil {
-					plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
-						greenhousev1alpha1.ExposedServicesSyncedCondition, "", "failed to get exposed services: "+err.Error()))
-				} else {
-					exposedServices = serviceList
-					plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.ExposedServicesSyncedCondition, "", "Fetched exposed services successfully"))
-				}
-			}
-		}
-
-		// Get the latest successfully deployed release to set the dates.
-		latestSnapshot := helmRelease.Status.History.Latest()
-		if latestSnapshot != nil {
-			releaseStatus.FirstDeployed = latestSnapshot.FirstDeployed
-			releaseStatus.LastDeployed = latestSnapshot.LastDeployed
-		}
-
-		// HelmRelease Ready condition is the best representation of the release status.
-		ready := meta.FindStatusCondition(helmRelease.Status.Conditions, fluxmeta.ReadyCondition)
-		isReadyCurrent := ready != nil && ready.ObservedGeneration == helmRelease.Generation
-
-		if ready == nil {
-			plugin.SetCondition(greenhousemetav1alpha1.UnknownCondition(greenhousev1alpha1.HelmReleaseDeployedCondition, "", ""))
-		} else {
-			switch ready.Status {
-			case metav1.ConditionTrue:
-				plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.HelmReleaseDeployedCondition, greenhousemetav1alpha1.ConditionReason(ready.Reason), ready.Message))
-			case metav1.ConditionFalse:
-				plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseDeployedCondition, greenhousemetav1alpha1.ConditionReason(ready.Reason), ready.Message))
-			case metav1.ConditionUnknown:
-				plugin.SetCondition(greenhousemetav1alpha1.UnknownCondition(greenhousev1alpha1.HelmReleaseDeployedCondition, greenhousemetav1alpha1.ConditionReason(ready.Reason), ready.Message))
-			}
-		}
-
-		switch {
-		case helmRelease.Spec.Suspend:
-			releaseStatus.Status = "suspended"
-		case isReadyCurrent && ready.Status == metav1.ConditionTrue:
-			// If the current release is successfully deployed, get the status from history.
-			if latestSnapshot != nil {
-				releaseStatus.Status = latestSnapshot.Status
-			} else {
-				releaseStatus.Status = "deployed"
-			}
-			pluginVersion = pluginDefinitionSpec.Version
-		case isReadyCurrent && ready.Status == metav1.ConditionUnknown:
-			switch helmRelease.Status.LastAttemptedReleaseAction {
-			case helmv2.ReleaseActionInstall:
-				releaseStatus.Status = "pending-install"
-			case helmv2.ReleaseActionUpgrade:
-				releaseStatus.Status = "pending-upgrade"
-			default:
-				releaseStatus.Status = "progressing"
-			}
-		case isReadyCurrent && ready.Status == metav1.ConditionFalse:
-			stalledCondition := meta.FindStatusCondition(helmRelease.Status.Conditions, string(fluxstatus.ConditionStalled))
-			if stalledCondition != nil && stalledCondition.Status == metav1.ConditionTrue {
-				plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
-					greenhousev1alpha1.HelmReleaseDeployedCondition, greenhousev1alpha1.FluxHelmReleaseStalledReason, stalledCondition.Message))
-			}
-			releaseStatus.Status = "failed"
-		default:
-			releaseStatus.Status = "progressing"
-		}
-
-		oldChecksum := ""
-		newChecksum := ""
-		if plugin.Status.HelmReleaseStatus != nil && plugin.Status.HelmReleaseStatus.PluginOptionChecksum != "" {
-			oldChecksum = plugin.Status.HelmReleaseStatus.PluginOptionChecksum
-		}
-		if plugin.Spec.OptionValues != nil {
-			newChecksum, err = helm.CalculatePluginOptionChecksum(ctx, r.Client, plugin)
-			if err != nil {
-				releaseStatus.PluginOptionChecksum = ""
-			} else {
-				releaseStatus.PluginOptionChecksum = newChecksum
-			}
-		}
-		if oldChecksum != "" {
-			r.reconcileTrackingResources(ctx, plugin, oldChecksum, newChecksum)
-		}
-	}
-
 	var (
 		helmChartReference *greenhousev1alpha1.HelmChartReference
 	)
@@ -467,6 +337,112 @@ func (r *PluginReconciler) fetchReleaseStatus(ctx context.Context,
 	pluginStatus.Version = pluginVersion
 	pluginStatus.HelmReleaseStatus = releaseStatus
 	pluginStatus.ExposedServices = exposedServices
+
+	// Collect status from the Helm release.
+	helmRelease := &helmv2.HelmRelease{}
+	err := r.Get(ctx, types.NamespacedName{Name: plugin.Name, Namespace: plugin.Namespace}, helmRelease)
+	if err != nil {
+		// helm release does not exist or cannot be accessed
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ExposedServicesSyncedCondition, "", "failed to load Flux HelmRelease: "+err.Error()))
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseDeployedCondition, "", "failed to load Flux HelmRelease: "+err.Error()))
+		return
+	}
+
+	// helm release exists
+	// exposed services are not disabled, attempt to fetch exposed services from the cluster
+	helmSDKRelease, err := helm.GetReleaseForHelmChartFromPlugin(ctx, restClientGetter, plugin)
+	if err != nil {
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
+			greenhousev1alpha1.ExposedServicesSyncedCondition, "", "failed to fetch Helm release from remote cluster: "+err.Error()))
+	} else {
+		serviceList, err := getAllExposedServicesForPlugin(restClientGetter, helmSDKRelease, plugin, exposeServices)
+		switch {
+		case err != nil:
+			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
+				greenhousev1alpha1.ExposedServicesSyncedCondition, "", "failed to get exposed services: "+err.Error()))
+		case len(serviceList) == 0 && !exposeServices:
+			plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
+				greenhousev1alpha1.ExposedServicesSyncedCondition, greenhousev1alpha1.ExposedServicesDisabledReason, "exposed services are disabled for this cluster"))
+		default:
+			exposedServices = serviceList
+			plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.ExposedServicesSyncedCondition, "", "Fetched exposed services successfully"))
+		}
+	}
+	pluginStatus.ExposedServices = exposedServices
+
+	// Get the latest successfully deployed release to set the dates.
+	latestSnapshot := helmRelease.Status.History.Latest()
+	if latestSnapshot != nil {
+		releaseStatus.FirstDeployed = latestSnapshot.FirstDeployed
+		releaseStatus.LastDeployed = latestSnapshot.LastDeployed
+	}
+
+	// HelmRelease Ready condition is the best representation of the release status.
+	ready := meta.FindStatusCondition(helmRelease.Status.Conditions, fluxmeta.ReadyCondition)
+	isReadyCurrent := ready != nil && ready.ObservedGeneration == helmRelease.Generation
+
+	if ready == nil {
+		plugin.SetCondition(greenhousemetav1alpha1.UnknownCondition(greenhousev1alpha1.HelmReleaseDeployedCondition, "", ""))
+	} else {
+		switch ready.Status {
+		case metav1.ConditionTrue:
+			plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.HelmReleaseDeployedCondition, greenhousemetav1alpha1.ConditionReason(ready.Reason), ready.Message))
+		case metav1.ConditionFalse:
+			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseDeployedCondition, greenhousemetav1alpha1.ConditionReason(ready.Reason), ready.Message))
+		case metav1.ConditionUnknown:
+			plugin.SetCondition(greenhousemetav1alpha1.UnknownCondition(greenhousev1alpha1.HelmReleaseDeployedCondition, greenhousemetav1alpha1.ConditionReason(ready.Reason), ready.Message))
+		}
+	}
+
+	switch {
+	case helmRelease.Spec.Suspend:
+		releaseStatus.Status = "suspended"
+	case isReadyCurrent && ready.Status == metav1.ConditionTrue:
+		// If the current release is successfully deployed, get the status from history.
+		if latestSnapshot != nil {
+			releaseStatus.Status = latestSnapshot.Status
+		} else {
+			releaseStatus.Status = "deployed"
+		}
+		pluginVersion = pluginDefinitionSpec.Version
+	case isReadyCurrent && ready.Status == metav1.ConditionUnknown:
+		switch helmRelease.Status.LastAttemptedReleaseAction {
+		case helmv2.ReleaseActionInstall:
+			releaseStatus.Status = "pending-install"
+		case helmv2.ReleaseActionUpgrade:
+			releaseStatus.Status = "pending-upgrade"
+		default:
+			releaseStatus.Status = "progressing"
+		}
+	case isReadyCurrent && ready.Status == metav1.ConditionFalse:
+		stalledCondition := meta.FindStatusCondition(helmRelease.Status.Conditions, string(fluxstatus.ConditionStalled))
+		if stalledCondition != nil && stalledCondition.Status == metav1.ConditionTrue {
+			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
+				greenhousev1alpha1.HelmReleaseDeployedCondition, greenhousev1alpha1.FluxHelmReleaseStalledReason, stalledCondition.Message))
+		}
+		releaseStatus.Status = "failed"
+	default:
+		releaseStatus.Status = "progressing"
+	}
+	pluginStatus.Version = pluginVersion
+	pluginStatus.HelmReleaseStatus = releaseStatus
+
+	oldChecksum := ""
+	newChecksum := ""
+	if plugin.Status.HelmReleaseStatus != nil && plugin.Status.HelmReleaseStatus.PluginOptionChecksum != "" {
+		oldChecksum = plugin.Status.HelmReleaseStatus.PluginOptionChecksum
+	}
+	if plugin.Spec.OptionValues != nil {
+		newChecksum, err = helm.CalculatePluginOptionChecksum(ctx, r.Client, plugin)
+		if err != nil {
+			releaseStatus.PluginOptionChecksum = ""
+		} else {
+			releaseStatus.PluginOptionChecksum = newChecksum
+		}
+	}
+	if oldChecksum != "" {
+		r.reconcileTrackingResources(ctx, plugin, oldChecksum, newChecksum)
+	}
 }
 
 // computeReleaseValues resolves Expressions and ValueFromRefs in the Plugin's option values

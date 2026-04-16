@@ -77,10 +77,11 @@ func (r *ClusterPluginDefinitionReconciler) EnsureCreated(ctx context.Context, o
 	}
 
 	h := &helmer{
-		k8sClient:     r.Client,
-		recorder:      r.recorder,
-		pluginDef:     clusterDef,
-		namespaceName: flux.HelmRepositoryDefaultNamespace,
+		k8sClient:           r.Client,
+		recorder:            r.recorder,
+		pluginDef:           clusterDef,
+		namespaceName:       flux.HelmRepositoryDefaultNamespace,
+		ociMirroringEnabled: false,
 	}
 
 	helmRepo, err := h.createUpdateHelmRepository(ctx)

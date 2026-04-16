@@ -308,70 +308,91 @@ func setup() (*httptest.Server, *http.ServeMux) {
 	return server, mux
 }
 
+// groupsHandler handles /Groups endpoint requests
+func groupsHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-Type", "application/scim+json")
+	switch r.URL.RawQuery {
+	case "excludedAttributes=members&filter=displayName+eq+%22SOME_IDP_GROUP_NAME%22":
+		w.WriteHeader(http.StatusOK)
+		_, err := fmt.Fprint(w, groupResponseBodyMock)
+		if err != nil {
+			log.Printf("error creating mock server: %s", err)
+		}
+	case "excludedAttributes=members&filter=displayName+eq+%22ANOTHER_IDP_GROUP%22":
+		w.WriteHeader(http.StatusOK)
+		_, err := fmt.Fprint(w, otherGroupResponseBodyMock)
+		if err != nil {
+			log.Printf("error creating mock server: %s", err)
+		}
+	case "excludedAttributes=members&filter=displayName+eq+%22NON_EXISTING_GROUP_NAME%22":
+		w.WriteHeader(http.StatusOK)
+		_, err := w.Write([]byte(emptyResponseBodyMock))
+		if err != nil {
+			log.Printf("error creating mock server: %s", err)
+		}
+	default:
+		w.WriteHeader(http.StatusNotFound)
+		_, err := w.Write([]byte(`{}`))
+		if err != nil {
+			log.Printf("error creating mock server: %s", err)
+		}
+	}
+}
+
+// usersHandler handles /Users endpoint requests
+func usersHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-Type", "application/scim+json")
+	switch r.URL.RawQuery {
+	case "attributes=name%2Cemails%2CdisplayName%2Cactive&filter=groups.display+eq+%22SOME_IDP_GROUP_NAME%22&startId=initial":
+		w.WriteHeader(http.StatusOK)
+		_, err := fmt.Fprint(w, userResponseBodyMockTwo)
+		if err != nil {
+			log.Printf("error creating mock server: %s", err)
+		}
+	case "attributes=name%2Cemails%2CdisplayName%2Cactive&filter=groups.display+eq+%22ANOTHER_IDP_GROUP%22&startId=initial":
+		w.WriteHeader(http.StatusOK)
+		_, err := fmt.Fprint(w, userResponseBodyMockThree)
+		if err != nil {
+			log.Printf("error creating mock server: %s", err)
+		}
+	case "attributes=name%2Cemails%2CdisplayName%2Cactive&filter=groups.display+eq+%22SOME_OTHER_IDP_GROUP_NAME%22&startId=initial":
+		w.WriteHeader(http.StatusOK)
+		_, err := fmt.Fprint(w, userResponseBodyMockThree)
+		if err != nil {
+			log.Printf("error creating mock server: %s", err)
+		}
+	case "filter=displayName+eq+%22NON_EXISTING_GROUP_NAME%22":
+		w.WriteHeader(http.StatusOK)
+		_, err := w.Write([]byte(emptyResponseBodyMock))
+		if err != nil {
+			log.Printf("error creating mock server: %s", err)
+		}
+	default:
+		w.WriteHeader(http.StatusNotFound)
+		_, err := w.Write([]byte(`{}`))
+		if err != nil {
+			log.Printf("error creating mock server: %s", err)
+		}
+	}
+}
+
 func ReturnDefaultGroupResponseMockServer() *httptest.Server {
 	server, mux := setup()
-	mux.HandleFunc("/Groups", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Type", "application/scim+json")
-		switch r.URL.RawQuery {
-		case "excludedAttributes=members&filter=displayName+eq+%22SOME_IDP_GROUP_NAME%22":
-			w.WriteHeader(http.StatusOK)
-			_, err := fmt.Fprint(w, groupResponseBodyMock)
-			if err != nil {
-				log.Printf("error creating mock server: %s", err)
-			}
-		case "excludedAttributes=members&filter=displayName+eq+%22ANOTHER_IDP_GROUP%22":
-			w.WriteHeader(http.StatusOK)
-			_, err := fmt.Fprint(w, otherGroupResponseBodyMock)
-			if err != nil {
-				log.Printf("error creating mock server: %s", err)
-			}
-		case "excludedAttributes=members&filter=displayName+eq+%22NON_EXISTING_GROUP_NAME%22":
-			w.WriteHeader(http.StatusOK)
-			_, err := w.Write([]byte(emptyResponseBodyMock))
-			if err != nil {
-				log.Printf("error creating mock server: %s", err)
-			}
-		default:
-			w.WriteHeader(http.StatusNotFound)
-			_, err := w.Write([]byte(`{}`))
-			if err != nil {
-				log.Printf("error creating mock server: %s", err)
-			}
-		}
-	})
+	mux.HandleFunc("/Groups", groupsHandler)
 	return server
 }
 
 func ReturnUserResponseMockServer() *httptest.Server {
 	server, mux := setup()
-	mux.HandleFunc("/Users", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Type", "application/scim+json")
-		switch r.URL.RawQuery {
-		case "attributes=name%2Cemails%2CdisplayName%2Cactive&filter=groups.display+eq+%22SOME_IDP_GROUP_NAME%22&startId=initial":
-			w.WriteHeader(http.StatusOK)
-			_, err := fmt.Fprint(w, userResponseBodyMockTwo)
-			if err != nil {
-				log.Printf("error creating mock server: %s", err)
-			}
-		case "attributes=name%2Cemails%2CdisplayName%2Cactive&filter=groups.display+eq+%22SOME_OTHER_IDP_GROUP_NAME%22&startId=initial":
-			w.WriteHeader(http.StatusOK)
-			_, err := fmt.Fprint(w, userResponseBodyMockThree)
-			if err != nil {
-				log.Printf("error creating mock server: %s", err)
-			}
-		case "filter=displayName+eq+%22NON_EXISTING_GROUP_NAME%22":
-			w.WriteHeader(http.StatusOK)
-			_, err := w.Write([]byte(emptyResponseBodyMock))
-			if err != nil {
-				log.Printf("error creating mock server: %s", err)
-			}
-		default:
-			w.WriteHeader(http.StatusNotFound)
-			_, err := w.Write([]byte(`{}`))
-			if err != nil {
-				log.Printf("error creating mock server: %s", err)
-			}
-		}
-	})
+	mux.HandleFunc("/Users", usersHandler)
+	return server
+}
+
+// ReturnCombinedGroupAndUserResponseMockServer returns a mock server that handles both Groups and Users endpoints.
+// This is useful for e2e tests where both Organization and Team controllers need to interact with SCIM.
+func ReturnCombinedGroupAndUserResponseMockServer() *httptest.Server {
+	server, mux := setup()
+	mux.HandleFunc("/Groups", groupsHandler)
+	mux.HandleFunc("/Users", usersHandler)
 	return server
 }

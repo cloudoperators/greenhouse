@@ -164,6 +164,9 @@ const (
 	// PluginOptionValueInvalidReason is set when option values could not be converted to Helm values
 	PluginOptionValueInvalidReason greenhousemetav1alpha1.ConditionReason = "PluginOptionValueInvalid"
 
+	// PluginHelmTemplateFailedReason is set when templating the Helm chart for the Plugin failed.
+	PluginHelmTemplateFailedReason greenhousemetav1alpha1.ConditionReason = "PluginHelmTemplateFailed"
+
 	// FluxHelmReleaseConfigInvalidReason is set when the generated Flux HelmRelease manifest is invalid and cannot be applied to the cluster.
 	FluxHelmReleaseConfigInvalidReason greenhousemetav1alpha1.ConditionReason = "FluxHelmReleaseConfigInvalid"
 
@@ -172,6 +175,10 @@ const (
 
 	// ClusterAccessFailedReason is set when the controller cannot access the target cluster.
 	ClusterAccessFailedReason greenhousemetav1alpha1.ConditionReason = "ClusterAccessFailed"
+
+	// ImageReplicationFailedReason is set on HelmReleaseCreatedCondition when container image
+	// pre-replication to the configured mirror registry has failed.
+	ImageReplicationFailedReason greenhousemetav1alpha1.ConditionReason = "ImageReplicationFailed"
 )
 
 // PluginStatus defines the observed state of Plugin
@@ -210,6 +217,12 @@ type PluginStatus struct {
 	// Each entry is in the format "kind/name" (e.g., "Plugin/my-plugin").
 	// +Optional
 	TrackedObjects []string `json:"trackedObjects,omitempty"`
+
+	// ImageReplication contains a list of container image references that have been
+	// successfully replicated to the configured mirror registry.
+	// Used to skip redundant replication on subsequent reconciliations.
+	// +Optional
+	ImageReplication []string `json:"imageReplication,omitempty"`
 }
 
 // ServiceType defines the type of exposed service.

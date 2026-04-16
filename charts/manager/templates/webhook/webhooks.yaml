@@ -402,6 +402,31 @@ webhooks:
       service:
         name: greenhouse-webhook-service
         namespace: greenhouse
+        path: /validate--v1-serviceaccount
+    failurePolicy: Fail
+    name: vserviceaccount.kb.io
+    rules:
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - UPDATE
+        resources:
+          - serviceaccounts
+    sideEffects: None
+    namespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values:
+            - kube-system
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: greenhouse-webhook-service
+        namespace: greenhouse
         path: /validate-greenhouse-sap-v1alpha1-team
     failurePolicy: Fail
     name: vteam.kb.io

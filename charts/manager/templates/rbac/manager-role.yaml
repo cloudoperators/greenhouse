@@ -16,6 +16,7 @@ rules:
   - ""
   resources:
   - namespaces
+  - serviceaccounts
   verbs:
   - create
   - delete
@@ -28,7 +29,6 @@ rules:
   - ""
   resources:
   - secrets
-  - serviceaccounts
   verbs:
   - create
   - get

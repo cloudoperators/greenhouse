@@ -185,7 +185,7 @@ HELM_DOCS ?= $(LOCALBIN)/helm-docs
 KUSTOMIZE_VERSION ?= 5.8.1
 CERT_MANAGER_VERSION ?= v1.17.1
 CONTROLLER_TOOLS_VERSION ?= 0.20.0
-GOLINT_VERSION ?= 2.11.3
+GOLINT_VERSION ?= 2.11.4
 GINKGOLINTER_VERSION ?= 0.23.0
 HELM_DOCS_VERSION ?= 1.14.2
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
@@ -383,17 +383,20 @@ cert-manager: kustomize
 	-$(KUSTOMIZE) build config/samples/cert-manager | kubectl apply -f -
 
 .PHONY: flux
-flux: kustomize registry
+flux: kustomize
 	-$(KUSTOMIZE) build config/samples/flux | kubectl apply -f -
 
 .PHONY: license
 license:
 	docker run --rm -v $(shell pwd):/github/workspace $(IMG_LICENSE_EYE) -c .github/licenserc.yaml header fix
 
-.PHONY: registry
-registry: kustomize
-	kubectl create namespace flux-system --dry-run=client -o yaml | kubectl apply -f -
-	-$(KUSTOMIZE) build config/samples/registry | kubectl apply -f -
+.PHONY: zot
+zot:
+	# kubectl create namespace flux-system --dry-run=client -o yaml | kubectl apply -f -
+	# helm repo add project-zot https://zotregistry.dev/helm-charts
+	# helm repo update project-zot
+	# helm upgrade --namespace flux-system --version $(ZOT_VERSION) --install zot project-zot/zot -f dev-env/zot.values.yaml --create-namespace
+	bash hack/registry/setup.sh
 
 .PHONY: show-e2e-logs
 show-e2e-logs:

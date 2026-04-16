@@ -381,6 +381,14 @@ spec:
                 required:
                 - status
                 type: object
+              imageReplication:
+                description: |-
+                  ImageReplication contains a list of container image references that have been
+                  successfully replicated to the configured mirror registry.
+                  Used to skip redundant replication on subsequent reconciliations.
+                items:
+                  type: string
+                type: array
               lastReconciledAt:
                 description: LastReconciledAt contains the value when the reconcile
                   was last triggered via annotation.

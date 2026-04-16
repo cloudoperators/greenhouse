@@ -33,6 +33,7 @@ type dexFeatures struct {
 type pluginFeatures struct {
 	ExpressionEvaluationEnabled bool `yaml:"expressionEvaluationEnabled"`
 	IntegrationEnabled          bool `yaml:"integrationEnabled"`
+	OCIMirroringEnabled         bool `yaml:"ociMirroringEnabled"`
 }
 
 func NewFeatures(ctx context.Context, k8sClient client.Reader, configMapName, namespace string) (*Features, error) {
@@ -126,4 +127,20 @@ func (f *Features) IsIntegrationEnabled() bool {
 		return false
 	}
 	return f.plugin.IntegrationEnabled
+}
+
+// IsOCIMirroringEnabled returns whether OCI mirroring is enabled.
+func (f *Features) IsOCIMirroringEnabled() bool {
+	if f == nil {
+		return false
+	}
+
+	if f.plugin != nil {
+		return f.plugin.OCIMirroringEnabled
+	}
+	if err := f.resolvePluginFeatures(); err != nil {
+		ctrl.LoggerFrom(context.Background()).Error(err, "failed to resolve plugin features")
+		return false
+	}
+	return f.plugin.OCIMirroringEnabled
 }

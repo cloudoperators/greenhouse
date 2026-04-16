@@ -14,6 +14,7 @@ global:
   plugin:
     expressionEvaluationEnabled: false
     integrationEnabled: false
+    ociMirroringEnabled: false
   linkerd_enabled: false
   region: greenhouse
   registry: ghcr.io/cloudoperators/greenhouse

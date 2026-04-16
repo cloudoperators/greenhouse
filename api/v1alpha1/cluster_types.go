@@ -134,23 +134,23 @@ func (c *Cluster) CanBeSuspended() bool {
 	return false
 }
 
-// IsExposedServicesDisabled returns true if the exposed services are disabled for the cluster, false otherwise. The value of the annotation "greenhouse.sap/service-proxy-disabled" is used to determine if the exposed services are disabled. Returns true if the annotation is present and its value is "true".
-func (c *Cluster) IsExposedServicesDisabled() bool {
+// ExposedServicesEnabled returns true if the exposed services are enabled for the cluster, false otherwise. The value of the annotation "greenhouse.sap/service-proxy-disabled" is used to determine if the exposed services are disabled. Returns true if the annotation is not present or its value is not "true".
+func (c *Cluster) ExposedServicesEnabled() bool {
 	if c == nil {
 		return false
 	}
 
 	annotations := c.GetAnnotations()
 	if len(annotations) == 0 {
-		return false
+		return true
 	}
 
 	value, ok := annotations[ServiceProxyDisabledKey]
 	if !ok {
-		return false
+		return true
 	}
-
-	return strings.ToLower(value) == "true"
+	// annotation is opt-out. Only if the annotation is set to "true" (case-insensitive) the exposed services are disabled.
+	return strings.ToLower(value) != "true"
 }
 
 // GetSecretName returns the Kubernetes secret containing sensitive data for this cluster.

@@ -29,10 +29,11 @@ import (
 )
 
 type helmer struct {
-	k8sClient     client.Client
-	recorder      events.EventRecorder
-	pluginDef     common.GenericPluginDefinition
-	namespaceName string
+	k8sClient           client.Client
+	recorder            events.EventRecorder
+	pluginDef           common.GenericPluginDefinition
+	namespaceName       string
+	ociMirroringEnabled bool
 }
 
 // initializeConditions sets the provided conditions to Unknown if they do not already exist.
@@ -117,7 +118,7 @@ func (h *helmer) createUpdateHelmRepository(ctx context.Context) (*sourcev1.Helm
 
 	result, err := controllerutil.CreateOrUpdate(ctx, h.k8sClient, helmRepository, func() error {
 		helmRepository.Spec.Type = flux.GetSourceRepositoryType(repositoryURL)
-		helmRepository.Spec.Interval = metav1.Duration{Duration: 5 * time.Minute}
+		helmRepository.Spec.Interval = metav1.Duration{Duration: 24 * time.Hour}
 		helmRepository.Spec.URL = repositoryURL
 		return controllerutil.SetOwnerReference(h.pluginDef, helmRepository, h.k8sClient.Scheme())
 	})
@@ -146,7 +147,7 @@ func (h *helmer) createUpdateHelmChart(ctx context.Context, helmRepo *sourcev1.H
 	result, err := controllerutil.CreateOrUpdate(ctx, h.k8sClient, helmChart, func() error {
 		helmChart.Spec = sourcev1.HelmChartSpec{
 			Chart:             pluginDefSpec.HelmChart.Name,
-			Interval:          metav1.Duration{Duration: 5 * time.Minute},
+			Interval:          metav1.Duration{Duration: 24 * time.Hour},
 			ReconcileStrategy: sourcev1.ReconcileStrategyChartVersion,
 			SourceRef: sourcev1.LocalHelmChartSourceReference{
 				Kind: sourcev1.HelmRepositoryKind,
@@ -174,6 +175,14 @@ func (h *helmer) createUpdateHelmChart(ctx context.Context, helmRepo *sourcev1.H
 
 // ensureChartReplication triggers replication for the Helm chart OCI artifact to the configured mirror registry.
 func (h *helmer) ensureChartReplication(ctx context.Context) error {
+	if !h.ociMirroringEnabled {
+		h.pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.OCIReplicationReadyCondition,
+			greenhousev1alpha1.OCIReplicationNotConfiguredReason,
+			"OCI mirroring is disabled"))
+		return nil
+	}
+
 	logger := log.FromContext(ctx)
 
 	// Check if the chart is OCI before making any API calls — non-OCI charts cannot be replicated.
@@ -209,7 +218,9 @@ func (h *helmer) ensureChartReplication(ctx context.Context) error {
 		return nil
 	}
 
-	registry, chartName, version := parseChartRef(helmChart)
+	chartRef := strings.TrimPrefix(helmChart.Repository, "oci://") + "/" + helmChart.Name + ":" + helmChart.Version
+	registry, chartName, _ := ocimirror.SplitOCIRef(chartRef)
+	version := helmChart.Version
 
 	// Skip replication if the current chart version was already replicated (idempotency).
 	if artifact := h.pluginDef.GetLastSyncedArtifact(); artifact != nil &&
@@ -225,9 +236,7 @@ func (h *helmer) ensureChartReplication(ctx context.Context) error {
 	if err != nil {
 		return failReplication(err, "failed to create image mirror")
 	}
-
-	chartRef := registry + "/" + chartName + ":" + version
-	replicatedRef, manifest, err := mirror.EnsureReplicated(ctx, chartRef)
+	replicatedRef, manifest, err := mirror.EnsureChartReplicated(ctx, chartRef)
 	if err != nil {
 		return failReplication(err, "chart replication failed")
 	}
@@ -254,18 +263,4 @@ func (h *helmer) ensureChartReplication(ctx context.Context) error {
 		greenhousev1alpha1.OCIReplicationSucceededReason,
 		"Chart replicated successfully: "+chartRef))
 	return nil
-}
-
-// parseChartRef extracts registry, chart name, and version from a HelmChartReference.
-func parseChartRef(helmChart *greenhousev1alpha1.HelmChartReference) (registry, chartName, version string) {
-	ref := strings.TrimPrefix(helmChart.Repository, "oci://")
-	if idx := strings.Index(ref, "/"); idx > 0 {
-		registry = ref[:idx]
-		chartName = ref[idx+1:] + "/" + helmChart.Name
-	} else {
-		registry = ref
-		chartName = helmChart.Name
-	}
-	version = helmChart.Version
-	return registry, chartName, version
 }

@@ -114,6 +114,7 @@ func Test_PluginFeatures(t *testing.T) {
 		getError                     error
 		expectedExpressionEvaluation bool
 		expectedIntegrationEnabled   bool
+		expectedOCIMirroringEnabled  bool
 	}
 
 	testCases := []testCase{
@@ -122,42 +123,70 @@ func Test_PluginFeatures(t *testing.T) {
 			configMapData:                map[string]string{PluginFeatureKey: "expressionEvaluationEnabled: true\n"},
 			expectedExpressionEvaluation: true,
 			expectedIntegrationEnabled:   false,
+			expectedOCIMirroringEnabled:  false,
 		},
 		{
 			name:                         "it should return false when plugin expression evaluation is disabled",
 			configMapData:                map[string]string{PluginFeatureKey: "expressionEvaluationEnabled: false\n"},
 			expectedExpressionEvaluation: false,
 			expectedIntegrationEnabled:   false,
+			expectedOCIMirroringEnabled:  false,
 		},
 		{
 			name:                         "it should return true when plugin integration is enabled",
 			configMapData:                map[string]string{PluginFeatureKey: "integrationEnabled: true\n"},
 			expectedExpressionEvaluation: false,
 			expectedIntegrationEnabled:   true,
+			expectedOCIMirroringEnabled:  false,
 		},
 		{
 			name:                         "it should return both values when both are set",
 			configMapData:                map[string]string{PluginFeatureKey: "expressionEvaluationEnabled: true\nintegrationEnabled: true\n"},
 			expectedExpressionEvaluation: true,
 			expectedIntegrationEnabled:   true,
+			expectedOCIMirroringEnabled:  false,
 		},
 		{
 			name:                         "it should return false when plugin key is not found in feature-flags cm",
 			configMapData:                map[string]string{"someOtherKey": "value\n"},
 			expectedExpressionEvaluation: false,
 			expectedIntegrationEnabled:   false,
+			expectedOCIMirroringEnabled:  false,
 		},
 		{
 			name:                         "it should return false when feature-flags cm is not found",
 			getError:                     apierrors.NewNotFound(schema.GroupResource{}, "configmap not found"),
 			expectedExpressionEvaluation: false,
 			expectedIntegrationEnabled:   false,
+			expectedOCIMirroringEnabled:  false,
 		},
 		{
 			name:                         "it should return false when flag is malformed in feature-flags cm",
 			configMapData:                map[string]string{PluginFeatureKey: "expressionEvaluationEnabled:: invalid_yaml"},
 			expectedExpressionEvaluation: false,
 			expectedIntegrationEnabled:   false,
+			expectedOCIMirroringEnabled:  false,
+		},
+		{
+			name:                         "it should return true when ociMirroringEnabled is explicitly true",
+			configMapData:                map[string]string{PluginFeatureKey: "ociMirroringEnabled: true\n"},
+			expectedExpressionEvaluation: false,
+			expectedIntegrationEnabled:   false,
+			expectedOCIMirroringEnabled:  true,
+		},
+		{
+			name:                         "it should return false when ociMirroringEnabled is explicitly false",
+			configMapData:                map[string]string{PluginFeatureKey: "ociMirroringEnabled: false\n"},
+			expectedExpressionEvaluation: false,
+			expectedIntegrationEnabled:   false,
+			expectedOCIMirroringEnabled:  false,
+		},
+		{
+			name:                         "it should return false when ociMirroringEnabled key is missing",
+			configMapData:                map[string]string{PluginFeatureKey: "expressionEvaluationEnabled: false\n"},
+			expectedExpressionEvaluation: false,
+			expectedIntegrationEnabled:   false,
+			expectedOCIMirroringEnabled:  false,
 		},
 	}
 
@@ -191,9 +220,11 @@ func Test_PluginFeatures(t *testing.T) {
 
 				expressionEvaluationValue := featuresInstance.IsExpressionEvaluationEnabled()
 				integrationEnabledValue := featuresInstance.IsIntegrationEnabled()
+				ociMirroringValue := featuresInstance.IsOCIMirroringEnabled()
 
 				assert.Equal(t, tc.expectedExpressionEvaluation, expressionEvaluationValue)
 				assert.Equal(t, tc.expectedIntegrationEnabled, integrationEnabledValue)
+				assert.Equal(t, tc.expectedOCIMirroringEnabled, ociMirroringValue)
 				mockK8sClient.AssertExpectations(t)
 				return
 			}
@@ -201,10 +232,12 @@ func Test_PluginFeatures(t *testing.T) {
 
 			expressionEvaluationValue := featuresInstance.IsExpressionEvaluationEnabled()
 			integrationEnabledValue := featuresInstance.IsIntegrationEnabled()
+			ociMirroringValue := featuresInstance.IsOCIMirroringEnabled()
 
 			// Assert expected values
 			assert.Equal(t, tc.expectedExpressionEvaluation, expressionEvaluationValue)
 			assert.Equal(t, tc.expectedIntegrationEnabled, integrationEnabledValue)
+			assert.Equal(t, tc.expectedOCIMirroringEnabled, ociMirroringValue)
 			mockK8sClient.AssertExpectations(t)
 		})
 	}

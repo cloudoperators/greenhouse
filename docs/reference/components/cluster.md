@@ -33,6 +33,11 @@ kubectl label cluster example-cluster \
   --namespace=example-organization
 ```
 
+### Disabling service-proxy for a Cluster
+
+By default, Greenhouse allows exposing Kubernetes Ingress and Service resources on a remote cluster via [annotations](./../../../user-guides/plugin/plugin-deployment/#urls-for-exposed-services-and-ingresses).
+This feature can be disabled for a Cluster by annotating the Cluster resource with `greenhouse.sap/service-proxy-disabled=true`. This will disable the creation of service-proxy endpoints for Service resources. Ingress resources will still be collected and added to the Plugin status.
+
 ## Next Steps
 
 - [Cluster Onboarding](./../../../user-guides/cluster/onboarding)
