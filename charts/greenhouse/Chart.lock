@@ -1,13 +1,13 @@
 dependencies:
 - name: idproxy
   repository: file://../idproxy
-  version: 0.7.0
+  version: 0.8.0
 - name: cors-proxy
   repository: file://../cors-proxy
-  version: 0.6.0
+  version: 0.7.0
 - name: manager
   repository: file://../manager
-  version: 0.9.1
+  version: 0.10.0
 - name: dashboard
   repository: file://../dashboard
   version: 0.3.0
@@ -19,6 +19,6 @@ dependencies:
   version: 2.2.17
 - name: authz
   repository: file://../authz
-  version: 0.2.0
-digest: sha256:3288c02d2ed8fc37ccb56e06536cf3a81fd050b90f386fd000ec9750c6b8c34f
-generated: "2026-03-19T13:03:42.189887+01:00"
+  version: 0.3.0
+digest: sha256:363dda91d614951498c09e9a48167fa58ea75b8d9da7efe662f79b2b98d772e6
+generated: "2026-04-16T14:17:49.436342+02:00"
