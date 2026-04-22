@@ -5,6 +5,8 @@ package v1alpha1
 
 import (
 	"context"
+	"fmt"
+	"strconv"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -115,7 +117,11 @@ func validateDelete(ctx context.Context, c client.Client, labelKey, name, namesp
 		return nil, err
 	}
 	if len(list.Items) > 0 {
-		return nil, apierrors.NewBadRequest("PluginDefinition is still in use by Plugins")
+		pluginName := list.Items[0].GetName()
+		if len(list.Items) > 1 {
+			pluginName += " and " + strconv.Itoa(len(list.Items)-1) + " more"
+		}
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("PluginDefinition %s is still in use by Plugin %s", name, pluginName))
 	}
 	return nil, nil
 }
