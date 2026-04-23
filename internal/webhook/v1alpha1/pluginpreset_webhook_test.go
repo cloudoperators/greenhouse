@@ -236,9 +236,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 			return nil
 		})
 		Expect(err).
-			To(HaveOccurred(), "there must be an error updating the PluginPreset pluginDefinition name")
-		Expect(err.Error()).
-			To(ContainSubstring("field is immutable"), "the error must reflect the field is immutable")
+			NotTo(HaveOccurred(), "there must be no error updating the PluginPreset pluginDefinition name")
 
 		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, cut, func() error {
 			cut.Spec.Plugin.PluginDefinitionRef.Kind = greenhousev1alpha1.PluginDefinitionKind

@@ -202,10 +202,6 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, oldPlugin, plugi
 
 	pluginDefinitionRefNamePath := field.NewPath("spec", "pluginDefinitionRef", "name")
 
-	if oldPlugin.Spec.PluginDefinitionRef.Name != "" {
-		allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.PluginDefinitionRef.Name, plugin.Spec.PluginDefinitionRef.Name, pluginDefinitionRefNamePath)...)
-	}
-
 	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.ClusterName, plugin.Spec.ClusterName,
 		field.NewPath("spec", "clusterName"))...)
 
