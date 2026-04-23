@@ -19,6 +19,6 @@ dependencies:
   version: 2.2.17
 - name: authz
   repository: file://../authz
-  version: 0.3.2
-digest: sha256:c7fc09c136d13a2ddf6476a2be355c738e5d87ea89c9540ffb776083fd8aabf2
-generated: "2026-04-23T14:45:41.762076+02:00"
+  version: 0.3.3
+digest: sha256:d568466c96ab07d4186689b398407c18f85acb2ba5b9581e6b6d2591a3c62986
+generated: "2026-04-23T15:05:34.306499+02:00"

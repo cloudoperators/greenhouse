@@ -5,7 +5,7 @@ apiVersion: v2
 name: greenhouse
 description: A Helm chart for deploying greenhouse
 type: application
-version: 0.17.2
+version: 0.17.3
 appVersion: "v0.11.1"
 
 dependencies:
@@ -34,6 +34,6 @@ dependencies:
     repository: "oci://ghcr.io/sapcc/helm-charts"
     condition: postgresqlng.enabled
   - name: authz
-    version: 0.3.2
+    version: 0.3.3
     repository: "file://../authz"
     condition: authz.enabled
