@@ -120,6 +120,9 @@ func (h *helmer) createUpdateHelmRepository(ctx context.Context) (*sourcev1.Helm
 		helmRepository.Spec.Type = flux.GetSourceRepositoryType(repositoryURL)
 		helmRepository.Spec.Interval = metav1.Duration{Duration: 24 * time.Hour}
 		helmRepository.Spec.URL = repositoryURL
+		if flux.CheckIfLocalRegistry(repositoryURL) {
+			helmRepository.Spec.Insecure = true
+		}
 		return controllerutil.SetOwnerReference(h.pluginDef, helmRepository, h.k8sClient.Scheme())
 	})
 	if err != nil {

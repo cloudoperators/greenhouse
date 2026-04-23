@@ -24,6 +24,7 @@ controllerManager:
       memory: 128Mi
 
   args: []
+  env: []
   replicas: 3
   serviceAccount:
     annotations: {}
