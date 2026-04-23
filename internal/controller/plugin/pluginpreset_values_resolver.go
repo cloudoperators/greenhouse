@@ -174,6 +174,7 @@ func (r *PluginPresetReconciler) resolvePluginPresetRef(
 	cluster *greenhousev1alpha1.Cluster,
 	namespace string,
 ) (any, error) {
+
 	log := ctrl.LoggerFrom(ctx)
 
 	refPreset := &greenhousev1alpha1.PluginPreset{}
@@ -228,6 +229,7 @@ func (r *PluginPresetReconciler) resolvePluginRef(
 	ref *greenhousev1alpha1.ExternalValueSource,
 	namespace string,
 ) (any, error) {
+
 	log := ctrl.LoggerFrom(ctx)
 
 	refPlugin := &greenhousev1alpha1.Plugin{}
