@@ -236,7 +236,7 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 
 			releaseName := getReleaseName(plugin, preset)
 
-			resolvedValues, err := r.resolveExpressionsForPreset(ctx, preset, &cluster)
+			resolvedValues, err := r.resolvePluginOptionValuesForPreset(ctx, preset, &cluster)
 			if err != nil {
 				return fmt.Errorf("failed to resolve option values for plugin %s: %w", plugin.Name, err)
 			}

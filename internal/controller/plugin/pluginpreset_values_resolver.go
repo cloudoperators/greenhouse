@@ -9,13 +9,39 @@ import (
 	"fmt"
 	"strings"
 
+	celgo "github.com/google/cel-go/cel"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/pkg/cel"
 )
+
+// resolvePluginOptionValuesForPreset resolves all expressions and references
+// in a PluginPreset's option values before writing to Plugin.
+func (r *PluginPresetReconciler) resolvePluginOptionValuesForPreset(
+	ctx context.Context,
+	preset *greenhousev1alpha1.PluginPreset,
+	cluster *greenhousev1alpha1.Cluster,
+) ([]greenhousev1alpha1.PluginOptionValue, error) {
+
+	// Phase 1: Resolve ALL expressions first
+	resolvedExpressions, err := r.resolveExpressionsForPreset(ctx, preset, cluster)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve expressions: %w", err)
+	}
+
+	// Phase 2: Resolve ALL references (expressions are now resolved)
+	finalValues, err := r.resolveReferencesForPreset(ctx, cluster, preset.Namespace, resolvedExpressions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve references: %w", err)
+	}
+
+	return finalValues, nil
+}
 
 // resolveExpressionsForPreset evaluates all expression fields in PluginPreset option values
 func (r *PluginPresetReconciler) resolveExpressionsForPreset(
@@ -64,6 +90,227 @@ func (r *PluginPresetReconciler) resolveExpressionsForPreset(
 	}
 
 	return result, nil
+}
+
+// resolveReferencesForPreset resolves all valueFrom.ref fields in option values.
+// At this point, expressions in the current preset are already resolved.
+// When referencing another PluginPreset, that preset's expressions are also resolved first.
+func (r *PluginPresetReconciler) resolveReferencesForPreset(
+	ctx context.Context,
+	cluster *greenhousev1alpha1.Cluster,
+	namespace string,
+	optionValues []greenhousev1alpha1.PluginOptionValue,
+) ([]greenhousev1alpha1.PluginOptionValue, error) {
+
+	hasRefs := false
+	for _, ov := range optionValues {
+		if ov.ValueFrom != nil && ov.ValueFrom.Ref != nil {
+			hasRefs = true
+			break
+		}
+	}
+	if !hasRefs {
+		return optionValues, nil
+	}
+
+	log := ctrl.LoggerFrom(ctx)
+	result := make([]greenhousev1alpha1.PluginOptionValue, 0, len(optionValues))
+
+	for _, optionValue := range optionValues {
+		if optionValue.ValueFrom != nil && optionValue.ValueFrom.Ref != nil {
+			log.Info("Resolving valueFrom.ref",
+				"option", optionValue.Name,
+				"refKind", optionValue.ValueFrom.Ref.Kind,
+				"refName", optionValue.ValueFrom.Ref.Name)
+
+			resolvedValue, err := r.resolveRef(ctx, optionValue.ValueFrom.Ref, cluster, namespace)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve reference for %s: %w", optionValue.Name, err)
+			}
+
+			byteVal, err := json.Marshal(resolvedValue)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal resolved value for %s: %w", optionValue.Name, err)
+			}
+
+			result = append(result, greenhousev1alpha1.PluginOptionValue{
+				Name:  optionValue.Name,
+				Value: &apiextensionsv1.JSON{Raw: byteVal},
+			})
+		} else {
+			result = append(result, optionValue)
+		}
+	}
+
+	return result, nil
+}
+
+// resolveRef resolves a reference to another resource (PluginPreset or Plugin)
+func (r *PluginPresetReconciler) resolveRef(
+	ctx context.Context,
+	ref *greenhousev1alpha1.ExternalValueSource,
+	cluster *greenhousev1alpha1.Cluster,
+	namespace string,
+) (any, error) {
+
+	refKind := ref.Kind
+	if refKind == "" {
+		refKind = greenhousev1alpha1.PluginPresetKind
+	}
+
+	switch refKind {
+	case greenhousev1alpha1.PluginPresetKind:
+		return r.resolvePluginPresetRef(ctx, ref, cluster, namespace)
+	case greenhousev1alpha1.PluginKind:
+		return r.resolvePluginRef(ctx, ref, namespace)
+	default:
+		return nil, fmt.Errorf("unsupported reference kind: %s", refKind)
+	}
+}
+
+func (r *PluginPresetReconciler) resolvePluginPresetRef(
+	ctx context.Context,
+	ref *greenhousev1alpha1.ExternalValueSource,
+	cluster *greenhousev1alpha1.Cluster,
+	namespace string,
+) (any, error) {
+	log := ctrl.LoggerFrom(ctx)
+
+	refPreset := &greenhousev1alpha1.PluginPreset{}
+	if err := r.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: namespace}, refPreset); err != nil {
+		return nil, fmt.Errorf("failed to get PluginPreset %s: %w", ref.Name, err)
+	}
+
+	log.Info("Resolving reference to PluginPreset",
+		"name", ref.Name,
+		"expression", ref.Expression)
+
+	resolvedRefValues, err := r.resolveExpressionsForPreset(ctx, refPreset, cluster)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve expressions in referenced PluginPreset %s: %w", ref.Name, err)
+	}
+
+	celOptionValues := make([]map[string]any, 0, len(resolvedRefValues))
+	for _, ov := range resolvedRefValues {
+		item := map[string]any{
+			"name": ov.Name,
+		}
+		if ov.Value != nil && len(ov.Value.Raw) > 0 {
+			var val any
+			if err := json.Unmarshal(ov.Value.Raw, &val); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal value for %s: %w", ov.Name, err)
+			}
+			item["value"] = val
+		}
+		celOptionValues = append(celOptionValues, item)
+	}
+
+	celObject := map[string]any{
+		"metadata": map[string]any{
+			"name":      refPreset.Name,
+			"namespace": refPreset.Namespace,
+		},
+		"spec": map[string]any{
+			"optionValues": celOptionValues,
+		},
+	}
+
+	value, err := evaluateCELWithObject(ref.Expression, celObject)
+	if err != nil {
+		return nil, fmt.Errorf("failed to evaluate reference expression: %w", err)
+	}
+
+	return value, nil
+}
+
+func (r *PluginPresetReconciler) resolvePluginRef(
+	ctx context.Context,
+	ref *greenhousev1alpha1.ExternalValueSource,
+	namespace string,
+) (any, error) {
+	log := ctrl.LoggerFrom(ctx)
+
+	refPlugin := &greenhousev1alpha1.Plugin{}
+	if err := r.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: namespace}, refPlugin); err != nil {
+		return nil, fmt.Errorf("failed to get Plugin %s: %w", ref.Name, err)
+	}
+
+	log.Info("Resolving reference to Plugin",
+		"name", ref.Name,
+		"expression", ref.Expression)
+
+	celOptionValues := make([]map[string]any, 0, len(refPlugin.Spec.OptionValues))
+	for _, ov := range refPlugin.Spec.OptionValues {
+		item := map[string]any{
+			"name": ov.Name,
+		}
+		if ov.Value != nil && len(ov.Value.Raw) > 0 {
+			var val any
+			if err := json.Unmarshal(ov.Value.Raw, &val); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal value for %s: %w", ov.Name, err)
+			}
+			item["value"] = val
+		}
+		celOptionValues = append(celOptionValues, item)
+	}
+
+	celObject := map[string]any{
+		"metadata": map[string]any{
+			"name":      refPlugin.Name,
+			"namespace": refPlugin.Namespace,
+		},
+		"spec": map[string]any{
+			"optionValues": celOptionValues,
+		},
+	}
+
+	value, err := evaluateCELWithObject(ref.Expression, celObject)
+	if err != nil {
+		return nil, fmt.Errorf("failed to evaluate reference expression: %w", err)
+	}
+
+	return value, nil
+}
+
+// evaluateCELWithObject evaluates a CEL expression against an object map.
+// Supports two syntax styles:
+//   - ${...} syntax:  ${spec.optionValues.filter(v, v.name == "foo")[0].value}
+//   - Plain syntax:   spec.optionValues.filter(v, v.name == "foo")[0].value
+func evaluateCELWithObject(expression string, object map[string]any) (any, error) {
+	// Strip ${...} wrapper if present
+	expr := strings.TrimSpace(expression)
+	if strings.HasPrefix(expr, "${") && strings.HasSuffix(expr, "}") {
+		expr = expr[2 : len(expr)-1]
+	}
+
+	env, err := celgo.NewEnv(
+		celgo.Variable("spec", celgo.DynType),
+		celgo.Variable("metadata", celgo.DynType),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create CEL environment: %w", err)
+	}
+
+	ast, issues := env.Compile(expr)
+	if issues != nil && issues.Err() != nil {
+		return nil, fmt.Errorf("failed to compile expression: %w", issues.Err())
+	}
+
+	prg, err := env.Program(ast)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create CEL program: %w", err)
+	}
+
+	// Pass spec and metadata directly as top-level variables
+	out, _, err := prg.Eval(map[string]any{
+		"spec":     object["spec"],
+		"metadata": object["metadata"],
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to evaluate expression: %w", err)
+	}
+
+	return out.Value(), nil
 }
 
 // buildTemplateData creates the template data map for CEL expression evaluation
