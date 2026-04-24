@@ -890,6 +890,744 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		By("removing plugin preset")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
 	})
+
+	It("should resolve a simple expression using clusterName", func() {
+		By("creating a PluginPreset with an expression")
+		expressionStr := `"app-${global.greenhouse.clusterName}.example.com"`
+		pluginSpec := greenhousev1alpha1.PluginSpec{
+			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+				Name: pluginPresetDefinitionName,
+			},
+			ReleaseName:      releaseName,
+			ReleaseNamespace: releaseNamespace,
+			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+				{
+					Name:  "myRequiredOption",
+					Value: test.MustReturnJSONFor("myValue"),
+				},
+				{
+					Name:       "test.hostname",
+					Expression: &expressionStr,
+				},
+			},
+		}
+
+		pluginPreset := test.NewPluginPreset("expr-simple", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(pluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
+				},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).To(Succeed())
+
+		By("ensuring a Plugin has been created with resolved expression value")
+		expPluginName := types.NamespacedName{Name: "expr-simple-" + clusterA, Namespace: test.TestNamespace}
+		expPlugin := &greenhousev1alpha1.Plugin{}
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
+			g.Expect(err).ToNot(HaveOccurred(), "Plugin should exist")
+
+			var hostnameFound bool
+			for _, ov := range expPlugin.Spec.OptionValues {
+				if ov.Name == "test.hostname" {
+					hostnameFound = true
+					g.Expect(ov.Expression).To(BeNil(), "Expression should be resolved and removed")
+					g.Expect(ov.Value).ToNot(BeNil(), "Value should be set after expression resolution")
+					g.Expect(string(ov.Value.Raw)).To(Equal(`"app-`+clusterA+`.example.com"`),
+						"Expression should resolve to the correct hostname")
+				}
+			}
+			g.Expect(hostnameFound).To(BeTrue(), "test.hostname option should exist in Plugin")
+		}).Should(Succeed(), "the Plugin should have the resolved expression value")
+
+		By("removing the PluginPreset")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
+	})
+
+	It("should resolve expression with cluster metadata", func() {
+		By("adding metadata labels to existing clusterA")
+		clusterAObj := &greenhousev1alpha1.Cluster{}
+		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{
+			Name: clusterA, Namespace: test.TestNamespace,
+		}, clusterAObj)).To(Succeed())
+
+		_, err := clientutil.CreateOrPatch(test.Ctx, test.K8sClient, clusterAObj, func() error {
+			clusterAObj.Labels["metadata.greenhouse.sap/region"] = "eu-de-1"
+			return nil
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		By("creating a PluginPreset with metadata expression")
+		expressionStr := `"service.${global.greenhouse.metadata.region}.example.com"`
+		pluginSpec := greenhousev1alpha1.PluginSpec{
+			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+				Name: pluginPresetDefinitionName,
+			},
+			ReleaseName:      releaseName,
+			ReleaseNamespace: releaseNamespace,
+			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+				{
+					Name:  "myRequiredOption",
+					Value: test.MustReturnJSONFor("myValue"),
+				},
+				{
+					Name:       "test.serviceHost",
+					Expression: &expressionStr,
+				},
+			},
+		}
+
+		pluginPreset := test.NewPluginPreset("expr-metadata", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(pluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
+				},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).To(Succeed())
+
+		By("ensuring Plugin has resolved metadata expression")
+		expPluginName := types.NamespacedName{Name: "expr-metadata-" + clusterA, Namespace: test.TestNamespace}
+		expPlugin := &greenhousev1alpha1.Plugin{}
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
+			g.Expect(err).ToNot(HaveOccurred(), "Plugin should exist")
+
+			var serviceHostFound bool
+			for _, ov := range expPlugin.Spec.OptionValues {
+				if ov.Name == "test.serviceHost" {
+					serviceHostFound = true
+					g.Expect(ov.Expression).To(BeNil(), "Expression should be resolved")
+					g.Expect(ov.Value).ToNot(BeNil(), "Value should be set")
+					g.Expect(string(ov.Value.Raw)).To(Equal(`"service.eu-de-1.example.com"`),
+						"Expression should resolve with cluster metadata region")
+				}
+			}
+			g.Expect(serviceHostFound).To(BeTrue(), "test.serviceHost option should exist")
+		}).Should(Succeed(), "the Plugin should have the resolved metadata expression")
+
+		By("cleaning up metadata label")
+		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{
+			Name: clusterA, Namespace: test.TestNamespace,
+		}, clusterAObj)).To(Succeed())
+		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, clusterAObj, func() error {
+			delete(clusterAObj.Labels, "metadata.greenhouse.sap/region")
+			return nil
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		By("removing the PluginPreset")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
+	})
+
+	It("should keep direct values unchanged when resolving expressions", func() {
+		expressionStr := `"generated-${global.greenhouse.clusterName}"`
+		pluginSpec := greenhousev1alpha1.PluginSpec{
+			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+				Name: pluginPresetDefinitionName,
+			},
+			ReleaseName:      releaseName,
+			ReleaseNamespace: releaseNamespace,
+			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+				{
+					Name:  "myRequiredOption",
+					Value: test.MustReturnJSONFor("myValue"),
+				},
+				{
+					Name:  "direct.value",
+					Value: test.MustReturnJSONFor("unchanged"),
+				},
+				{
+					Name:       "expression.value",
+					Expression: &expressionStr,
+				},
+			},
+		}
+
+		pluginPreset := test.NewPluginPreset("expr-mixed", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(pluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
+				},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).To(Succeed())
+
+		expPluginName := types.NamespacedName{Name: "expr-mixed-" + clusterA, Namespace: test.TestNamespace}
+		expPlugin := &greenhousev1alpha1.Plugin{}
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
+			g.Expect(err).ToNot(HaveOccurred(), "Plugin should exist")
+
+			g.Expect(expPlugin.Spec.OptionValues).To(ContainElement(
+				greenhousev1alpha1.PluginOptionValue{
+					Name:  "direct.value",
+					Value: test.MustReturnJSONFor("unchanged"),
+				}), "Direct value should be unchanged")
+
+			var expressionResolved bool
+			for _, ov := range expPlugin.Spec.OptionValues {
+				if ov.Name == "expression.value" {
+					expressionResolved = true
+					g.Expect(ov.Expression).To(BeNil(), "Expression should be resolved")
+					g.Expect(ov.Value).ToNot(BeNil(), "Value should be set")
+					g.Expect(string(ov.Value.Raw)).To(Equal(`"generated-`+clusterA+`"`),
+						"Expression should be resolved correctly")
+				}
+			}
+			g.Expect(expressionResolved).To(BeTrue(), "expression.value should exist")
+		}).Should(Succeed(), "Plugin should have both resolved and direct values")
+
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
+	})
+
+	It("should not modify PluginPreset without expressions", func() {
+		pluginSpec := greenhousev1alpha1.PluginSpec{
+			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+				Name: pluginPresetDefinitionName,
+			},
+			ReleaseName:      releaseName,
+			ReleaseNamespace: releaseNamespace,
+			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+				{
+					Name:  "myRequiredOption",
+					Value: test.MustReturnJSONFor("myValue"),
+				},
+				{
+					Name:  "option.direct",
+					Value: test.MustReturnJSONFor("directValue"),
+				},
+			},
+		}
+
+		pluginPreset := test.NewPluginPreset("expr-no-expression", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(pluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
+				},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).To(Succeed())
+
+		expPluginName := types.NamespacedName{Name: "expr-no-expression-" + clusterA, Namespace: test.TestNamespace}
+		expPlugin := &greenhousev1alpha1.Plugin{}
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
+			g.Expect(err).ToNot(HaveOccurred(), "Plugin should exist")
+
+			g.Expect(expPlugin.Spec.OptionValues).To(ContainElement(
+				greenhousev1alpha1.PluginOptionValue{
+					Name:  "myRequiredOption",
+					Value: test.MustReturnJSONFor("myValue"),
+				}))
+
+			g.Expect(expPlugin.Spec.OptionValues).To(ContainElement(
+				greenhousev1alpha1.PluginOptionValue{
+					Name:  "option.direct",
+					Value: test.MustReturnJSONFor("directValue"),
+				}))
+		}).Should(Succeed(), "Plugin should have unchanged direct values")
+
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
+	})
+
+	It("should resolve expression with organizationName", func() {
+		expressionStr := `"${global.greenhouse.organizationName}-service.example.com"`
+		pluginSpec := greenhousev1alpha1.PluginSpec{
+			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+				Name: pluginPresetDefinitionName,
+			},
+			ReleaseName:      releaseName,
+			ReleaseNamespace: releaseNamespace,
+			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+				{
+					Name:  "myRequiredOption",
+					Value: test.MustReturnJSONFor("myValue"),
+				},
+				{
+					Name:       "test.orgHost",
+					Expression: &expressionStr,
+				},
+			},
+		}
+
+		pluginPreset := test.NewPluginPreset("expr-org", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(pluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
+				},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).To(Succeed())
+
+		expPluginName := types.NamespacedName{Name: "expr-org-" + clusterA, Namespace: test.TestNamespace}
+		expPlugin := &greenhousev1alpha1.Plugin{}
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
+			g.Expect(err).ToNot(HaveOccurred(), "Plugin should exist")
+
+			var orgHostFound bool
+			for _, ov := range expPlugin.Spec.OptionValues {
+				if ov.Name == "test.orgHost" {
+					orgHostFound = true
+					g.Expect(ov.Expression).To(BeNil(), "Expression should be resolved")
+					g.Expect(ov.Value).ToNot(BeNil(), "Value should be set")
+					g.Expect(string(ov.Value.Raw)).To(Equal(`"`+test.TestNamespace+`-service.example.com"`),
+						"Expression should resolve with organization name (namespace)")
+				}
+			}
+			g.Expect(orgHostFound).To(BeTrue(), "test.orgHost option should exist")
+		}).Should(Succeed(), "Plugin should have resolved organizationName expression")
+
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
+	})
+
+	It("should report error for invalid expression", func() {
+		invalidExpressionStr := `"service.${global.greenhouse.nonexistent.field}.example.com"`
+		pluginSpec := greenhousev1alpha1.PluginSpec{
+			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+				Name: pluginPresetDefinitionName,
+			},
+			ReleaseName:      releaseName,
+			ReleaseNamespace: releaseNamespace,
+			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+				{
+					Name:  "myRequiredOption",
+					Value: test.MustReturnJSONFor("myValue"),
+				},
+				{
+					Name:       "test.invalid",
+					Expression: &invalidExpressionStr,
+				},
+			},
+		}
+
+		pluginPreset := test.NewPluginPreset("expr-invalid", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(pluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
+				},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).To(Succeed())
+
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(pluginPreset), pluginPreset)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			pluginFailedCondition := pluginPreset.Status.GetConditionByType(greenhousev1alpha1.PluginFailedCondition)
+			g.Expect(pluginFailedCondition).ToNot(BeNil(), "PluginFailedCondition should be set")
+			g.Expect(pluginFailedCondition.Status).To(Equal(metav1.ConditionTrue), "PluginFailedCondition should be true")
+			g.Expect(pluginFailedCondition.Message).To(ContainSubstring("failed to resolve"),
+				"Error message should indicate expression resolution failure")
+		}).Should(Succeed(), "PluginPreset should report error for invalid expression")
+
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
+	})
+
+	It("should resolve valueFrom.ref pointing to another PluginPreset with expression", func() {
+		By("creating source PluginPreset with expression")
+		sourceExpressionStr := `"generated-${global.greenhouse.clusterName}"`
+		sourcePluginSpec := greenhousev1alpha1.PluginSpec{
+			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+				Name: pluginPresetDefinitionName,
+			},
+			ReleaseName:      releaseName,
+			ReleaseNamespace: releaseNamespace,
+			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+				{
+					Name:  "myRequiredOption",
+					Value: test.MustReturnJSONFor("myValue"),
+				},
+				{
+					Name:       "source.value",
+					Expression: &sourceExpressionStr,
+				},
+			},
+		}
+
+		sourcePreset := test.NewPluginPreset("ref-source", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(sourcePluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
+				},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, sourcePreset)).To(Succeed())
+
+		By("waiting for source Plugin to be created with resolved expression")
+		sourcePluginName := types.NamespacedName{Name: "ref-source-" + clusterA, Namespace: test.TestNamespace}
+		Eventually(func(g Gomega) {
+			sourcePlugin := &greenhousev1alpha1.Plugin{}
+			err := test.K8sClient.Get(test.Ctx, sourcePluginName, sourcePlugin)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			var found bool
+			for _, ov := range sourcePlugin.Spec.OptionValues {
+				if ov.Name == "source.value" {
+					found = true
+					g.Expect(ov.Expression).To(BeNil(), "Source expression should be resolved")
+					g.Expect(ov.Value).ToNot(BeNil(), "Source value should be set")
+					g.Expect(string(ov.Value.Raw)).To(Equal(`"generated-` + clusterA + `"`))
+				}
+			}
+			g.Expect(found).To(BeTrue())
+		}).Should(Succeed(), "Source Plugin should have resolved expression")
+
+		By("creating consumer PluginPreset that references source")
+		consumerPluginSpec := greenhousev1alpha1.PluginSpec{
+			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+				Name: pluginPresetDefinitionName,
+			},
+			ReleaseName:      releaseName + "-consumer",
+			ReleaseNamespace: releaseNamespace,
+			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+				{
+					Name:  "myRequiredOption",
+					Value: test.MustReturnJSONFor("myValue"),
+				},
+				{
+					Name: "consumer.value",
+					ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
+						Ref: &greenhousev1alpha1.ExternalValueSource{
+							Kind:       greenhousev1alpha1.PluginPresetKind,
+							Name:       "ref-source",
+							Expression: `${spec.optionValues.filter(v, v.name == "source.value")[0].value}`,
+						},
+					},
+				},
+			},
+		}
+
+		consumerPreset := test.NewPluginPreset("ref-consumer", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(consumerPluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
+				},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, consumerPreset)).To(Succeed())
+
+		By("ensuring consumer Plugin has resolved reference value matching source")
+		consumerPluginName := types.NamespacedName{Name: "ref-consumer-" + clusterA, Namespace: test.TestNamespace}
+		Eventually(func(g Gomega) {
+			consumerPlugin := &greenhousev1alpha1.Plugin{}
+			err := test.K8sClient.Get(test.Ctx, consumerPluginName, consumerPlugin)
+			g.Expect(err).ToNot(HaveOccurred(), "Consumer Plugin should exist")
+
+			var found bool
+			for _, ov := range consumerPlugin.Spec.OptionValues {
+				if ov.Name == "consumer.value" {
+					found = true
+					g.Expect(ov.ValueFrom).To(BeNil(), "ValueFrom should be resolved and removed")
+					g.Expect(ov.Value).ToNot(BeNil(), "Value should be set")
+					g.Expect(string(ov.Value.Raw)).To(Equal(`"generated-`+clusterA+`"`),
+						"Consumer value should match resolved source value")
+				}
+			}
+			g.Expect(found).To(BeTrue(), "consumer.value option should exist")
+		}).Should(Succeed(), "Consumer Plugin should have resolved reference")
+
+		By("verifying both values match")
+		sourcePlugin := &greenhousev1alpha1.Plugin{}
+		Expect(test.K8sClient.Get(test.Ctx, sourcePluginName, sourcePlugin)).To(Succeed())
+		consumerPlugin := &greenhousev1alpha1.Plugin{}
+		Expect(test.K8sClient.Get(test.Ctx, consumerPluginName, consumerPlugin)).To(Succeed())
+
+		var sourceVal, consumerVal string
+		for _, ov := range sourcePlugin.Spec.OptionValues {
+			if ov.Name == "source.value" {
+				sourceVal = string(ov.Value.Raw)
+			}
+		}
+		for _, ov := range consumerPlugin.Spec.OptionValues {
+			if ov.Name == "consumer.value" {
+				consumerVal = string(ov.Value.Raw)
+			}
+		}
+		Expect(sourceVal).To(Equal(consumerVal), "Source and consumer values should match")
+
+		By("removing PluginPresets")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, consumerPreset)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, sourcePreset)
+	})
+
+	It("should resolve valueFrom.ref with expression transformation", func() {
+		By("creating source PluginPreset with expression")
+		sourceExpressionStr := `"my-service.${global.greenhouse.clusterName}.example.com"`
+		sourcePluginSpec := greenhousev1alpha1.PluginSpec{
+			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+				Name: pluginPresetDefinitionName,
+			},
+			ReleaseName:      releaseName,
+			ReleaseNamespace: releaseNamespace,
+			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+				{
+					Name:  "myRequiredOption",
+					Value: test.MustReturnJSONFor("myValue"),
+				},
+				{
+					Name:       "service.hostname",
+					Expression: &sourceExpressionStr,
+				},
+			},
+		}
+
+		sourcePreset := test.NewPluginPreset("ref-transform-source", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(sourcePluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
+				},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, sourcePreset)).To(Succeed())
+
+		By("waiting for source Plugin to be created")
+		sourcePluginName := types.NamespacedName{Name: "ref-transform-source-" + clusterA, Namespace: test.TestNamespace}
+		Eventually(func(g Gomega) {
+			sourcePlugin := &greenhousev1alpha1.Plugin{}
+			g.Expect(test.K8sClient.Get(test.Ctx, sourcePluginName, sourcePlugin)).To(Succeed())
+		}).Should(Succeed())
+
+		By("creating consumer that transforms the referenced value")
+		consumerPluginSpec := greenhousev1alpha1.PluginSpec{
+			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+				Name: pluginPresetDefinitionName,
+			},
+			ReleaseName:      releaseName + "-consumer",
+			ReleaseNamespace: releaseNamespace,
+			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+				{
+					Name:  "myRequiredOption",
+					Value: test.MustReturnJSONFor("myValue"),
+				},
+				{
+					Name: "consumer.url",
+					ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
+						Ref: &greenhousev1alpha1.ExternalValueSource{
+							Kind:       greenhousev1alpha1.PluginPresetKind,
+							Name:       "ref-transform-source",
+							Expression: `"https://" + spec.optionValues.filter(v, v.name == "service.hostname")[0].value`,
+						},
+					},
+				},
+			},
+		}
+
+		consumerPreset := test.NewPluginPreset("ref-transform-consumer", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(consumerPluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
+				},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, consumerPreset)).To(Succeed())
+
+		By("ensuring consumer Plugin has transformed value")
+		consumerPluginName := types.NamespacedName{Name: "ref-transform-consumer-" + clusterA, Namespace: test.TestNamespace}
+		Eventually(func(g Gomega) {
+			consumerPlugin := &greenhousev1alpha1.Plugin{}
+			g.Expect(test.K8sClient.Get(test.Ctx, consumerPluginName, consumerPlugin)).To(Succeed())
+
+			var found bool
+			for _, ov := range consumerPlugin.Spec.OptionValues {
+				if ov.Name == "consumer.url" {
+					found = true
+					g.Expect(ov.ValueFrom).To(BeNil(), "ValueFrom should be resolved")
+					g.Expect(ov.Value).ToNot(BeNil(), "Value should be set")
+					g.Expect(string(ov.Value.Raw)).To(Equal(
+						`"https://my-service.`+clusterA+`.example.com"`),
+						"Consumer should have transformed URL")
+				}
+			}
+			g.Expect(found).To(BeTrue())
+		}).Should(Succeed(), "Consumer should have transformed reference value")
+
+		By("removing PluginPresets")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, consumerPreset)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, sourcePreset)
+	})
+
+	It("should report error when referenced PluginPreset does not exist", func() {
+		By("creating consumer PluginPreset referencing non-existent source")
+		consumerPluginSpec := greenhousev1alpha1.PluginSpec{
+			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+				Name: pluginPresetDefinitionName,
+			},
+			ReleaseName:      releaseName,
+			ReleaseNamespace: releaseNamespace,
+			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+				{
+					Name:  "myRequiredOption",
+					Value: test.MustReturnJSONFor("myValue"),
+				},
+				{
+					Name: "consumer.value",
+					ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
+						Ref: &greenhousev1alpha1.ExternalValueSource{
+							Kind:       greenhousev1alpha1.PluginPresetKind,
+							Name:       "non-existent-preset",
+							Expression: `spec.optionValues[0].value`,
+						},
+					},
+				},
+			},
+		}
+
+		consumerPreset := test.NewPluginPreset("ref-missing", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(consumerPluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
+				},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, consumerPreset)).To(Succeed())
+
+		By("ensuring PluginPreset reports the error")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(consumerPreset), consumerPreset)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			pluginFailedCondition := consumerPreset.Status.GetConditionByType(greenhousev1alpha1.PluginFailedCondition)
+			g.Expect(pluginFailedCondition).ToNot(BeNil())
+			g.Expect(pluginFailedCondition.Status).To(Equal(metav1.ConditionTrue))
+			g.Expect(pluginFailedCondition.Message).To(ContainSubstring("non-existent-preset"))
+		}).Should(Succeed(), "PluginPreset should report error for missing reference")
+
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, consumerPreset)
+	})
+
+	It("should keep direct values unchanged when resolving references", func() {
+		By("creating source PluginPreset")
+		sourceExpressionStr := `"source-${global.greenhouse.clusterName}"`
+		sourcePluginSpec := greenhousev1alpha1.PluginSpec{
+			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+				Name: pluginPresetDefinitionName,
+			},
+			ReleaseName:      releaseName,
+			ReleaseNamespace: releaseNamespace,
+			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+				{
+					Name:  "myRequiredOption",
+					Value: test.MustReturnJSONFor("myValue"),
+				},
+				{
+					Name:       "source.value",
+					Expression: &sourceExpressionStr,
+				},
+			},
+		}
+
+		sourcePreset := test.NewPluginPreset("ref-mixed-source", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(sourcePluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
+				},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, sourcePreset)).To(Succeed())
+
+		By("waiting for source Plugin")
+		sourcePluginName := types.NamespacedName{Name: "ref-mixed-source-" + clusterA, Namespace: test.TestNamespace}
+		Eventually(func(g Gomega) {
+			sourcePlugin := &greenhousev1alpha1.Plugin{}
+			g.Expect(test.K8sClient.Get(test.Ctx, sourcePluginName, sourcePlugin)).To(Succeed())
+		}).Should(Succeed())
+
+		By("creating consumer with mixed value types")
+		consumerPluginSpec := greenhousev1alpha1.PluginSpec{
+			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+				Name: pluginPresetDefinitionName,
+			},
+			ReleaseName:      releaseName + "-consumer",
+			ReleaseNamespace: releaseNamespace,
+			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+				{
+					Name:  "myRequiredOption",
+					Value: test.MustReturnJSONFor("myValue"),
+				},
+				{
+					Name:  "direct.value",
+					Value: test.MustReturnJSONFor("unchanged"),
+				},
+				{
+					Name: "ref.value",
+					ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
+						Ref: &greenhousev1alpha1.ExternalValueSource{
+							Kind:       greenhousev1alpha1.PluginPresetKind,
+							Name:       "ref-mixed-source",
+							Expression: `spec.optionValues.filter(v, v.name == "source.value")[0].value`,
+						},
+					},
+				},
+			},
+		}
+
+		consumerPreset := test.NewPluginPreset("ref-mixed-consumer", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(consumerPluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
+				},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, consumerPreset)).To(Succeed())
+
+		By("ensuring consumer Plugin has mixed resolved values")
+		consumerPluginName := types.NamespacedName{Name: "ref-mixed-consumer-" + clusterA, Namespace: test.TestNamespace}
+		Eventually(func(g Gomega) {
+			consumerPlugin := &greenhousev1alpha1.Plugin{}
+			g.Expect(test.K8sClient.Get(test.Ctx, consumerPluginName, consumerPlugin)).To(Succeed())
+
+			g.Expect(consumerPlugin.Spec.OptionValues).To(ContainElement(
+				greenhousev1alpha1.PluginOptionValue{
+					Name:  "direct.value",
+					Value: test.MustReturnJSONFor("unchanged"),
+				}), "Direct value should be unchanged")
+
+			var refFound bool
+			for _, ov := range consumerPlugin.Spec.OptionValues {
+				if ov.Name == "ref.value" {
+					refFound = true
+					g.Expect(ov.ValueFrom).To(BeNil(), "ValueFrom should be resolved")
+					g.Expect(ov.Value).ToNot(BeNil(), "Value should be set")
+					g.Expect(string(ov.Value.Raw)).To(Equal(
+						`"source-` + clusterA + `"`))
+				}
+			}
+			g.Expect(refFound).To(BeTrue(), "ref.value should exist")
+		}).Should(Succeed())
+
+		By("removing PluginPresets")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, consumerPreset)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, sourcePreset)
+	})
 })
 
 var _ = Describe("overridesPluginOptionValues", Ordered, func() {
@@ -1099,791 +1837,3 @@ func cluster(name, supportGroupTeamName string) *greenhousev1alpha1.Cluster {
 		},
 	}
 }
-
-var _ = Describe("PluginPreset Expression Evaluation", Ordered, func() {
-
-	It("should resolve a simple expression using clusterName", func() {
-		By("creating a cluster with metadata labels")
-		clusterWithMetadata := &greenhousev1alpha1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "expr-cluster-a",
-				Namespace: test.TestNamespace,
-				Labels: map[string]string{
-					"cluster":                      "expr-cluster-a",
-					greenhouseapis.LabelKeyOwnedBy: testTeam.Name,
-				},
-			},
-			Spec: greenhousev1alpha1.ClusterSpec{
-				AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
-			},
-		}
-		Expect(test.K8sClient.Create(test.Ctx, clusterWithMetadata)).To(Succeed())
-
-		secretObj := clusterSecret("expr-cluster-a", testTeam.Name)
-		secretObj.Data = map[string][]byte{
-			greenhouseapis.KubeConfigKey: clusterAKubeConfig,
-		}
-		Expect(client.IgnoreAlreadyExists(test.K8sClient.Create(test.Ctx, secretObj))).To(Succeed())
-
-		By("creating a PluginPreset with an expression")
-		expressionStr := `"app-${global.greenhouse.clusterName}.example.com"`
-		pluginSpec := greenhousev1alpha1.PluginSpec{
-			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
-				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
-				Name: pluginPresetDefinitionName,
-			},
-			ReleaseName:      releaseName,
-			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
-				{
-					Name:  "myRequiredOption",
-					Value: test.MustReturnJSONFor("myValue"),
-				},
-				{
-					Name:       "test.hostname",
-					Expression: &expressionStr,
-				},
-			},
-		}
-
-		pluginPreset := test.NewPluginPreset("expr-simple", test.TestNamespace,
-			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(pluginSpec),
-			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"cluster": "expr-cluster-a",
-				},
-			}))
-		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).To(Succeed())
-
-		By("ensuring a Plugin has been created with resolved expression value")
-		expPluginName := types.NamespacedName{Name: "expr-simple-expr-cluster-a", Namespace: test.TestNamespace}
-		expPlugin := &greenhousev1alpha1.Plugin{}
-		Eventually(func(g Gomega) {
-			err := test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
-			g.Expect(err).ToNot(HaveOccurred(), "Plugin should exist")
-
-			// Verify expression was resolved to value
-			var hostnameFound bool
-			for _, ov := range expPlugin.Spec.OptionValues {
-				if ov.Name == "test.hostname" {
-					hostnameFound = true
-					// Expression should be nil (resolved)
-					g.Expect(ov.Expression).To(BeNil(), "Expression should be resolved and removed")
-					// Value should be set
-					g.Expect(ov.Value).ToNot(BeNil(), "Value should be set after expression resolution")
-					g.Expect(string(ov.Value.Raw)).To(Equal(`"app-expr-cluster-a.example.com"`),
-						"Expression should resolve to the correct hostname")
-				}
-			}
-			g.Expect(hostnameFound).To(BeTrue(), "test.hostname option should exist in Plugin")
-		}).Should(Succeed(), "the Plugin should have the resolved expression value")
-
-		By("removing the PluginPreset")
-		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
-		test.MustDeleteCluster(test.Ctx, test.K8sClient, clusterWithMetadata)
-	})
-
-	It("should resolve expression with cluster metadata", func() {
-		By("creating a cluster with metadata labels")
-		clusterWithMetadata := &greenhousev1alpha1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "expr-cluster-meta",
-				Namespace: test.TestNamespace,
-				Labels: map[string]string{
-					"cluster":                             "expr-cluster-meta",
-					greenhouseapis.LabelKeyOwnedBy:        testTeam.Name,
-					"metadata.greenhouse.sap/region":      "eu-de-1",
-					"metadata.greenhouse.sap/environment": "production",
-				},
-			},
-			Spec: greenhousev1alpha1.ClusterSpec{
-				AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
-			},
-		}
-		Expect(test.K8sClient.Create(test.Ctx, clusterWithMetadata)).To(Succeed())
-
-		secretObj := clusterSecret("expr-cluster-meta", testTeam.Name)
-		secretObj.Data = map[string][]byte{
-			greenhouseapis.KubeConfigKey: clusterAKubeConfig,
-		}
-		Expect(client.IgnoreAlreadyExists(test.K8sClient.Create(test.Ctx, secretObj))).To(Succeed())
-
-		By("creating a PluginPreset with metadata expression")
-		expressionStr := `"service.${global.greenhouse.metadata.region}.example.com"`
-		pluginSpec := greenhousev1alpha1.PluginSpec{
-			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
-				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
-				Name: pluginPresetDefinitionName,
-			},
-			ReleaseName:      releaseName,
-			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
-				{
-					Name:  "myRequiredOption",
-					Value: test.MustReturnJSONFor("myValue"),
-				},
-				{
-					Name:       "test.serviceHost",
-					Expression: &expressionStr,
-				},
-			},
-		}
-
-		pluginPreset := test.NewPluginPreset("expr-metadata", test.TestNamespace,
-			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(pluginSpec),
-			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"cluster": "expr-cluster-meta",
-				},
-			}))
-		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).To(Succeed())
-
-		By("ensuring Plugin has resolved metadata expression")
-		expPluginName := types.NamespacedName{Name: "expr-metadata-expr-cluster-meta", Namespace: test.TestNamespace}
-		expPlugin := &greenhousev1alpha1.Plugin{}
-		Eventually(func(g Gomega) {
-			err := test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
-			g.Expect(err).ToNot(HaveOccurred(), "Plugin should exist")
-
-			var serviceHostFound bool
-			for _, ov := range expPlugin.Spec.OptionValues {
-				if ov.Name == "test.serviceHost" {
-					serviceHostFound = true
-					g.Expect(ov.Expression).To(BeNil(), "Expression should be resolved")
-					g.Expect(ov.Value).ToNot(BeNil(), "Value should be set")
-					g.Expect(string(ov.Value.Raw)).To(Equal(`"service.eu-de-1.example.com"`),
-						"Expression should resolve with cluster metadata region")
-				}
-			}
-			g.Expect(serviceHostFound).To(BeTrue(), "test.serviceHost option should exist")
-		}).Should(Succeed(), "the Plugin should have the resolved metadata expression")
-
-		By("removing the PluginPreset")
-		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
-		test.MustDeleteCluster(test.Ctx, test.K8sClient, clusterWithMetadata)
-	})
-
-	It("should keep direct values unchanged when resolving expressions", func() {
-		By("creating a PluginPreset with both direct values and expressions")
-		expressionStr := `"generated-${global.greenhouse.clusterName}"`
-		pluginSpec := greenhousev1alpha1.PluginSpec{
-			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
-				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
-				Name: pluginPresetDefinitionName,
-			},
-			ReleaseName:      releaseName,
-			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
-				{
-					Name:  "myRequiredOption",
-					Value: test.MustReturnJSONFor("myValue"),
-				},
-				{
-					Name:  "direct.value",
-					Value: test.MustReturnJSONFor("unchanged"),
-				},
-				{
-					Name:       "expression.value",
-					Expression: &expressionStr,
-				},
-			},
-		}
-
-		pluginPreset := test.NewPluginPreset("expr-mixed", test.TestNamespace,
-			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(pluginSpec),
-			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"cluster": clusterA,
-				},
-			}))
-		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).To(Succeed())
-
-		By("ensuring Plugin has both resolved and direct values")
-		expPluginName := types.NamespacedName{Name: "expr-mixed-" + clusterA, Namespace: test.TestNamespace}
-		expPlugin := &greenhousev1alpha1.Plugin{}
-		Eventually(func(g Gomega) {
-			err := test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
-			g.Expect(err).ToNot(HaveOccurred(), "Plugin should exist")
-
-			// Check direct value is unchanged
-			g.Expect(expPlugin.Spec.OptionValues).To(ContainElement(
-				greenhousev1alpha1.PluginOptionValue{
-					Name:  "direct.value",
-					Value: test.MustReturnJSONFor("unchanged"),
-				}), "Direct value should be unchanged")
-
-			// Check expression was resolved
-			var expressionResolved bool
-			for _, ov := range expPlugin.Spec.OptionValues {
-				if ov.Name == "expression.value" {
-					expressionResolved = true
-					g.Expect(ov.Expression).To(BeNil(), "Expression should be resolved")
-					g.Expect(ov.Value).ToNot(BeNil(), "Value should be set")
-					g.Expect(string(ov.Value.Raw)).To(Equal(`"generated-`+clusterA+`"`),
-						"Expression should be resolved correctly")
-				}
-			}
-			g.Expect(expressionResolved).To(BeTrue(), "expression.value should exist")
-		}).Should(Succeed(), "Plugin should have both resolved and direct values")
-
-		By("removing the PluginPreset")
-		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
-	})
-
-	It("should not modify PluginPreset without expressions", func() {
-		By("creating a PluginPreset with only direct values (no expressions)")
-		pluginSpec := greenhousev1alpha1.PluginSpec{
-			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
-				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
-				Name: pluginPresetDefinitionName,
-			},
-			ReleaseName:      releaseName,
-			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
-				{
-					Name:  "myRequiredOption",
-					Value: test.MustReturnJSONFor("myValue"),
-				},
-				{
-					Name:  "option.direct",
-					Value: test.MustReturnJSONFor("directValue"),
-				},
-			},
-		}
-
-		pluginPreset := test.NewPluginPreset("expr-no-expression", test.TestNamespace,
-			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(pluginSpec),
-			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"cluster": clusterA,
-				},
-			}))
-		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).To(Succeed())
-
-		By("ensuring Plugin has the same values as PluginPreset (unchanged)")
-		expPluginName := types.NamespacedName{Name: "expr-no-expression-" + clusterA, Namespace: test.TestNamespace}
-		expPlugin := &greenhousev1alpha1.Plugin{}
-		Eventually(func(g Gomega) {
-			err := test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
-			g.Expect(err).ToNot(HaveOccurred(), "Plugin should exist")
-
-			g.Expect(expPlugin.Spec.OptionValues).To(ContainElement(
-				greenhousev1alpha1.PluginOptionValue{
-					Name:  "myRequiredOption",
-					Value: test.MustReturnJSONFor("myValue"),
-				}))
-
-			g.Expect(expPlugin.Spec.OptionValues).To(ContainElement(
-				greenhousev1alpha1.PluginOptionValue{
-					Name:  "option.direct",
-					Value: test.MustReturnJSONFor("directValue"),
-				}))
-		}).Should(Succeed(), "Plugin should have unchanged direct values")
-
-		By("removing the PluginPreset")
-		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
-	})
-
-	It("should resolve expression with organizationName", func() {
-		By("creating a PluginPreset with organizationName expression")
-		expressionStr := `"${global.greenhouse.organizationName}-service.example.com"`
-		pluginSpec := greenhousev1alpha1.PluginSpec{
-			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
-				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
-				Name: pluginPresetDefinitionName,
-			},
-			ReleaseName:      releaseName,
-			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
-				{
-					Name:  "myRequiredOption",
-					Value: test.MustReturnJSONFor("myValue"),
-				},
-				{
-					Name:       "test.orgHost",
-					Expression: &expressionStr,
-				},
-			},
-		}
-
-		pluginPreset := test.NewPluginPreset("expr-org", test.TestNamespace,
-			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(pluginSpec),
-			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"cluster": clusterA,
-				},
-			}))
-		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).To(Succeed())
-
-		By("ensuring Plugin has resolved organizationName expression")
-		expPluginName := types.NamespacedName{Name: "expr-org-" + clusterA, Namespace: test.TestNamespace}
-		expPlugin := &greenhousev1alpha1.Plugin{}
-		Eventually(func(g Gomega) {
-			err := test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
-			g.Expect(err).ToNot(HaveOccurred(), "Plugin should exist")
-
-			var orgHostFound bool
-			for _, ov := range expPlugin.Spec.OptionValues {
-				if ov.Name == "test.orgHost" {
-					orgHostFound = true
-					g.Expect(ov.Expression).To(BeNil(), "Expression should be resolved")
-					g.Expect(ov.Value).ToNot(BeNil(), "Value should be set")
-					g.Expect(string(ov.Value.Raw)).To(Equal(`"`+test.TestNamespace+`-service.example.com"`),
-						"Expression should resolve with organization name (namespace)")
-				}
-			}
-			g.Expect(orgHostFound).To(BeTrue(), "test.orgHost option should exist")
-		}).Should(Succeed(), "Plugin should have resolved organizationName expression")
-
-		By("removing the PluginPreset")
-		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
-	})
-
-	It("should report error for invalid expression", func() {
-		By("creating a PluginPreset with invalid expression")
-		invalidExpressionStr := `"service.${global.greenhouse.nonexistent.field}.example.com"`
-		pluginSpec := greenhousev1alpha1.PluginSpec{
-			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
-				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
-				Name: pluginPresetDefinitionName,
-			},
-			ReleaseName:      releaseName,
-			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
-				{
-					Name:  "myRequiredOption",
-					Value: test.MustReturnJSONFor("myValue"),
-				},
-				{
-					Name:       "test.invalid",
-					Expression: &invalidExpressionStr,
-				},
-			},
-		}
-
-		pluginPreset := test.NewPluginPreset("expr-invalid", test.TestNamespace,
-			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(pluginSpec),
-			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"cluster": clusterA,
-				},
-			}))
-		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).To(Succeed())
-
-		By("ensuring PluginPreset reports the error in status")
-		Eventually(func(g Gomega) {
-			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(pluginPreset), pluginPreset)
-			g.Expect(err).ToNot(HaveOccurred())
-
-			pluginFailedCondition := pluginPreset.Status.GetConditionByType(greenhousev1alpha1.PluginFailedCondition)
-			g.Expect(pluginFailedCondition).ToNot(BeNil(), "PluginFailedCondition should be set")
-			g.Expect(pluginFailedCondition.Status).To(Equal(metav1.ConditionTrue), "PluginFailedCondition should be true")
-			g.Expect(pluginFailedCondition.Message).To(ContainSubstring("failed to resolve"),
-				"Error message should indicate expression resolution failure")
-		}).Should(Succeed(), "PluginPreset should report error for invalid expression")
-
-		By("removing the PluginPreset")
-		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
-	})
-})
-
-var _ = Describe("PluginPreset ValueFromRef Resolution", Ordered, func() {
-
-	It("should resolve valueFrom.ref pointing to another PluginPreset with expression", func() {
-		By("creating source PluginPreset with expression")
-		sourceExpressionStr := `"generated-${global.greenhouse.clusterName}"`
-		sourcePluginSpec := greenhousev1alpha1.PluginSpec{
-			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
-				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
-				Name: pluginPresetDefinitionName,
-			},
-			ReleaseName:      releaseName,
-			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
-				{
-					Name:  "myRequiredOption",
-					Value: test.MustReturnJSONFor("myValue"),
-				},
-				{
-					Name:       "source.value",
-					Expression: &sourceExpressionStr,
-				},
-			},
-		}
-
-		sourcePreset := test.NewPluginPreset("ref-source", test.TestNamespace,
-			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(sourcePluginSpec),
-			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"cluster": clusterA,
-				},
-			}))
-		Expect(test.K8sClient.Create(test.Ctx, sourcePreset)).To(Succeed())
-
-		By("waiting for source Plugin to be created with resolved expression")
-		sourcePluginName := types.NamespacedName{Name: "ref-source-" + clusterA, Namespace: test.TestNamespace}
-		Eventually(func(g Gomega) {
-			sourcePlugin := &greenhousev1alpha1.Plugin{}
-			err := test.K8sClient.Get(test.Ctx, sourcePluginName, sourcePlugin)
-			g.Expect(err).ToNot(HaveOccurred())
-
-			var found bool
-			for _, ov := range sourcePlugin.Spec.OptionValues {
-				if ov.Name == "source.value" {
-					found = true
-					g.Expect(ov.Expression).To(BeNil(), "Source expression should be resolved")
-					g.Expect(ov.Value).ToNot(BeNil(), "Source value should be set")
-					g.Expect(string(ov.Value.Raw)).To(Equal(`"generated-` + clusterA + `"`))
-				}
-			}
-			g.Expect(found).To(BeTrue())
-		}).Should(Succeed(), "Source Plugin should have resolved expression")
-
-		By("creating consumer PluginPreset that references source")
-		consumerPluginSpec := greenhousev1alpha1.PluginSpec{
-			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
-				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
-				Name: pluginPresetDefinitionName,
-			},
-			ReleaseName:      releaseName + "-consumer",
-			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
-				{
-					Name:  "myRequiredOption",
-					Value: test.MustReturnJSONFor("myValue"),
-				},
-				{
-					Name: "consumer.value",
-					ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
-						Ref: &greenhousev1alpha1.ExternalValueSource{
-							Kind:       greenhousev1alpha1.PluginPresetKind,
-							Name:       "ref-source",
-							Expression: `spec.optionValues.filter(v, v.name == "source.value")[0].value`,
-						},
-					},
-				},
-			},
-		}
-
-		consumerPreset := test.NewPluginPreset("ref-consumer", test.TestNamespace,
-			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(consumerPluginSpec),
-			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"cluster": clusterA,
-				},
-			}))
-		Expect(test.K8sClient.Create(test.Ctx, consumerPreset)).To(Succeed())
-
-		By("ensuring consumer Plugin has resolved reference value matching source")
-		consumerPluginName := types.NamespacedName{Name: "ref-consumer-" + clusterA, Namespace: test.TestNamespace}
-		Eventually(func(g Gomega) {
-			consumerPlugin := &greenhousev1alpha1.Plugin{}
-			err := test.K8sClient.Get(test.Ctx, consumerPluginName, consumerPlugin)
-			g.Expect(err).ToNot(HaveOccurred(), "Consumer Plugin should exist")
-
-			var found bool
-			for _, ov := range consumerPlugin.Spec.OptionValues {
-				if ov.Name == "consumer.value" {
-					found = true
-					g.Expect(ov.ValueFrom).To(BeNil(), "ValueFrom should be resolved and removed")
-					g.Expect(ov.Value).ToNot(BeNil(), "Value should be set")
-					g.Expect(string(ov.Value.Raw)).To(Equal(`"generated-`+clusterA+`"`),
-						"Consumer value should match resolved source value")
-				}
-			}
-			g.Expect(found).To(BeTrue(), "consumer.value option should exist")
-		}).Should(Succeed(), "Consumer Plugin should have resolved reference")
-
-		By("verifying both values match")
-		sourcePlugin := &greenhousev1alpha1.Plugin{}
-		Expect(test.K8sClient.Get(test.Ctx, sourcePluginName, sourcePlugin)).To(Succeed())
-		consumerPlugin := &greenhousev1alpha1.Plugin{}
-		Expect(test.K8sClient.Get(test.Ctx, consumerPluginName, consumerPlugin)).To(Succeed())
-
-		var sourceVal, consumerVal string
-		for _, ov := range sourcePlugin.Spec.OptionValues {
-			if ov.Name == "source.value" {
-				sourceVal = string(ov.Value.Raw)
-			}
-		}
-		for _, ov := range consumerPlugin.Spec.OptionValues {
-			if ov.Name == "consumer.value" {
-				consumerVal = string(ov.Value.Raw)
-			}
-		}
-		Expect(sourceVal).To(Equal(consumerVal), "Source and consumer values should match")
-
-		By("removing PluginPresets")
-		test.EventuallyDeleted(test.Ctx, test.K8sClient, consumerPreset)
-		test.EventuallyDeleted(test.Ctx, test.K8sClient, sourcePreset)
-	})
-
-	It("should resolve valueFrom.ref with expression transformation", func() {
-		By("creating source PluginPreset with expression")
-		sourceExpressionStr := `"my-service.${global.greenhouse.clusterName}.example.com"`
-		sourcePluginSpec := greenhousev1alpha1.PluginSpec{
-			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
-				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
-				Name: pluginPresetDefinitionName,
-			},
-			ReleaseName:      releaseName,
-			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
-				{
-					Name:  "myRequiredOption",
-					Value: test.MustReturnJSONFor("myValue"),
-				},
-				{
-					Name:       "service.hostname",
-					Expression: &sourceExpressionStr,
-				},
-			},
-		}
-
-		sourcePreset := test.NewPluginPreset("ref-transform-source", test.TestNamespace,
-			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(sourcePluginSpec),
-			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"cluster": clusterA,
-				},
-			}))
-		Expect(test.K8sClient.Create(test.Ctx, sourcePreset)).To(Succeed())
-
-		By("waiting for source Plugin to be created")
-		sourcePluginName := types.NamespacedName{Name: "ref-transform-source-" + clusterA, Namespace: test.TestNamespace}
-		Eventually(func(g Gomega) {
-			sourcePlugin := &greenhousev1alpha1.Plugin{}
-			g.Expect(test.K8sClient.Get(test.Ctx, sourcePluginName, sourcePlugin)).To(Succeed())
-		}).Should(Succeed())
-
-		By("creating consumer that transforms the referenced value")
-		consumerPluginSpec := greenhousev1alpha1.PluginSpec{
-			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
-				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
-				Name: pluginPresetDefinitionName,
-			},
-			ReleaseName:      releaseName + "-consumer",
-			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
-				{
-					Name:  "myRequiredOption",
-					Value: test.MustReturnJSONFor("myValue"),
-				},
-				{
-					Name: "consumer.url",
-					ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
-						Ref: &greenhousev1alpha1.ExternalValueSource{
-							Kind:       greenhousev1alpha1.PluginPresetKind,
-							Name:       "ref-transform-source",
-							Expression: `"https://" + spec.optionValues.filter(v, v.name == "service.hostname")[0].value`,
-						},
-					},
-				},
-			},
-		}
-
-		consumerPreset := test.NewPluginPreset("ref-transform-consumer", test.TestNamespace,
-			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(consumerPluginSpec),
-			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"cluster": clusterA,
-				},
-			}))
-		Expect(test.K8sClient.Create(test.Ctx, consumerPreset)).To(Succeed())
-
-		By("ensuring consumer Plugin has transformed value")
-		consumerPluginName := types.NamespacedName{Name: "ref-transform-consumer-" + clusterA, Namespace: test.TestNamespace}
-		Eventually(func(g Gomega) {
-			consumerPlugin := &greenhousev1alpha1.Plugin{}
-			g.Expect(test.K8sClient.Get(test.Ctx, consumerPluginName, consumerPlugin)).To(Succeed())
-
-			var found bool
-			for _, ov := range consumerPlugin.Spec.OptionValues {
-				if ov.Name == "consumer.url" {
-					found = true
-					g.Expect(ov.ValueFrom).To(BeNil(), "ValueFrom should be resolved")
-					g.Expect(ov.Value).ToNot(BeNil(), "Value should be set")
-					g.Expect(string(ov.Value.Raw)).To(Equal(
-						`"https://my-service.`+clusterA+`.example.com"`),
-						"Consumer should have transformed URL")
-				}
-			}
-			g.Expect(found).To(BeTrue())
-		}).Should(Succeed(), "Consumer should have transformed reference value")
-
-		By("removing PluginPresets")
-		test.EventuallyDeleted(test.Ctx, test.K8sClient, consumerPreset)
-		test.EventuallyDeleted(test.Ctx, test.K8sClient, sourcePreset)
-	})
-
-	It("should report error when referenced PluginPreset does not exist", func() {
-		By("creating consumer PluginPreset referencing non-existent source")
-		consumerPluginSpec := greenhousev1alpha1.PluginSpec{
-			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
-				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
-				Name: pluginPresetDefinitionName,
-			},
-			ReleaseName:      releaseName,
-			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
-				{
-					Name:  "myRequiredOption",
-					Value: test.MustReturnJSONFor("myValue"),
-				},
-				{
-					Name: "consumer.value",
-					ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
-						Ref: &greenhousev1alpha1.ExternalValueSource{
-							Kind:       greenhousev1alpha1.PluginPresetKind,
-							Name:       "non-existent-preset",
-							Expression: `spec.optionValues[0].value`,
-						},
-					},
-				},
-			},
-		}
-
-		consumerPreset := test.NewPluginPreset("ref-missing", test.TestNamespace,
-			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(consumerPluginSpec),
-			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"cluster": clusterA,
-				},
-			}))
-		Expect(test.K8sClient.Create(test.Ctx, consumerPreset)).To(Succeed())
-
-		By("ensuring PluginPreset reports the error")
-		Eventually(func(g Gomega) {
-			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(consumerPreset), consumerPreset)
-			g.Expect(err).ToNot(HaveOccurred())
-
-			pluginFailedCondition := consumerPreset.Status.GetConditionByType(greenhousev1alpha1.PluginFailedCondition)
-			g.Expect(pluginFailedCondition).ToNot(BeNil())
-			g.Expect(pluginFailedCondition.Status).To(Equal(metav1.ConditionTrue))
-			g.Expect(pluginFailedCondition.Message).To(ContainSubstring("non-existent-preset"))
-		}).Should(Succeed(), "PluginPreset should report error for missing reference")
-
-		By("removing PluginPreset")
-		test.EventuallyDeleted(test.Ctx, test.K8sClient, consumerPreset)
-	})
-
-	It("should keep direct values and secret refs unchanged when resolving references", func() {
-		By("creating source PluginPreset")
-		sourceExpressionStr := `"source-${global.greenhouse.clusterName}"`
-		sourcePluginSpec := greenhousev1alpha1.PluginSpec{
-			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
-				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
-				Name: pluginPresetDefinitionName,
-			},
-			ReleaseName:      releaseName,
-			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
-				{
-					Name:  "myRequiredOption",
-					Value: test.MustReturnJSONFor("myValue"),
-				},
-				{
-					Name:       "source.value",
-					Expression: &sourceExpressionStr,
-				},
-			},
-		}
-
-		sourcePreset := test.NewPluginPreset("ref-mixed-source", test.TestNamespace,
-			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(sourcePluginSpec),
-			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"cluster": clusterA,
-				},
-			}))
-		Expect(test.K8sClient.Create(test.Ctx, sourcePreset)).To(Succeed())
-
-		By("waiting for source Plugin")
-		sourcePluginName := types.NamespacedName{Name: "ref-mixed-source-" + clusterA, Namespace: test.TestNamespace}
-		Eventually(func(g Gomega) {
-			sourcePlugin := &greenhousev1alpha1.Plugin{}
-			g.Expect(test.K8sClient.Get(test.Ctx, sourcePluginName, sourcePlugin)).To(Succeed())
-		}).Should(Succeed())
-
-		By("creating consumer with mixed value types")
-		consumerPluginSpec := greenhousev1alpha1.PluginSpec{
-			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
-				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
-				Name: pluginPresetDefinitionName,
-			},
-			ReleaseName:      releaseName + "-consumer",
-			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
-				{
-					Name:  "myRequiredOption",
-					Value: test.MustReturnJSONFor("myValue"),
-				},
-				{
-					Name:  "direct.value",
-					Value: test.MustReturnJSONFor("unchanged"),
-				},
-				{
-					Name: "ref.value",
-					ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
-						Ref: &greenhousev1alpha1.ExternalValueSource{
-							Kind:       greenhousev1alpha1.PluginPresetKind,
-							Name:       "ref-mixed-source",
-							Expression: `spec.optionValues.filter(v, v.name == "source.value")[0].value`,
-						},
-					},
-				},
-			},
-		}
-
-		consumerPreset := test.NewPluginPreset("ref-mixed-consumer", test.TestNamespace,
-			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(consumerPluginSpec),
-			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"cluster": clusterA,
-				},
-			}))
-		Expect(test.K8sClient.Create(test.Ctx, consumerPreset)).To(Succeed())
-
-		By("ensuring consumer Plugin has mixed resolved values")
-		consumerPluginName := types.NamespacedName{Name: "ref-mixed-consumer-" + clusterA, Namespace: test.TestNamespace}
-		Eventually(func(g Gomega) {
-			consumerPlugin := &greenhousev1alpha1.Plugin{}
-			g.Expect(test.K8sClient.Get(test.Ctx, consumerPluginName, consumerPlugin)).To(Succeed())
-
-			g.Expect(consumerPlugin.Spec.OptionValues).To(ContainElement(
-				greenhousev1alpha1.PluginOptionValue{
-					Name:  "direct.value",
-					Value: test.MustReturnJSONFor("unchanged"),
-				}), "Direct value should be unchanged")
-
-			var refFound bool
-			for _, ov := range consumerPlugin.Spec.OptionValues {
-				if ov.Name == "ref.value" {
-					refFound = true
-					g.Expect(ov.ValueFrom).To(BeNil(), "ValueFrom should be resolved")
-					g.Expect(ov.Value).ToNot(BeNil(), "Value should be set")
-					g.Expect(string(ov.Value.Raw)).To(Equal(
-						`"source-` + clusterA + `"`))
-				}
-			}
-			g.Expect(refFound).To(BeTrue(), "ref.value should exist")
-		}).Should(Succeed())
-
-		By("removing PluginPresets")
-		test.EventuallyDeleted(test.Ctx, test.K8sClient, consumerPreset)
-		test.EventuallyDeleted(test.Ctx, test.K8sClient, sourcePreset)
-	})
-})
