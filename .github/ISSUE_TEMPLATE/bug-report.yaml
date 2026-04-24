@@ -1,9 +1,9 @@
 name: "🐛 Bug Report"
 description: Create a new ticket for a bug experienced in Greenhouse.
 title: "🐛 [BUG] - <title>"
-labels: [
-  "bug",
-]
+labels:
+  - "bug"
+  - "needs-triage"
 body:
   - type: markdown
     attributes:

@@ -1,5 +1,9 @@
 name: Auto Label Issues
 
+# Applies the 'needs-triage' label to every newly opened issue.
+# This is the entry point of the issue lifecycle documented in CONTRIBUTING.md.
+# See: https://github.com/cloudoperators/greenhouse/blob/main/CONTRIBUTING.md#issue-lifecycle
+
 on:
   issues:
     types: [opened]
