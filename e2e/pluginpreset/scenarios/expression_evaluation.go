@@ -30,7 +30,6 @@ const (
 // PluginPresetExpressionEvaluation tests that CEL expressions in PluginPreset.spec.plugin.optionValues
 // are evaluated during PluginPreset reconciliation and the resulting Plugin contains only resolved values.
 func PluginPresetExpressionEvaluation(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName, teamName string) {
-
 	By("creating plugin definition")
 	testPluginDefinition := fixtures.PreparePodInfoClusterPluginDefinition(env.TestNamespace, "6.9.0")
 	err := adminClient.Create(ctx, testPluginDefinition)
