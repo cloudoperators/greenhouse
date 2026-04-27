@@ -34,7 +34,7 @@ This guide is intended for users who want to manage Role-Based Access Control (R
  1. Create/Update TeamRoles and TeamRoleBindings in the Organization namespace.
  2. View Teams and Clusters in the Organization namespace
 
-By default the necessary authorizations are provieded via the `role:<organization>:admin` RoleBinding that is granted to members of the Organizations Admin Team. You can check the permissions inside the Organization namespace by running the following command:
+By default the necessary authorizations are provided via the `role:<organization>:admin` RoleBinding that is granted to members of the Organizations Admin Team. You can check the permissions inside the Organization namespace by running the following command:
 
 ```bash
 kubectl auth can-i --list --namespace=<organization-namespace>
@@ -160,11 +160,11 @@ spec:
 
 ### Aggregating TeamRoles
 
-It is possible with Kubernetes RBAC to aggregate `rbacv1.ClusterRoles`. This is also supported for TeamRoles. All label specified on a TeamRole's `.spec.Labels` will be set on the `rbacv1.ClusterRole` created on the target cluster. This makes it possible to aggregate multiple `rbacv1.ClusterRole` resources by using a `rbacv1.AggregationRule`. This can be specified on a TeamRole by setting `.spec.aggregationRule`.
+It is possible with Kubernetes RBAC to aggregate rbacv1.ClusterRoles. This is also supported for TeamRoles. All label specified on a TeamRole's `.spec.Labels` will be set on the rbacv1.ClusterRole created on the target cluster. This makes it possible to aggregate multiple rbacv1.ClusterRole resources by using a rbacv1.AggregationRule. This can be specified on a TeamRole by setting `.spec.aggregationRule`.
 
 More details on the concept of Aggregated ClusterRoles can be found in the Kubernetes documentation: [Aggregated ClusterRoles](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#aggregated-clusterroles)
 
-> [!NOTE] A TeamRole is only created on a cluster if it is referenced by a TeamRoleBinding. If a TeamRole is not referenced by a TeamRoleBinding it will not be created on any target cluster. A TeamRoleBinding referencing a TeamRole with an aggregationRule will only provide the correct access, if there is at least one TeamRoleBinding referencing a TeamRole with the corresponding label deployed to the same cluster.
+> :information_source: A TeamRole is only created on a cluster if it is referenced by a TeamRoleBinding. If a TeamRole is not referenced by a TeamRoleBinding it will not be created on any target cluster. A TeamRoleBinding referencing a TeamRole with an aggregationRule will only provide the correct access, if there is at least one TeamRoleBinding referencing a TeamRole with the corresponding label deployed to the same cluster.
 
 The following example shows how an AggregationRule can be used with TeamRoles and TeamRoleBindings.
 
