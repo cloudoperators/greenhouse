@@ -9,9 +9,11 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
@@ -24,13 +26,24 @@ import (
 func (s *scenario) ExecuteNamespaceCreationScenario(ctx context.Context) {
 	GinkgoHelper()
 
-	const (
-		nsOne = "trb-e2e-ns-one"
-		nsTwo = "trb-e2e-ns-two"
-	)
+	// Use unique namespace names per run so that leftover resources from a previous
+	// failed run on a shared/long-lived cluster do not interfere.
+	suffix := rand.String(6)
+	nsOne := "trb-e2e-ns-one-" + suffix
+	nsTwo := "trb-e2e-ns-two-" + suffix
 
 	var trb *greenhousev1alpha2.TeamRoleBinding
-	DeferCleanup(func() { s.cleanup(ctx, trb) })
+	DeferCleanup(func() {
+		// Delete the TRB first.
+		s.cleanup(ctx, trb)
+		// Explicitly remove the namespaces the TRB created on the remote cluster.
+		for _, ns := range []string{nsOne, nsTwo} {
+			nsObj := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}}
+			if err := s.remoteClient.Delete(ctx, nsObj); client.IgnoreNotFound(err) != nil {
+				GinkgoWriter.Printf("warning: could not delete namespace %s on remote cluster: %v\n", ns, err)
+			}
+		}
+	})
 
 	By("creating a TeamRoleBinding with createNamespaces=true referencing two teams")
 	trb = s.createTRB(ctx, "trb-ns-create",
