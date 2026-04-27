@@ -12,6 +12,7 @@ import (
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
+	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
@@ -64,18 +65,18 @@ func NewScenario(
 	}
 }
 
-// createTRB is a helper that creates a TeamRoleBinding and returns it.
+// createTRB is a helper that creates or patches a TeamRoleBinding and returns it.
 func (s *scenario) createTRB(ctx context.Context, name string, opts ...func(*greenhousev1alpha2.TeamRoleBinding)) *greenhousev1alpha2.TeamRoleBinding {
 	GinkgoHelper()
 	trb := test.NewTeamRoleBinding(ctx, name, s.namespace, opts...)
-	s.mustCreate(ctx, trb)
+	_, err := clientutil.CreateOrPatch(ctx, s.adminClient, trb, func() error {
+		for _, opt := range opts {
+			opt(trb)
+		}
+		return nil
+	})
+	Expect(err).ToNot(HaveOccurred(), "there should be no error creating or patching %T %s", trb, trb.GetName())
 	return trb
-}
-
-// mustCreate creates a resource and fails the test on error.
-func (s *scenario) mustCreate(ctx context.Context, obj client.Object) {
-	GinkgoHelper()
-	Expect(s.adminClient.Create(ctx, obj)).To(Succeed(), "there should be no error creating %T %s", obj, obj.GetName())
 }
 
 // cleanup deletes a TeamRoleBinding if it is non-nil, waiting for it to disappear.
