@@ -18,7 +18,7 @@ import (
 )
 
 // ExecuteDeprecatedTeamRefMigrationScenario verifies that the mutating webhook migrates the
-// deprecated singular teamRef field into teamRefs, and that RBAC is applied correctly afterwards.
+// deprecated singular teamRef field into teamRefs, and that RBAC is applied correctly.
 func (s *scenario) ExecuteDeprecatedTeamRefMigrationScenario(ctx context.Context) {
 	GinkgoHelper()
 	var trb *greenhousev1alpha2.TeamRoleBinding
@@ -27,28 +27,26 @@ func (s *scenario) ExecuteDeprecatedTeamRefMigrationScenario(ctx context.Context
 	By("creating a TeamRoleBinding using the deprecated teamRef field")
 	trb = s.createTRB(ctx, "trb-deprecated",
 		test.WithTeamRoleRef(s.teamRole.Name),
-		test.WithTeamRef(s.teamAlpha.Name), // deprecated singular field
+		test.WithTeamRef(s.teamAlpha.Name),
 		test.WithClusterName(s.clusterName),
 	)
 
-	By("verifying the webhook merged teamRef into teamRefs")
+	By("verifying the webhook migrated teamRef into teamRefs")
 	Eventually(func(g Gomega) {
 		g.Expect(s.adminClient.Get(ctx, client.ObjectKeyFromObject(trb), trb)).To(Succeed())
 		g.Expect(trb.Spec.TeamRefs).To(ContainElement(s.teamAlpha.Name),
-			"webhook should have migrated teamRef into teamRefs")
-	}).Should(Succeed(), "teamRef should be merged into teamRefs by the defaulting webhook")
+			"teamRefs should contain the migrated teamRef value")
+	}).Should(Succeed(), "teamRef should be migrated into teamRefs by the webhook")
 
-	By("verifying the ClusterRoleBinding is created on the remote cluster")
+	By("verifying the ClusterRoleBinding is created on the remote cluster with the correct subject")
 	remoteCRB := &rbacv1.ClusterRoleBinding{}
 	Eventually(func(g Gomega) {
 		g.Expect(s.remoteClient.Get(ctx, client.ObjectKey{Name: trb.GetRBACName()}, remoteCRB)).
 			To(Succeed(), "ClusterRoleBinding should exist on the remote cluster")
-	}).Should(Succeed(), "ClusterRoleBinding should be created after migration")
-
-	By("verifying the subjects contain the migrated team's IDP group")
-	Expect(slices.ContainsFunc(remoteCRB.Subjects, func(sub rbacv1.Subject) bool {
-		return sub.Kind == rbacv1.GroupKind && sub.Name == s.teamAlpha.Spec.MappedIDPGroup
-	})).To(BeTrue(), "subjects should contain teamAlpha's IDP group after migration")
+		g.Expect(slices.ContainsFunc(remoteCRB.Subjects, func(sub rbacv1.Subject) bool {
+			return sub.Kind == rbacv1.GroupKind && sub.Name == s.teamAlpha.Spec.MappedIDPGroup
+		})).To(BeTrue(), "subjects should contain teamAlpha's IDP group after migration")
+	}).Should(Succeed(), "ClusterRoleBinding should be created with the correct subject after teamRef migration")
 
 	By("verifying the TeamRoleBinding RBACReady status is True")
 	Eventually(func(g Gomega) {

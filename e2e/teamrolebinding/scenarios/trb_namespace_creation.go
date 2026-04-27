@@ -34,7 +34,7 @@ func (s *scenario) ExecuteNamespaceCreationScenario(ctx context.Context) {
 
 	var trb *greenhousev1alpha2.TeamRoleBinding
 	DeferCleanup(func() {
-		// Delete the TRB first.
+		// Delete the TRB first – this removes the RoleBindings but not the namespaces.
 		s.cleanup(ctx, trb)
 		// Explicitly remove the namespaces the TRB created on the remote cluster.
 		for _, ns := range []string{nsOne, nsTwo} {
@@ -54,37 +54,33 @@ func (s *scenario) ExecuteNamespaceCreationScenario(ctx context.Context) {
 		test.WithCreateNamespace(true),
 	)
 
-	By("verifying RoleBinding in namespace one is created on the remote cluster")
+	By("verifying RoleBinding in namespace one is created on the remote cluster with subjects for both teams")
 	rb1 := &rbacv1.RoleBinding{}
 	Eventually(func(g Gomega) {
 		g.Expect(s.remoteClient.Get(ctx,
 			types.NamespacedName{Name: trb.GetRBACName(), Namespace: nsOne},
 			rb1)).To(Succeed(), "RoleBinding in nsOne should exist on remote cluster")
-	}).Should(Succeed(), "RoleBinding should be created in nsOne")
+		g.Expect(slices.ContainsFunc(rb1.Subjects, func(sub rbacv1.Subject) bool {
+			return sub.Kind == rbacv1.GroupKind && sub.Name == s.teamAlpha.Spec.MappedIDPGroup
+		})).To(BeTrue(), "RoleBinding in nsOne should contain teamAlpha's IDP group")
+		g.Expect(slices.ContainsFunc(rb1.Subjects, func(sub rbacv1.Subject) bool {
+			return sub.Kind == rbacv1.GroupKind && sub.Name == s.teamBeta.Spec.MappedIDPGroup
+		})).To(BeTrue(), "RoleBinding in nsOne should contain teamBeta's IDP group")
+	}).Should(Succeed(), "RoleBinding should be created in nsOne with subjects for both teams")
 
-	By("verifying RoleBinding in namespace two is created on the remote cluster")
+	By("verifying RoleBinding in namespace two is created on the remote cluster with subjects for both teams")
 	rb2 := &rbacv1.RoleBinding{}
 	Eventually(func(g Gomega) {
 		g.Expect(s.remoteClient.Get(ctx,
 			types.NamespacedName{Name: trb.GetRBACName(), Namespace: nsTwo},
 			rb2)).To(Succeed(), "RoleBinding in nsTwo should exist on remote cluster")
-	}).Should(Succeed(), "RoleBinding should be created in nsTwo")
-
-	By("verifying RoleBinding subjects in nsOne include both teams' IDP groups")
-	Expect(slices.ContainsFunc(rb1.Subjects, func(sub rbacv1.Subject) bool {
-		return sub.Kind == rbacv1.GroupKind && sub.Name == s.teamAlpha.Spec.MappedIDPGroup
-	})).To(BeTrue(), "RoleBinding in nsOne should contain teamAlpha's IDP group")
-	Expect(slices.ContainsFunc(rb1.Subjects, func(sub rbacv1.Subject) bool {
-		return sub.Kind == rbacv1.GroupKind && sub.Name == s.teamBeta.Spec.MappedIDPGroup
-	})).To(BeTrue(), "RoleBinding in nsOne should contain teamBeta's IDP group")
-
-	By("verifying RoleBinding subjects in nsTwo include both teams' IDP groups")
-	Expect(slices.ContainsFunc(rb2.Subjects, func(sub rbacv1.Subject) bool {
-		return sub.Kind == rbacv1.GroupKind && sub.Name == s.teamAlpha.Spec.MappedIDPGroup
-	})).To(BeTrue(), "RoleBinding in nsTwo should contain teamAlpha's IDP group")
-	Expect(slices.ContainsFunc(rb2.Subjects, func(sub rbacv1.Subject) bool {
-		return sub.Kind == rbacv1.GroupKind && sub.Name == s.teamBeta.Spec.MappedIDPGroup
-	})).To(BeTrue(), "RoleBinding in nsTwo should contain teamBeta's IDP group")
+		g.Expect(slices.ContainsFunc(rb2.Subjects, func(sub rbacv1.Subject) bool {
+			return sub.Kind == rbacv1.GroupKind && sub.Name == s.teamAlpha.Spec.MappedIDPGroup
+		})).To(BeTrue(), "RoleBinding in nsTwo should contain teamAlpha's IDP group")
+		g.Expect(slices.ContainsFunc(rb2.Subjects, func(sub rbacv1.Subject) bool {
+			return sub.Kind == rbacv1.GroupKind && sub.Name == s.teamBeta.Spec.MappedIDPGroup
+		})).To(BeTrue(), "RoleBinding in nsTwo should contain teamBeta's IDP group")
+	}).Should(Succeed(), "RoleBinding should be created in nsTwo with subjects for both teams")
 
 	By("verifying the TeamRoleBinding RBACReady status is True")
 	Eventually(func(g Gomega) {

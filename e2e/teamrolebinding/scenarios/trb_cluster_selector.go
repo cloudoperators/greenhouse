@@ -65,20 +65,18 @@ func (s *scenario) ExecuteClusterSelectorScenario(ctx context.Context) {
 		}),
 	)
 
-	By("verifying the ClusterRoleBinding is created on the matching remote cluster")
+	By("verifying the ClusterRoleBinding is created on the matching remote cluster with subjects for both teams")
 	remoteCRB := &rbacv1.ClusterRoleBinding{}
 	Eventually(func(g Gomega) {
 		g.Expect(s.remoteClient.Get(ctx, client.ObjectKey{Name: trb.GetRBACName()}, remoteCRB)).
 			To(Succeed(), "ClusterRoleBinding should be created on the matching cluster")
-	}).Should(Succeed(), "ClusterRoleBinding should exist on the matching cluster")
-
-	By("verifying subjects include both teams' IDP groups on the matching cluster")
-	Expect(slices.ContainsFunc(remoteCRB.Subjects, func(sub rbacv1.Subject) bool {
-		return sub.Kind == rbacv1.GroupKind && sub.Name == s.teamAlpha.Spec.MappedIDPGroup
-	})).To(BeTrue(), "subjects should contain teamAlpha's IDP group")
-	Expect(slices.ContainsFunc(remoteCRB.Subjects, func(sub rbacv1.Subject) bool {
-		return sub.Kind == rbacv1.GroupKind && sub.Name == s.teamBeta.Spec.MappedIDPGroup
-	})).To(BeTrue(), "subjects should contain teamBeta's IDP group")
+		g.Expect(slices.ContainsFunc(remoteCRB.Subjects, func(sub rbacv1.Subject) bool {
+			return sub.Kind == rbacv1.GroupKind && sub.Name == s.teamAlpha.Spec.MappedIDPGroup
+		})).To(BeTrue(), "subjects should contain teamAlpha's IDP group")
+		g.Expect(slices.ContainsFunc(remoteCRB.Subjects, func(sub rbacv1.Subject) bool {
+			return sub.Kind == rbacv1.GroupKind && sub.Name == s.teamBeta.Spec.MappedIDPGroup
+		})).To(BeTrue(), "subjects should contain teamBeta's IDP group")
+	}).Should(Succeed(), "ClusterRoleBinding should exist on the matching cluster with subjects for both teams")
 
 	By("verifying the TeamRoleBinding PropagationStatus references only the matching cluster")
 	Eventually(func(g Gomega) {
