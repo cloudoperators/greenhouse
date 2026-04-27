@@ -12,6 +12,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
@@ -28,7 +29,7 @@ func (s *scenario) ExecuteClusterSelectorScenario(ctx context.Context) {
 	var trb *greenhousev1alpha2.TeamRoleBinding
 
 	// A unique label key used only by this test run to avoid interference.
-	const labelKey = "trb-selector-test"
+	labelKey := "trb-selector-test-" + rand.String(6)
 	const labelMatch = "match"
 	const labelNoMatch = "no-match"
 
