@@ -442,7 +442,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		Expect(err).ToNot(HaveOccurred(), "there should be no error updating the UI-only plugin")
 	})
 
-	It("should reject to update a plugin when the pluginDefinition reference name changes", func() {
+	It("should accept to update a plugin when the pluginDefinition reference name changes", func() {
 		secondClusterPluginDefinition := setup.CreateClusterPluginDefinition(test.Ctx, "foo-bar")
 		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin",
 			test.WithClusterPluginDefinition(testClusterPluginDefinition.Name),
@@ -453,8 +453,11 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 
 		testPlugin.Spec.PluginDefinitionRef.Name = secondClusterPluginDefinition.Name
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
-		Expect(err).To(HaveOccurred(), "there should be an error changing the plugin's pluginDefinition name")
-		Expect(err.Error()).To(ContainSubstring(validation.FieldImmutableErrorMsg))
+		Expect(err).ToNot(HaveOccurred(), "there should be no error changing the plugin's pluginDefinition name")
+
+		testPlugin.Spec.PluginDefinitionRef.Name = testClusterPluginDefinition.Name
+		err = test.K8sClient.Update(test.Ctx, testPlugin)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error changing back the plugin's pluginDefinition name")
 
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, secondClusterPluginDefinition)
 	})

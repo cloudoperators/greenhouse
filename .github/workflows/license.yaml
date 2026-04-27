@@ -4,26 +4,11 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
-  generate-token:
-    name: Generate GitHub App Token
-    runs-on: [ ubuntu-latest ]
-    outputs:
-      token: ${{ steps.github-app-token.outputs.token }}
-    steps:
-      - name: Generate GitHub App Token
-        id: github-app-token
-        uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3.0.0
-        with:
-          app-id: ${{ secrets.CLOUDOPERATOR_APP_ID }}
-          private-key: ${{ secrets.CLOUDOPERATOR_APP_PRIVATE_KEY }}
-          permission-contents: write
-
-  build-license-eye:
-    name: Check & Fix License Headers
-    needs: generate-token
+  license:
+    name: Apply Licence Header
     permissions:
-      # Only used when `apply_header: true` else the permission is `read` see: https://github.com/cloudoperators/common/blob/8f15c13b6f4c1631c7e6f6dff5c3300452e9b5b6/.github/workflows/shared-license.yaml#L21-L22
-      contents: write 
-    uses: cloudoperators/common/.github/workflows/shared-license.yaml@c12810ffe8dfb7f4f907959e9e85632d5ed5469e # main
+      contents: write  # Only used when `apply_header: true` else the permission is `read` see: https://github.com/cloudoperators/common/blob/8f15c13b6f4c1631c7e6f6dff5c3300452e9b5b6/.github/workflows/shared-license.yaml#L21-L22
+    uses: cloudoperators/common/.github/workflows/shared-license.yaml@17d3d6b80851574fcd8c7b6e5c4fe6aee2922359
     secrets:
-      pas: ${{ needs.generate-token.outputs.token }}
+      app_id: ${{ secrets.CLOUDOPERATOR_APP_ID }}
+      private_key: ${{ secrets.CLOUDOPERATOR_APP_PRIVATE_KEY }}
