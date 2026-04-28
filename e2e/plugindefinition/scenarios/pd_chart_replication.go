@@ -19,7 +19,14 @@ import (
 
 // PDChartReplication verifies that the PluginDefinition controller replicates a Helm chart OCI artifact via the registry mirror.
 func PDChartReplication(ctx context.Context, adminClient client.Client, env *shared.TestEnv) {
-	pd := shared.PrepareOCIPodInfoPluginDefinition("podinfo-chart-replication", env.TestNamespace)
+	pd := test.NewPluginDefinition(ctx, "podinfo-chart-replication", env.TestNamespace,
+		test.WithPluginDefinitionVersion("6.7.1"),
+		test.WithPluginDefinitionHelmChart(&greenhousev1alpha1.HelmChartReference{
+			Name:       "podinfo",
+			Repository: "oci://registry:5000/greenhouse-ghcr-io-mirror/stefanprodan/charts",
+			Version:    "6.7.1",
+		}),
+	)
 
 	By("creating PluginDefinition with chart URL at registry mirror")
 	err := adminClient.Create(ctx, pd)
@@ -86,9 +93,14 @@ func PDChartReplication(ctx context.Context, adminClient client.Client, env *sha
 
 // PDChartReplicationFailure verifies that the PluginDefinition controller sets OCIReplicationFailed for a non-existent chart version.
 func PDChartReplicationFailure(ctx context.Context, adminClient client.Client, env *shared.TestEnv) {
-	pd := shared.PrepareOCIPodInfoPluginDefinition("podinfo-chart-failure", env.TestNamespace)
-	pd.Spec.Version = "99.99.99"
-	pd.Spec.HelmChart.Version = "99.99.99"
+	pd := test.NewPluginDefinition(ctx, "podinfo-chart-failure", env.TestNamespace,
+		test.WithPluginDefinitionVersion("99.99.99"),
+		test.WithPluginDefinitionHelmChart(&greenhousev1alpha1.HelmChartReference{
+			Name:       "podinfo",
+			Repository: "oci://registry:5000/greenhouse-ghcr-io-mirror/stefanprodan/charts",
+			Version:    "99.99.99",
+		}),
+	)
 
 	By("creating PluginDefinition with non-existent chart version")
 	err := adminClient.Create(ctx, pd)

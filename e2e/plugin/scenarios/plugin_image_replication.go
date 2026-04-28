@@ -22,7 +22,14 @@ import (
 
 // PluginImageReplication verifies that the Plugin controller pre-replicates container images via the registry mirror before applying the HelmRelease.
 func PluginImageReplication(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName string) {
-	pd := shared.PrepareOCIPodInfoPluginDefinition("podinfo-image-replication", env.TestNamespace)
+	pd := test.NewPluginDefinition(ctx, "podinfo-image-replication", env.TestNamespace,
+		test.WithPluginDefinitionVersion("6.7.1"),
+		test.WithPluginDefinitionHelmChart(&greenhousev1alpha1.HelmChartReference{
+			Name:       "podinfo",
+			Repository: "oci://registry:5000/greenhouse-ghcr-io-mirror/stefanprodan/charts",
+			Version:    "6.7.1",
+		}),
+	)
 
 	By("creating PluginDefinition and waiting for chart replication")
 	err := adminClient.Create(ctx, pd)
@@ -131,7 +138,14 @@ registryMirrors:
 	})
 	Expect(err).ToNot(HaveOccurred())
 
-	pd := shared.PrepareOCIPodInfoPluginDefinition("podinfo-image-failure", env.TestNamespace)
+	pd := test.NewPluginDefinition(ctx, "podinfo-image-failure", env.TestNamespace,
+		test.WithPluginDefinitionVersion("6.7.1"),
+		test.WithPluginDefinitionHelmChart(&greenhousev1alpha1.HelmChartReference{
+			Name:       "podinfo",
+			Repository: "oci://registry:5000/greenhouse-ghcr-io-mirror/stefanprodan/charts",
+			Version:    "6.7.1",
+		}),
+	)
 
 	By("creating PluginDefinition - registry:5000 does not match broken primaryMirror, replication not configured")
 	err = adminClient.Create(ctx, pd)

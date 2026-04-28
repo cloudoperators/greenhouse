@@ -15,25 +15,6 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
-// PrepareOCIPodInfoPluginDefinition returns a PluginDefinition pointing at the podinfo chart via the registry mirror URL.
-func PrepareOCIPodInfoPluginDefinition(name, namespace string) *greenhousev1alpha1.PluginDefinition {
-	return &greenhousev1alpha1.PluginDefinition{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: greenhousev1alpha1.PluginDefinitionSpec{
-			Description: "podinfo for OCI replication e2e",
-			Version:     "6.7.1",
-			HelmChart: &greenhousev1alpha1.HelmChartReference{
-				Name:       "podinfo",
-				Repository: "oci://registry:5000/greenhouse-ghcr-io-mirror/stefanprodan/charts",
-				Version:    "6.7.1",
-			},
-		},
-	}
-}
-
 // CreateMirrorConfigMap creates or updates the OCI registry mirror ConfigMap in the given namespace
 // with the standard mirror configuration used in e2e tests.
 func CreateMirrorConfigMap(ctx context.Context, adminClient client.Client, namespace string) {
