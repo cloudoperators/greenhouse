@@ -37,12 +37,10 @@ func (s *scenario) ExecuteNamespaceCreationScenario(ctx context.Context) {
 		// Delete the TRB first – this removes the RoleBindings but not the namespaces.
 		s.cleanup(ctx, trb)
 		// Explicitly remove the namespaces the TRB created on the remote cluster.
-		for _, ns := range []string{nsOne, nsTwo} {
-			nsObj := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}}
-			if err := s.remoteClient.Delete(ctx, nsObj); client.IgnoreNotFound(err) != nil {
-				GinkgoWriter.Printf("warning: could not delete namespace %s on remote cluster: %v\n", ns, err)
-			}
-		}
+		nsOneObj := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsOne}}
+		test.EventuallyDeleted(ctx, s.remoteClient, nsOneObj)
+		nsTwoObj := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsTwo}}
+		test.EventuallyDeleted(ctx, s.remoteClient, nsTwoObj)
 	})
 
 	By("creating a TeamRoleBinding with createNamespaces=true referencing two teams")

@@ -68,7 +68,7 @@ func NewScenario(
 // createTRB is a helper that creates or patches a TeamRoleBinding and returns it.
 func (s *scenario) createTRB(ctx context.Context, name string, opts ...func(*greenhousev1alpha2.TeamRoleBinding)) *greenhousev1alpha2.TeamRoleBinding {
 	GinkgoHelper()
-	trb := test.NewTeamRoleBinding(ctx, name, s.namespace, opts...)
+	trb := test.NewTeamRoleBinding(ctx, name, s.namespace)
 	_, err := clientutil.CreateOrPatch(ctx, s.adminClient, trb, func() error {
 		for _, opt := range opts {
 			opt(trb)

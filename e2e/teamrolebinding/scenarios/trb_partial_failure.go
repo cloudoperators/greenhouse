@@ -67,14 +67,6 @@ func (s *scenario) ExecutePartialFailureScenario(ctx context.Context) {
 		test.WithClusterName(s.clusterName),
 	)
 
-	By("verifying no ClusterRoleBinding is created on the remote cluster")
-	missingCRB := &rbacv1.ClusterRoleBinding{}
-	Consistently(func() bool {
-		return apierrors.IsNotFound(
-			s.remoteClient.Get(ctx, client.ObjectKey{Name: trbAllMissing.GetRBACName()}, missingCRB),
-		)
-	}, "15s", "2s").Should(BeTrue(), "ClusterRoleBinding should not be created when all teams are missing")
-
 	By("verifying RBACReady=False with TeamNotFound reason")
 	Eventually(func(g Gomega) {
 		g.Expect(s.adminClient.Get(ctx, client.ObjectKeyFromObject(trbAllMissing), trbAllMissing)).To(Succeed())
@@ -83,4 +75,12 @@ func (s *scenario) ExecutePartialFailureScenario(ctx context.Context) {
 		g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
 		g.Expect(cond.Reason).To(Equal(greenhousev1alpha2.TeamNotFound))
 	}).Should(Succeed(), "RBACReady should be False when all referenced teams are missing")
+
+	By("verifying no ClusterRoleBinding is created on the remote cluster")
+	missingCRB := &rbacv1.ClusterRoleBinding{}
+	Consistently(func() bool {
+		return apierrors.IsNotFound(
+			s.remoteClient.Get(ctx, client.ObjectKey{Name: trbAllMissing.GetRBACName()}, missingCRB),
+		)
+	}, "5s", "200ms").Should(BeTrue(), "ClusterRoleBinding should not be created when all teams are missing")
 }
