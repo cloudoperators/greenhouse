@@ -21,7 +21,7 @@ jobs:
       security-events: write
       actions: read
       contents: read
-    uses: cloudoperators/common/.github/workflows/shared-codeql.yaml@c12810ffe8dfb7f4f907959e9e85632d5ed5469e # main
+    uses: cloudoperators/common/.github/workflows/shared-codeql.yaml@17d3d6b80851574fcd8c7b6e5c4fe6aee2922359 # main
     with:
       runs-on: "['ubuntu-latest']"
       language: "['go']"
