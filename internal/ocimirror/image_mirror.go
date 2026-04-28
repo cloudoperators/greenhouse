@@ -16,6 +16,8 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/cloudoperators/greenhouse/internal/flux"
 )
 
 // manifestFetcherFunc is a function type matching the crane.Manifest signature.
@@ -199,6 +201,9 @@ func (m *ImageMirror) triggerReplication(ctx context.Context, ref string, extraO
 		crane.WithAuth(m.auth),
 		crane.WithPlatform(&v1.Platform{OS: "linux", Architecture: "amd64"}),
 	}, extraOpts...)
+	if flux.CheckIfLocalRegistry(ref) {
+		opts = append(opts, crane.Insecure)
+	}
 	manifest, err := m.manifestFetcher(ref, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch manifest for %s: %w", ref, err)
