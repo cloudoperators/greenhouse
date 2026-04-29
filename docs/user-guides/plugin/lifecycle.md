@@ -22,7 +22,7 @@ The following features are offered via Greenhouse:
 |---------------------------|:-----------:|
 | Automatic Updates         | 🟩          |
 | Automatic Rollback on Failing Updates         | 🟩          |
-| Version Constraining/Pinning | 🟨       |
+| Version Constraining/Pinning | 🟩        |
 | Staged Rollout            | 🟨          |
 
 ## Involved actors
@@ -35,9 +35,8 @@ Plugin developers ensure that PluginDefinition versions follow strict [SemVer](h
 They control
 
 - The code of the Plugin including the Helm chart and possible frontend code.
-- Default PluginDefinition
-- Default Catalog(s)
-- The repository where the PluginDefinitions and Catalogs live in
+- The PluginDefinition manifests
+- The repository where the PluginDefinitions live in
 
 ### Plugin Consumers
 
@@ -45,7 +44,7 @@ People configuring Plugins in their Organizations.
 
 They control the actual resources deployed to their Greenhouse Organization:
 
-- Custom Catalogs
+- Catalogs
 - PluginDefinitions
 - PluginPresets (& Plugins)
 
@@ -53,33 +52,32 @@ They control the actual resources deployed to their Greenhouse Organization:
 
 #### [Catalogs](./../../reference/api/index.html#greenhouse.sap/v1alpha1.Catalog)
 
-Catalogs enable Greenhouse Organizations to import the PluginDefinitions they want to use. Leveraging the underlying [flux](https://fluxcd.io/) machinery, a Catalog item targets a `kustomization.yaml` living in a git repository.
+Catalogs enable Greenhouse Organizations to import the PluginDefinitions they want to use.
 
-This might be either
+A Catalog resource points to a Git repository that contains PluginDefinition (or ClusterPluginDefinition) manifests. It is defined by:
 
-- the default kustomization provided by Plugin developers
-- or a custom kustomization suited to the needs of your Organization
+- **`spec.source.git.url`** — the URL of the Git repository containing the PluginDefinition manifests.
+- **`spec.source.git.ref`** — an optional Git reference to pin the catalog to a specific `branch`, `tag`, or `sha` (commit). If omitted, defaults to the repository's default branch.
+- **`spec.source.path`** — an optional path within the repository where the manifests are located (defaults to the repository root).
+- **`spec.overrides`** — an optional list of overrides to rename/alias PluginDefinitions via Kustomize patches. Each override specifies a `name` (original PluginDefinition name) and an `alias` (new name to apply).
 
-The Catalog resource allows you to target the `kustomization.yaml` via `branch`, `tag` or `commit` in the `.Spec.Source.Git.Ref` field.
+Under the hood, the Catalog controller creates a Flux [GitRepository](https://fluxcd.io/flux/components/source/gitrepositories/) and a [Kustomization](https://fluxcd.io/flux/components/kustomize/kustomizations/) to continuously sync PluginDefinitions from the referenced Git repository into the Organization namespace.
 
-#### [PluginDefinitions](./../../reference/api/index.htmlgreenhouse.sap/v1alpha1.PluginDefinition)
+#### [PluginDefinitions](./../../reference/api/index.html#greenhouse.sap/v1alpha1.PluginDefinition)
 
-PluginDefinitions bundle backend and frontend packages with configuration. Backends are shipped as [Helm charts](https://helm.sh/) and frontends as [React components](https://react.dev/reference/react/Component).
+PluginDefinitions bundle backend and frontend packages with configuration. Backends are shipped as [Helm charts](https://helm.sh/) and frontends as [Juno Applications](https://github.com/cloudoperators/juno).
 
 All PluginDefinitions are versioned (`.Spec.Version`) with [SemVer](https://semver.org/).
 
-#### [PluginPresets](./../../reference/api/index.htmlgreenhouse.sap/v1alpha1.PluginPresets)
+#### [PluginPresets](./../../reference/api/index.html#greenhouse.sap/v1alpha1.PluginPreset)
 
 PluginPresets allow you to configure a set of Plugins to be deployed to a set of Clusters referencing a PluginDefinition.
-
-🟨 In development:
-PluginPresets allow to pin or constrain deployed versions via the `.Spec.PluginDefinitionReference.Version` field with [semantic version constraints](https://jubianchi.github.io/semver-check/).
 
 ### Features
 
 #### Automatic Updates
 
-**All** updates and upgrades (`major`, `minor` and `patch`) made to a PluginDefinition are shipped to all referencing Plugin(Presets) by default via the Greenhouse controller if no version constraint is set.
+**All** updates and upgrades (`major`, `minor` and `patch`) made to a PluginDefinition are shipped to all referencing Plugin(Presets) by default via the Greenhouse controller.
 
 Greenhouse per default follows a fix forward update strategy.
 
@@ -91,43 +89,82 @@ The underlying flux machinery's [`.spec.upgrade.remediation` is set to `rollback
 
 #### Version Pinning and Constraints
 
-Until the `Plugin.Spec.PluginDefinitionReference.Version` field and its automation is fully implemented, we suggest to use custom Catalogs to maintain versioned PluginDefinitions in your Organization. You can do so by
+Versioning of a PluginDefinition is achieved with the Catalog resource. Since a Catalog references a Git repository via `spec.source.git`, you control which PluginDefinition versions are available in your Organization by controlling the Git reference:
 
-- pinning versions of PluginDefinitions
-- pinning version of a Catalog
-
-versioned in a git repository.
+- **Branch tracking** (e.g. `branch: main`): You always get the latest PluginDefinitions as they are committed to the branch. This is the default behavior and enables automatic updates.
+- **Tag pinning** (e.g. `tag: "kube-monitoring/1.2.3"`): You only get PluginDefinitions as of that tagged commit. Updates only happen when you change the tag reference.
+- **SHA pinning** (e.g. `sha: "a1b2c3d4e5f6..."`): You freeze to an exact commit. This provides the strongest version guarantee.
 
 ##### Pinning PluginDefinition versions
 
-Maintain a `kustomization.yaml` file targeting specific PluginDefinitions as resources, via git `commits`, `tags` or `branches`.
-E.g.:
+Reference by branch (always track latest):
 
 ```yaml
-resources:
-# reference by branch
-- https://raw.githubusercontent.com/cloudoperators/greenhouse-extensions/refs/heads/main/cert-manager/plugindefinition.yaml
-# reference by commit
-- https://raw.githubusercontent.com/cloudoperators/greenhouse-extensions/6c41128df8d9ff72c63aee7e3d3122468490ea21/ingress-nginx/plugindefinition.yaml
-# reference by tag
-- https://raw.githubusercontent.com/cloudoperators/greenhouse-extensions/refs/tags/v0.0.2/kube-monitoring/plugindefinition.yaml
+apiVersion: greenhouse.sap/v1alpha1
+kind: Catalog
+metadata:
+  name: my-catalog
+  namespace: my-org
+spec:
+  source:
+    git:
+      url: https://github.com/cloudoperators/greenhouse-extensions
+      ref:
+        branch: main
+    path: plugindefinitions
 ```
 
-Point your Catalog to this `kustomization.yaml` and **alias** the PluginDefinition `name`:
+Reference by tag (pin to a specific release):
+
+```yaml
+apiVersion: greenhouse.sap/v1alpha1
+kind: Catalog
+metadata:
+  name: my-catalog-pinned
+  namespace: my-org
+spec:
+  source:
+    git:
+      url: https://github.com/cloudoperators/greenhouse-extensions
+      ref:
+        tag: "kube-monitoring/1.2.3"
+    path: plugindefinitions
+```
+
+Reference by commit SHA (freeze to exact state):
+
+```yaml
+apiVersion: greenhouse.sap/v1alpha1
+kind: Catalog
+metadata:
+  name: my-catalog-frozen
+  namespace: my-org
+spec:
+  source:
+    git:
+      url: https://github.com/cloudoperators/greenhouse-extensions
+      ref:
+        sha: "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
+    path: plugindefinitions
+```
+
+##### Overriding PluginDefinition names
+
+You can use `spec.overrides` to alias PluginDefinitions, for example to run multiple configurations of the same PluginDefinition side by side:
 
 ```yaml
 apiVersion: greenhouse.sap/v1alpha1
 kind: Catalog
 metadata:
   name: my-custom-catalog
-  namespace: {{ .Release.Namespace }}
+  namespace: my-org
 spec:
   source:
     git:
-      url: https://<url-to-repo-with-kustomization>
+      url: https://github.com/my-org/my-plugin-catalog
       ref:
         branch: main
-    path: path/to/kustomization
+    path: plugindefinitions
   overrides:
     - name: cert-manager
       alias: cert-manager-custom
@@ -135,78 +172,39 @@ spec:
       alias: ingress-nginx-custom
     - name: kube-monitoring
       alias: kube-monitoring-custom
-
-```
-
-!Note:
-> There is currently some restrictions in targeting raw data on Github Enterprise installations with flux. Maintain the `kustomization.yaml` together with the targeted PluginDefinitions in one repository targeted by the Catalog instead.
-
-##### Pinning Catalogs
-
-Point your Catalog to an existing `kustomization.yaml` and optionally alias the PluginDefintion `name`:
-
-```yaml
-apiVersion: greenhouse.sap/v1alpha1
-kind: Catalog
-metadata:
-  name: greenhouse-extensions-pinned
-  namespace: {{ .Release.Namespace }}
-spec:
-  source:
-    git:
-      url: https://github.com/cloudoperators/greenhouse-extensions
-      ref:
-        sha: <COMMIT_SHA>
-  overrides:
-    - name: alerts
-      alias: alerts-pinned
-    - name: audit-logs
-      alias: audit-logs-pinned
-    ...
-
 ```
 
 #### Staged rollouts
 
-Until Greenhouse has an inhouse solution for staging rollouts, we suggest you to use [renovate](https://github.com/renovatebot/renovate) configuration in combination to `git tags` to stage rollouts of PluginDefinition versions.
+Until Greenhouse has an inhouse solution for staging rollouts, we suggest you use [renovate](https://github.com/renovatebot/renovate) configuration in combination with `git tags` to stage rollouts of PluginDefinition versions.
 
 The following steps are needed:
 
-1. Plugin developers need to `git tag` their PluginDefinitions and/or Catalogs.
-2. Have renovate open PRs to update the resources in your `kustomization.yaml` or in your `catalog.yaml`.
+1. Plugin developers need to `git tag` their PluginDefinitions and/or Catalogs. The tagging convention is `<plugin-name>/<version>` (e.g. `kube-monitoring/1.2.3`).
+
+    > **Tip:** Automate this with a CI workflow that reads `.spec.version` from `plugindefinition.yaml` on push to `main` and creates the corresponding git tag.
+
+2. Have renovate open PRs to update the resources in your Catalogs. The following example shows a renovate configuration for a Catalog maintained with a Helm Chart that expects values to be nested in `common.catalogs`:
 
     E.g.
 
-    <!-- TODO: Actually test this config! -->
     ```json
     "customManagers": [
-      {
-         "customType": "regex",
-         "description": "Bump kube-monitoring version in kustomize",
-         "managerFilePatterns": [
-            "/(^|/)kustomization\\.ya?ml$/"
-         ],
-         "matchStrings": [
-            "https://raw.githubusercontent.com/cloudoperators/greenhouse-extensions/refs/tags/(?<currentValue>.*?)/kube-monitoring/plugindefinition.yaml"
-         ],
-         "datasource": "git-tags",
-         "depNameTemplate": "cloudoperators/kube-monitoring"
-      }
-    ]
+    {
+      "customType": "jsonata",
+      "fileFormat": "yaml",
+      "description": "Update catalog tags in values.yaml (github.com)",
+      "managerFilePatterns": [
+        "/values\\.yaml$/"
+      ],
+      "matchStrings": [
+        "common.catalogs.*.sources[ref.tag and $match(ref.tag, /^[^\\/]+\\/\\d+\\.\\d+\\.\\d+$/) and $contains(repository, 'github.com')].({\"depName\": $split(ref.tag, '/')[0], \"packageName\": $substringAfter(repository, 'https://github.com/'), \"currentValue\": ref.tag, \"datasource\": 'github-tags', \"registryUrl\": 'https://github.com', \"versioning\": 'regex:^' & $split(ref.tag, '/')[0] & '/(?<major>\\\\d+)\\\\.(?<minor>\\\\d+)\\\\.(?<patch>\\\\d+)$'})"
+      ]
+    }
+
+  ],
     ```
 
-3. Maintain different `kustomization.yaml` or `catalog.yaml` for your stages.
+1. Maintain different Catalogs for your stages.
 
-    ```md
-    catalogs/
-    ├── bronze/
-    │   └── kustomization.yaml
-    ├── silver/
-    │   └── kustomization.yaml
-    └── gold/
-        └── kustomization.yaml
-
-    ```
-
-<!-- Need to actually test a valid automerge with  -->
-4. Set renovate PRs to `automerge` and configure a `schedule` for the different stages. With no manual interaction (e.g. blocking PRs) you will roll through your stages based on your schedule.
+2. Set renovate PRs to `automerge` and configure a `schedule` for the different stages. With no manual interaction (e.g. blocking PRs) you will roll through your stages based on your schedule.
