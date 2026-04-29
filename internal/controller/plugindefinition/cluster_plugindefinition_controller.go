@@ -24,8 +24,9 @@ import (
 
 type ClusterPluginDefinitionReconciler struct {
 	client.Client
-	Scheme   *runtime.Scheme
-	recorder events.EventRecorder
+	Scheme              *runtime.Scheme
+	recorder            events.EventRecorder
+	OCIMirroringEnabled bool
 }
 
 func (r *ClusterPluginDefinitionReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
@@ -81,7 +82,7 @@ func (r *ClusterPluginDefinitionReconciler) EnsureCreated(ctx context.Context, o
 		recorder:            r.recorder,
 		pluginDef:           clusterDef,
 		namespaceName:       flux.HelmRepositoryDefaultNamespace,
-		ociMirroringEnabled: false,
+		ociMirroringEnabled: r.OCIMirroringEnabled,
 	}
 
 	helmRepo, err := h.createUpdateHelmRepository(ctx)
@@ -89,17 +90,15 @@ func (r *ClusterPluginDefinitionReconciler) EnsureCreated(ctx context.Context, o
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
+	if replicationErr := h.ensureChartReplication(ctx); replicationErr != nil {
+		return ctrl.Result{}, lifecycle.Failed, replicationErr
+	}
+
 	helmChart, err := h.createUpdateHelmChart(ctx, helmRepo)
 	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	h.setHelmChartReadyCondition(ctx, helmChart)
-
-	// OCI replication for ClusterPluginDefinitions is not yet supported.
-	clusterDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
-		greenhousev1alpha1.OCIReplicationReadyCondition,
-		greenhousev1alpha1.OCIReplicationNotConfiguredReason,
-		"OCI replication for ClusterPluginDefinitions is not yet supported"))
 
 	return ctrl.Result{}, lifecycle.Success, nil
 }

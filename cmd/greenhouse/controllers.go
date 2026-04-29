@@ -39,7 +39,7 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 
 	"catalog":                 startCatalogReconciler,
 	"pluginDefinition":        startPluginDefinitionReconciler,
-	"clusterPluginDefinition": (&plugindefinitioncontroller.ClusterPluginDefinitionReconciler{}).SetupWithManager,
+	"clusterPluginDefinition": startClusterPluginDefinitionReconciler,
 
 	// Cluster controllers
 	"bootstrap":  (&clustercontrollers.BootstrapReconciler{}).SetupWithManager,
@@ -93,6 +93,12 @@ func startPluginReconciler(name string, mgr ctrl.Manager) error {
 
 func startPluginDefinitionReconciler(name string, mgr ctrl.Manager) error {
 	return (&plugindefinitioncontroller.PluginDefinitionReconciler{
+		OCIMirroringEnabled: featureFlags.IsOCIMirroringEnabled(),
+	}).SetupWithManager(name, mgr)
+}
+
+func startClusterPluginDefinitionReconciler(name string, mgr ctrl.Manager) error {
+	return (&plugindefinitioncontroller.ClusterPluginDefinitionReconciler{
 		OCIMirroringEnabled: featureFlags.IsOCIMirroringEnabled(),
 	}).SetupWithManager(name, mgr)
 }
