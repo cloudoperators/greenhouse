@@ -25,8 +25,7 @@ import (
 )
 
 const (
-	remoteClusterName    = "remote-trb-cluster"
-	supportGroupTeamName = "test-trb-support-team"
+	remoteClusterName = "remote-trb-cluster"
 )
 
 var (
@@ -61,10 +60,6 @@ var _ = BeforeSuite(func() {
 
 	env = env.WithOrganization(ctx, adminClient, "./testdata/organization.yaml")
 
-	By("onboarding the remote cluster")
-	shared.OnboardRemoteCluster(ctx, adminClient, env.RemoteKubeConfigBytes, remoteClusterName, env.TestNamespace, supportGroupTeamName)
-	shared.ClusterIsReady(ctx, adminClient, remoteClusterName, env.TestNamespace)
-
 	By("creating shared Teams")
 	teamAlpha = test.NewTeam(ctx, "trb-team-alpha", env.TestNamespace,
 		test.WithMappedIDPGroup("idp-group-trb-alpha"),
@@ -79,6 +74,10 @@ var _ = BeforeSuite(func() {
 	)
 	err = adminClient.Create(ctx, teamBeta)
 	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred(), "there should be no error creating teamBeta")
+
+	By("onboarding the remote cluster")
+	shared.OnboardRemoteCluster(ctx, adminClient, env.RemoteKubeConfigBytes, remoteClusterName, env.TestNamespace, teamAlpha.Name)
+	shared.ClusterIsReady(ctx, adminClient, remoteClusterName, env.TestNamespace)
 
 	By("creating shared TeamRole")
 	teamRole = test.NewTeamRole(ctx, "trb-test-role", env.TestNamespace)

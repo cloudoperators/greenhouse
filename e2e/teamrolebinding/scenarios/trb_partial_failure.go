@@ -12,6 +12,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
@@ -25,12 +26,15 @@ import (
 func (s *scenario) ExecutePartialFailureScenario(ctx context.Context) {
 	GinkgoHelper()
 
+	// Unique suffix per run to avoid collisions with leftover resources.
+	suffix := rand.String(6)
+
 	// ── Sub-case 1: one valid, one non-existent ──────────────────────────────
 	By("Sub-case 1: one valid team and one non-existent team")
 	var trbPartial *greenhousev1alpha2.TeamRoleBinding
 	DeferCleanup(func() { s.cleanup(ctx, trbPartial) })
 
-	trbPartial = s.createTRB(ctx, "trb-partial",
+	trbPartial = s.createTRB(ctx, "trb-partial-"+suffix,
 		test.WithTeamRoleRef(s.teamRole.Name),
 		test.WithTeamRefs(s.teamAlpha.Name, "non-existent-team"),
 		test.WithClusterName(s.clusterName),
@@ -61,7 +65,7 @@ func (s *scenario) ExecutePartialFailureScenario(ctx context.Context) {
 	var trbAllMissing *greenhousev1alpha2.TeamRoleBinding
 	DeferCleanup(func() { s.cleanup(ctx, trbAllMissing) })
 
-	trbAllMissing = s.createTRB(ctx, "trb-all-missing",
+	trbAllMissing = s.createTRB(ctx, "trb-all-missing-"+suffix,
 		test.WithTeamRoleRef(s.teamRole.Name),
 		test.WithTeamRefs("ghost-team-1", "ghost-team-2"),
 		test.WithClusterName(s.clusterName),
