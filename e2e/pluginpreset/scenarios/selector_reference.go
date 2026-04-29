@@ -180,7 +180,7 @@ func PluginPresetSelectorReference(ctx context.Context, adminClient, remoteClien
 								selectorTestLabel: "true",
 							},
 						},
-						Expression: `spec.optionValues.filter(v, v.name == optionUIMessage)[0].value`,
+						Expression: `spec.optionValues.filter(v, v.name == "ui.message")[0].value`,
 					},
 				},
 			},

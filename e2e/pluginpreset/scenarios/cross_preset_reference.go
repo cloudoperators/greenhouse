@@ -131,7 +131,7 @@ func PluginPresetCrossPresetReference(ctx context.Context, adminClient, remoteCl
 					Ref: &greenhousev1alpha1.ExternalValueSource{
 						Kind:       greenhousev1alpha1.PluginPresetKind,
 						Name:       sourcePreset.Name,
-						Expression: `${spec.optionValues.filter(v, v.name == optionUIMessage)[0].value}`,
+						Expression: `${spec.optionValues.filter(v, v.name == "ui.message")[0].value}`,
 					},
 				},
 			},
