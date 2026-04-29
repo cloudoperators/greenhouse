@@ -41,7 +41,7 @@ require (
 	github.com/google/cel-go v0.28.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-containerregistry v0.21.5
-	github.com/google/go-github/v84 v84.0.0
+	github.com/google/go-github/v85 v85.0.0
 	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/jeremywohl/flatten/v2 v2.0.0-20211013061545-07e4a09fb8e4
 	github.com/oklog/run v1.2.0
