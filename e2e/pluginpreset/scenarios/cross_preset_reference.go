@@ -59,11 +59,11 @@ func PluginPresetCrossPresetReference(ctx context.Context, adminClient, remoteCl
 		ReleaseNamespace: env.TestNamespace,
 		OptionValues: []greenhousev1alpha1.PluginOptionValue{
 			{
-				Name:  "replicaCount",
+				Name:  optionReplicaCount,
 				Value: test.MustReturnJSONFor("1"),
 			},
 			{
-				Name:       "ui.message",
+				Name:       optionUIMessage,
 				Expression: &sourceExpressionStr,
 			},
 		},
@@ -94,7 +94,7 @@ func PluginPresetCrossPresetReference(ctx context.Context, adminClient, remoteCl
 		// Verify expression is resolved
 		var found bool
 		for _, ov := range sourcePlugin.Spec.OptionValues {
-			if ov.Name == "ui.message" {
+			if ov.Name == optionUIMessage {
 				found = true
 				g.Expect(ov.Expression).To(BeNil(), "Source expression should be resolved")
 				g.Expect(ov.Value).ToNot(BeNil(), "Source value should be set")
@@ -122,16 +122,16 @@ func PluginPresetCrossPresetReference(ctx context.Context, adminClient, remoteCl
 		ReleaseNamespace: env.TestNamespace,
 		OptionValues: []greenhousev1alpha1.PluginOptionValue{
 			{
-				Name:  "replicaCount",
+				Name:  optionReplicaCount,
 				Value: test.MustReturnJSONFor("1"),
 			},
 			{
-				Name: "ui.message",
+				Name: optionUIMessage,
 				ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
 					Ref: &greenhousev1alpha1.ExternalValueSource{
 						Kind:       greenhousev1alpha1.PluginPresetKind,
 						Name:       sourcePreset.Name,
-						Expression: `${spec.optionValues.filter(v, v.name == "ui.message")[0].value}`,
+						Expression: `${spec.optionValues.filter(v, v.name == optionUIMessage)[0].value}`,
 					},
 				},
 			},
@@ -163,7 +163,7 @@ func PluginPresetCrossPresetReference(ctx context.Context, adminClient, remoteCl
 		// Verify reference is resolved - no valueFrom should remain
 		var found bool
 		for _, ov := range consumerPlugin.Spec.OptionValues {
-			if ov.Name == "ui.message" {
+			if ov.Name == optionUIMessage {
 				found = true
 				g.Expect(ov.ValueFrom).To(BeNil(), "ValueFrom should be resolved and removed from consumer Plugin")
 				g.Expect(ov.Expression).To(BeNil(), "Expression should not exist in consumer Plugin")
@@ -185,12 +185,12 @@ func PluginPresetCrossPresetReference(ctx context.Context, adminClient, remoteCl
 
 		var sourceVal, consumerVal string
 		for _, ov := range sourcePlugin.Spec.OptionValues {
-			if ov.Name == "ui.message" {
+			if ov.Name == optionUIMessage {
 				sourceVal = string(ov.Value.Raw)
 			}
 		}
 		for _, ov := range consumerPlugin.Spec.OptionValues {
-			if ov.Name == "ui.message" {
+			if ov.Name == optionUIMessage {
 				consumerVal = string(ov.Value.Raw)
 			}
 		}

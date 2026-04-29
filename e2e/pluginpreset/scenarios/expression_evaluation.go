@@ -21,12 +21,6 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
-const (
-	optionUIMessage       = "ui.message"
-	optionIngressHostname = "ingress.hostname"
-	optionReplicaCount    = "replicaCount"
-)
-
 // PluginPresetExpressionEvaluation tests that CEL expressions in PluginPreset.spec.plugin.optionValues
 // are evaluated during PluginPreset reconciliation and the resulting Plugin contains only resolved values.
 func PluginPresetExpressionEvaluation(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName, teamName string) {

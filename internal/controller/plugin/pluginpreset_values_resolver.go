@@ -6,6 +6,7 @@ package plugin
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -14,6 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/helm"
@@ -168,7 +170,27 @@ func (r *PluginPresetReconciler) resolveRef(
 	}
 }
 
+// resolvePluginPresetRef resolves a reference to PluginPreset(s).
+// Supports both name-based and selector-based resolution.
 func (r *PluginPresetReconciler) resolvePluginPresetRef(
+	ctx context.Context,
+	ref *greenhousev1alpha1.ExternalValueSource,
+	cluster *greenhousev1alpha1.Cluster,
+	namespace string,
+) (any, error) {
+
+	switch {
+	case ref.Name != "":
+		return r.resolvePluginPresetRefByName(ctx, ref, cluster, namespace)
+	case ref.Selector != nil:
+		return r.resolvePluginPresetRefBySelector(ctx, ref, cluster, namespace)
+	default:
+		return nil, errors.New("either name or selector must be set in valueFrom.ref for PluginPreset")
+	}
+}
+
+// resolvePluginPresetRefByName resolves a reference to a single PluginPreset by name.
+func (r *PluginPresetReconciler) resolvePluginPresetRefByName(
 	ctx context.Context,
 	ref *greenhousev1alpha1.ExternalValueSource,
 	cluster *greenhousev1alpha1.Cluster,
@@ -181,8 +203,7 @@ func (r *PluginPresetReconciler) resolvePluginPresetRef(
 	if err := r.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: namespace}, refPreset); err != nil {
 		return nil, fmt.Errorf("failed to get PluginPreset %s: %w", ref.Name, err)
 	}
-
-	log.Info("Resolving reference to PluginPreset",
+	log.Info("Resolving reference to PluginPreset by name",
 		"name", ref.Name,
 		"expression", ref.Expression)
 
@@ -190,41 +211,81 @@ func (r *PluginPresetReconciler) resolvePluginPresetRef(
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve expressions in referenced PluginPreset %s: %w", ref.Name, err)
 	}
-
-	celOptionValues := make([]map[string]any, 0, len(resolvedRefValues))
-	for _, ov := range resolvedRefValues {
-		item := map[string]any{
-			"name": ov.Name,
-		}
-		if ov.Value != nil && len(ov.Value.Raw) > 0 {
-			var val any
-			if err := json.Unmarshal(ov.Value.Raw, &val); err != nil {
-				return nil, fmt.Errorf("failed to unmarshal value for %s: %w", ov.Name, err)
-			}
-			item["value"] = val
-		}
-		celOptionValues = append(celOptionValues, item)
-	}
-
-	celObject := map[string]any{
-		"metadata": map[string]any{
-			"name":      refPreset.Name,
-			"namespace": refPreset.Namespace,
-		},
-		"spec": map[string]any{
-			"optionValues": celOptionValues,
-		},
-	}
-
+	celObject := buildCELObject(refPreset.Name, refPreset.Namespace, resolvedRefValues)
 	value, err := evaluateCELWithObject(ref.Expression, celObject)
 	if err != nil {
 		return nil, fmt.Errorf("failed to evaluate reference expression: %w", err)
 	}
-
 	return value, nil
 }
 
+// resolvePluginPresetRefBySelector resolves references to multiple PluginPresets by label selector.
+// The CEL expression is evaluated against each matching PluginPreset and results are collected.
+func (r *PluginPresetReconciler) resolvePluginPresetRefBySelector(
+	ctx context.Context,
+	ref *greenhousev1alpha1.ExternalValueSource,
+	cluster *greenhousev1alpha1.Cluster,
+	namespace string,
+) (any, error) {
+
+	log := ctrl.LoggerFrom(ctx)
+
+	selector, err := metav1.LabelSelectorAsSelector(ref.Selector)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse label selector: %w", err)
+	}
+	presetList := &greenhousev1alpha1.PluginPresetList{}
+	if err := r.List(ctx, presetList,
+		client.InNamespace(namespace),
+		client.MatchingLabelsSelector{Selector: selector},
+	); err != nil {
+		return nil, fmt.Errorf("failed to list PluginPresets by selector: %w", err)
+	}
+	if len(presetList.Items) == 0 {
+		log.Info("No PluginPresets found matching selector", "selector", ref.Selector)
+		return []any{}, nil
+	}
+	log.Info("Resolving reference to PluginPresets by selector",
+		"selector", ref.Selector,
+		"matchCount", len(presetList.Items),
+		"expression", ref.Expression)
+	results := make([]any, 0, len(presetList.Items))
+	for i := range presetList.Items {
+		refPreset := &presetList.Items[i]
+		resolvedRefValues, err := r.resolveExpressionsForPreset(ctx, refPreset, cluster)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve expressions in referenced PluginPreset %s: %w", refPreset.Name, err)
+		}
+		celObject := buildCELObject(refPreset.Name, refPreset.Namespace, resolvedRefValues)
+		value, err := evaluateCELWithObject(ref.Expression, celObject)
+		if err != nil {
+			return nil, fmt.Errorf("failed to evaluate reference expression for PluginPreset %s: %w", refPreset.Name, err)
+		}
+		results = appendToResults(results, value)
+	}
+	return results, nil
+}
+
+// resolvePluginRef resolves a reference to Plugin(s).
+// Supports both name-based and selector-based resolution.
 func (r *PluginPresetReconciler) resolvePluginRef(
+	ctx context.Context,
+	ref *greenhousev1alpha1.ExternalValueSource,
+	namespace string,
+) (any, error) {
+
+	switch {
+	case ref.Name != "":
+		return r.resolvePluginRefByName(ctx, ref, namespace)
+	case ref.Selector != nil:
+		return r.resolvePluginRefBySelector(ctx, ref, namespace)
+	default:
+		return nil, errors.New("either name or selector must be set in valueFrom.ref for Plugin")
+	}
+}
+
+// resolvePluginRefByName resolves a reference to a single Plugin by name.
+func (r *PluginPresetReconciler) resolvePluginRefByName(
 	ctx context.Context,
 	ref *greenhousev1alpha1.ExternalValueSource,
 	namespace string,
@@ -236,42 +297,94 @@ func (r *PluginPresetReconciler) resolvePluginRef(
 	if err := r.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: namespace}, refPlugin); err != nil {
 		return nil, fmt.Errorf("failed to get Plugin %s: %w", ref.Name, err)
 	}
-
-	log.Info("Resolving reference to Plugin",
+	log.Info("Resolving reference to Plugin by name",
 		"name", ref.Name,
 		"expression", ref.Expression)
+	celObject := buildCELObject(refPlugin.Name, refPlugin.Namespace, refPlugin.Spec.OptionValues)
+	value, err := evaluateCELWithObject(ref.Expression, celObject)
+	if err != nil {
+		return nil, fmt.Errorf("failed to evaluate reference expression: %w", err)
+	}
+	return value, nil
+}
 
-	celOptionValues := make([]map[string]any, 0, len(refPlugin.Spec.OptionValues))
-	for _, ov := range refPlugin.Spec.OptionValues {
+// resolvePluginRefBySelector resolves references to multiple Plugins by label selector.
+// The CEL expression is evaluated against each matching Plugin and results are collected.
+func (r *PluginPresetReconciler) resolvePluginRefBySelector(
+	ctx context.Context,
+	ref *greenhousev1alpha1.ExternalValueSource,
+	namespace string,
+) (any, error) {
+
+	log := ctrl.LoggerFrom(ctx)
+
+	selector, err := metav1.LabelSelectorAsSelector(ref.Selector)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse label selector: %w", err)
+	}
+	pluginList := &greenhousev1alpha1.PluginList{}
+	if err := r.List(ctx, pluginList,
+		client.InNamespace(namespace),
+		client.MatchingLabelsSelector{Selector: selector},
+	); err != nil {
+		return nil, fmt.Errorf("failed to list Plugins by selector: %w", err)
+	}
+	if len(pluginList.Items) == 0 {
+		log.Info("No Plugins found matching selector", "selector", ref.Selector)
+		return []any{}, nil
+	}
+	log.Info("Resolving reference to Plugins by selector",
+		"selector", ref.Selector,
+		"matchCount", len(pluginList.Items),
+		"expression", ref.Expression)
+	results := make([]any, 0, len(pluginList.Items))
+	for i := range pluginList.Items {
+		refPlugin := &pluginList.Items[i]
+		celObject := buildCELObject(refPlugin.Name, refPlugin.Namespace, refPlugin.Spec.OptionValues)
+		value, err := evaluateCELWithObject(ref.Expression, celObject)
+		if err != nil {
+			return nil, fmt.Errorf("failed to evaluate reference expression for Plugin %s: %w", refPlugin.Name, err)
+		}
+		results = appendToResults(results, value)
+	}
+	return results, nil
+}
+
+// buildCELObject creates a flat CEL-friendly object structure from option values.
+func buildCELObject(name, namespace string, optionValues []greenhousev1alpha1.PluginOptionValue) map[string]any {
+	celOptionValues := make([]map[string]any, 0, len(optionValues))
+	for _, ov := range optionValues {
 		item := map[string]any{
 			"name": ov.Name,
 		}
 		if ov.Value != nil && len(ov.Value.Raw) > 0 {
 			var val any
-			if err := json.Unmarshal(ov.Value.Raw, &val); err != nil {
-				return nil, fmt.Errorf("failed to unmarshal value for %s: %w", ov.Name, err)
+			if err := json.Unmarshal(ov.Value.Raw, &val); err == nil {
+				item["value"] = val
 			}
-			item["value"] = val
 		}
 		celOptionValues = append(celOptionValues, item)
 	}
-
-	celObject := map[string]any{
+	return map[string]any{
 		"metadata": map[string]any{
-			"name":      refPlugin.Name,
-			"namespace": refPlugin.Namespace,
+			"name":      name,
+			"namespace": namespace,
 		},
 		"spec": map[string]any{
 			"optionValues": celOptionValues,
 		},
 	}
+}
 
-	value, err := evaluateCELWithObject(ref.Expression, celObject)
-	if err != nil {
-		return nil, fmt.Errorf("failed to evaluate reference expression: %w", err)
+// appendToResults appends a value to results, flattening slices to avoid nested arrays.
+func appendToResults(results []any, value any) []any {
+	switch v := value.(type) {
+	case []any:
+		results = append(results, v...)
+	default:
+		results = append(results, value)
 	}
-
-	return value, nil
+	return results
 }
 
 // evaluateCELWithObject evaluates a CEL expression against an object map.

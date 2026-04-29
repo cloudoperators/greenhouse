@@ -95,4 +95,8 @@ var _ = Describe("PluginPreset E2E", Ordered, func() {
 	It("should resolve cross-PluginPreset references where source uses CEL expressions", func() {
 		scenarios.PluginPresetCrossPresetReference(ctx, adminClient, remoteClient, env, remoteClusterName, team.Name)
 	})
+
+	It("should resolve cross-PluginPreset references using label selector", func() {
+		scenarios.PluginPresetSelectorReference(ctx, adminClient, remoteClient, env, remoteClusterName, team.Name)
+	})
 })
