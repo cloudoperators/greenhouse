@@ -103,7 +103,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		scenarios.FluxControllerPluginDeletePolicyRetain(ctx, adminClient, env, remoteClusterName, team.Name)
 	})
 
-	It("should resolve option values from direct plugin reference", func() {
+	It("should onboard remote OIDC cluster", Label("scenario:p2p"), func() {
 		By("setting up cluster role binding for OIDC on remote cluster")
 		expect.SetupOIDCClusterRoleBinding(ctx, remoteClient, remoteOIDCClusterRoleBindingName, remoteIntegrationCluster, env.TestNamespace)
 
@@ -118,7 +118,9 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 
 		By("verifying the cluster status is ready")
 		shared.ClusterIsReady(ctx, adminClient, remoteIntegrationCluster, env.TestNamespace)
+	})
 
+	It("should resolve option values from direct plugin reference", func() {
 		By("executing the plugin integration scenario with direct plugin reference")
 		scenarios.PluginIntegrationByDirectReference(ctx, adminClient, remoteClient, env, remoteIntegrationCluster)
 	})
@@ -126,5 +128,9 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 	It("should resolve option values from plugin reference by label selector", func() {
 		By("executing the plugin integration scenario with plugin reference by label selector")
 		scenarios.PluginIntegrationBySelector(ctx, adminClient, remoteClient, env, remoteIntegrationCluster)
+	})
+
+	It("should reconcile tracking plugin when referenced plugin exposed services change", Label("scenario:p2p-xsvc"), func() {
+		scenarios.PluginIntegrationExposedServiceChecksum(ctx, adminClient, env, remoteIntegrationCluster)
 	})
 })

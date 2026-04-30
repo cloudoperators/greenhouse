@@ -236,9 +236,9 @@ var _ = Describe("Plugin option checksum", Ordered, func() {
 			}
 			plugin1.Spec.OptionValues = optionValues1
 			plugin2.Spec.OptionValues = optionValues2
-			hashedValues1, err := helm.CalculatePluginOptionChecksum(test.Ctx, test.K8sClient, &plugin1)
+			hashedValues1, err := helm.CalculatePluginOptionChecksum(test.Ctx, test.K8sClient, &plugin1, nil)
 			Expect(err).ToNot(HaveOccurred(), "there should be no error calculating plugin option checksum")
-			hashedValues2, err := helm.CalculatePluginOptionChecksum(test.Ctx, test.K8sClient, &plugin2)
+			hashedValues2, err := helm.CalculatePluginOptionChecksum(test.Ctx, test.K8sClient, &plugin2, nil)
 			Expect(err).ToNot(HaveOccurred(), "there should be no error calculating plugin option checksum")
 
 			comparisonResult := hashedValues1 == hashedValues2

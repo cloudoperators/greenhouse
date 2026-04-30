@@ -384,9 +384,10 @@ func replaceCustomResourceDefinitions(ctx context.Context, c client.Client, crdL
 	return nil
 }
 
-// CalculatePluginOptionChecksum calculates a hash of plugin option values.
+// CalculatePluginOptionChecksum calculates a hash of plugin option values and exposed services.
 // Secret-type option values are extracted first and all values are sorted to ensure that order is not important when comparing checksums.
-func CalculatePluginOptionChecksum(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) (string, error) {
+// exposedServices is included in the checksum so that tracking plugins are re-reconciled when exposed service/ingress URLs change.
+func CalculatePluginOptionChecksum(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, exposedServices map[string]greenhousev1alpha1.Service) (string, error) {
 	values, err := resolvePluginOptionValueFrom(ctx, c, plugin.Namespace, plugin.Spec.OptionValues)
 	if err != nil {
 		return "", err
@@ -414,6 +415,22 @@ func CalculatePluginOptionChecksum(ctx context.Context, c client.Client, plugin 
 
 		default:
 			continue
+		}
+	}
+
+	if len(exposedServices) > 0 {
+		keys := make([]string, 0, len(exposedServices))
+		for k := range exposedServices {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			buf = append(buf, []byte(k)...) // add the computed exposed service URL to buf
+			svcBytes, err := json.Marshal(exposedServices[k])
+			if err != nil {
+				return "", fmt.Errorf("failed to marshal exposed service %q: %w", k, err)
+			}
+			buf = append(buf, svcBytes...) // add the exposed svc struct to buf
 		}
 	}
 
