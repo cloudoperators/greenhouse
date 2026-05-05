@@ -52,8 +52,9 @@ type TeamStatus struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:printcolumn:name="Description",type=string,JSONPath=`.spec.description`
 //+kubebuilder:printcolumn:name="IDP Group",type=string,JSONPath=`.spec.mappedIdPGroup`
-//+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 //+kubebuilder:printcolumn:name="SCIM Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "SCIMAccessReady")].status`
+//+kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`
+//+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // Team is the Schema for the teams API
 type Team struct {

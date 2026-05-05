@@ -68,6 +68,7 @@ type ClusterKubeconfigPreferences struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:shortName=ckc;cluster-kubeconfigs
 //+kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`
+//+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // ClusterKubeconfig is the Schema for the clusterkubeconfigs API
 // ObjectMeta.OwnerReferences is used to link the ClusterKubeconfig to the Cluster
