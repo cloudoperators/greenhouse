@@ -51,6 +51,7 @@ var _ = BeforeSuite(func() {
 var _ = AfterSuite(func() {
 	env.GenerateGreenhouseControllerLogs(ctx, testStartTime)
 	env.GenerateFluxControllerLogs(ctx, "helm-controller", testStartTime)
+	shared.TeardownOCIMirroringForOrg(ctx, adminClient, env.TestNamespace)
 })
 
 var _ = Describe("ClusterPluginDefinition E2E", Ordered, func() {
