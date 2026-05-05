@@ -167,7 +167,11 @@ stringData:
 
 ### Configuring Overrides for PluginDefinitions
 
-If you want to bring in multiple versions of the same PluginDefinition, you can use the `alias` option to reference the `PluginDefinition` under a different name.
+`.spec.sources[].overrides` allows customizing specific fields of PluginDefinitions fetched from a source. Each entry in `overrides` targets a PluginDefinition by name via `overrides[].name`, which must match the `metadata.name` of the PluginDefinition being overridden.
+
+#### Alias Override
+
+If you want to bring in multiple versions of the same PluginDefinition, you can use the `alias` field to reference the `PluginDefinition` under a different name.
 
 Example:
 
@@ -192,10 +196,9 @@ spec:
           alias: perses-stable
 ```
 
-> `overrides[].name` must match the `metadata.name` of the PluginDefinition being overridden.
+#### Repository Override
 
-Each PluginDefinition has a helm chart reference in its spec. If you want to override the helm chart repository,
-you can do that in `overrides`
+Each PluginDefinition has a helm chart reference in its spec. If you want to override the helm chart repository, you can use the `repository` field in `overrides`.
 
 Example:
 
@@ -211,6 +214,8 @@ spec:
         - name: perses
           repository: oci://your-registry.io/some-repo/perses-chart
 ```
+
+#### Options Override
 
 PluginDefinitions can define configuration options with default values in their `.spec.options[]` array. You can override these default values using the `optionsOverride` field in the Catalog overrides.
 
