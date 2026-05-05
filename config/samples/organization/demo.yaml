@@ -28,7 +28,6 @@ metadata:
 data:
   containerRegistryConfig: |
     primaryMirror: "registry:5000"
-    insecure: true
     registryMirrors:
       docker.io:
         baseDomain: "registry:5000"

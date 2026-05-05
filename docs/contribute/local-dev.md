@@ -207,7 +207,7 @@ make setup
 ```
 
 - This will install a full running setup of operator, dashboard, sample organization with an onboarded remote cluster
-- This will also install Flux and a local OCI registry.
+- This will also install Flux and setup a local OCI registry.
 
 ### Clone the Greenhouse Extensions repository
 
@@ -220,34 +220,20 @@ cd greenhouse-extensions
 
 ```shell
 export PKG=$(helm package $PWD/perses/charts -d ./bin | awk '{print $NF}')
-export REGISTRY_CA=$PWD/bin/ca.crt
-export OCI=oci://127.0.0.1:5000/cloudoperators/greenhouse-extensions/charts
+export OCI=oci://localhost:5000/cloudoperators/greenhouse-extensions/charts
 ```
 
 > [!NOTE]
-> The bin folder is ignored by git, so it is safe to temporarily store the packaged chart and the registry CA there.
-
-### Extract Registry CA
-
-```shell
-kubectl --context=kind-greenhouse-admin get secret local-registry-tls-certs \
--n flux-system -o jsonpath='{.data.ca\.crt}' | base64 -d > "$REGISTRY_CA"
-```
-
-### Port-Forward Registry Service
-
-```shell
-kubectl --context=kind-greenhouse-admin port-forward svc/registry -n flux-system 5000:5000&
-```
-
-> [!NOTE] 
-> use `&` to run the command in the background, so you can continue using the terminal with environment variables set.
+> The bin folder is ignored by git, so it is safe to temporarily store the packaged chart
 
 ### Push Package to Local Registry
 
 ```shell
-helm push $PKG $OCI --ca-file "$REGISTRY_CA" --plain-http=false
+helm push $PKG $OCI
 ```
+
+> [!NOTE]
+> You can see the charts in browser at http://localhost:5000/home
 
 ### Apply Perses PluginDefinition
 
@@ -256,7 +242,7 @@ Before applying the PluginDefinition, change the registry in `.spec.helmChart.re
 The below command replaces **ghcr.io** with the local registry address in the `.spec.helmChart.repository` field of the `plugindefinition.yaml` and save the modified file to `bin/perses.yaml`
 
 ```shell
-yq eval '.spec.helmChart.repository |= sub("ghcr.io", "registry.flux-system.svc.cluster.local:5000")' perses/plugindefinition.yaml > ./bin/$(yq eval '.metadata.name' perses/plugindefinition.yaml).yaml
+yq eval '.spec.helmChart.repository |= sub("ghcr.io", "registry:5000")' perses/plugindefinition.yaml > ./bin/$(yq eval '.metadata.name' perses/plugindefinition.yaml).yaml
 ```
 
 Apply the PluginDefinition to the admin cluster
@@ -303,7 +289,7 @@ EOF
 Watch the Plugin deployment in real time
 
 ```shell
-kubectl --context=kind-greenhouse-admin get plugin perses -n demo -w                            
+kubectl --context=kind-greenhouse-admin get plugin perses -n demo -w
 NAME     DISPLAY NAME   PLUGIN DEFINITION   CLUSTER                  RELEASE NAME   RELEASE NAMESPACE   READY   VERSION   AGE
 perses   perses test    perses              kind-greenhouse-remote   perses         kube-monitoring     False             2s
 perses   perses test    perses              kind-greenhouse-remote   perses         kube-monitoring     False             14s
