@@ -47,6 +47,9 @@ func (r *ClusterPluginDefinitionReconciler) SetupWithManager(name string, mgr ct
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmcharts/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmcharts/finalizers,verbs=get;create;update;patch;delete
 // +kubebuilder:rbac:groups="events.k8s.io",resources=events,verbs=create;patch
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
+// +kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get
 // +kubebuilder:rbac:groups=greenhouse.sap,resources=clusterplugindefinitions,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=greenhouse.sap,resources=clusterplugindefinitions/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=greenhouse.sap,resources=clusterplugindefinitions/finalizers,verbs=get;create;update;patch;delete

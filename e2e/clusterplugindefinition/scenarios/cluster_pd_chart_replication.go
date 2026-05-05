@@ -18,7 +18,7 @@ import (
 )
 
 // ClusterPDChartReplication verifies that the ClusterPluginDefinition controller replicates a Helm chart OCI artifact via the registry mirror configured on the greenhouse Organization.
-func ClusterPDChartReplication(ctx context.Context, adminClient client.Client, env *shared.TestEnv) {
+func ClusterPDChartReplication(ctx context.Context, adminClient client.Client) {
 	cpd := test.NewClusterPluginDefinition(ctx, "podinfo-cluster-chart-replication",
 		test.WithVersion("6.7.1"),
 		test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
@@ -92,7 +92,7 @@ func ClusterPDChartReplication(ctx context.Context, adminClient client.Client, e
 }
 
 // ClusterPDChartReplicationFailure verifies that the ClusterPluginDefinition controller sets OCIReplicationFailed for a non-existent chart version.
-func ClusterPDChartReplicationFailure(ctx context.Context, adminClient client.Client, env *shared.TestEnv) {
+func ClusterPDChartReplicationFailure(ctx context.Context, adminClient client.Client) {
 	cpd := test.NewClusterPluginDefinition(ctx, "podinfo-cluster-chart-failure",
 		test.WithVersion("99.99.99"),
 		test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{

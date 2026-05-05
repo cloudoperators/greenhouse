@@ -55,10 +55,10 @@ var _ = AfterSuite(func() {
 
 var _ = Describe("ClusterPluginDefinition E2E", Ordered, func() {
 	It("should replicate helm chart to registry mirror", func() {
-		scenarios.ClusterPDChartReplication(ctx, adminClient, env)
+		scenarios.ClusterPDChartReplication(ctx, adminClient)
 	})
 
 	It("should fail chart replication for non-existent chart version", func() {
-		scenarios.ClusterPDChartReplicationFailure(ctx, adminClient, env)
+		scenarios.ClusterPDChartReplicationFailure(ctx, adminClient)
 	})
 })
