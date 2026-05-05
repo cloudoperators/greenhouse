@@ -3,26 +3,27 @@ groups:
     rules:
     - alert: GreenhouseTeamMembershipCountDrop
       annotations:
-        description: The number of members for team {{ $labels.teams }} in organization {{ $labels.namespace }} has dropped by more than 5 in the last 5 minutes.
+        description: The number of members for team {{ $labels.team }} in organization {{ $labels.organization }} has dropped by more than 5 in the last 5 minutes.
         summary: Team members count drop detected
       expr: |
-        sum by (namespace, team) (delta(greenhouse_team_members_count{service="greenhouse-controller-manager-metrics-service"}[5m])) < -5
+        sum by (organization, team) (delta(greenhouse_team_members_count{service="greenhouse-controller-manager-metrics-service"}[5m])) < -5
       for: 5m
       labels:
         severity: warning
         service: greenhouse
-        organization: '{{ $labels.namespace }}'
-        support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
+        organization: '{{ $labels.organization }}'
+        support_group: '{{ $labels.organization }}-admin'  # routed to the org-admin team
         playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/team/team-membership-count-drop/
     - alert: GreenhouseTeamRoleBindingNotReady
-      expr: sum by (namespace, team, team_role_binding, owned_by) (greenhouse_team_rbac_ready) == 0
+      expr: sum by (organization, team, team_role_binding, owned_by) (last_over_time(greenhouse_team_rbac_ready[10m])) == 0
+      # using min_over_time to bridge gaps in the metrics when the controller is restarting to avoid flapping alerts
       for: 15m
       labels:
         severity: warning
         service: greenhouse
-        organization: '{{ $labels.namespace }}'
+        organization: '{{ $labels.organization }}'
         support_group: '{{ $labels.owned_by }}'
         playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/team/team-role-binding-not-ready/
       annotations:
         summary: "TeamRoleBinding not ready for over 15 minutes"
-        description: "The TeamRoleBinding {{ $labels.team_role_binding }} in organization {{ $labels.namespace }} for team {{ $labels.team}} has not been ready for more than 15 minutes."
+        description: "The TeamRoleBinding {{ $labels.team_role_binding }} in organization {{ $labels.organization }} for team {{ $labels.team}} has not been ready for more than 15 minutes."

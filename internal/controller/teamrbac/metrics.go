@@ -17,7 +17,7 @@ var (
 			Name: "greenhouse_team_rbac_ready",
 			Help: "Indicates whether the team RBAC is ready",
 		},
-		[]string{"team_role_binding", "team", "namespace", "owned_by"},
+		[]string{"team_role_binding", "team", "organization", "owned_by"},
 	)
 )
 
@@ -28,7 +28,7 @@ func init() {
 func UpdateTeamrbacMetrics(teamRoleBinding *greenhousev1alpha2.TeamRoleBinding) {
 	teamRBACReadyGauge.DeletePartialMatch(prometheus.Labels{
 		"team_role_binding": teamRoleBinding.Name,
-		"namespace":         teamRoleBinding.Namespace,
+		"organization":      teamRoleBinding.Namespace,
 	})
 
 	teamRefs := resolveTeamRefs(teamRoleBinding)
@@ -42,8 +42,15 @@ func UpdateTeamrbacMetrics(teamRoleBinding *greenhousev1alpha2.TeamRoleBinding) 
 		teamRBACReadyGauge.With(prometheus.Labels{
 			"team_role_binding": teamRoleBinding.Name,
 			"team":              team,
-			"namespace":         teamRoleBinding.Namespace,
+			"organization":      teamRoleBinding.Namespace,
 			"owned_by":          teamRoleBinding.GetLabels()[greenhouseapis.LabelKeyOwnedBy],
 		}).Set(value)
 	}
+}
+
+func DeleteTeamRBACMetrics(teamRoleBinding *greenhousev1alpha2.TeamRoleBinding) {
+	teamRBACReadyGauge.DeletePartialMatch(prometheus.Labels{
+		"team_role_binding": teamRoleBinding.Name,
+		"organization":      teamRoleBinding.Namespace,
+	})
 }
