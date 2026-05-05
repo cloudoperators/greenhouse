@@ -127,4 +127,24 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		By("executing the plugin integration scenario with plugin reference by label selector")
 		scenarios.PluginIntegrationBySelector(ctx, adminClient, remoteClient, env, remoteIntegrationCluster)
 	})
+
+	Context("OCI image replication", Ordered, func() {
+		BeforeAll(func() {
+			By("configuring mirror registry for OCI image replication tests")
+			shared.SetupOCIMirroringForOrg(ctx, adminClient, env.TestNamespace)
+		})
+
+		AfterAll(func() {
+			By("removing mirror registry configuration")
+			shared.TeardownOCIMirroringForOrg(ctx, adminClient, env.TestNamespace)
+		})
+
+		It("should replicate container images to registry mirror before HelmRelease", func() {
+			scenarios.PluginImageReplication(ctx, adminClient, remoteClient, env, remoteClusterName)
+		})
+
+		It("should block HelmRelease creation when image replication fails", func() {
+			scenarios.PluginImageReplicationFailure(ctx, adminClient, env, remoteClusterName)
+		})
+	})
 })
