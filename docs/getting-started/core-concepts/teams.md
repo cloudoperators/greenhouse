@@ -30,8 +30,9 @@ kind: TeamRoleBinding
 metadata:
   name: observability-admin
 spec:
-  teamRef: observability
-  roleRef: cluster-admin
+  teamRoleRef: cluster-admin
+  teamRefs:
+    - observability
   clusterSelector:
     clusterName: observability
   namespaces:

@@ -361,6 +361,22 @@ export interface components {
             };
             /** @description ClusterPluginDefinitionStatus defines the observed state of ClusterPluginDefinition. */
             status?: {
+                /** @description LastSyncedArtifact tracks the last synced chart artifact and its replication status. */
+                lastSyncedArtifact?: {
+                    /** @description ChartName is the name of the chart. */
+                    chartName: string;
+                    /** @description Digest is the sha256 digest of the chart manifest. */
+                    digest?: string;
+                    /** @description Registry is the source registry of the chart. */
+                    registry: string;
+                    /**
+                     * @description ReplicationStatus indicates the outcome of replication to the mirror registry.
+                     * @enum {string}
+                     */
+                    replicationStatus: "Replicated" | "Failed" | "Skipped";
+                    /** @description Version is the chart version. */
+                    version: string;
+                };
                 /** @description StatusConditions contain the different conditions that constitute the status of the Plugin. */
                 statusConditions?: {
                     conditions?: {
@@ -762,6 +778,22 @@ export interface components {
             };
             /** @description PluginDefinitionStatus defines the observed state of PluginDefinition */
             status?: {
+                /** @description LastSyncedArtifact tracks the last synced chart artifact and its replication status. */
+                lastSyncedArtifact?: {
+                    /** @description ChartName is the name of the chart. */
+                    chartName: string;
+                    /** @description Digest is the sha256 digest of the chart manifest. */
+                    digest?: string;
+                    /** @description Registry is the source registry of the chart. */
+                    registry: string;
+                    /**
+                     * @description ReplicationStatus indicates the outcome of replication to the mirror registry.
+                     * @enum {string}
+                     */
+                    replicationStatus: "Replicated" | "Failed" | "Skipped";
+                    /** @description Version is the chart version. */
+                    version: string;
+                };
                 /** @description StatusConditions contain the different conditions that constitute the status of the Plugin. */
                 statusConditions?: {
                     conditions?: {
@@ -1337,6 +1369,12 @@ export interface components {
                     /** @description Status is the status of a HelmChart release. */
                     status: string;
                 };
+                /**
+                 * @description ImageReplication contains a list of container image references that have been
+                 *     successfully replicated to the configured mirror registry.
+                 *     Used to skip redundant replication on subsequent reconciliations.
+                 */
+                imageReplication?: string[];
                 /** @description LastReconciledAt contains the value when the reconcile was last triggered via annotation. */
                 lastReconciledAt?: string;
                 /** @description StatusConditions contain the different conditions that constitute the status of the Plugin. */

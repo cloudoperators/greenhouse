@@ -5,6 +5,7 @@ package flux
 
 import (
 	"context"
+	"os"
 	"strings"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 
 const (
 	HelmRepositoryDefaultNamespace = "greenhouse" // TODO: make this configurable via args or env var
+	localRegistryEnv               = "LOCAL_REGISTRY"
 )
 
 const (
@@ -59,4 +61,12 @@ func FindHelmRepositoryByURL(ctx context.Context, k8sClient client.Client, url, 
 		return nil, err
 	}
 	return helmRepository, nil
+}
+
+func CheckIfLocalRegistry(url string) bool {
+	reg, ok := os.LookupEnv(localRegistryEnv)
+	if !ok {
+		return false
+	}
+	return strings.Contains(url, reg)
 }
