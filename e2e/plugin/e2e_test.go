@@ -56,6 +56,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the admin client")
 	remoteClient, err = clientutil.NewK8sClientFromRestClientGetter(env.RemoteRestClientGetter)
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the remote client")
+	env = env.WithOrganization(ctx, adminClient, "./testdata/greenhouse_organization.yaml")
 	env = env.WithOrganization(ctx, adminClient, "./testdata/organization.yaml")
 	team = test.NewTeam(ctx, "test-plugin-e2e-team", env.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 	err = adminClient.Create(ctx, team)
