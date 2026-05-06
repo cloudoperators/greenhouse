@@ -2,9 +2,9 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "organization",
-    "createdAt": "2026-02-09T18:00:07.913346704Z",
-    "updatedAt": "2026-02-16T10:05:56.205613134Z",
-    "version": 1,
+    "createdAt": "2026-04-13T15:17:26.151943837Z",
+    "updatedAt": "2026-05-06T14:23:33.264169617Z",
+    "version": 11022,
     "project": "greenhouse"
   },
   "spec": {
@@ -16,8 +16,8 @@
         "kind": "Panel",
         "spec": {
           "display": {
-            "name": "Ready Status of TeamRoleBinding by Organization/Team",
-            "description": "GreenhouseTeamRoleBindingNotReady: The TeamRoleBinding in organization for team has not been ready for more than 15 minutes"
+            "name": "TeamRoleBinding(s) by Organization/Team",
+            "description": "Overall ready status of TeamRoleBindinding(s)"
           },
           "plugin": {
             "kind": "Table",
@@ -49,19 +49,22 @@
               "columnSettings": [
                 {
                   "name": "organization",
-                  "width": "auto"
+                  "width": "auto",
+                  "header": "Organization"
                 },
                 {
                   "name": "team",
-                  "width": 250
+                  "width": 250,
+                  "header": "Team"
                 },
                 {
                   "name": "team_role_binding",
-                  "width": 400
+                  "width": 400,
+                  "header": "TeamRoleBinding"
                 },
                 {
                   "enableSorting": true,
-                  "header": "status",
+                  "header": "Status",
                   "hide": false,
                   "name": "value",
                   "sort": "desc",
@@ -114,6 +117,10 @@
                 {
                   "hide": true,
                   "name": "timestamp"
+                },
+                {
+                  "name": "namespace",
+                  "hide": true
                 }
               ],
               "density": "standard"
@@ -140,7 +147,7 @@
         "spec": {
           "display": {
             "name": "Organization Status",
-            "description": "GreenhouseOrganizationNotReady : Greenhouse Organization has not been ready for more than 15 minutes."
+            "description": "Overall ready status of the Organization"
           },
           "plugin": {
             "kind": "StatChart",
@@ -194,8 +201,8 @@
         "kind": "Panel",
         "spec": {
           "display": {
-            "name": "Change in Number of Team Members by Organization/Team",
-            "description": "GreenhouseTeamMembershipCountDrop: The number of members for team {{ $labels.team }} in organization {{ $labels.organization }} has dropped by more than 5 in the last 5 minutes."
+            "name": "Members by Team",
+            "description": "Number of members by Greenhouse Team to observe deviations in data synced from the IdP"
           },
           "plugin": {
             "kind": "TimeSeriesChart",
@@ -226,7 +233,7 @@
         "spec": {
           "display": {
             "name": "Organization 'SCIM Access' Status",
-            "description": "GreenhouseOrganizationNotReady : The SCIM access for organization is not ready for more than 15 minutes. Team member sync may not be operational."
+            "description": "Whether the SCIM API access is configured and working for the Organization"
           },
           "plugin": {
             "kind": "StatChart",
@@ -275,6 +282,37 @@
             }
           ]
         }
+      },
+      "d4665ba7cc4048cdb46c65643ca83919": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "TeamRoleBinding blast radius",
+            "description": "Number of Clusters the TeamRoleBinding is deployed to"
+          },
+          "plugin": {
+            "kind": "TimeSeriesChart",
+            "spec": {
+              "legend": {
+                "position": "bottom"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "greenhouse_team_rbac_clusters_total{organization=~\"$organization\", team=~\"$team\"}",
+                    "seriesNameFormat": "{{team_role_binding}}/{{team}}"
+                  }
+                }
+              }
+            }
+          ]
+        }
       }
     },
     "layouts": [
@@ -313,7 +351,7 @@
         "kind": "Grid",
         "spec": {
           "display": {
-            "title": "Team Alerts",
+            "title": "Teams",
             "collapse": {
               "open": true
             }
@@ -336,8 +374,18 @@
               "content": {
                 "$ref": "#/spec/panels/46b62abb58da4f86a0b6467b3fd07e43"
               }
+            },
+            {
+              "x": 0,
+              "y": 12,
+              "width": 12,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/d4665ba7cc4048cdb46c65643ca83919"
+              }
             }
-          ]
+          ],
+          "repeatVariable": ""
         }
       }
     ],
@@ -717,7 +765,7 @@
             "description": "Organization",
             "hidden": false
           },
-          "defaultValue": "sci-demo",
+          "defaultValue": "sci",
           "allowAllValue": false,
           "allowMultiple": false,
           "sort": "alphabetical-asc",
@@ -763,7 +811,7 @@
             "description": "Cluster",
             "hidden": false
           },
-          "defaultValue": "greenhouse-playground",
+          "defaultValue": "greenhouse-qa",
           "allowAllValue": false,
           "allowMultiple": false,
           "plugin": {
@@ -778,6 +826,7 @@
       }
     ],
     "duration": "1h",
-    "refreshInterval": "0s"
+    "refreshInterval": "0s",
+    "datasources": {}
   }
 }
