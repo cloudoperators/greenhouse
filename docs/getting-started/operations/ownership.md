@@ -26,6 +26,8 @@ Within the context of Greenhouse this relationship is called `Ownership`.
 
 By identifying the owner of a resource it is possible to route operational tasks on the resource to the owner.
 
+Additionally, `Ownership` enables the [Authorization Webhook](./../authorization-webhook) to enforce support-group-scoped access control, ensuring that users and service accounts can only access resources owned by their support-group.
+
 ## How is Ownership achieved
 
 Greenhouse expects a `label` with the key `greenhouse.sap/owned-by` with a value matching an existing Team on the following resources in the Greenhouse central cluster:
