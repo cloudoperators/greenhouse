@@ -29,12 +29,14 @@ This allows:
 
 The authorization webhook integrates with the Kubernetes API server's authorization chain as an additional authorizer **after RBAC**. When a user attempts to access a Greenhouse resource:
 
-1. **RBAC is evaluated first** - If RBAC allows or denies the request, that decision is final
-2. **If RBAC returns NoOpinion**, the webhook is consulted for `greenhouse.sap` resources
+1. **RBAC is evaluated first** — If RBAC allows the request, it is granted immediately
+2. **If RBAC returns NoOpinion** (no matching rule), the webhook is consulted for `greenhouse.sap` resources
 3. The webhook extracts the user's **support-group claims** from their IdP token groups
 4. It fetches the target resource and reads its **`greenhouse.sap/owned-by` label**
 5. It validates that the referenced Team exists and is marked as a **support-group**
 6. Access is **allowed** only if one of the user's support-groups matches the resource owner
+
+If no authorizer in the chain allows the request, it is denied by default. Note that the webhook can only authorize requests targeting a **specific named resource** — collection operations (list, watch) must be granted via RBAC.
 
 ```mermaid
 sequenceDiagram
@@ -47,9 +49,9 @@ sequenceDiagram
     User->>APIServer: Request access to resource
     APIServer->>RBAC: Evaluate RBAC rules
     
-    alt RBAC allows or denies
-        RBAC->>APIServer: Allow/Deny
-        APIServer->>User: Response
+    alt RBAC allows
+        RBAC->>APIServer: Allow
+        APIServer->>User: Response (allowed)
     else RBAC returns NoOpinion
         RBAC->>APIServer: NoOpinion
         APIServer->>Webhook: SubjectAccessReview
@@ -65,7 +67,7 @@ sequenceDiagram
         Webhook->>Webhook: Extract owned-by label
         Webhook->>K8s: Validate Team exists and is support-group
         Webhook->>Webhook: Check support-group matches owner
-        Webhook->>APIServer: Allow/Deny decision
+        Webhook->>APIServer: Allow or NoOpinion
         APIServer->>User: Response
     end
 ```
@@ -116,12 +118,11 @@ spec:
   # ...
 ```
 
-The following Greenhouse resources (`greenhouse.sap` API group) support ownership-based authorization:
+Any namespaced resource in the `greenhouse.sap` API group that carries the `greenhouse.sap/owned-by` label can be authorized by the webhook. Common examples include:
 - **Plugins** - Application deployments
 - **PluginPresets** - Plugin templates
 - **Clusters** - Onboarded Kubernetes clusters
 - **TeamRoleBindings** - RBAC bindings
-- **Teams** - Team definitions
 
 ### Step 2: Configure Your Team as a Support Group
 
