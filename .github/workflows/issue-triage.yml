@@ -1,25 +1,10 @@
-name: Auto Label Issues
-
-# Applies the 'needs-triage' label to every newly opened issue.
-# This is the entry point of the issue lifecycle documented in CONTRIBUTING.md.
-# See: https://github.com/cloudoperators/greenhouse/blob/main/CONTRIBUTING.md#issue-lifecycle
-
+name: Issue Triage
 on:
   issues:
     types: [opened]
 
 jobs:
-  label:
+  triage:
     runs-on: ubuntu-latest
-    permissions:
-      issues: write
     steps:
-      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        with:
-          script: |
-            github.rest.issues.addLabels({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              labels: ['needs-triage']
-            })
+      - uses: cloudoperators/common/workflows/issue-triage@main
