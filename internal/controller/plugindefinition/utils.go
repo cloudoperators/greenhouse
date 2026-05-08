@@ -1,0 +1,269 @@
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package plugindefinition
+
+import (
+	"context"
+	"crypto/sha256"
+	"fmt"
+	"strings"
+	"time"
+
+	fluxmeta "github.com/fluxcd/pkg/apis/meta"
+	sourcev1 "github.com/fluxcd/source-controller/api/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/events"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/common"
+	"github.com/cloudoperators/greenhouse/internal/flux"
+	"github.com/cloudoperators/greenhouse/internal/ocimirror"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
+)
+
+type helmer struct {
+	k8sClient           client.Client
+	recorder            events.EventRecorder
+	pluginDef           common.GenericPluginDefinition
+	namespaceName       string
+	ociMirroringEnabled bool
+}
+
+// initializeConditions sets the provided conditions to Unknown if they do not already exist.
+func initializeConditions(resource common.GenericPluginDefinition, conditionTypes ...greenhousemetav1alpha1.ConditionType) {
+	conditions := resource.GetConditions()
+	for _, condType := range conditionTypes {
+		if cond := conditions.GetConditionByType(condType); cond == nil {
+			resource.SetCondition(
+				greenhousemetav1alpha1.UnknownCondition(condType, greenhousev1alpha1.PluginDefinitionProgressingReason, "reconciliation in progress"),
+			)
+		}
+	}
+}
+
+func setReadyCondition(resource common.GenericPluginDefinition) {
+	if resource.GetPluginDefinitionSpec().HelmChart == nil {
+		resource.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousemetav1alpha1.ReadyCondition, "", "No HelmChart defined"))
+		return
+	}
+
+	conditions := resource.GetConditions()
+	helmChartCondition := conditions.GetConditionByType(greenhousev1alpha1.HelmChartReadyCondition)
+	switch {
+	case helmChartCondition == nil:
+		resource.SetCondition(greenhousemetav1alpha1.UnknownCondition(
+			greenhousemetav1alpha1.ReadyCondition, "", "HelmChart status unknown"))
+		return
+	case !helmChartCondition.IsTrue():
+		resource.SetCondition(greenhousemetav1alpha1.FalseCondition(
+			greenhousemetav1alpha1.ReadyCondition,
+			helmChartCondition.Reason,
+			helmChartCondition.Message))
+		return
+	}
+
+	imageReplicationCondition := conditions.GetConditionByType(greenhousev1alpha1.OCIReplicationReadyCondition)
+	switch {
+	case imageReplicationCondition == nil:
+		resource.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousemetav1alpha1.ReadyCondition, "", "PluginDefinition is ready"))
+	case imageReplicationCondition.IsFalse():
+		resource.SetCondition(greenhousemetav1alpha1.FalseCondition(
+			greenhousemetav1alpha1.ReadyCondition,
+			imageReplicationCondition.Reason,
+			imageReplicationCondition.Message))
+	default:
+		resource.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousemetav1alpha1.ReadyCondition, "", "PluginDefinition is ready"))
+	}
+}
+
+// setHelmChartReadyCondition checks the HelmChart status and sets the HelmChartReady condition on the given object.
+func (h *helmer) setHelmChartReadyCondition(ctx context.Context, fluxObj lifecycle.CatalogObject) {
+	if err := h.k8sClient.Get(ctx, client.ObjectKeyFromObject(fluxObj), fluxObj); err != nil {
+		h.pluginDef.SetCondition(greenhousemetav1alpha1.UnknownCondition(
+			greenhousev1alpha1.HelmChartReadyCondition, "", "unable to fetch HelmRepository status"))
+		return
+	}
+	readyCondition := meta.FindStatusCondition(fluxObj.GetConditions(), fluxmeta.ReadyCondition)
+	switch {
+	case readyCondition == nil:
+		h.pluginDef.SetCondition(greenhousemetav1alpha1.UnknownCondition(
+			greenhousev1alpha1.HelmChartReadyCondition, "", "HelmChart status pending"))
+	case readyCondition.Status == metav1.ConditionTrue:
+		h.pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.HelmChartReadyCondition, greenhousemetav1alpha1.ConditionReason(readyCondition.Reason), readyCondition.Message))
+	default:
+		h.pluginDef.SetCondition(greenhousemetav1alpha1.FalseCondition(
+			greenhousev1alpha1.HelmChartReadyCondition,
+			greenhousemetav1alpha1.ConditionReason(readyCondition.Reason),
+			readyCondition.Message))
+	}
+}
+
+func (h *helmer) createUpdateHelmRepository(ctx context.Context) (*sourcev1.HelmRepository, error) {
+	pluginDefSpec := h.pluginDef.GetPluginDefinitionSpec()
+	repositoryURL := pluginDefSpec.HelmChart.Repository
+	helmRepository := &sourcev1.HelmRepository{}
+	helmRepository.SetName(flux.ChartURLToName(pluginDefSpec.HelmChart.Repository))
+	helmRepository.SetNamespace(h.namespaceName)
+
+	result, err := controllerutil.CreateOrUpdate(ctx, h.k8sClient, helmRepository, func() error {
+		helmRepository.Spec.Type = flux.GetSourceRepositoryType(repositoryURL)
+		helmRepository.Spec.Interval = metav1.Duration{Duration: 24 * time.Hour}
+		helmRepository.Spec.URL = repositoryURL
+		if flux.CheckIfLocalRegistry(repositoryURL) {
+			helmRepository.Spec.Insecure = true
+		}
+		return controllerutil.SetOwnerReference(h.pluginDef, helmRepository, h.k8sClient.Scheme())
+	})
+	if err != nil {
+		log.FromContext(ctx).Error(err, "Failed to create or update HelmRepository", "namespace", h.namespaceName, "name", helmRepository.Name)
+		return nil, err
+	}
+	switch result {
+	case controllerutil.OperationResultCreated:
+		log.FromContext(ctx).Info("Created helmRepository", "namespace", h.namespaceName, "name", helmRepository.Name)
+		h.recorder.Eventf(h.pluginDef, helmRepository, corev1.EventTypeNormal, "Created", "reconciling (Cluster-)PluginDefinition", "Created HelmRepository %s", helmRepository.Name)
+	case controllerutil.OperationResultUpdated:
+		log.FromContext(ctx).Info("Updated helmRepository", "namespace", h.namespaceName, "name", helmRepository.Name)
+		h.recorder.Eventf(h.pluginDef, helmRepository, corev1.EventTypeNormal, "Updated", "reconciling (Cluster-)PluginDefinition", "Updated HelmRepository %s", helmRepository.Name)
+	case controllerutil.OperationResultNone:
+		log.FromContext(ctx).Info("No changes to helmRepository", "namespace", h.namespaceName, "name", helmRepository.Name)
+	}
+	return helmRepository, nil
+}
+
+func (h *helmer) createUpdateHelmChart(ctx context.Context, helmRepo *sourcev1.HelmRepository) (*sourcev1.HelmChart, error) {
+	pluginDefSpec := h.pluginDef.GetPluginDefinitionSpec()
+	helmChart := &sourcev1.HelmChart{}
+	helmChart.SetName(h.pluginDef.FluxHelmChartResourceName())
+	helmChart.SetNamespace(h.namespaceName)
+	result, err := controllerutil.CreateOrUpdate(ctx, h.k8sClient, helmChart, func() error {
+		helmChart.Spec = sourcev1.HelmChartSpec{
+			Chart:             pluginDefSpec.HelmChart.Name,
+			Interval:          metav1.Duration{Duration: 24 * time.Hour},
+			ReconcileStrategy: sourcev1.ReconcileStrategyChartVersion,
+			SourceRef: sourcev1.LocalHelmChartSourceReference{
+				Kind: sourcev1.HelmRepositoryKind,
+				Name: helmRepo.Name,
+			},
+			Version: pluginDefSpec.HelmChart.Version,
+		}
+		return controllerutil.SetControllerReference(h.pluginDef, helmChart, h.k8sClient.Scheme())
+	})
+	if err != nil {
+		return nil, err
+	}
+	switch result {
+	case controllerutil.OperationResultCreated:
+		log.FromContext(ctx).Info("Created helmChart", "namespace", h.namespaceName, "name", helmChart.Name)
+		h.recorder.Eventf(h.pluginDef, helmChart, corev1.EventTypeNormal, "Created", "reconciling (Cluster-)PluginDefinition", "Created HelmChart %s", helmChart.Name)
+	case controllerutil.OperationResultUpdated:
+		log.FromContext(ctx).Info("Updated helmChart", "namespace", h.namespaceName, "name", helmChart.Name)
+		h.recorder.Eventf(h.pluginDef, helmChart, corev1.EventTypeNormal, "Updated", "reconciling (Cluster-)PluginDefinition", "Updated HelmChart %s", helmChart.Name)
+	case controllerutil.OperationResultNone:
+		log.FromContext(ctx).Info("No changes to helmChart", "namespace", h.namespaceName, "name", helmChart.Name)
+	}
+	return helmChart, nil
+}
+
+// ensureChartReplication triggers replication for the Helm chart OCI artifact to the configured mirror registry.
+func (h *helmer) ensureChartReplication(ctx context.Context) error {
+	if !h.ociMirroringEnabled {
+		h.pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.OCIReplicationReadyCondition,
+			greenhousev1alpha1.OCIReplicationNotConfiguredReason,
+			"OCI mirroring is disabled"))
+		return nil
+	}
+
+	logger := log.FromContext(ctx)
+
+	// Check if the chart is OCI before making any API calls — non-OCI charts cannot be replicated.
+	helmChart := h.pluginDef.GetPluginDefinitionSpec().HelmChart
+	if !strings.HasPrefix(helmChart.Repository, "oci://") {
+		logger.V(1).Info("chart repository is not OCI, skipping replication", "repository", helmChart.Repository)
+		h.pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.OCIReplicationReadyCondition,
+			greenhousev1alpha1.OCIReplicationNotConfiguredReason,
+			"Chart replication only applies to OCI repositories"))
+		return nil
+	}
+
+	failReplication := func(err error, msg string) error {
+		logger.Error(err, msg)
+		h.pluginDef.SetCondition(greenhousemetav1alpha1.FalseCondition(
+			greenhousev1alpha1.OCIReplicationReadyCondition,
+			greenhousev1alpha1.OCIReplicationFailedReason,
+			msg+": "+err.Error()))
+		return err
+	}
+
+	mirrorConfig, err := ocimirror.GetRegistryMirrorConfig(ctx, h.k8sClient, h.namespaceName)
+	if err != nil {
+		return failReplication(err, "failed to get registry mirror config")
+	}
+
+	if mirrorConfig == nil || len(mirrorConfig.RegistryMirrors) == 0 {
+		h.pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.OCIReplicationReadyCondition,
+			greenhousev1alpha1.OCIReplicationNotConfiguredReason,
+			"OCI replication is not configured"))
+		return nil
+	}
+
+	chartRef := strings.TrimPrefix(helmChart.Repository, "oci://") + "/" + helmChart.Name + ":" + helmChart.Version
+	registry, chartName, _ := ocimirror.SplitOCIRef(chartRef)
+	version := helmChart.Version
+
+	// Skip replication if the current chart version was already replicated (idempotency).
+	if artifact := h.pluginDef.GetLastSyncedArtifact(); artifact != nil &&
+		artifact.Registry == registry &&
+		artifact.ChartName == chartName &&
+		artifact.Version == version &&
+		artifact.ReplicationStatus == greenhousev1alpha1.ReplicationStatusReplicated {
+		logger.V(1).Info("chart already replicated, skipping", "registry", registry, "chart", chartName, "version", version)
+		return nil
+	}
+
+	mirror, err := ocimirror.NewImageMirror(ctx, h.k8sClient, mirrorConfig, h.namespaceName)
+	if err != nil {
+		return failReplication(err, "failed to create image mirror")
+	}
+	replicatedRef, manifest, err := mirror.EnsureChartReplicated(ctx, chartRef)
+	if err != nil {
+		return failReplication(err, "chart replication failed")
+	}
+	if replicatedRef == "" {
+		logger.Info("no mirror configured for chart registry, skipping replication", "chart", chartRef)
+		h.pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.OCIReplicationReadyCondition,
+			greenhousev1alpha1.OCIReplicationNotConfiguredReason,
+			"No mirror configured for chart registry"))
+		return nil
+	}
+
+	digest := fmt.Sprintf("sha256:%x", sha256.Sum256(manifest))
+
+	h.pluginDef.SetLastSyncedArtifact(&greenhousev1alpha1.LastSyncedArtifact{
+		Registry:          registry,
+		ChartName:         chartName,
+		Version:           version,
+		Digest:            digest,
+		ReplicationStatus: greenhousev1alpha1.ReplicationStatusReplicated,
+	})
+	h.pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
+		greenhousev1alpha1.OCIReplicationReadyCondition,
+		greenhousev1alpha1.OCIReplicationSucceededReason,
+		"Chart replicated successfully: "+chartRef))
+	return nil
+}

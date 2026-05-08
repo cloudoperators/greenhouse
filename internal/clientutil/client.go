@@ -10,6 +10,7 @@ import (
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	kustomizev1 "github.com/fluxcd/kustomize-controller/api/v1"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
+	sourcev2 "github.com/fluxcd/source-watcher/api/v2/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -33,6 +34,7 @@ var KnownSchemes = []func(*runtime.Scheme) error{
 	sourcev1.AddToScheme,
 	helmv2.AddToScheme,
 	kustomizev1.AddToScheme,
+	sourcev2.AddToScheme,
 }
 
 // NewK8sClient returns a Kubernetes client with registered schemes for the given config or an error.

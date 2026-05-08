@@ -8,15 +8,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"helm.sh/helm/v3/pkg/chartutil"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/validation"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/utils/strings/slices"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -46,7 +45,7 @@ const (
 func SetupPluginWebhookWithManager(mgr ctrl.Manager) error {
 	return webhook.SetupWebhook(mgr,
 		&greenhousev1alpha1.Plugin{},
-		webhook.WebhookFuncs{
+		webhook.WebhookFuncs[*greenhousev1alpha1.Plugin]{
 			DefaultFunc:        DefaultPlugin,
 			ValidateCreateFunc: ValidateCreatePlugin,
 			ValidateUpdateFunc: ValidateUpdatePlugin,
@@ -57,19 +56,7 @@ func SetupPluginWebhookWithManager(mgr ctrl.Manager) error {
 
 //+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-plugin,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=plugins,verbs=create;update,versions=v1alpha1,name=mplugin.kb.io,admissionReviewVersions=v1
 
-func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) error {
-	plugin, ok := obj.(*greenhousev1alpha1.Plugin)
-	if !ok {
-		return nil
-	}
-
-	deprecatedDefName := plugin.Spec.PluginDefinition //nolint:staticcheck
-
-	// Migrate PluginDefinition reference name.
-	if plugin.Spec.PluginDefinitionRef.Name == "" && deprecatedDefName != "" {
-		plugin.Spec.PluginDefinitionRef.Name = deprecatedDefName
-	}
-
+func DefaultPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) error {
 	// Validate before ValidateCreatePlugin is called. Because defaulting PluginOptionValues & ReleaseName requires the PluginDefinition to be set.
 	if plugin.Spec.PluginDefinitionRef.Name == "" {
 		return field.Required(field.NewPath("spec", "pluginDefinitionRef", "name"), "PluginDefinition name must be set")
@@ -147,11 +134,7 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 
 //+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-plugin,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=plugins,verbs=create;update;delete,versions=v1alpha1,name=vplugin.kb.io,admissionReviewVersions=v1
 
-func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Object) (admission.Warnings, error) {
-	plugin, ok := obj.(*greenhousev1alpha1.Plugin)
-	if !ok {
-		return nil, nil
-	}
+func ValidateCreatePlugin(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 	var allWarns admission.Warnings
 
@@ -171,6 +154,11 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 
 	if err := validateReleaseName(plugin.Spec.ReleaseName); err != nil {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("releaseName"), plugin.Spec.ReleaseName, err.Error()))
+	}
+
+	// validate WaitFor items are unique and that PluginRef's fields are mutually exclusive
+	if errList := validateWaitForPluginRefs(plugin.Spec.WaitFor, plugin.Spec.ClusterName == ""); len(errList) > 0 {
+		allErrs = append(allErrs, errList...)
 	}
 
 	if len(allErrs) > 0 {
@@ -203,15 +191,7 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 	return allWarns, nil
 }
 
-func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime.Object) (admission.Warnings, error) {
-	oldPlugin, ok := old.(*greenhousev1alpha1.Plugin)
-	if !ok {
-		return nil, nil
-	}
-	plugin, ok := obj.(*greenhousev1alpha1.Plugin)
-	if !ok {
-		return nil, nil
-	}
+func ValidateUpdatePlugin(ctx context.Context, c client.Client, oldPlugin, plugin *greenhousev1alpha1.Plugin) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 	var allWarns admission.Warnings
 
@@ -222,12 +202,13 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 
 	pluginDefinitionRefNamePath := field.NewPath("spec", "pluginDefinitionRef", "name")
 
-	if oldPlugin.Spec.PluginDefinitionRef.Name != "" {
-		allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.PluginDefinitionRef.Name, plugin.Spec.PluginDefinitionRef.Name, pluginDefinitionRefNamePath)...)
-	}
-
 	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.ClusterName, plugin.Spec.ClusterName,
 		field.NewPath("spec", "clusterName"))...)
+
+	// validate WaitFor items are unique and that PluginRef's fields are mutually exclusive
+	if errList := validateWaitForPluginRefs(plugin.Spec.WaitFor, plugin.Spec.ClusterName == ""); len(errList) > 0 {
+		allErrs = append(allErrs, errList...)
+	}
 
 	// ensure (Cluster-)PluginDefinition exists
 	pluginDefinitionSpec, err := getPluginDefinitionSpec(ctx, c, plugin)
@@ -272,7 +253,7 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 	return allWarns, nil
 }
 
-func ValidateDeletePlugin(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
+func ValidateDeletePlugin(_ context.Context, _ client.Client, _ *greenhousev1alpha1.Plugin) (admission.Warnings, error) {
 	return nil, nil
 }
 
@@ -305,11 +286,11 @@ func validatePluginOptionValues(
 			isOptionValueSet = true
 			fieldPathWithIndex := optionsFieldPath.Index(idx)
 
-			// Value, ValueFrom, and Template are mutually exclusive, but exactly one must be provided.
+			// Value, ValueFrom, and Expression are mutually exclusive, but exactly one must be provided.
 			if !hasExactlyOneValueSource(val) {
 				allErrs = append(allErrs, field.Required(
 					fieldPathWithIndex,
-					"must provide exactly one of value, valueFrom, or template for value "+val.Name,
+					"must provide exactly one of value, valueFrom, or expression for value "+val.Name,
 				))
 				continue
 			}
@@ -405,12 +386,12 @@ func validatePluginForCluster(ctx context.Context, c client.Client, plugin *gree
 	return nil
 }
 
-// hasExactlyOneValueSource checks if exactly one of Value, ValueFrom, or Template is set.
+// hasExactlyOneValueSource checks if exactly one of Value, ValueFrom, or Expression is set.
 func hasExactlyOneValueSource(val greenhousev1alpha1.PluginOptionValue) bool {
 	sources := []bool{
 		val.Value != nil,
 		val.ValueFrom != nil,
-		val.Template != nil,
+		val.Expression != nil,
 	}
 
 	count := 0

@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: v1
+kind: Config
+# clusters refers to the remote service.
+clusters:
+- name: authz-webhook
+  cluster:
+    # URL of remote service to query.
+    server: http://127.0.0.1:32443/authorize
+    insecure-skip-tls-verify: true
+# users refers to the API Server's webhook configuration.
+users:
+- name: apiserver
+# kubeconfig files require a context. Provide one for the API Server.
+current-context: webhook-context
+contexts:
+- name: webhook-context
+  context:
+    cluster: authz-webhook
+    user: apiserver
+  

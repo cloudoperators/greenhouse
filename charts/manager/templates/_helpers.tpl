@@ -107,3 +107,13 @@ Define postgresql helpers
 {{- define "dex.backend" -}}
   {{- printf "%s" (required "global.dex.backend missing" .Values.global.dex.backend) }}
 {{- end }}
+{{/* Render the plugin expression evaluation flag */}}
+{{- define "plugin.expressionEvaluationEnabled" -}}
+  {{- printf "%t" (required "global.plugin.expressionEvaluationEnabled missing" .Values.global.plugin.expressionEvaluationEnabled) }}
+{{- end }}
+{{- define "plugin.integrationEnabled" -}}
+  {{- printf "%t" (required "global.plugin.integrationEnabled missing" .Values.global.plugin.integrationEnabled) }}
+{{- end }}
+{{- define "plugin.ociMirroringEnabled" -}}
+  {{- printf "%t" (required "global.plugin.ociMirroringEnabled missing" .Values.global.plugin.ociMirroringEnabled) }}
+{{- end }}

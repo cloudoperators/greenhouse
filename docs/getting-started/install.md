@@ -29,6 +29,11 @@ To install Greenhouse on your Gardener shoot cluster, follow these steps:
           issuer: <issuer-url>
           clientID: <client-ID>
           clientSecret: <top-secret>
+        dex:   # DEX configuration for Greenhouse.
+          backend: kubernetes
+      
+      postgresqlng:
+        enabled: false # disable, because the dex backend is kubernetes
       
       organization:
         enabled: false # disable, because the greenhouse webhook is not running yet

@@ -41,28 +41,10 @@ var (
 	}
 	secretOptionValue = &greenhousev1alpha1.PluginOptionValue{
 		Name: "secretValue",
-		ValueFrom: &greenhousev1alpha1.ValueFromSource{
+		ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
 			Secret: &greenhousev1alpha1.SecretKeyReference{
 				Name: "plugindefinition-secret",
 				Key:  "secretKey",
-			},
-		},
-	}
-
-	testPluginWithoutHelmChart = &greenhousev1alpha1.ClusterPluginDefinition{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      "test-plugindefinition",
-		},
-		Spec: greenhousev1alpha1.PluginDefinitionSpec{
-			Options: []greenhousev1alpha1.PluginOption{
-				{
-					Name:        "key1",
-					Description: "key1 description",
-					Required:    true,
-					Default:     test.MustReturnJSONFor("defaultKey1"),
-					Type:        "string",
-				},
 			},
 		},
 	}
@@ -75,9 +57,8 @@ var (
 		Spec: greenhousev1alpha1.PluginDefinitionSpec{
 			Version: "1.0.0",
 			HelmChart: &greenhousev1alpha1.HelmChartReference{
-				Name:       "./../test/fixtures/myChart",
-				Repository: "dummy",
-				Version:    "1.0.0",
+				Name:    "./../test/fixtures/myChart",
+				Version: "1.0.0",
 			},
 			Options: []greenhousev1alpha1.PluginOption{
 				{
@@ -100,30 +81,6 @@ var (
 			HelmChart: &greenhousev1alpha1.HelmChartReference{
 				Name:       "dummy",
 				Repository: "oci://greenhouse/helm-charts",
-				Version:    "1.0.0",
-			},
-			Options: []greenhousev1alpha1.PluginOption{
-				{
-					Name:        "key1",
-					Description: "key1 description",
-					Required:    true,
-					Default:     test.MustReturnJSONFor("defaultKey1"),
-					Type:        "string",
-				},
-			},
-		},
-	}
-
-	testPluginWithHelmChartCRDs = &greenhousev1alpha1.ClusterPluginDefinition{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      "test-plugindefinition",
-		},
-		Spec: greenhousev1alpha1.PluginDefinitionSpec{
-			Version: "1.0.0",
-			HelmChart: &greenhousev1alpha1.HelmChartReference{
-				Name:       "./../test/fixtures/myChartWithCRDs",
-				Repository: "dummy",
 				Version:    "1.0.0",
 			},
 			Options: []greenhousev1alpha1.PluginOption{

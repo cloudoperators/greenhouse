@@ -14,7 +14,8 @@ controllerManager:
         - ALL
   image:
     repository: ghcr.io/cloudoperators/greenhouse
-    tag: main
+    # Overrides the image tag whose default is the chart appVersion.
+    # tag:
     # Overrides the image tag to use a specific digest instead
     # digest: ""
   resources:
@@ -23,6 +24,7 @@ controllerManager:
       memory: 128Mi
 
   args: []
+  env: []
   replicas: 3
   serviceAccount:
     annotations: {}

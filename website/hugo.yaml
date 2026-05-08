@@ -53,6 +53,11 @@ module:
       - path: github.com/sapcc/hugo-documentation-templater/v3
         disable: false
 
+markup:
+  tableOfContents:
+    startLevel: 2
+    endLevel: 4
+
 outputs:
   section:
     - HTML

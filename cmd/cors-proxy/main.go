@@ -108,7 +108,8 @@ func doRun(targetURL string) error {
 		return nil
 	}
 
-	reverseProxy := httputil.NewSingleHostReverseProxy(target)
+	reverseProxy := newReverseProxy(target)
+
 	tlsConfig := &tls.Config{MinVersion: tls.VersionTLS12}
 	if targetCAFile != "" {
 		cas, err := os.ReadFile(targetCAFile)
@@ -168,6 +169,15 @@ func doRun(targetURL string) error {
 	})
 
 	return g.Run()
+}
+
+func newReverseProxy(target *url.URL) *httputil.ReverseProxy {
+	return &httputil.ReverseProxy{
+		Rewrite: func(r *httputil.ProxyRequest) {
+			r.SetURL(target)
+			r.Out.Host = target.Host
+		},
+	}
 }
 
 func printHeader() {

@@ -9,7 +9,6 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -38,20 +37,10 @@ func SetupTeamRoleWebhookWithManager(mgr ctrl.Manager) error {
 	}); clientutil.IgnoreIndexerConflict(err) != nil {
 		return err
 	}
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &greenhousev1alpha1.TeamRoleBinding{}, greenhouseapis.RolebindingTeamRoleRefField, func(rawObj client.Object) []string {
-		// Extract the TeamRole name from the TeamRoleBinding Spec, if one is provided
-		teamRoleBinding, ok := rawObj.(*greenhousev1alpha1.TeamRoleBinding)
-		if teamRoleBinding.Spec.TeamRoleRef == "" || !ok {
-			return nil
-		}
-		return []string{teamRoleBinding.Spec.TeamRoleRef}
-	}); clientutil.IgnoreIndexerConflict(err) != nil {
-		return err
-	}
 
 	return webhook.SetupWebhook(mgr,
 		&greenhousev1alpha1.TeamRole{},
-		webhook.WebhookFuncs{
+		webhook.WebhookFuncs[*greenhousev1alpha1.TeamRole]{
 			DefaultFunc:        DefaultRole,
 			ValidateCreateFunc: ValidateCreateRole,
 			ValidateUpdateFunc: ValidateUpdateRole,
@@ -62,18 +51,13 @@ func SetupTeamRoleWebhookWithManager(mgr ctrl.Manager) error {
 
 //+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-teamrole,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=teamroles,verbs=create;update,versions=v1alpha1,name=mteamrole-v1alpha1.kb.io,admissionReviewVersions=v1
 
-func DefaultRole(_ context.Context, _ client.Client, _ runtime.Object) error {
+func DefaultRole(_ context.Context, _ client.Client, _ *greenhousev1alpha1.TeamRole) error {
 	return nil
 }
 
 //+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-teamrole,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=teamroles,verbs=create;update;delete,versions=v1alpha1,name=vteamrole-v1alpha1.kb.io,admissionReviewVersions=v1
 
-func ValidateCreateRole(_ context.Context, c client.Client, o runtime.Object) (admission.Warnings, error) {
-	role, ok := o.(*greenhousev1alpha1.TeamRole)
-	if !ok {
-		return nil, nil
-	}
-
+func ValidateCreateRole(_ context.Context, c client.Client, role *greenhousev1alpha1.TeamRole) (admission.Warnings, error) {
 	if err := isRulesAndAggregationRuleExclusive(role); err != nil {
 		return nil, err
 	}
@@ -81,24 +65,14 @@ func ValidateCreateRole(_ context.Context, c client.Client, o runtime.Object) (a
 	return nil, nil
 }
 
-func ValidateUpdateRole(_ context.Context, c client.Client, _, o runtime.Object) (admission.Warnings, error) {
-	role, ok := o.(*greenhousev1alpha1.TeamRole)
-	if !ok {
-		return nil, nil
-	}
-
+func ValidateUpdateRole(_ context.Context, c client.Client, _, role *greenhousev1alpha1.TeamRole) (admission.Warnings, error) {
 	if err := isRulesAndAggregationRuleExclusive(role); err != nil {
 		return nil, err
 	}
 	return nil, nil
 }
 
-func ValidateDeleteRole(ctx context.Context, c client.Client, o runtime.Object) (admission.Warnings, error) {
-	r, ok := o.(*greenhousev1alpha1.TeamRole)
-	if !ok {
-		return nil, nil
-	}
-
+func ValidateDeleteRole(ctx context.Context, c client.Client, r *greenhousev1alpha1.TeamRole) (admission.Warnings, error) {
 	isReferenced, err := isRoleReferenced(ctx, c, r)
 	if err != nil {
 		return nil, err

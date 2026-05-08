@@ -45,7 +45,7 @@ var _ = Describe("KubeConfig controller", func() {
 		})
 
 		AfterEach(func() {
-			test.MustDeleteCluster(test.Ctx, test.K8sClient, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()})
+			test.MustDeleteCluster(test.Ctx, test.K8sClient, &cluster)
 			test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
 			Expect(remoteEnvTest.Stop()).To(Succeed(), "there should be no error stopping the remote environment")
 		})

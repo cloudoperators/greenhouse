@@ -64,3 +64,10 @@ flowchart TB
   pluginPreset --"creates"--> plugin1
   pluginPreset --"creates"--> plugin2
 ```
+
+## Next Steps
+
+- [Creating an Organization](./../../../user-guides/organization/creation)
+- [Plugin reference](./../../../reference/components/plugin)
+- [PluginPreset reference](./../../../reference/components/pluginpreset)
+- [PluginDefinition reference](./../../../reference/components/plugindefinition)

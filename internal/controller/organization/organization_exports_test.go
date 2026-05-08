@@ -4,5 +4,6 @@
 package organization
 
 var (
-	ExportDefaultTeamRoles = defaultTeamRoles
+	ExportDefaultTeamRoles         = defaultTeamRoles
+	ExportIncrementResourceVersion = incrementResourceVersion
 )

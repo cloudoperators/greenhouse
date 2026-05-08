@@ -10,7 +10,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -34,7 +33,7 @@ var greenhouseSecretTypes = []corev1.SecretType{
 func SetupSecretWebhookWithManager(mgr ctrl.Manager) error {
 	return webhook.SetupWebhook(mgr,
 		&corev1.Secret{},
-		webhook.WebhookFuncs{
+		webhook.WebhookFuncs[*corev1.Secret]{
 			DefaultFunc:        DefaultSecret,
 			ValidateCreateFunc: ValidateCreateSecret,
 			ValidateUpdateFunc: ValidateUpdateSecret,
@@ -45,17 +44,13 @@ func SetupSecretWebhookWithManager(mgr ctrl.Manager) error {
 
 //+kubebuilder:webhook:path=/mutate--v1-secret,mutating=true,failurePolicy=ignore,sideEffects=None,groups="",matchPolicy=Exact,resources=secrets,verbs=create;update,versions=v1,name=msecret.kb.io,admissionReviewVersions=v1
 
-func DefaultSecret(_ context.Context, _ client.Client, _ runtime.Object) error {
+func DefaultSecret(_ context.Context, _ client.Client, _ *corev1.Secret) error {
 	return nil
 }
 
 //+kubebuilder:webhook:path=/validate--v1-secret,mutating=false,failurePolicy=ignore,sideEffects=None,groups="",matchPolicy=Exact,resources=secrets,verbs=create;update;delete,versions=v1,name=vsecret.kb.io,admissionReviewVersions=v1
 
-func ValidateCreateSecret(ctx context.Context, c client.Client, o runtime.Object) (admission.Warnings, error) {
-	secret, ok := o.(*corev1.Secret)
-	if !ok {
-		return nil, nil
-	}
+func ValidateCreateSecret(ctx context.Context, c client.Client, secret *corev1.Secret) (admission.Warnings, error) {
 	if !slices.Contains(greenhouseSecretTypes, secret.Type) {
 		return nil, nil
 	}
@@ -77,11 +72,7 @@ func ValidateCreateSecret(ctx context.Context, c client.Client, o runtime.Object
 	return nil, nil
 }
 
-func ValidateUpdateSecret(ctx context.Context, c client.Client, _, o runtime.Object) (admission.Warnings, error) {
-	secret, ok := o.(*corev1.Secret)
-	if !ok {
-		return nil, nil
-	}
+func ValidateUpdateSecret(ctx context.Context, c client.Client, _, secret *corev1.Secret) (admission.Warnings, error) {
 	if !slices.Contains(greenhouseSecretTypes, secret.Type) {
 		return nil, nil
 	}
@@ -103,7 +94,7 @@ func ValidateUpdateSecret(ctx context.Context, c client.Client, _, o runtime.Obj
 	return nil, nil
 }
 
-func ValidateDeleteSecret(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
+func ValidateDeleteSecret(_ context.Context, _ client.Client, _ *corev1.Secret) (admission.Warnings, error) {
 	return nil, nil
 }
 

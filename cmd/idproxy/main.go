@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/dexidp/dex/server"
+	"github.com/dexidp/dex/server/signer"
 	"github.com/go-logr/logr"
 	"github.com/oklog/run"
 	"github.com/prometheus/client_golang/prometheus"
@@ -85,6 +86,12 @@ func main() {
 		log.Fatalf("Failed to setup refresh token policy: %s", err)
 	}
 
+	signerCfg := &signer.LocalConfig{KeysRotationPeriod: "3h"}
+	tokenSigner, err := signerCfg.Open(ctx, dexter, idTokenValidity, time.Now, logger.With("component", "signer"))
+	if err != nil {
+		log.Fatalf("failed to create token signer: %s", err)
+	}
+
 	registry := prometheus.NewRegistry()
 	registry.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	registry.MustRegister(collectors.NewGoCollector())
@@ -94,6 +101,7 @@ func main() {
 		SkipApprovalScreen: true,
 		Logger:             logger.With("component", "server"),
 		Storage:            dexter,
+		Signer:             tokenSigner,
 		AllowedOrigins:     allowedOrigins,
 		IDTokensValidFor:   idTokenValidity,
 		RefreshTokenPolicy: refreshPolicy,

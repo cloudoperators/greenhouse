@@ -134,10 +134,10 @@ $(CLI): $(LOCALBIN)
 
 ##@ Build
 .PHONY: action-build
-action-build: build-greenhouse build-idproxy build-cors-proxy build-greenhousectl build-service-proxy
+action-build: build-greenhouse build-idproxy build-cors-proxy build-greenhousectl build-service-proxy build-authz
 
 .PHONY: build
-build: generate build-greenhouse build-idproxy build-cors-proxy build-greenhousectl build-service-proxy
+build: generate build-greenhouse build-idproxy build-cors-proxy build-greenhousectl build-service-proxy build-authz
 
 build-%: GIT_BRANCH  = $(shell git rev-parse --abbrev-ref HEAD)
 build-%: GIT_COMMIT  = $(shell git rev-parse --short HEAD)
@@ -173,21 +173,23 @@ kustomize-build-crds: manifests kustomize
 ## Tool Binaries
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
-CONTROLLER_GEN_ACTION ?= $(LOCALBIN)/controller-gen
+CONTROLLER_GEN_ACTION ?= $(LOCALBIN)/action-controller-gen
 GOIMPORTS ?= $(LOCALBIN)/goimports
 GOLINT ?= $(LOCALBIN)/golangci-lint
 ENVTEST ?= $(LOCALBIN)/setup-envtest
-ENVTEST_ACTION ?= $(LOCALBIN)/setup-envtest
+ENVTEST_ACTION ?= $(LOCALBIN)/action-setup-envtest
 HELMIFY ?= $(LOCALBIN)/helmify
+HELM_DOCS ?= $(LOCALBIN)/helm-docs
 
 ## Tool Versions
-KUSTOMIZE_VERSION ?= 5.7.1
+KUSTOMIZE_VERSION ?= 5.8.1
 CERT_MANAGER_VERSION ?= v1.17.1
-CONTROLLER_TOOLS_VERSION ?= 0.19.0
-GOLINT_VERSION ?= 2.5.0
-GINKGOLINTER_VERSION ?= 0.21.2
+CONTROLLER_TOOLS_VERSION ?= 0.20.1
+GOLINT_VERSION ?= 2.11.4
+GINKGOLINTER_VERSION ?= 0.23.0
+HELM_DOCS_VERSION ?= 1.14.2
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION ?= 1.34.1
+ENVTEST_K8S_VERSION ?= 1.35.0
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 .PHONY: kustomize
@@ -235,6 +237,33 @@ $(GOLINT): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v$(GOLINT_VERSION)
 	GOBIN=$(LOCALBIN) go install github.com/nunnatsa/ginkgolinter/cmd/ginkgolinter@v$(GINKGOLINTER_VERSION)
 
+.PHONY: helm-docs
+helm-docs: $(HELM_DOCS) ## Download helm-docs locally if necessary.
+$(HELM_DOCS): $(LOCALBIN)
+	$(call go-install-tool,$(HELM_DOCS),github.com/norwoodj/helm-docs/cmd/helm-docs,v$(HELM_DOCS_VERSION))
+
+.PHONY: authz-docs
+authz-docs: helm-docs ## Generate README for charts/authz using helm-docs.
+	$(HELM_DOCS) --chart-search-root charts/authz
+
+# go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
+# $1 - target path with name of binary
+# $2 - package url which can be installed
+# $3 - specific version of package
+define go-install-tool
+@[ -f "$(1)-$(3)" ] || { \
+set -e; \
+package=$(2)@$(3) ;\
+echo "Downloading $${package}" ;\
+rm -f $(1) || true ;\
+GOBIN=$(LOCALBIN) go install $${package} ;\
+mv $(1) $(1)-$(3) ;\
+} ;\
+ln -sf $(1)-$(3) $(1)
+endef
+
+
+
 .PHONY: serve-docs
 serve-docs: manifests
 ifeq (, $(shell which hugo))
@@ -256,6 +285,10 @@ DEMO_ORG ?= demo
 DEV_MODE ?= false
 INTERNAL ?= -int
 WITH_CONTROLLER ?= true
+E2E_RESULT_DIR ?= $(shell pwd)/bin
+
+# Include authz-related targets from hack/authz/authz.mk
+include hack/authz/authz.mk
 
 .PHONY: setup
 setup: setup-manager setup-dashboard setup-demo
@@ -314,15 +347,15 @@ clean-e2e:
 
 .PHONY: e2e
 e2e:
-	GOMEGA_DEFAULT_EVENTUALLY_TIMEOUT="2m" \
+	GOMEGA_DEFAULT_EVENTUALLY_TIMEOUT="5m" \
 		go test -tags="$(SCENARIO)E2E" ${PWD}/e2e/$(SCENARIO) -mod=readonly -test.v -ginkgo.v --ginkgo.json-report=$(E2E_REPORT_PATH)
 
 .PHONY: e2e-local
 e2e-local: prepare-e2e
-	GREENHOUSE_ADMIN_KUBECONFIG="$(shell pwd)/bin/$(ADMIN_CLUSTER).kubeconfig" \
-    	GREENHOUSE_REMOTE_KUBECONFIG="$(shell pwd)/bin/$(REMOTE_CLUSTER).kubeconfig" \
-    	GREENHOUSE_REMOTE_INT_KUBECONFIG="$(shell pwd)/bin/$(REMOTE_CLUSTER)-int.kubeconfig" \
-    	CONTROLLER_LOGS_PATH="$(shell pwd)/bin/$(SCENARIO)-e2e-pod-logs.txt" \
+	GREENHOUSE_ADMIN_KUBECONFIG="$(E2E_RESULT_DIR)/$(ADMIN_CLUSTER).kubeconfig" \
+    	GREENHOUSE_REMOTE_KUBECONFIG="$(E2E_RESULT_DIR)/$(REMOTE_CLUSTER).kubeconfig" \
+    	GREENHOUSE_REMOTE_INT_KUBECONFIG="$(E2E_RESULT_DIR)/$(REMOTE_CLUSTER)-int.kubeconfig" \
+    	CONTROLLER_LOGS_PATH="$(E2E_RESULT_DIR)/$(SCENARIO)-e2e-pod-logs.txt" \
     	EXECUTION_ENV=$(EXECUTION_ENV) \
 		GOMEGA_DEFAULT_EVENTUALLY_TIMEOUT="2m" \
 		go test -tags="$(SCENARIO)E2E" $(shell pwd)/e2e/$(SCENARIO) -test.v -ginkgo.v --ginkgo.json-report=$(E2E_REPORT_PATH)
@@ -336,10 +369,6 @@ prepare-e2e:
 .PHONY: list-scenarios
 list-scenarios:
 	find $(shell pwd)/e2e -type f -name 'e2e_test.go' -exec dirname {} \; | xargs -n 1 basename | jq -R -s -c 'split("\n")[:-1]'
-
-.PHONY: dev-docs
-dev-docs:
-	go run -tags="dev" -mod=mod dev-env/docs.go
 
 # Download and install mockery locally via `brew install mockery`
 MOCKERY := $(shell which mockery)
@@ -360,3 +389,27 @@ flux: kustomize
 .PHONY: license
 license:
 	docker run --rm -v $(shell pwd):/github/workspace $(IMG_LICENSE_EYE) -c .github/licenserc.yaml header fix
+
+.PHONY: zot
+zot:
+	# kubectl create namespace flux-system --dry-run=client -o yaml | kubectl apply -f -
+	# helm repo add project-zot https://zotregistry.dev/helm-charts
+	# helm repo update project-zot
+	# helm upgrade --namespace flux-system --version $(ZOT_VERSION) --install zot project-zot/zot -f dev-env/zot.values.yaml --create-namespace
+	bash hack/registry/setup.sh
+
+.PHONY: show-e2e-logs
+show-e2e-logs:
+	@for f in $(E2E_RESULT_DIR)/greenhouse-$(SCENARIO)-*.txt; do \
+  		if [ -e "$$f" ]; then \
+			echo echo -e "\n\n\n--------------------------- Greenhouse Controller Logs ---------------------------\n\n\n"; \
+			cat "$$f"; \
+		fi; \
+	done
+	@for f in $(E2E_RESULT_DIR)/flux-$(SCENARIO)-*.txt; do \
+  		if [ -e "$$f" ]; then \
+			echo -e "\n\n\n--------------------------- Flux $$f ---------------------------\n\n\n"; \
+			cat "$$f"; \
+		fi; \
+	done
+

@@ -1,9 +1,9 @@
 name: "💡 Feature Request"
 description: Create a ticket requesting a new feature
 title: "[FEAT] - <title>"
-labels: [
-  "feature"
-]
+labels:
+  - "feature"
+  - "needs-triage"
 body:
   - type: markdown
     attributes:

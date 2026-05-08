@@ -7,14 +7,18 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"maps"
 	"os"
 	"time"
 
+	fluxmeta "github.com/fluxcd/pkg/apis/meta"
+	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -24,53 +28,77 @@ import (
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/internal/common"
 )
 
-func UpdateClusterWithDeletionAnnotation(ctx context.Context, c client.Client, id client.ObjectKey) *greenhousev1alpha1.Cluster {
+func UpdateClusterWithDeletionAnnotation(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster) *greenhousev1alpha1.Cluster {
 	GinkgoHelper()
 	schedule, err := clientutil.ParseDateTime(time.Now().Add(-1 * time.Minute))
 	Expect(err).ToNot(HaveOccurred(), "there should be no error parsing the time")
-	cluster := &greenhousev1alpha1.Cluster{}
-	Eventually(func(g Gomega) {
-		g.Expect(c.Get(ctx, id, cluster)).
-			To(Succeed(), "there must be no error getting the cluster")
-		baseCluster := cluster.DeepCopy()
-		cluster.SetAnnotations(map[string]string{
-			greenhouseapis.MarkClusterDeletionAnnotation:     "true",
-			greenhouseapis.ScheduleClusterDeletionAnnotation: schedule.Format(time.DateTime),
-		})
-		g.Expect(c.Patch(ctx, cluster, client.MergeFrom(baseCluster))).To(Succeed(), "there must be no error updating the cluster")
-	}).Should(Succeed(), "there should be no error setting the cluster deletion annotation")
+	MustSetAnnotations(ctx, c, cluster, map[string]string{
+		greenhouseapis.MarkClusterDeletionAnnotation:     "true",
+		greenhouseapis.ScheduleClusterDeletionAnnotation: schedule.Format(time.DateTime)})
 	return cluster
 }
 
-func RemoveDeletionProtection(ctx context.Context, c client.Client, id client.ObjectKey) *greenhousev1alpha1.PluginPreset {
+func MustSetAnnotation(ctx context.Context, c client.Client, o client.Object, key, value string) {
 	GinkgoHelper()
-	pluginPreset := &greenhousev1alpha1.PluginPreset{}
+	MustSetAnnotations(ctx, c, o, map[string]string{key: value})
+}
+
+func MustSetAnnotations(ctx context.Context, c client.Client, o client.Object, annotations map[string]string) {
+	GinkgoHelper()
 	Eventually(func(g Gomega) {
-		g.Expect(c.Get(ctx, id, pluginPreset)).
-			To(Succeed(), "there must be no error getting the plugin preset")
-		base := pluginPreset.DeepCopy()
-		annotations := pluginPreset.GetAnnotations()
-		delete(annotations, greenhousev1alpha1.PreventDeletionAnnotation)
-		pluginPreset.SetAnnotations(annotations)
-		g.Expect(c.Patch(ctx, pluginPreset, client.MergeFrom(base))).To(Succeed(), "there must be no error updating the pluginpreset")
-	}).Should(Succeed(), "there should be no error removing the deletion projection")
-	return pluginPreset
+		base := o.DeepCopyObject().(client.Object)
+		g.Expect(c.Get(ctx, client.ObjectKeyFromObject(o), o)).To(Succeed(), "there must be no error getting the object")
+		if o.GetAnnotations() == nil {
+			o.SetAnnotations(annotations)
+		} else {
+			maps.Copy(o.GetAnnotations(), annotations)
+		}
+		g.Expect(c.Patch(ctx, o, client.MergeFrom(base))).To(Succeed(), "there must be no error updating the object")
+	}).Should(Succeed(), "there should be no error setting the annotation")
+}
+
+func MustRemoveAnnotation(ctx context.Context, c client.Client, o client.Object, key string) {
+	GinkgoHelper()
+	Eventually(func(g Gomega) {
+		g.Expect(c.Get(ctx, client.ObjectKeyFromObject(o), o)).To(Succeed(), "there must be no error getting the object")
+		delete(o.GetAnnotations(), key)
+		g.Expect(c.Update(ctx, o)).To(Succeed(), "there must be no error updating the object")
+	}).Should(Succeed(), "there should be no error removing the annotation")
+}
+
+func MustRemoveLabel(ctx context.Context, c client.Client, o client.Object, key string) {
+	GinkgoHelper()
+	Eventually(func(g Gomega) {
+		g.Expect(c.Get(ctx, client.ObjectKeyFromObject(o), o)).To(Succeed(), "there must be no error getting the object")
+		delete(o.GetLabels(), key)
+		g.Expect(c.Update(ctx, o)).To(Succeed(), "there must be no error updating the object")
+	}).Should(Succeed(), "there should be no error removing the label")
 }
 
 // MustDeleteCluster is used in the test context only and removes a cluster by namespaced name.
-func MustDeleteCluster(ctx context.Context, c client.Client, id client.ObjectKey) {
+func MustDeleteCluster(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster) {
 	GinkgoHelper()
+	UpdateClusterWithDeletionAnnotation(ctx, c, cluster)
 
-	cluster := UpdateClusterWithDeletionAnnotation(ctx, c, id)
-	Expect(c.Delete(ctx, cluster)).
-		To(Succeed(), "there must be no error deleting object", "key", client.ObjectKeyFromObject(cluster))
-
+	// Retry delete until the cluster is gone - handles conflicts and waits for deletion to complete
 	Eventually(func() bool {
 		err := c.Get(ctx, client.ObjectKeyFromObject(cluster), cluster)
+		if err != nil {
+			return apierrors.IsNotFound(err)
+		}
+
+		err = c.Delete(ctx, cluster)
+		if err != nil && !apierrors.IsNotFound(err) {
+			return false // Delete failed, will retry
+		}
+
+		// Make sure that the cluster is gone
+		err = c.Get(ctx, client.ObjectKeyFromObject(cluster), cluster)
 		return apierrors.IsNotFound(err)
-	}).Should(BeTrue(), "the object should be deleted eventually")
+	}).Should(BeTrue(), "the cluster should be deleted eventually", "key", client.ObjectKeyFromObject(cluster))
 }
 
 // SetClusterReadyCondition sets the ready condition of the cluster resource.
@@ -114,4 +142,30 @@ func KubeconfigFromEnvVar(envVar string) ([]byte, error) {
 		return nil, err
 	}
 	return kubeconfig, nil
+}
+
+// MockHelmChartReady mocks the HelmChart status for a PluginDefinition as ready.
+// This is useful in tests where the Flux source controller is not running.
+// The function uses Eventually to wait for the HelmChart to be created and then patches its status.
+// Works with both ClusterPluginDefinition and PluginDefinition via the common.GenericPluginDefinition interface.
+func MockHelmChartReady(ctx context.Context, k8sClient client.Client, pluginDefinition common.GenericPluginDefinition, helmChartNamespace string) {
+	GinkgoHelper()
+	Eventually(func(g Gomega) {
+		helmChart := &sourcev1.HelmChart{}
+		helmChart.SetName(pluginDefinition.FluxHelmChartResourceName())
+		helmChart.SetNamespace(helmChartNamespace)
+		err := k8sClient.Get(ctx, client.ObjectKeyFromObject(helmChart), helmChart)
+		g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the HelmChart")
+		newHelmChart := &sourcev1.HelmChart{}
+		*newHelmChart = *helmChart
+		helmChartReadyCondition := metav1.Condition{
+			Type:               fluxmeta.ReadyCondition,
+			Status:             metav1.ConditionTrue,
+			LastTransitionTime: metav1.Now(),
+			Reason:             "Succeeded",
+			Message:            "Helm chart is ready",
+		}
+		newHelmChart.Status.Conditions = []metav1.Condition{helmChartReadyCondition}
+		g.Expect(k8sClient.Status().Patch(ctx, newHelmChart, client.MergeFrom(helmChart))).To(Succeed(), "there should be no error patching HelmChart status")
+	}).Should(Succeed(), "HelmChart should be mocked as ready")
 }

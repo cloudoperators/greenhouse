@@ -20,7 +20,6 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -29,6 +28,7 @@ import (
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	kustomizev1 "github.com/fluxcd/kustomize-controller/api/v1"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
+	sourcev2 "github.com/fluxcd/source-watcher/api/v2/v1beta1"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
@@ -65,6 +65,7 @@ const (
 const (
 	flagHelmDebug                          = "helm-debug"
 	flagControllers                        = "controllers"
+	flagDisabledControllers                = "disabled-controllers"
 	flagMetricsBindAddress                 = "metrics-bind-address"
 	flagHealthProbeBindAddress             = "health-probe-bind-address"
 	flagRemoteClusterBearerTokenValidity   = "remote-cluster-bearer-token-validity"
@@ -73,17 +74,22 @@ const (
 	flagLeaseDuration                      = "leader-election-lease-duration"
 	flagRenewDeadline                      = "leader-election-renew-deadline"
 	flagRetryPeriod                        = "leader-election-retry-period"
+	flagArtifactStoragePath                = "catalog-artifact-storage-path"
+	flagArtifactRetries                    = "catalog-http-retry"
 )
 
 var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
 
-	enabledControllers []string
+	enabledControllers  []string
+	disabledControllers []string
 	remoteClusterBearerTokenValidity,
 	renewRemoteClusterBearerTokenAfter time.Duration
-	kubeClientOpts clientutil.RuntimeOptions
-	featureFlags   *features.Features
+	kubeClientOpts      clientutil.RuntimeOptions
+	featureFlags        *features.Features
+	artifactStoragePath string
+	artifactRetries     int
 )
 
 func init() {
@@ -95,6 +101,7 @@ func init() {
 	utilruntime.Must(sourcev1.AddToScheme(scheme))
 	utilruntime.Must(helmv2.AddToScheme(scheme))
 	utilruntime.Must(kustomizev1.AddToScheme(scheme))
+	utilruntime.Must(sourcev2.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -106,6 +113,8 @@ func main() {
 		"Enable debug logging for underlying Helm client.")
 	flag.StringSliceVar(&enabledControllers, flagControllers, knownControllersNames(),
 		"A list of controllers to enable.")
+	flag.StringSliceVar(&disabledControllers, flagDisabledControllers, []string{},
+		"A list of controllers to disable.")
 	flag.StringVar(&metricsAddr, flagMetricsBindAddress, ":8080",
 		"The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, flagHealthProbeBindAddress, ":8081",
@@ -119,6 +128,8 @@ func main() {
 	flag.DurationVar(&leaseDuration, flagLeaseDuration, 60*time.Second, "Leader election lease duration")
 	flag.DurationVar(&renewDeadline, flagRenewDeadline, 30*time.Second, "Leader election renew deadline")
 	flag.DurationVar(&retryPeriod, flagRetryPeriod, 5*time.Second, "Leader election retry period")
+	flag.StringVar(&artifactStoragePath, flagArtifactStoragePath, "/tmp/data", "The path to store catalog artifacts")
+	flag.IntVar(&artifactRetries, flagArtifactRetries, 5, "Max number of retries to acquire artifact, default: 5 attempts")
 
 	opts := zap.Options{
 		Development: true,
@@ -165,9 +176,9 @@ func main() {
 		LeaderElection:                isEnableLeaderElection,
 		LeaderElectionID:              "operator.greenhouse.sap",
 		LeaderElectionReleaseOnCancel: true,
-		LeaseDuration:                 ptr.To(leaseDuration),
-		RenewDeadline:                 ptr.To(renewDeadline),
-		RetryPeriod:                   ptr.To(retryPeriod),
+		LeaseDuration:                 new(leaseDuration),
+		RenewDeadline:                 new(renewDeadline),
+		RetryPeriod:                   new(retryPeriod),
 	})
 	handleError(err, "unable to start manager")
 

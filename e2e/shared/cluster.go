@@ -8,12 +8,11 @@ import (
 	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/client-go/util/retry"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
-	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -67,40 +66,31 @@ func OffBoardRemoteCluster(ctx context.Context, adminClient, remoteClient client
 	Expect(err).NotTo(HaveOccurred())
 
 	By("marking the cluster for deletion")
-	err = triggerClusterDeletion(ctx, adminClient, cluster, testStartTime)
-	Expect(err).NotTo(HaveOccurred())
+	mustTriggerClusterDeletion(ctx, adminClient, cluster, testStartTime)
 
 	By("checking the cluster resource is eventually deleted")
 	Eventually(func(g Gomega) {
 		err := adminClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, cluster)
-		g.Expect(err).To(HaveOccurred())
-		g.Expect(client.IgnoreNotFound(err)).To(Succeed())
-	}).Should(Succeed(), "cluster resource should be deleted")
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "cluster resource should be deleted")
+		secret := &corev1.Secret{}
+		err = adminClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, secret)
+		GinkgoWriter.Printf("secret err: %v\n", err)
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "cluster secret should be deleted")
+	}).Should(Succeed(), "cluster resource & secret should be deleted")
 
 	By("verifying that the remote cluster managed service account and cluster role binding is deleted")
 	Eventually(func(g Gomega) {
 		crb := &rbacv1.ClusterRoleBinding{}
 		err := remoteClient.Get(ctx, client.ObjectKey{Name: ManagedResourceName}, crb)
-		GinkgoWriter.Printf("crb err: %v\n", err)
-		g.Expect(client.IgnoreNotFound(err)).To(Succeed(), "cluster role binding should be deleted")
+		if err != nil {
+			GinkgoWriter.Printf("crb err: %v\n", err)
+		}
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "cluster role binding should be deleted")
 		managedSA := &corev1.ServiceAccount{}
 		err = remoteClient.Get(ctx, client.ObjectKey{Name: ManagedResourceName, Namespace: namespace}, managedSA)
 		GinkgoWriter.Printf("sa err: %v\n", err)
-		g.Expect(client.IgnoreNotFound(err)).To(Succeed(), "managed service account should be deleted")
-		secret := &corev1.Secret{}
-		err = adminClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, secret)
-		GinkgoWriter.Printf("secret err: %v\n", err)
-		g.Expect(client.IgnoreNotFound(err)).To(Succeed(), "cluster secret should be deleted")
-	}).Should(Succeed(), "managed service account should be deleted")
-
-	By("verifying that the owned cluster secret is deleted")
-	Eventually(func(g Gomega) bool {
-		secret := &corev1.Secret{}
-		err := adminClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, secret)
-		GinkgoWriter.Printf("secret err: %v\n", err)
-		g.Expect(client.IgnoreNotFound(err)).To(Succeed(), "cluster secret should be deleted")
-		return true
-	}).Should(BeTrue(), "managed service account should be deleted")
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "managed service account should be deleted")
+	}).Should(Succeed(), "RBAC on remote cluster should be deleted")
 }
 
 func ClusterIsReady(ctx context.Context, adminClient client.Client, clusterName, namespace string) {
@@ -117,18 +107,12 @@ func ClusterIsReady(ctx context.Context, adminClient client.Client, clusterName,
 	}).Should(Succeed(), "cluster should be ready")
 }
 
-func triggerClusterDeletion(ctx context.Context, k8sClient client.Client, cluster *greenhousev1alpha1.Cluster, testStartTime time.Time) error {
+func mustTriggerClusterDeletion(ctx context.Context, k8sClient client.Client, cluster *greenhousev1alpha1.Cluster, testStartTime time.Time) {
+	GinkgoHelper()
 	schedule, err := clientutil.ParseDateTime(testStartTime)
 	Expect(err).ToNot(HaveOccurred(), "there should be no error parsing the time")
-	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		err := k8sClient.Get(ctx, client.ObjectKeyFromObject(cluster), cluster)
-		if err != nil {
-			return err
-		}
-		cluster.SetAnnotations(map[string]string{
-			greenhouseapis.MarkClusterDeletionAnnotation:     "true",
-			greenhouseapis.ScheduleClusterDeletionAnnotation: schedule.Format(time.DateTime),
-		})
-		return k8sClient.Update(ctx, cluster)
+	test.MustSetAnnotations(ctx, k8sClient, cluster, map[string]string{
+		greenhouseapis.MarkClusterDeletionAnnotation:     "true",
+		greenhouseapis.ScheduleClusterDeletionAnnotation: schedule.Format(time.DateTime),
 	})
 }

@@ -52,7 +52,7 @@ func CheckClientClusterPermission(ctx context.Context, kubeClient client.Client,
 
 func checkPermissionMap(ctx context.Context, kubeClient client.Client, permissionMap []Permission, user, namespace string) (missingPermission []Permission) {
 	for _, permission := range permissionMap {
-		if !canI(ctx, kubeClient, namespace, user, permission) {
+		if !canI(ctx, kubeClient, user, namespace, permission) {
 			missingPermission = append(missingPermission, permission)
 		}
 	}

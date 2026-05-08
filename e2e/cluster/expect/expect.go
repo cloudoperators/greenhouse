@@ -6,7 +6,6 @@ package expect
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -19,13 +18,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
-	"github.com/cloudoperators/greenhouse/internal/lifecycle"
+	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 func SetupOIDCClusterRoleBinding(ctx context.Context, remoteClient client.Client, clusterRoleBindingName, clusterName, namespace string) {
@@ -68,17 +67,12 @@ func VerifyClusterVersion(ctx context.Context, adminClient client.Client, remote
 func ClusterDeletionIsScheduled(ctx context.Context, adminClient client.Client, name, namespace string) {
 	now := time.Now().UTC()
 	cluster := &greenhousev1alpha1.Cluster{}
-	objKey := client.ObjectKey{Name: name, Namespace: namespace}
+	cluster.Name = name
+	cluster.Namespace = namespace
+	objKey := client.ObjectKeyFromObject(cluster)
 
 	By("marking the cluster for deletion")
-	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		err := adminClient.Get(ctx, objKey, cluster)
-		if err != nil {
-			return err
-		}
-		return markClusterToBeDeleted(ctx, adminClient, cluster)
-	})
-	Expect(err).NotTo(HaveOccurred(), "there should be no error marking the cluster for deletion")
+	test.MustSetAnnotation(ctx, adminClient, cluster, greenhouseapis.MarkClusterDeletionAnnotation, "true")
 
 	Eventually(func(g Gomega) bool {
 		cluster := &greenhousev1alpha1.Cluster{}
@@ -128,26 +122,73 @@ func RevokingRemoteClusterAccess(ctx context.Context, adminClient, remoteClient 
 func ReconcileReadyNotReady(ctx context.Context, adminClient client.Client, clusterName, namespace string, readyStatus bool) {
 	err := shared.WaitUntilResourceReadyOrNotReady(ctx, adminClient, &greenhousev1alpha1.Cluster{}, clusterName, namespace, func(resource lifecycle.RuntimeObject) error {
 		By("triggering a reconcile of the cluster resource")
-		resourceLabels := resource.GetLabels()
-		if resourceLabels == nil {
-			resourceLabels = make(map[string]string)
+		resourceAnnotations := resource.GetAnnotations()
+		if resourceAnnotations == nil {
+			resourceAnnotations = make(map[string]string)
 		}
-		resourceLabels["greenhouse.sap/last-apply"] = strconv.FormatInt(time.Now().Unix(), 10)
-		resource.SetLabels(resourceLabels)
+		resourceAnnotations[lifecycle.ReconcileAnnotation] = metav1.Now().Format(time.DateTime)
+		resource.SetAnnotations(resourceAnnotations)
 		return adminClient.Update(ctx, resource)
 	}, readyStatus)
 	Expect(err).NotTo(HaveOccurred(), "cluster should be in desired status")
 }
 
-func markClusterToBeDeleted(ctx context.Context, k8sClient client.Client, cluster *greenhousev1alpha1.Cluster) error {
-	cluster.SetAnnotations(map[string]string{
-		greenhouseapis.MarkClusterDeletionAnnotation: "true",
-	})
-	return k8sClient.Update(ctx, cluster)
+func ReconcileAndWaitForPayloadSchedulable(ctx context.Context, adminClient client.Client, clusterName, namespace string, schedulable bool) {
+	Eventually(func(g Gomega) {
+		cluster := &greenhousev1alpha1.Cluster{}
+		g.Expect(adminClient.Get(ctx, client.ObjectKey{Name: clusterName, Namespace: namespace}, cluster)).To(Succeed())
+		By("triggering a reconcile of the cluster resource")
+		resourceAnnotations := cluster.GetAnnotations()
+		if resourceAnnotations == nil {
+			resourceAnnotations = make(map[string]string)
+		}
+		resourceAnnotations[lifecycle.ReconcileAnnotation] = metav1.Now().Format(time.DateTime)
+		cluster.SetAnnotations(resourceAnnotations)
+		g.Expect(adminClient.Update(ctx, cluster)).To(Succeed())
+		g.Expect(adminClient.Get(ctx, client.ObjectKey{Name: clusterName, Namespace: namespace}, cluster)).To(Succeed())
+		conditions := cluster.GetConditions()
+		payloadCondition := conditions.GetConditionByType(greenhousev1alpha1.PayloadSchedulable)
+		g.Expect(payloadCondition).ToNot(BeNil(), "cluster should have PayloadSchedulable condition")
+		g.Expect(payloadCondition.IsTrue()).To(Equal(schedulable), "PayloadSchedulable should be %v", schedulable)
+	}).Should(Succeed(), "PayloadSchedulable condition should reach desired state")
 }
 
 func GetRestConfig(restClientGetter *clientutil.RestClientGetter) *rest.Config {
 	restConfig, err := restClientGetter.ToRESTConfig()
 	Expect(err).NotTo(HaveOccurred(), "there should be no error creating the remote REST config")
 	return restConfig
+}
+
+func CordonRemoteNodes(ctx context.Context, remoteClient client.Client) {
+	nodes := &corev1.NodeList{}
+	err := remoteClient.List(ctx, nodes)
+	Expect(err).NotTo(HaveOccurred(), "there should be no error while listing nodes")
+	for _, node := range nodes.Items {
+		if _, ok := node.Labels["node-role.kubernetes.io/control-plane"]; ok {
+			By("skipping cordoning control plane node: " + node.Name)
+			continue
+		}
+		if node.Spec.Unschedulable {
+			continue
+		}
+		base := node.DeepCopy()
+		node.Spec.Unschedulable = true
+		err = remoteClient.Patch(ctx, &node, client.MergeFrom(base))
+		Expect(err).NotTo(HaveOccurred(), "there should be no error while patching node")
+	}
+}
+
+func UnCordonRemoteNodes(ctx context.Context, remoteClient client.Client) {
+	nodes := &corev1.NodeList{}
+	err := remoteClient.List(ctx, nodes)
+	Expect(err).NotTo(HaveOccurred(), "there should be no error while listing nodes")
+	for _, node := range nodes.Items {
+		if !node.Spec.Unschedulable {
+			continue
+		}
+		base := node.DeepCopy()
+		node.Spec.Unschedulable = false
+		err = remoteClient.Patch(ctx, &node, client.MergeFrom(base))
+		Expect(err).NotTo(HaveOccurred(), "there should be no error while patching node")
+	}
 }

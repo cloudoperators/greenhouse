@@ -4,6 +4,8 @@
 package v1alpha1
 
 import (
+	"slices"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
@@ -31,19 +33,22 @@ type PluginPresetSpec struct {
 	ClusterSelector metav1.LabelSelector `json:"clusterSelector"`
 
 	// ClusterOptionOverrides define plugin option values to override by the PluginPreset
-	// +kubebuilder:validation:Optional
+	// +Optional
 	ClusterOptionOverrides []ClusterOptionOverride `json:"clusterOptionOverrides,omitempty"`
 
+	// WaitFor defines other Plugins to wait for before creating the Plugin.
+	WaitFor []WaitForItem `json:"waitFor,omitempty"`
+
 	// DeletionPolicy defines how Plugins owned by a PluginPreset are handled on deletion of the PluginPreset.
-	// Supported values are "Delete" and "Orphan". If not set, defaults to "Delete".
-	// +kubebuilder:validation:Optional
+	// Supported values are "Delete" and "Retain". If not set, defaults to "Delete".
+	// +Optional
 	// +kubebuilder:default=Delete
-	// +kubebuilder:validation:Enum=Delete;Orphan
+	// +kubebuilder:validation:Enum=Delete;Retain
 	DeletionPolicy string `json:"deletionPolicy,omitempty"`
 }
 
 // ClusterOptionOverride defines which plugin option should be override in which cluster
-// +kubebuilder:validation:Optional
+// +Optional
 type ClusterOptionOverride struct {
 	ClusterName string              `json:"clusterName"`
 	Overrides   []PluginOptionValue `json:"overrides"`
@@ -82,9 +87,10 @@ type ManagedPluginStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:shortName=pp
-//+kubebuilder:printcolumn:name="Plugin Definition",type=string,JSONPath=`.spec.plugin.pluginDefinition`
+//+kubebuilder:printcolumn:name="Plugin Definition",type=string,JSONPath=`.spec.plugin.pluginDefinitionRef.name`
 //+kubebuilder:printcolumn:name="Release Namespace",type=string,JSONPath=`.spec.plugin.releaseNamespace`
 //+kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`
+//+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // PluginPreset is the Schema for the PluginPresets API
 type PluginPreset struct {
@@ -101,6 +107,16 @@ func (c *PluginPreset) GetConditions() greenhousemetav1alpha1.StatusConditions {
 
 func (c *PluginPreset) SetCondition(condition greenhousemetav1alpha1.Condition) {
 	c.Status.SetConditions(condition)
+}
+
+func (c *PluginPreset) RemoveCondition(conditionType greenhousemetav1alpha1.ConditionType) {
+	c.Status.Conditions = slices.DeleteFunc(c.Status.Conditions, func(cond greenhousemetav1alpha1.Condition) bool {
+		return cond.Type == conditionType
+	})
+}
+
+func (c *PluginPreset) CanBeSuspended() bool {
+	return false
 }
 
 //+kubebuilder:object:root=true

@@ -4,14 +4,45 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+namespace: flux-system
+
 resources:
-  - https://github.com/fluxcd/flux2/manifests/install?ref=v2.7.0
+  - https://github.com/fluxcd/flux2/manifests/install?ref=v2.8.6
+  - https://github.com/fluxcd/flux2/manifests/bases/source-watcher?ref=v2.8.6
+
+images:
+  - name: fluxcd/source-watcher
+    newName: ghcr.io/fluxcd/source-watcher
 
 patches:
+  # allow greenhouse namespace to access flux artifacts
+  - target:
+      kind: NetworkPolicy
+      name: allow-egress
+      namespace: flux-system
+    patch: |
+      - op: add
+        path: /spec/ingress/0/from/-
+        value:
+          namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: greenhouse
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: greenhouse        
+
   # do not apply image-reflector-controller and image-automation-controller
   - target:
       kind: Deployment
-      name: (image-reflector-controller|image-automation-controller)
+      name: kustomize-controller
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: --feature-gates=ExternalArtifact=true
+
+  - target:
+      kind: Deployment
+      name: (image-automation-controller|image-reflector-controller)
     patch: |
       apiVersion: apps/v1
       kind: Deployment

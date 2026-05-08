@@ -9,30 +9,37 @@ import (
 
 	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
-	DexFeatureKey = "dex"
+	DexFeatureKey    = "dex"
+	PluginFeatureKey = "plugin"
 )
 
 type Features struct {
-	raw map[string]string
-	dex *dexFeatures `yaml:"dex"`
+	raw    map[string]string
+	dex    *dexFeatures    `yaml:"dex"`
+	plugin *pluginFeatures `yaml:"plugin"`
 }
 
 type dexFeatures struct {
 	Storage string `yaml:"storage"`
 }
 
+type pluginFeatures struct {
+	ExpressionEvaluationEnabled bool `yaml:"expressionEvaluationEnabled"`
+	IntegrationEnabled          bool `yaml:"integrationEnabled"`
+	OCIMirroringEnabled         bool `yaml:"ociMirroringEnabled"`
+}
+
 func NewFeatures(ctx context.Context, k8sClient client.Reader, configMapName, namespace string) (*Features, error) {
 	featureMap := &corev1.ConfigMap{}
 	if err := k8sClient.Get(ctx, types.NamespacedName{Name: configMapName, Namespace: namespace}, featureMap); err != nil {
-		if kerrors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return nil, nil
 		}
 		return nil, err
@@ -42,27 +49,32 @@ func NewFeatures(ctx context.Context, k8sClient client.Reader, configMapName, na
 	}, nil
 }
 
-func (f *Features) resolveDexFeatures() error {
-	// Extract the `dex` key from the ConfigMap
-	dexRaw, exists := f.raw[DexFeatureKey]
+func resolve[T any](f *Features, key string) (*T, error) {
+	raw, exists := f.raw[key]
 	if !exists {
-		return errors.New("dex feature not found in ConfigMap")
+		return nil, errors.New(key + " feature not found in ConfigMap")
 	}
 
-	// Unmarshal the `dex` YAML string into the struct
-	dex := &dexFeatures{}
-	err := yaml.Unmarshal([]byte(dexRaw), dex)
+	result := new(T)
+	if err := yaml.Unmarshal([]byte(raw), result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (f *Features) resolveDexFeatures() error {
+	dex, err := resolve[dexFeatures](f, DexFeatureKey)
 	if err != nil {
 		return err
 	}
-
 	f.dex = dex
 	return nil
 }
 
 func (f *Features) GetDexStorageType(ctx context.Context) *string {
 	if f.dex != nil {
-		return ptr.To(f.dex.Storage)
+		return new(f.dex.Storage)
 	}
 	if err := f.resolveDexFeatures(); err != nil {
 		ctrl.LoggerFrom(ctx).Error(err, "failed to resolve dex features")
@@ -71,5 +83,64 @@ func (f *Features) GetDexStorageType(ctx context.Context) *string {
 	if f.dex.Storage == "" {
 		return nil
 	}
-	return ptr.To(f.dex.Storage)
+	return new(f.dex.Storage)
+}
+
+func (f *Features) resolvePluginFeatures() error {
+	plugin, err := resolve[pluginFeatures](f, PluginFeatureKey)
+	if err != nil {
+		return err
+	}
+	f.plugin = plugin
+	return nil
+}
+
+// IsExpressionEvaluationEnabled returns whether plugin option expression evaluation is enabled.
+// Returns false as default.
+func (f *Features) IsExpressionEvaluationEnabled() bool {
+	if f == nil {
+		return false
+	}
+
+	if f.plugin != nil {
+		return f.plugin.ExpressionEvaluationEnabled
+	}
+	if err := f.resolvePluginFeatures(); err != nil {
+		ctrl.LoggerFrom(context.Background()).Error(err, "failed to resolve plugin features")
+		return false
+	}
+	return f.plugin.ExpressionEvaluationEnabled
+}
+
+// IsIntegrationEnabled returns whether plugin integration is enabled.
+// Returns false as default.
+func (f *Features) IsIntegrationEnabled() bool {
+	if f == nil {
+		return false
+	}
+
+	if f.plugin != nil {
+		return f.plugin.IntegrationEnabled
+	}
+	if err := f.resolvePluginFeatures(); err != nil {
+		ctrl.LoggerFrom(context.Background()).Error(err, "failed to resolve plugin features")
+		return false
+	}
+	return f.plugin.IntegrationEnabled
+}
+
+// IsOCIMirroringEnabled returns whether OCI mirroring is enabled.
+func (f *Features) IsOCIMirroringEnabled() bool {
+	if f == nil {
+		return false
+	}
+
+	if f.plugin != nil {
+		return f.plugin.OCIMirroringEnabled
+	}
+	if err := f.resolvePluginFeatures(); err != nil {
+		ctrl.LoggerFrom(context.Background()).Error(err, "failed to resolve plugin features")
+		return false
+	}
+	return f.plugin.OCIMirroringEnabled
 }

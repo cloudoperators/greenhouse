@@ -4,6 +4,9 @@
 package v1alpha1
 
 import (
+	"slices"
+	"strings"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
@@ -38,6 +41,9 @@ const (
 	// AllNodesReady reflects the readiness status of all nodes of a cluster.
 	AllNodesReady greenhousemetav1alpha1.ConditionType = "AllNodesReady"
 
+	// PayloadSchedulable reflects whether workloads can be scheduled on the cluster.
+	PayloadSchedulable greenhousemetav1alpha1.ConditionType = "PayloadSchedulable"
+
 	// KubeConfigValid reflects the validity of the kubeconfig of a cluster.
 	KubeConfigValid greenhousemetav1alpha1.ConditionType = "KubeConfigValid"
 
@@ -52,6 +58,9 @@ const (
 
 	// MinTokenValidity contains maximum bearer token validity duration.
 	MinTokenValidity = 24
+
+	// ServiceProxyDisabledKey is the annotation key used to indicate that the service proxy is disabled for a cluster.
+	ServiceProxyDisabledKey = "greenhouse.sap/service-proxy-disabled"
 )
 
 // ClusterStatus defines the observed state of Cluster
@@ -72,9 +81,9 @@ type ClusterConditionType string
 // Nodes contains node count metrics and tracks non-ready nodes in a cluster.
 type Nodes struct {
 	// Total represent the number of all the nodes in the cluster.
-	Total int32 `json:"total,omitempty"`
+	Total int `json:"total,omitempty"`
 	// ReadyNodes represent the number of ready nodes in the cluster.
-	Ready int32 `json:"ready,omitempty"`
+	Ready int `json:"ready,omitempty"`
 	// NotReady is slice of non-ready nodes status details.
 	// +listType="map"
 	// +listMapKey=name
@@ -93,9 +102,10 @@ type NodeStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 //+kubebuilder:printcolumn:name="AccessMode",type="string",JSONPath=".spec.accessMode"
 //+kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`
+//+kubebuilder:printcolumn:name="Version",type="string",JSONPath=`.status.kubernetesVersion`
+//+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // Cluster is the Schema for the clusters API
 type Cluster struct {
@@ -112,6 +122,35 @@ func (c *Cluster) GetConditions() greenhousemetav1alpha1.StatusConditions {
 
 func (c *Cluster) SetCondition(condition greenhousemetav1alpha1.Condition) {
 	c.Status.SetConditions(condition)
+}
+
+func (c *Cluster) RemoveCondition(conditionType greenhousemetav1alpha1.ConditionType) {
+	c.Status.Conditions = slices.DeleteFunc(c.Status.Conditions, func(cond greenhousemetav1alpha1.Condition) bool {
+		return cond.Type == conditionType
+	})
+}
+
+func (c *Cluster) CanBeSuspended() bool {
+	return false
+}
+
+// ExposedServicesEnabled returns true if the exposed services are enabled for the cluster, false otherwise. The value of the annotation "greenhouse.sap/service-proxy-disabled" is used to determine if the exposed services are disabled. Returns true if the annotation is not present or its value is not "true".
+func (c *Cluster) ExposedServicesEnabled() bool {
+	if c == nil {
+		return false
+	}
+
+	annotations := c.GetAnnotations()
+	if len(annotations) == 0 {
+		return true
+	}
+
+	value, ok := annotations[ServiceProxyDisabledKey]
+	if !ok {
+		return true
+	}
+	// annotation is opt-out. Only if the annotation is set to "true" (case-insensitive) the exposed services are disabled.
+	return strings.ToLower(value) != "true"
 }
 
 // GetSecretName returns the Kubernetes secret containing sensitive data for this cluster.

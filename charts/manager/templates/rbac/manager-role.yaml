@@ -15,11 +15,11 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - events
-  - secrets
+  - namespaces
   - serviceaccounts
   verbs:
   - create
+  - delete
   - get
   - list
   - patch
@@ -28,10 +28,9 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - namespaces
+  - secrets
   verbs:
   - create
-  - delete
   - get
   - list
   - patch
@@ -48,6 +47,17 @@ rules:
   resources:
   - connectors
   - oauth2clients
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - events.k8s.io
+  resources:
+  - events
   verbs:
   - create
   - get
@@ -202,9 +212,30 @@ rules:
   - update
   - watch
 - apiGroups:
+  - source.extensions.fluxcd.io
+  resources:
+  - artifactgenerators
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - source.toolkit.fluxcd.io
+  resources:
+  - externalartifacts
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - source.toolkit.fluxcd.io
   resources:
   - gitrepositories
+  - helmcharts
   - helmrepositories
   - ocirepositories
   verbs:
@@ -218,14 +249,7 @@ rules:
 - apiGroups:
   - source.toolkit.fluxcd.io
   resources:
-  - helmcharts
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - source.toolkit.fluxcd.io
-  resources:
+  - helmcharts/finalizers
   - helmrepositories/finalizers
   verbs:
   - create
@@ -236,6 +260,7 @@ rules:
 - apiGroups:
   - source.toolkit.fluxcd.io
   resources:
+  - helmcharts/status
   - helmrepositories/status
   verbs:
   - get

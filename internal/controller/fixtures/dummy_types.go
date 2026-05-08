@@ -4,6 +4,8 @@
 package fixtures
 
 import (
+	"slices"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -153,4 +155,14 @@ func (in *Dummy) GetConditions() greenhousemetav1alpha1.StatusConditions {
 
 func (in *Dummy) SetCondition(condition greenhousemetav1alpha1.Condition) {
 	in.Status.SetConditions(condition)
+}
+
+func (in *Dummy) RemoveCondition(conditionType greenhousemetav1alpha1.ConditionType) {
+	in.Status.Conditions = slices.DeleteFunc(in.Status.Conditions, func(cond greenhousemetav1alpha1.Condition) bool {
+		return cond.Type == conditionType
+	})
+}
+
+func (in *Dummy) CanBeSuspended() bool {
+	return true
 }

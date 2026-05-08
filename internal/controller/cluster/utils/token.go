@@ -15,7 +15,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -134,7 +133,7 @@ func shouldSkipTokenRenewal(ctx context.Context, restClientGetter *clientutil.Re
 func (t *TokenHelper) createTokenRequest(ctx context.Context, cluster *greenhousev1alpha1.Cluster) (*authenticationv1.TokenRequest, error) {
 	tokenRequest := &authenticationv1.TokenRequest{
 		Spec: authenticationv1.TokenRequestSpec{
-			ExpirationSeconds: ptr.To(int64(t.RemoteClusterBearerTokenValidity / time.Second)),
+			ExpirationSeconds: new(int64(t.RemoteClusterBearerTokenValidity / time.Second)),
 		},
 	}
 	// handle token request based on secret type

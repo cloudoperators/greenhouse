@@ -104,28 +104,15 @@ CatalogSpec
 <table>
 <tr>
 <td>
-<code>source</code><br>
+<code>sources</code><br>
 <em>
 <a href="#greenhouse.sap/v1alpha1.CatalogSource">
-CatalogSource
+[]CatalogSource
 </a>
 </em>
 </td>
 <td>
-<p>Source is the medium from which the PluginDefinition needs to be fetched</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>overrides</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.CatalogOverrides">
-[]CatalogOverrides
-</a>
-</em>
-</td>
-<td>
-<p>Overrides are the PluginDefinition overrides to be applied</p>
+<p>Sources contains the list of Git Repository source to resolve PluginDefinitions / ClusterPluginDefinitions from</p>
 </td>
 </tr>
 </table>
@@ -151,7 +138,7 @@ CatalogStatus
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.CatalogSpec">CatalogSpec</a>)
+<a href="#greenhouse.sap/v1alpha1.CatalogSource">CatalogSource</a>)
 </p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
@@ -197,6 +184,19 @@ string
 <p>Repository is the repository to override in the PluginDefinition .spec.helmChart.repository</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>optionsOverride</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.OptionsOverride">
+[]OptionsOverride
+</a>
+</em>
+</td>
+<td>
+<p>OptionsOverride are the option values to override in the PluginDefinition .spec.options[]</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -219,27 +219,98 @@ string
 <tbody>
 <tr>
 <td>
-<code>git</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.GitSource">
-GitSource
-</a>
-</em>
-</td>
-<td>
-<p>Git is the Git repository source for the PluginDefinition Catalog</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>path</code><br>
+<code>repository</code><br>
 <em>
 string
 </em>
 </td>
 <td>
-<p>Path is the path within the repository where the ClusterPluginDefinition / PluginDefinition Catalog is located
-an empty path indicates the root of the repository</p>
+<p>Repository - the Git repository URL</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resources</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Resources contains the list of path to PluginDefinition files
+e.g. [&ldquo;plugins/plugin-a.yaml&rdquo;, &ldquo;plugins/plugin-b.yaml&rdquo;]
+glob patterns are supported, e.g. [&ldquo;plugins/*.yaml&rdquo;, &ldquo;more-plugins/**/plugindefinition.yaml&rdquo;]</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ref</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.GitRef">
+GitRef
+</a>
+</em>
+</td>
+<td>
+<p>Ref is the git reference (branch, tag, or SHA) to resolve PluginDefinitions from
+precedence: SHA &gt; Tag &gt; Branch
+if not specified, defaults to the branch &ldquo;main&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>SecretName is the name of v1.Secret containing credentials to access the Git repository
+the secret must be in the same namespace as the Catalog resource</p>
+<pre><code>  GitHub App Example:
+-------------------
+githubAppID: &quot;&lt;app-id&gt;&quot;
+githubAppInstallationID: &quot;&lt;app-installation-id&gt;&quot;
+githubAppPrivateKey: |
+-----BEGIN RSA PRIVATE KEY-----
+...
+-----END RSA PRIVATE KEY-----
+githubAppBaseURL: &quot;&lt;github-enterprise-api-url&gt;&quot; #optional, required only for GitHub Enterprise Server users
+ca.crt: | #optional, for GitHub Enterprise Server users
+-----BEGIN CERTIFICATE-----
+...
+-----END CERTIFICATE-----
+GitHub Token Example:
+-------------------
+username: &lt;BASE64&gt;
+password: &lt;BASE64&gt;
+ca.crt: &lt;BASE64&gt; #optional, for GitHub Enterprise Server users
+</code></pre>
+</td>
+</tr>
+<tr>
+<td>
+<code>overrides</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.CatalogOverrides">
+[]CatalogOverrides
+</a>
+</em>
+</td>
+<td>
+<p>Overrides are the PluginDefinition overrides to be applied</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>interval</code><br>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<p>Interval defines how often to reconcile the Git repository source</p>
 </td>
 </tr>
 </tbody>
@@ -265,28 +336,15 @@ an empty path indicates the root of the repository</p>
 <tbody>
 <tr>
 <td>
-<code>source</code><br>
+<code>sources</code><br>
 <em>
 <a href="#greenhouse.sap/v1alpha1.CatalogSource">
-CatalogSource
+[]CatalogSource
 </a>
 </em>
 </td>
 <td>
-<p>Source is the medium from which the PluginDefinition needs to be fetched</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>overrides</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.CatalogOverrides">
-[]CatalogOverrides
-</a>
-</em>
-</td>
-<td>
-<p>Overrides are the PluginDefinition overrides to be applied</p>
+<p>Sources contains the list of Git Repository source to resolve PluginDefinitions / ClusterPluginDefinitions from</p>
 </td>
 </tr>
 </tbody>
@@ -321,6 +379,30 @@ Greenhouse meta/v1alpha1.StatusConditions
 </td>
 <td>
 <p>StatusConditions contain the different conditions that constitute the status of the Catalog</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>inventory</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.[]../greenhouse/api/v1alpha1.SourceStatus">
+map[string][]../greenhouse/api/v1alpha1.SourceStatus
+</a>
+</em>
+</td>
+<td>
+<p>Inventory contains list of internal artifacts generated by Catalog</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>lastReconciledAt</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>LastReconciledAt contains the value when the reconcile was last triggered via annotation.</p>
 </td>
 </tr>
 </tbody>
@@ -1152,6 +1234,18 @@ Icons can be either:
 </tr>
 <tr>
 <td>
+<code>docsURL</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>DocsURL specifies the URL to the documentation for this plugin.
+This is used by the Greenhouse UI to provide a link to external documentation.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>docMarkDownUrl</code><br>
 <em>
 string
@@ -1160,6 +1254,7 @@ string
 <td>
 <p>DocMarkDownUrl specifies the URL to the markdown documentation file for this plugin.
 Source needs to allow all CORS origins.</p>
+<p>Deprecated: Use docsURL instead. This field will be removed in a future release.</p>
 </td>
 </tr>
 </table>
@@ -1209,6 +1304,19 @@ Greenhouse meta/v1alpha1.StatusConditions
 </td>
 <td>
 <p>StatusConditions contain the different conditions that constitute the status of the Plugin.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>lastSyncedArtifact</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.LastSyncedArtifact">
+LastSyncedArtifact
+</a>
+</em>
+</td>
+<td>
+<p>LastSyncedArtifact tracks the last synced chart artifact and its replication status.</p>
 </td>
 </tr>
 </tbody>
@@ -1333,11 +1441,81 @@ Nodes
 </table>
 </div>
 </div>
+<h3 id="greenhouse.sap/v1alpha1.ExternalValueSource">ExternalValueSource
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.PluginValueFromSource">PluginValueFromSource</a>)
+</p>
+<p>ExternalValueSource defines how to extract values from external resources</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>kind</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Kind is the resource kind to target
+if not set, defaults to the same kind as the referencing resource (Plugin or PluginPreset)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>name</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name is the name of the resource to target
+this field is mutually exclusive with LabelSelector</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>selector</code><br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselector-v1-meta">
+Kubernetes meta/v1.LabelSelector
+</a>
+</em>
+</td>
+<td>
+<p>Selector selects the resources to target based on labels
+this field is mutually exclusive with Name</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>expression</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Expression is a CEL expression to extract the value from the referenced resource</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="greenhouse.sap/v1alpha1.GitRef">GitRef
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.GitSource">GitSource</a>)
+<a href="#greenhouse.sap/v1alpha1.CatalogSource">CatalogSource</a>)
 </p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
@@ -1377,81 +1555,6 @@ string
 </em>
 </td>
 <td>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<h3 id="greenhouse.sap/v1alpha1.GitSource">GitSource
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.CatalogSource">CatalogSource</a>)
-</p>
-<div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>url</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Repository is the URL of the GitHub repository containing the ClusterPluginDefinition / PluginDefinition Catalog</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>ref</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.GitRef">
-GitRef
-</a>
-</em>
-</td>
-<td>
-<p>Ref is the Git reference (branch, tag, or SHA) to resolve the ClusterPluginDefinition / PluginDefinition Catalog</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>secretName</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>SecretName is the name of v1.Secret containing credentials to access the Git repository
-the secret must be in the same namespace as the Catalog resource</p>
-<pre><code>  GitHub App Example:
--------------------
-githubAppID: &quot;&lt;app-id&gt;&quot;
-githubAppInstallationID: &quot;&lt;app-installation-id&gt;&quot;
-githubAppPrivateKey: |
------BEGIN RSA PRIVATE KEY-----
-...
------END RSA PRIVATE KEY-----
-githubAppBaseURL: &quot;&lt;github-enterprise-api-url&gt;&quot; #optional, required only for GitHub Enterprise Server users
-ca.crt: | #optional, for GitHub Enterprise Server users
------BEGIN CERTIFICATE-----
-...
------END CERTIFICATE-----
-GitHub Token Example:
--------------------
-username: &lt;BASE64&gt;
-password: &lt;BASE64&gt;
-ca.crt: &lt;BASE64&gt; #optional, for GitHub Enterprise Server users
-</code></pre>
 </td>
 </tr>
 </tbody>
@@ -1593,6 +1696,161 @@ string
 </table>
 </div>
 </div>
+<h3 id="greenhouse.sap/v1alpha1.IgnoreDifference">IgnoreDifference
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.PluginSpec">PluginSpec</a>)
+</p>
+<p>IgnoreDifference defines a set of paths to ignore for matching resources.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>group</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Group matches the APIVersion group of the resources to ignore.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Version matches the APIVersion version of the resources to ignore.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Kind matches the Kind of the resources to ignore.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>name</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name matches the name of the resources to ignore.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>paths</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Paths is a list of JSON paths to ignore when detecting drifts.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.LastSyncedArtifact">LastSyncedArtifact
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterPluginDefinitionStatus">ClusterPluginDefinitionStatus</a>, 
+<a href="#greenhouse.sap/v1alpha1.PluginDefinitionStatus">PluginDefinitionStatus</a>)
+</p>
+<p>LastSyncedArtifact tracks the last synced chart artifact and its replication status.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>registry</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Registry is the source registry of the chart.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>chartName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ChartName is the name of the chart.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Version is the chart version.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>digest</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Digest is the sha256 digest of the chart manifest.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>replicationStatus</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ReplicationStatusType">
+ReplicationStatusType
+</a>
+</em>
+</td>
+<td>
+<p>ReplicationStatus indicates the outcome of replication to the mirror registry.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="greenhouse.sap/v1alpha1.ManagedPluginStatus">ManagedPluginStatus
 </h3>
 <p>
@@ -1713,7 +1971,7 @@ Kubernetes meta/v1.Time
 <td>
 <code>total</code><br>
 <em>
-int32
+int
 </em>
 </td>
 <td>
@@ -1724,7 +1982,7 @@ int32
 <td>
 <code>ready</code><br>
 <em>
-int32
+int
 </em>
 </td>
 <td>
@@ -1823,6 +2081,50 @@ SecretKeyReference
 <td>
 <p>OAuth2ClientRedirectURIs are a registered set of redirect URIs. When redirecting from the idproxy to
 the client application, the URI requested to redirect to must be contained in this list.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.OptionsOverride">OptionsOverride
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.CatalogOverrides">CatalogOverrides</a>)
+</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name is the name of the option value to override in the PluginDefinition</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>value</code><br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#json-v1-apiextensions-k8s-io">
+Kubernetes apiextensions/v1.JSON
+</a>
+</em>
+</td>
+<td>
+<p>Value is the value to set as Default in the PluginDefinition option</p>
 </td>
 </tr>
 </tbody>
@@ -2101,18 +2403,6 @@ PluginSpec
 <table>
 <tr>
 <td>
-<code>pluginDefinition</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>PluginDefinition is the name of the PluginDefinition this instance is for.</p>
-<p>Deprecated: Use PluginDefinitionRef instead. Future releases of greenhouse will remove this field.</p>
-</td>
-</tr>
-<tr>
-<td>
 <code>pluginDefinitionRef</code><br>
 <em>
 <a href="#greenhouse.sap/v1alpha1.PluginDefinitionReference">
@@ -2184,6 +2474,44 @@ string
 <p>ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
 If the Plugin was already deployed, the Plugin&rsquo;s name is used as the release name.
 If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>deletionPolicy</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>DeletionPolicy defines how Helm Releases created by a Plugin are handled upon deletion of the Plugin.
+Supported values are &ldquo;Delete&rdquo; and &ldquo;Retain&rdquo;. If not set, defaults to &ldquo;Delete&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>waitFor</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.WaitForItem">
+[]WaitForItem
+</a>
+</em>
+</td>
+<td>
+<p>WaitFor defines other Plugins to wait for before installing this Plugin.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ignoreDifferences</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.IgnoreDifference">
+[]IgnoreDifference
+</a>
+</em>
+</td>
+<td>
+<p>IgnoreDifferences defines paths to ignore when detecting drift between desired and actual state.</p>
 </td>
 </tr>
 </table>
@@ -2345,6 +2673,18 @@ Icons can be either:
 </tr>
 <tr>
 <td>
+<code>docsURL</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>DocsURL specifies the URL to the documentation for this plugin.
+This is used by the Greenhouse UI to provide a link to external documentation.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>docMarkDownUrl</code><br>
 <em>
 string
@@ -2353,6 +2693,7 @@ string
 <td>
 <p>DocMarkDownUrl specifies the URL to the markdown documentation file for this plugin.
 Source needs to allow all CORS origins.</p>
+<p>Deprecated: Use docsURL instead. This field will be removed in a future release.</p>
 </td>
 </tr>
 </table>
@@ -2535,6 +2876,18 @@ Icons can be either:
 </tr>
 <tr>
 <td>
+<code>docsURL</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>DocsURL specifies the URL to the documentation for this plugin.
+This is used by the Greenhouse UI to provide a link to external documentation.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>docMarkDownUrl</code><br>
 <em>
 string
@@ -2543,6 +2896,7 @@ string
 <td>
 <p>DocMarkDownUrl specifies the URL to the markdown documentation file for this plugin.
 Source needs to allow all CORS origins.</p>
+<p>Deprecated: Use docsURL instead. This field will be removed in a future release.</p>
 </td>
 </tr>
 </tbody>
@@ -2577,6 +2931,19 @@ Greenhouse meta/v1alpha1.StatusConditions
 </td>
 <td>
 <p>StatusConditions contain the different conditions that constitute the status of the Plugin.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>lastSyncedArtifact</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.LastSyncedArtifact">
+LastSyncedArtifact
+</a>
+</em>
+</td>
+<td>
+<p>LastSyncedArtifact tracks the last synced chart artifact and its replication status.</p>
 </td>
 </tr>
 </tbody>
@@ -2738,25 +3105,24 @@ Kubernetes apiextensions/v1.JSON
 <td>
 <code>valueFrom</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.ValueFromSource">
-ValueFromSource
+<a href="#greenhouse.sap/v1alpha1.PluginValueFromSource">
+PluginValueFromSource
 </a>
 </em>
 </td>
 <td>
-<p>ValueFrom references a potentially confidential value in another source.</p>
+<p>ValueFrom references value in another source.</p>
 </td>
 </tr>
 <tr>
 <td>
-<code>template</code><br>
+<code>expression</code><br>
 <em>
 string
 </em>
 </td>
 <td>
-<p>Template is a Go string template that will be dynamically resolved for cluster-specific values.
-Only PluginOptionValues declared as template will be templated by the PluginController for Flux.</p>
+<p>Expression is a YAML string with ${&hellip;} placeholders that will be evaluated as CEL expressions.</p>
 </td>
 </tr>
 </tbody>
@@ -2844,6 +3210,19 @@ Kubernetes meta/v1.LabelSelector
 </tr>
 <tr>
 <td>
+<code>waitFor</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.WaitForItem">
+[]WaitForItem
+</a>
+</em>
+</td>
+<td>
+<p>WaitFor defines other Plugins to wait for before creating the Plugin.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>deletionPolicy</code><br>
 <em>
 string
@@ -2851,7 +3230,7 @@ string
 </td>
 <td>
 <p>DeletionPolicy defines how Plugins owned by a PluginPreset are handled on deletion of the PluginPreset.
-Supported values are &ldquo;Delete&rdquo; and &ldquo;Orphan&rdquo;. If not set, defaults to &ldquo;Delete&rdquo;.</p>
+Supported values are &ldquo;Delete&rdquo; and &ldquo;Retain&rdquo;. If not set, defaults to &ldquo;Delete&rdquo;.</p>
 </td>
 </tr>
 </table>
@@ -2931,6 +3310,19 @@ Kubernetes meta/v1.LabelSelector
 </tr>
 <tr>
 <td>
+<code>waitFor</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.WaitForItem">
+[]WaitForItem
+</a>
+</em>
+</td>
+<td>
+<p>WaitFor defines other Plugins to wait for before creating the Plugin.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>deletionPolicy</code><br>
 <em>
 string
@@ -2938,7 +3330,7 @@ string
 </td>
 <td>
 <p>DeletionPolicy defines how Plugins owned by a PluginPreset are handled on deletion of the PluginPreset.
-Supported values are &ldquo;Delete&rdquo; and &ldquo;Orphan&rdquo;. If not set, defaults to &ldquo;Delete&rdquo;.</p>
+Supported values are &ldquo;Delete&rdquo; and &ldquo;Retain&rdquo;. If not set, defaults to &ldquo;Delete&rdquo;.</p>
 </td>
 </tr>
 </tbody>
@@ -3025,6 +3417,49 @@ int
 </table>
 </div>
 </div>
+<h3 id="greenhouse.sap/v1alpha1.PluginRef">PluginRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.WaitForItem">WaitForItem</a>)
+</p>
+<p>PluginRef defines a reference to the Plugin, either by its name or the PluginPreset that it&rsquo;s created from.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name of the Plugin.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>pluginPreset</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>PluginPreset is the name of the PluginPreset which creates the Plugin.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="greenhouse.sap/v1alpha1.PluginSpec">PluginSpec
 </h3>
 <p>
@@ -3043,18 +3478,6 @@ int
 </tr>
 </thead>
 <tbody>
-<tr>
-<td>
-<code>pluginDefinition</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>PluginDefinition is the name of the PluginDefinition this instance is for.</p>
-<p>Deprecated: Use PluginDefinitionRef instead. Future releases of greenhouse will remove this field.</p>
-</td>
-</tr>
 <tr>
 <td>
 <code>pluginDefinitionRef</code><br>
@@ -3128,6 +3551,44 @@ string
 <p>ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
 If the Plugin was already deployed, the Plugin&rsquo;s name is used as the release name.
 If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>deletionPolicy</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>DeletionPolicy defines how Helm Releases created by a Plugin are handled upon deletion of the Plugin.
+Supported values are &ldquo;Delete&rdquo; and &ldquo;Retain&rdquo;. If not set, defaults to &ldquo;Delete&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>waitFor</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.WaitForItem">
+[]WaitForItem
+</a>
+</em>
+</td>
+<td>
+<p>WaitFor defines other Plugins to wait for before installing this Plugin.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ignoreDifferences</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.IgnoreDifference">
+[]IgnoreDifference
+</a>
+</em>
+</td>
+<td>
+<p>IgnoreDifferences defines paths to ignore when detecting drift between desired and actual state.</p>
 </td>
 </tr>
 </tbody>
@@ -3251,17 +3712,54 @@ Greenhouse meta/v1alpha1.StatusConditions
 <p>StatusConditions contain the different conditions that constitute the status of the Plugin.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>lastReconciledAt</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>LastReconciledAt contains the value when the reconcile was last triggered via annotation.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>trackedObjects</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>TrackedObjects contains a list of objects being tracked via the greenhouse.sap/tracking-id annotation.
+Each entry is in the format &ldquo;kind/name&rdquo; (e.g., &ldquo;Plugin/my-plugin&rdquo;).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imageReplication</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>ImageReplication contains a list of container image references that have been
+successfully replicated to the configured mirror registry.
+Used to skip redundant replication on subsequent reconciliations.</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
 </div>
-<h3 id="greenhouse.sap/v1alpha1.PropagationStatus">PropagationStatus
+<h3 id="greenhouse.sap/v1alpha1.PluginValueFromSource">PluginValueFromSource
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.TeamRoleBindingStatus">TeamRoleBindingStatus</a>)
+<a href="#greenhouse.sap/v1alpha1.PluginOptionValue">PluginOptionValue</a>)
 </p>
-<p>PropagationStatus defines the observed state of the TeamRoleBinding&rsquo;s associated rbacv1 resources  on a Cluster</p>
+<p>PluginValueFromSource defines how to extract dynamic values
+only one of secret or ref can be set</p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
 <table>
@@ -3274,32 +3772,41 @@ Greenhouse meta/v1alpha1.StatusConditions
 <tbody>
 <tr>
 <td>
-<code>clusterName</code><br>
+<code>secret</code><br>
 <em>
-string
-</em>
-</td>
-<td>
-<p>ClusterName is the name of the cluster the rbacv1 resources are created on.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>condition</code><br>
-<em>
-<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#Condition">
-Greenhouse meta/v1alpha1.Condition
+<a href="#greenhouse.sap/v1alpha1.SecretKeyReference">
+SecretKeyReference
 </a>
 </em>
 </td>
 <td>
-<p>Condition is the overall Status of the rbacv1 resources created on the cluster</p>
+<p>Secret references the v1.Secret containing the value that needs to be extracted</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ref</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ExternalValueSource">
+ExternalValueSource
+</a>
+</em>
+</td>
+<td>
+<p>Ref references values defined in another resource (Plugin, PluginPreset)</p>
 </td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
+<h3 id="greenhouse.sap/v1alpha1.ReplicationStatusType">ReplicationStatusType
+(<code>string</code> alias)</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.LastSyncedArtifact">LastSyncedArtifact</a>)
+</p>
+<p>ReplicationStatusType represents the outcome of chart replication to a mirror registry.</p>
 <h3 id="greenhouse.sap/v1alpha1.SCIMConfig">SCIMConfig
 </h3>
 <p>
@@ -3408,6 +3915,7 @@ string
 <p>
 (<em>Appears on:</em>
 <a href="#greenhouse.sap/v1alpha1.OIDCConfig">OIDCConfig</a>, 
+<a href="#greenhouse.sap/v1alpha1.PluginValueFromSource">PluginValueFromSource</a>, 
 <a href="#greenhouse.sap/v1alpha1.ValueFromSource">ValueFromSource</a>)
 </p>
 <p>SecretKeyReference specifies the secret and key containing the value.</p>
@@ -3532,6 +4040,64 @@ ServiceType
 <a href="#greenhouse.sap/v1alpha1.Service">Service</a>)
 </p>
 <p>ServiceType defines the type of exposed service.</p>
+<h3 id="greenhouse.sap/v1alpha1.SourceStatus">SourceStatus
+</h3>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>kind</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>name</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>ready</code><br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#conditionstatus-v1-meta">
+Kubernetes meta/v1.ConditionStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>message</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="greenhouse.sap/v1alpha1.Team">Team
 </h3>
 <p>Team is the Schema for the teams API</p>
@@ -3715,293 +4281,6 @@ TeamRoleStatus
 </em>
 </td>
 <td>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<h3 id="greenhouse.sap/v1alpha1.TeamRoleBinding">TeamRoleBinding
-</h3>
-<p>TeamRoleBinding is the Schema for the rolebindings API</p>
-<div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>metadata</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta">
-Kubernetes meta/v1.ObjectMeta
-</a>
-</em>
-</td>
-<td>
-Refer to the Kubernetes API documentation for the fields of the
-<code>metadata</code> field.
-</td>
-</tr>
-<tr>
-<td>
-<code>spec</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.TeamRoleBindingSpec">
-TeamRoleBindingSpec
-</a>
-</em>
-</td>
-<td>
-<br/>
-<br/>
-<table>
-<tr>
-<td>
-<code>teamRoleRef</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>TeamRoleRef references a Greenhouse TeamRole by name</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>teamRef</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>TeamRef references a Greenhouse Team by name</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>usernames</code><br>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Usernames defines list of users to add to the (Cluster-)RoleBindings</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>clusterName</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>ClusterName is the name of the cluster the rbacv1 resources are created on.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>clusterSelector</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselector-v1-meta">
-Kubernetes meta/v1.LabelSelector
-</a>
-</em>
-</td>
-<td>
-<p>ClusterSelector is a label selector to select the Clusters the TeamRoleBinding should be deployed to.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>namespaces</code><br>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Namespaces is a list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.
-If empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>createNamespaces</code><br>
-<em>
-bool
-</em>
-</td>
-<td>
-<p>CreateNamespaces when enabled the controller will create namespaces for RoleBindings if they do not exist.</p>
-</td>
-</tr>
-</table>
-</td>
-</tr>
-<tr>
-<td>
-<code>status</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.TeamRoleBindingStatus">
-TeamRoleBindingStatus
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<h3 id="greenhouse.sap/v1alpha1.TeamRoleBindingSpec">TeamRoleBindingSpec
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.TeamRoleBinding">TeamRoleBinding</a>)
-</p>
-<p>TeamRoleBindingSpec defines the desired state of a TeamRoleBinding</p>
-<div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>teamRoleRef</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>TeamRoleRef references a Greenhouse TeamRole by name</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>teamRef</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>TeamRef references a Greenhouse Team by name</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>usernames</code><br>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Usernames defines list of users to add to the (Cluster-)RoleBindings</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>clusterName</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>ClusterName is the name of the cluster the rbacv1 resources are created on.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>clusterSelector</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselector-v1-meta">
-Kubernetes meta/v1.LabelSelector
-</a>
-</em>
-</td>
-<td>
-<p>ClusterSelector is a label selector to select the Clusters the TeamRoleBinding should be deployed to.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>namespaces</code><br>
-<em>
-[]string
-</em>
-</td>
-<td>
-<p>Namespaces is a list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.
-If empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>createNamespaces</code><br>
-<em>
-bool
-</em>
-</td>
-<td>
-<p>CreateNamespaces when enabled the controller will create namespaces for RoleBindings if they do not exist.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<h3 id="greenhouse.sap/v1alpha1.TeamRoleBindingStatus">TeamRoleBindingStatus
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.TeamRoleBinding">TeamRoleBinding</a>)
-</p>
-<p>TeamRoleBindingStatus defines the observed state of the TeamRoleBinding</p>
-<div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>statusConditions</code><br>
-<em>
-<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#StatusConditions">
-Greenhouse meta/v1alpha1.StatusConditions
-</a>
-</em>
-</td>
-<td>
-<p>StatusConditions contain the different conditions that constitute the status of the TeamRoleBinding.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>clusters</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.PropagationStatus">
-[]PropagationStatus
-</a>
-</em>
-</td>
-<td>
-<p>PropagationStatus is the list of clusters the TeamRoleBinding is applied to</p>
 </td>
 </tr>
 </tbody>
@@ -4298,7 +4577,6 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.PluginOptionValue">PluginOptionValue</a>, 
 <a href="#greenhouse.sap/v1alpha1.SCIMConfig">SCIMConfig</a>)
 </p>
 <p>ValueFromSource is a valid source for a value.</p>
@@ -4323,6 +4601,41 @@ SecretKeyReference
 </td>
 <td>
 <p>Secret references the secret containing the value.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.WaitForItem">WaitForItem
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.PluginPresetSpec">PluginPresetSpec</a>, 
+<a href="#greenhouse.sap/v1alpha1.PluginSpec">PluginSpec</a>)
+</p>
+<p>WaitForItem is a wrapper around PluginRef to add context for every WaitFor list item.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>pluginRef</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.PluginRef">
+PluginRef
+</a>
+</em>
+</td>
+<td>
+<p>PluginRef defines a reference to the Plugin.</p>
 </td>
 </tr>
 </tbody>
@@ -4481,7 +4794,19 @@ string
 </em>
 </td>
 <td>
-<p>TeamRef references a Greenhouse Team by name</p>
+<p>Deprecated: Use TeamRefs instead.
+TeamRef references a Greenhouse Team by name</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>teamRefs</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>TeamRefs references Greenhouse Teams by name</p>
 </td>
 </tr>
 <tr>
@@ -4586,7 +4911,19 @@ string
 </em>
 </td>
 <td>
-<p>TeamRef references a Greenhouse Team by name</p>
+<p>Deprecated: Use TeamRefs instead.
+TeamRef references a Greenhouse Team by name</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>teamRefs</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>TeamRefs references Greenhouse Teams by name</p>
 </td>
 </tr>
 <tr>

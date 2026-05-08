@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
 
 ---
@@ -6,7 +6,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.20.1
   name: plugindefinitions.greenhouse.sap
 spec:
   group: greenhouse.sap
@@ -23,8 +23,11 @@ spec:
     - jsonPath: .spec.version
       name: Version
       type: string
-    - jsonPath: .spec.description
-      name: Description
+    - jsonPath: .metadata.labels.greenhouse\.sap/catalog
+      name: Catalog
+      type: string
+    - jsonPath: .status.statusConditions.conditions[?(@.type == "Ready")].status
+      name: Ready
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
@@ -64,6 +67,13 @@ spec:
                 description: |-
                   DocMarkDownUrl specifies the URL to the markdown documentation file for this plugin.
                   Source needs to allow all CORS origins.
+
+                  Deprecated: Use docsURL instead. This field will be removed in a future release.
+                type: string
+              docsURL:
+                description: |-
+                  DocsURL specifies the URL to the documentation for this plugin.
+                  This is used by the Greenhouse UI to provide a link to external documentation.
                 type: string
               helmChart:
                 description: HelmChart specifies where the Helm Chart for this pluginDefinition
@@ -165,6 +175,36 @@ spec:
           status:
             description: PluginDefinitionStatus defines the observed state of PluginDefinition
             properties:
+              lastSyncedArtifact:
+                description: LastSyncedArtifact tracks the last synced chart artifact
+                  and its replication status.
+                properties:
+                  chartName:
+                    description: ChartName is the name of the chart.
+                    type: string
+                  digest:
+                    description: Digest is the sha256 digest of the chart manifest.
+                    type: string
+                  registry:
+                    description: Registry is the source registry of the chart.
+                    type: string
+                  replicationStatus:
+                    description: ReplicationStatus indicates the outcome of replication
+                      to the mirror registry.
+                    enum:
+                    - Replicated
+                    - Failed
+                    - Skipped
+                    type: string
+                  version:
+                    description: Version is the chart version.
+                    type: string
+                required:
+                - chartName
+                - registry
+                - replicationStatus
+                - version
+                type: object
               statusConditions:
                 description: StatusConditions contain the different conditions that
                   constitute the status of the Plugin.

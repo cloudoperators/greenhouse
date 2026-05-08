@@ -16,8 +16,11 @@ import (
 type TeamRoleBindingSpec struct {
 	// TeamRoleRef references a Greenhouse TeamRole by name
 	TeamRoleRef string `json:"teamRoleRef,omitempty"`
+	// Deprecated: Use TeamRefs instead.
 	// TeamRef references a Greenhouse Team by name
 	TeamRef string `json:"teamRef,omitempty"`
+	// TeamRefs references Greenhouse Teams by name
+	TeamRefs []string `json:"teamRefs,omitempty"`
 	// Usernames defines list of users to add to the (Cluster-)RoleBindings
 	Usernames []string `json:"usernames,omitempty"`
 	// ClusterSelector is used to select a Cluster or Clusters the TeamRoleBinding should be deployed to.
@@ -53,7 +56,7 @@ type PropagationStatus struct {
 //+kubebuilder:resource:shortName=trb
 //+kubebuilder:storageversion
 //+kubebuilder:printcolumn:name="Team Role",type=string,JSONPath=`.spec.teamRoleRef`
-//+kubebuilder:printcolumn:name="Team",type=string,JSONPath=`.spec.teamRef`
+//+kubebuilder:printcolumn:name="Teams",type=string,JSONPath=`.spec.teamRefs`
 //+kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
@@ -85,6 +88,16 @@ func (trb *TeamRoleBinding) GetConditions() greenhousemetav1alpha1.StatusConditi
 
 func (trb *TeamRoleBinding) SetCondition(condition greenhousemetav1alpha1.Condition) {
 	trb.Status.SetConditions(condition)
+}
+
+func (trb *TeamRoleBinding) RemoveCondition(conditionType greenhousemetav1alpha1.ConditionType) {
+	trb.Status.Conditions = slices.DeleteFunc(trb.Status.Conditions, func(cond greenhousemetav1alpha1.Condition) bool {
+		return cond.Type == conditionType
+	})
+}
+
+func (trb *TeamRoleBinding) CanBeSuspended() bool {
+	return false
 }
 
 // SetPropagationStatus updates the TeamRoleBinding's PropagationStatus for the Cluster
@@ -136,6 +149,9 @@ const (
 
 	// TeamNotFound is the condition reason when the resources refers to a non-existing Team
 	TeamNotFound greenhousemetav1alpha1.ConditionReason = "TeamNotFound"
+
+	// TeamRoleNotFound is the condition reason when the resource refers to a non-existing TeamRole
+	TeamRoleNotFound greenhousemetav1alpha1.ConditionReason = "TeamRoleNotFound"
 
 	// ClusterConnectionFailed is the condition reason for the TeamRoleBinding when the connection to the cluster failed
 	ClusterConnectionFailed greenhousemetav1alpha1.ConditionReason = "ClusterConnectionFailed"

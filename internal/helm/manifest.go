@@ -31,9 +31,8 @@ type ManifestObject struct {
 
 // ManifestObjectFilter is used to filter for objects in a Helm manifest.
 type ManifestObjectFilter struct {
-	APIVersion,
-	Kind string
-	Annotations map[string]string
+	APIVersion, Kind, Name string
+	Annotations            map[string]string
 }
 
 type ObjectList struct {
@@ -68,6 +67,9 @@ func (o *ManifestObjectFilter) Matches(obj *resource.Info) bool {
 	if o.APIVersion != "" && o.APIVersion != gvk.Version {
 		return false
 	}
+	if o.Name != "" && o.Name != obj.Name {
+		return false
+	}
 	if o.Annotations != nil {
 		metaAccessor, err := meta.Accessor(obj.Object)
 		if err != nil {
@@ -98,16 +100,34 @@ func ObjectMapFromManifest(restClientGetter genericclioptions.RESTClientGetter, 
 	if err != nil {
 		return nil, fmt.Errorf("error loading manifest: %w", err)
 	}
-	allObjects := make(map[ObjectKey]*ManifestObject, 0)
-	err = r.Visit(func(info *resource.Info, err error) error {
+	return objectMapping(r, f)
+}
+
+func ObjectMapFromLocalManifest(f ManifestFilter, manifest string) (map[ObjectKey]*ManifestObject, error) {
+	r, err := loadLocalManifest(manifest)
+	if err != nil {
+		return nil, fmt.Errorf("error loading local manifest: %w", err)
+	}
+	return objectMapping(r, f)
+}
+
+func objectMapping(r *resource.Result, f ManifestFilter) (map[ObjectKey]*ManifestObject, error) {
+	allObjects := make(map[ObjectKey]*ManifestObject)
+	err := r.Visit(func(info *resource.Info, err error) error {
 		if err != nil {
 			return err
 		}
 		if f != nil && !f.Matches(info) {
 			return nil
 		}
+		var gvk schema.GroupVersionKind
+		if info.Mapping != nil {
+			gvk = info.Mapping.GroupVersionKind
+		} else {
+			gvk = info.Object.GetObjectKind().GroupVersionKind()
+		}
 		key := ObjectKey{
-			GVK:       info.Mapping.GroupVersionKind,
+			GVK:       gvk,
 			Namespace: info.Namespace,
 			Name:      info.Name,
 		}
@@ -119,6 +139,22 @@ func ObjectMapFromManifest(restClientGetter genericclioptions.RESTClientGetter, 
 		return nil
 	})
 	return allObjects, err
+}
+
+func loadLocalManifest(manifest string) (*resource.Result, error) {
+	reader := strings.NewReader(manifest)
+	r := resource.
+		NewLocalBuilder().
+		Unstructured().
+		Stream(reader, "manifest").
+		ContinueOnError().
+		Flatten().
+		Do().
+		IgnoreErrors(meta.IsNoMatchError)
+	if err := r.Err(); err != nil {
+		return nil, err
+	}
+	return r, nil
 }
 
 // loadManifest loads a manifest string into a resource.Result. It ignores unknown schema errors if the CRD is not yet present.

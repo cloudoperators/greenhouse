@@ -21,3 +21,19 @@ If you are using `postgres` as the dex storage backend, you need to set the foll
 - `PG_USER=<postgres-user>` ex: `postgres` (defaults to `postgres` if not set)
 - `PG_HOST=<postgres-host>` ex: `localhost` (required)
 - `PG_PASSWORD=<postgres-password>` ex: `password` (required)
+
+### Running Catalog Controller Locally
+
+To run the Catalog Controller locally, you need to port-forward flux `source-watcher` SVC to your localhost.
+
+Example command:
+
+```shell
+kubectl -n flux-system port-forward svc/source-watcher 5050:80
+```
+
+Then set the following environment variable when running the operator (IDE Debugger or Shell):
+
+```shell
+ARTIFACT_DOMAIN=localhost:5050
+```

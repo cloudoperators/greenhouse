@@ -1,21 +1,24 @@
 dependencies:
 - name: idproxy
   repository: file://../idproxy
-  version: 0.3.3
+  version: 0.8.1
 - name: cors-proxy
   repository: file://../cors-proxy
-  version: 0.2.1
+  version: 0.7.1
 - name: manager
   repository: file://../manager
-  version: 0.4.2
+  version: 0.10.1
 - name: dashboard
   repository: file://../dashboard
-  version: 0.1.1
+  version: 0.3.0
 - name: demo
   repository: file://../demo
   version: 0.1.2
 - name: postgresql-ng
   repository: oci://ghcr.io/sapcc/helm-charts
-  version: 1.3.0
-digest: sha256:a60e78bf0b7de3ffedb57ebf7f4614380c119a8f15e343311dc95b8d82efa3ef
-generated: "2025-06-05T15:51:05.832391+02:00"
+  version: 2.2.17
+- name: authz
+  repository: file://../authz
+  version: 0.3.3
+digest: sha256:d568466c96ab07d4186689b398407c18f85acb2ba5b9581e6b6d2591a3c62986
+generated: "2026-04-23T15:05:34.306499+02:00"

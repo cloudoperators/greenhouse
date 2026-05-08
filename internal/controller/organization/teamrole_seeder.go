@@ -91,10 +91,10 @@ func (r *OrganizationReconciler) reconcileDefaultTeamRoles(ctx context.Context, 
 		switch result {
 		case clientutil.OperationResultCreated:
 			log.FromContext(ctx).Info("created team role", "namespace", tr.GetNamespace(), "name", tr.GetName())
-			r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedTeamRole", "Created team role %s/%s", tr.GetNamespace(), tr.GetName())
+			r.recorder.Eventf(org, tr, corev1.EventTypeNormal, "CreatedTeamRole", "reconciling Organization", "Created team role %s/%s", tr.GetNamespace(), tr.GetName())
 		case clientutil.OperationResultUpdated:
 			log.FromContext(ctx).Info("updated team role", "namespace", tr.GetNamespace(), "name", tr.GetName())
-			r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedTeamRole", "Updated team role %s/%s", tr.GetNamespace(), tr.GetName())
+			r.recorder.Eventf(org, tr, corev1.EventTypeNormal, "UpdatedTeamRole", "reconciling Organization", "Updated team role %s/%s", tr.GetNamespace(), tr.GetName())
 		}
 	}
 	return nil

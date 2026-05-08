@@ -202,6 +202,8 @@ func (t *TestSetup) CreateTeamRole(ctx context.Context, name string, opts ...fun
 	GinkgoHelper()
 	tr := NewTeamRole(ctx, t.RandomizeName(name), t.namespace, opts...)
 	Expect(t.Create(ctx, tr)).Should(Succeed(), "there should be no error creating the TeamRole")
+	// Double-check that the TeamRole exists before it can be referenced by a TeamRoleBinding
+	EventuallyCreated(ctx, t.Client, tr)
 	return tr
 }
 
@@ -255,15 +257,15 @@ func (t *TestSetup) CreateConfigMap(ctx context.Context, name string, opts ...fu
 	return cm
 }
 
-func (t *TestSetup) CreateCatalog(ctx context.Context, name string, opts ...func(catalog *greenhousev1alpha1.Catalog)) *greenhousev1alpha1.Catalog {
+func (t *TestSetup) CreateCatalog(ctx context.Context, name string, sources ...greenhousev1alpha1.CatalogSource) *greenhousev1alpha1.Catalog {
 	GinkgoHelper()
 	ns := t.Namespace()
-	catalog := NewCatalog(name, ns, opts...)
+	catalog := NewCatalog(name, ns, sources...)
 	Expect(t.Create(ctx, catalog)).Should(Succeed(), "there should be no error creating the Catalog")
 	return catalog
 }
 
-func (t *TestSetup) UpdateCatalog(ctx context.Context, name string, opts ...func(catalog *greenhousev1alpha1.Catalog)) *greenhousev1alpha1.Catalog {
+func (t *TestSetup) UpdateCatalog(ctx context.Context, name string, sources ...greenhousev1alpha1.CatalogSource) *greenhousev1alpha1.Catalog {
 	GinkgoHelper()
 	catalog := &greenhousev1alpha1.Catalog{}
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
@@ -272,8 +274,11 @@ func (t *TestSetup) UpdateCatalog(ctx context.Context, name string, opts ...func
 		if err != nil {
 			return err
 		}
-		for _, opt := range opts {
-			opt(catalog)
+		if len(catalog.Spec.Sources) == 0 {
+			catalog.Spec.Sources = make([]greenhousev1alpha1.CatalogSource, 0)
+		}
+		if len(sources) > 0 {
+			catalog.Spec.Sources = append(catalog.Spec.Sources, sources...)
 		}
 		return t.Update(ctx, catalog)
 	})

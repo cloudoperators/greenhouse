@@ -21,3 +21,5 @@ config:
             dockerFile: "./"
   - cluster:
       name: greenhouse-remote
+      postSetup:
+        - command: make zot

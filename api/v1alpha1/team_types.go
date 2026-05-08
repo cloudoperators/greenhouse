@@ -4,6 +4,8 @@
 package v1alpha1
 
 import (
+	"slices"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
@@ -50,8 +52,9 @@ type TeamStatus struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:printcolumn:name="Description",type=string,JSONPath=`.spec.description`
 //+kubebuilder:printcolumn:name="IDP Group",type=string,JSONPath=`.spec.mappedIdPGroup`
-//+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 //+kubebuilder:printcolumn:name="SCIM Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "SCIMAccessReady")].status`
+//+kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`
+//+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // Team is the Schema for the teams API
 type Team struct {
@@ -81,4 +84,14 @@ func (o *Team) GetConditions() greenhousemetav1alpha1.StatusConditions {
 
 func (o *Team) SetCondition(condition greenhousemetav1alpha1.Condition) {
 	o.Status.StatusConditions.SetConditions(condition)
+}
+
+func (o *Team) RemoveCondition(conditionType greenhousemetav1alpha1.ConditionType) {
+	o.Status.StatusConditions.Conditions = slices.DeleteFunc(o.Status.StatusConditions.Conditions, func(cond greenhousemetav1alpha1.Condition) bool {
+		return cond.Type == conditionType
+	})
+}
+
+func (o *Team) CanBeSuspended() bool {
+	return false
 }

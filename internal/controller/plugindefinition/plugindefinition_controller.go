@@ -5,105 +5,114 @@ package plugindefinition
 
 import (
 	"context"
-	"time"
 
+	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
-
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	"github.com/cloudoperators/greenhouse/internal/flux"
-	"github.com/cloudoperators/greenhouse/internal/lifecycle"
-)
-
-const (
-	pluginDefinitionURLField = "spec.url"
+	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 // PluginDefinitionReconciler reconciles a PluginDefinition object.
 type PluginDefinitionReconciler struct {
 	client.Client
-	Scheme   *runtime.Scheme
-	recorder record.EventRecorder
+	Scheme              *runtime.Scheme
+	recorder            events.EventRecorder
+	OCIMirroringEnabled bool
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *PluginDefinitionReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
 	r.Scheme = mgr.GetScheme()
-	r.recorder = mgr.GetEventRecorderFor(name)
+	r.recorder = mgr.GetEventRecorder(name)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&greenhousev1alpha1.PluginDefinition{}).
-		Complete(r)
+		Owns(&sourcev1.HelmChart{}, builder.WithPredicates(clientutil.PredicateIgnoreDeletingResources())).Complete(r)
 }
 
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=ocirepositories, verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmrepositories,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmrepositories/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmrepositories/finalizers,verbs=get;create;update;patch;delete
-// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+// +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmcharts,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmcharts/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmcharts/finalizers,verbs=get;create;update;patch;delete
+// +kubebuilder:rbac:groups="events.k8s.io",resources=events,verbs=create;patch
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
+// +kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get
 // +kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch
 // +kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions/finalizers,verbs=get;create;update;patch;delete
 
 func (r *PluginDefinitionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.PluginDefinition{}, r, nil)
+	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.PluginDefinition{}, r, r.setConditions())
+}
+
+func (r *PluginDefinitionReconciler) setConditions() lifecycle.Conditioner {
+	return func(ctx context.Context, resource lifecycle.RuntimeObject) {
+		pluginDef := resource.(*greenhousev1alpha1.PluginDefinition)
+		setReadyCondition(pluginDef)
+	}
 }
 
 func (r *PluginDefinitionReconciler) EnsureCreated(ctx context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	pluginDef := obj.(*greenhousev1alpha1.PluginDefinition) //nolint:errcheck
+	pluginDef := obj.(*greenhousev1alpha1.PluginDefinition)
+
+	initializeConditions(pluginDef, greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.HelmChartReadyCondition, greenhousev1alpha1.OCIReplicationReadyCondition)
 
 	if pluginDef.Spec.HelmChart == nil {
 		log.FromContext(ctx).Info("No HelmChart defined in PluginDefinition, skipping HelmRepository creation", "name", pluginDef.Name)
-		r.recorder.Event(pluginDef, corev1.EventTypeNormal, "Skipped", "Skipped HelmRepository creation")
+		r.recorder.Eventf(pluginDef, nil, corev1.EventTypeNormal, "Skipped", "reconciling PluginDefinition", "Skipped HelmRepository creation")
+		pluginDef.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.OCIReplicationReadyCondition,
+			greenhousev1alpha1.OCIReplicationNotConfiguredReason,
+			"No HelmChart defined"))
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
-	err := r.reconcileHelmRepository(ctx, pluginDef)
+
+	h := &helmer{
+		k8sClient:           r.Client,
+		recorder:            r.recorder,
+		pluginDef:           pluginDef,
+		namespaceName:       pluginDef.Namespace,
+		ociMirroringEnabled: r.OCIMirroringEnabled,
+	}
+
+	helmRepo, err := h.createUpdateHelmRepository(ctx)
 	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	return ctrl.Result{}, lifecycle.Success, nil
-}
 
-func (r *PluginDefinitionReconciler) reconcileHelmRepository(ctx context.Context, pluginDef *greenhousev1alpha1.PluginDefinition) error {
-	repositoryURL := pluginDef.Spec.HelmChart.Repository
-	helmRepository := &sourcecontroller.HelmRepository{}
-	helmRepository.SetName(flux.ChartURLToName(repositoryURL))
-	helmRepository.SetNamespace(pluginDef.GetNamespace()) // Set organization namespace
+	if replicationErr := h.ensureChartReplication(ctx); replicationErr != nil {
+		return ctrl.Result{}, lifecycle.Failed, replicationErr
+	}
 
-	result, err := controllerutil.CreateOrUpdate(ctx, r.Client, helmRepository, func() error {
-		helmRepository.Spec.Type = flux.GetSourceRepositoryType(repositoryURL)
-		helmRepository.Spec.Interval = metav1.Duration{Duration: 5 * time.Minute}
-		helmRepository.Spec.URL = repositoryURL
-		return controllerutil.SetOwnerReference(pluginDef, helmRepository, r.Scheme)
-	})
+	helmChart, err := h.createUpdateHelmChart(ctx, helmRepo)
 	if err != nil {
-		log.FromContext(ctx).Error(err, "Failed to create or update HelmRepository", "name", helmRepository.Name)
-		r.recorder.Eventf(pluginDef, corev1.EventTypeWarning, "Failed", "Failed to create or update HelmRepository %s: %s", helmRepository.Name, err.Error())
-		return err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	switch result {
-	case controllerutil.OperationResultCreated:
-		log.FromContext(ctx).Info("Created helmRepository", "name", helmRepository.Name)
-		r.recorder.Eventf(pluginDef, corev1.EventTypeNormal, "Created", "Created HelmRepository %s", helmRepository.Name)
-	case controllerutil.OperationResultUpdated:
-		log.FromContext(ctx).Info("Updated helmRepository", "name", helmRepository.Name)
-		r.recorder.Eventf(pluginDef, corev1.EventTypeNormal, "Updated", "Updated HelmRepository %s", helmRepository.Name)
-	case controllerutil.OperationResultNone:
-		log.FromContext(ctx).Info("No changes to helmRepository", "name", helmRepository.Name)
-	}
-	return nil
+
+	h.setHelmChartReadyCondition(ctx, helmChart)
+
+	return ctrl.Result{}, lifecycle.Success, nil
 }
 
 func (r *PluginDefinitionReconciler) EnsureDeleted(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	return ctrl.Result{}, lifecycle.Success, nil
+}
+
+func (r *PluginDefinitionReconciler) EnsureSuspended(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, error) {
+	return ctrl.Result{}, nil
 }

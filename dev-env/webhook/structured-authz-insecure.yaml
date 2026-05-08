@@ -1,0 +1,38 @@
+# SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: apiserver.config.k8s.io/v1
+kind: AuthorizationConfiguration
+authorizers:
+  - type: Node
+    name: node
+  - type: RBAC
+    name: rbac
+  - type: Webhook
+    name: webhook
+    webhook:
+      # The duration to cache 'authorized' responses from the webhook authorizer.
+      authorizedTTL: 2m
+      # The duration to cache 'unauthorized' responses from the webhook authorizer.
+      unauthorizedTTL: 30s
+      # Timeout for the webhook request.
+      timeout: 30s
+      # The API version of the authorization.k8s.io SubjectAccessReview to send to and expect from the webhook.
+      subjectAccessReviewVersion: v1
+      # MatchConditionSubjectAccessReviewVersion specifies the SubjectAccessReview version the CEL expressions are evaluated against.
+      matchConditionSubjectAccessReviewVersion: v1
+      # Controls the authorization decision when a webhook request fails to complete or returns a malformed response or errors evaluating matchConditions.
+      failurePolicy: NoOpinion
+      connectionInfo:
+        # Controls how the webhook should communicate with the server.
+        type: KubeConfigFile
+        # Path to KubeConfigFile for connection info.
+        kubeConfigFile: /etc/kubernetes/webhook/authz-webhook-insecure.yaml
+      # matchConditions is a list of conditions that must be met for a request to be sent to this webhook.
+      matchConditions:
+        - expression: has(request.resourceAttributes) # only resource requests
+        - expression: request.resourceAttributes.namespace != ""
+        - expression: request.resourceAttributes.group == "greenhouse.sap"
+        # Note on verbs: get is needed for kubectl edit, list and watch is needed for kubectl wait triggered after kubectl delete.
+        - expression: request.resourceAttributes.verb in ["get","list","watch","update","patch","delete"]
+        

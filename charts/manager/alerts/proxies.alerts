@@ -11,8 +11,10 @@ groups:
       labels:
         severity: warning
         service: greenhouse
+        proxy: '{{ $labels.service }}'
         organization: greenhouse # default greenhouse organization
         support_group: greenhouse-admin  # routed to the greenhouse-admin team
+        playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/proxy/proxy-request-errors-high/
     - alert: GreenhouseProxyRequestDurationHigh
       annotations:
         description: The 90th percentile latency of Greenhouse proxy - {{ $labels.service }} is {{ $value | humanizeDuration }}
@@ -23,8 +25,10 @@ groups:
       labels:
         severity: warning
         service: greenhouse
+        proxy: '{{ $labels.service }}'
         organization: greenhouse # default greenhouse organization
         support_group: greenhouse-admin  # routed to the greenhouse-admin team
+        playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/proxy/proxy-request-duration-high/
     - alert: GreenhouseIDProxyErrorsHigh
       annotations:
         description: Greenhouse id-proxy is failing
@@ -37,3 +41,4 @@ groups:
         service: greenhouse
         organization: greenhouse # default greenhouse organization
         support_group: greenhouse-admin  # routed to the greenhouse-admin team
+        playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/proxy/idproxy-errors-high/

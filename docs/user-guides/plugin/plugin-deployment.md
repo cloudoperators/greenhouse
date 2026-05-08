@@ -92,3 +92,9 @@ After deploying the plugin to a remote cluster, the ExposedServices section in P
 - The host is taken from `greenhouse.sap/exposed-host` annotation or defaults to the first host rule
 
 Both types are listed together in `status.exposedServices` with their respective types for easy identification.
+
+## Next Steps
+
+- [Plugin reference](./../../../reference/components/plugin)
+- [PluginPreset reference](./../../../reference/components/pluginpreset)
+- [PluginDefinition reference](./../../../reference/components/plugindefinition)

@@ -4,55 +4,46 @@
 package v1alpha1
 
 import (
+	"slices"
+	"time"
+
+	sourcev1 "github.com/fluxcd/source-controller/api/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 )
 
 const (
-	CatalogReadyReason    greenhousemetav1alpha1.ConditionReason = "CatalogReady"
-	CatalogNotReadyReason greenhousemetav1alpha1.ConditionReason = "CatalogNotReady"
+	CatalogReadyReason          greenhousemetav1alpha1.ConditionReason = "CatalogReady"
+	CatalogEmptySources         greenhousemetav1alpha1.ConditionReason = "CatalogEmptySources"
+	OrphanedObjectCleanUpFail   greenhousemetav1alpha1.ConditionReason = "OrphanedObjectCleanUpFail"
+	CatalogSourceValidationFail greenhousemetav1alpha1.ConditionReason = "CatalogSourceValidationFail"
+	CatalogNotReadyReason       greenhousemetav1alpha1.ConditionReason = "CatalogNotReady"
+	CatalogProgressingReason    greenhousemetav1alpha1.ConditionReason = "ReconcileProgressing"
 )
 
 // CatalogSpec defines the desired state of Catalog.
 type CatalogSpec struct {
-	// Source is the medium from which the PluginDefinition needs to be fetched
-	Source CatalogSource `json:"source"`
-	// Overrides are the PluginDefinition overrides to be applied
-	// +Optional
-	Overrides []CatalogOverrides `json:"overrides,omitempty"`
+	// Sources contains the list of Git Repository source to resolve PluginDefinitions / ClusterPluginDefinitions from
+	Sources []CatalogSource `json:"sources"`
 }
 
 type CatalogSource struct {
-	// Git is the Git repository source for the PluginDefinition Catalog
-	Git GitSource `json:"git"`
-	// Path is the path within the repository where the ClusterPluginDefinition / PluginDefinition Catalog is located
-	// an empty path indicates the root of the repository
-	// +Optional
-	Path string `json:"path,omitempty"`
-}
+	// Repository - the Git repository URL
+	// +kubebuilder:validation:Pattern="^https://.*$"
+	Repository string `json:"repository"`
 
-type CatalogOverrides struct {
-	// Name is the name of the PluginDefinition to patch with an alias
-	Name string `json:"name"`
-	// Alias is the alias to apply to the PluginDefinition Name via Kustomize patches
-	// For SourceType Helm, this field is passed to postRender Kustomize patch
-	Alias string `json:"alias"`
-	// Repository is the repository to override in the PluginDefinition .spec.helmChart.repository
-	// +Optional
-	Repository string `json:"repository,omitempty"`
+	// Resources contains the list of path to PluginDefinition files
+	// e.g. ["plugins/plugin-a.yaml", "plugins/plugin-b.yaml"]
+	// glob patterns are supported, e.g. ["plugins/*.yaml", "more-plugins/**/plugindefinition.yaml"]
+	Resources []string `json:"resources"`
 
-	// TODO: implement Options in Overrides for further values patching in PluginDefinition || ClusterPluginDefinition
-}
-
-type GitSource struct {
-	// Repository is the URL of the GitHub repository containing the ClusterPluginDefinition / PluginDefinition Catalog
-	URL string `json:"url"`
-
-	// Ref is the Git reference (branch, tag, or SHA) to resolve the ClusterPluginDefinition / PluginDefinition Catalog
+	// Ref is the git reference (branch, tag, or SHA) to resolve PluginDefinitions from
+	// precedence: SHA > Tag > Branch
+	// if not specified, defaults to the branch "main"
 	// +Optional
 	Ref *GitRef `json:"ref,omitempty"`
-
 	// SecretName is the name of v1.Secret containing credentials to access the Git repository
 	// the secret must be in the same namespace as the Catalog resource
 	/*
@@ -78,6 +69,42 @@ type GitSource struct {
 	*/
 	// +Optional
 	SecretName *string `json:"secretName,omitempty"`
+
+	// Overrides are the PluginDefinition overrides to be applied
+	// +Optional
+	Overrides []CatalogOverrides `json:"overrides,omitempty"`
+
+	// Interval defines how often to reconcile the Git repository source
+	// +kubebuilder:validation:Type=string
+	// +kubebuilder:validation:Pattern="^([0-9]+(\\.[0-9]+)?(ms|s|m|h))+$"
+	// +Optional
+	Interval *metav1.Duration `json:"interval,omitempty"`
+}
+
+type CatalogOverrides struct {
+	// Name is the name of the PluginDefinition to patch with an alias
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
+	// Alias is the alias to apply to the PluginDefinition Name via Kustomize patches
+	// For SourceType Helm, this field is passed to postRender Kustomize patch
+	// +Optional
+	Alias string `json:"alias,omitempty"`
+	// Repository is the repository to override in the PluginDefinition .spec.helmChart.repository
+	// +Optional
+	Repository string `json:"repository,omitempty"`
+	// OptionsOverride are the option values to override in the PluginDefinition .spec.options[]
+	// +Optional
+	OptionsOverride []OptionsOverride `json:"optionsOverride,omitempty"`
+}
+
+type OptionsOverride struct {
+	// Name is the name of the option value to override in the PluginDefinition
+	// +kubebuilder:validation:MinLength=1
+	// +Required
+	Name string `json:"name"`
+	// Value is the value to set as Default in the PluginDefinition option
+	// +Required
+	Value *apiextensionsv1.JSON `json:"value"`
 }
 
 type GitRef struct {
@@ -86,17 +113,32 @@ type GitRef struct {
 	SHA    *string `json:"sha,omitempty"`
 }
 
+type SourceStatus struct {
+	Kind    string                 `json:"kind"`
+	Name    string                 `json:"name"`
+	Ready   metav1.ConditionStatus `json:"ready,omitempty"`
+	Message string                 `json:"message,omitempty"`
+}
+
 // CatalogStatus defines the observed state of Catalog.
 type CatalogStatus struct {
 	// StatusConditions contain the different conditions that constitute the status of the Catalog
 	// +Optional
 	greenhousemetav1alpha1.StatusConditions `json:"statusConditions,omitempty"`
+	// Inventory contains list of internal artifacts generated by Catalog
+	// +Optional
+	Inventory map[string][]SourceStatus `json:"inventory,omitempty"`
+
+	// LastReconciledAt contains the value when the reconcile was last triggered via annotation.
+	// +Optional
+	LastReconciledAt string `json:"lastReconciledAt,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-//+kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`
 // +kubebuilder:resource:shortName=cat
+// +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // Catalog is the Schema for the catalogs API.
 type Catalog struct {
@@ -116,12 +158,66 @@ type CatalogList struct {
 	Items           []Catalog `json:"items"`
 }
 
-func (c *Catalog) ResourcePath() string {
-	return c.Spec.Source.Path
+func (s *CatalogSource) GetInterval() metav1.Duration {
+	if s.Interval != nil {
+		return *s.Interval
+	}
+	return metav1.Duration{Duration: 60 * time.Minute}
 }
 
-func (c *Catalog) GetCatalogSource() GitSource {
-	return c.Spec.Source.Git
+func (s *CatalogSource) GetRefValue() (gitRef string) {
+	if s.Ref == nil {
+		gitRef = "main"
+		return
+	}
+	switch {
+	case s.Ref.SHA != nil:
+		gitRef = *s.Ref.SHA
+	case s.Ref.Tag != nil:
+		gitRef = *s.Ref.Tag
+	case s.Ref.Branch != nil:
+		gitRef = *s.Ref.Branch
+	default:
+		gitRef = "main"
+	}
+	return
+}
+
+func (s *CatalogSource) GetGitRepositoryReference() *sourcev1.GitRepositoryRef {
+	gitReference := &sourcev1.GitRepositoryRef{}
+	if s.Ref != nil {
+		// flux precedence 1
+		if s.Ref.SHA != nil {
+			gitReference.Commit = *s.Ref.SHA
+		}
+		// flux precedence 2
+		if s.Ref.Tag != nil {
+			gitReference.Tag = *s.Ref.Tag
+		}
+		// flux precedence 3
+		if s.Ref.Branch != nil {
+			gitReference.Branch = *s.Ref.Branch
+		}
+	}
+	return gitReference
+}
+
+func (c *Catalog) SetInventory(hash, kind, name, msg string, ready metav1.ConditionStatus) {
+	if c.Status.Inventory == nil {
+		c.Status.Inventory = make(map[string][]SourceStatus)
+	}
+	if _, ok := c.Status.Inventory[hash]; !ok {
+		c.Status.Inventory[hash] = make([]SourceStatus, 0, 4)
+	}
+	idx := slices.IndexFunc(c.Status.Inventory[hash], func(in SourceStatus) bool {
+		return in.Kind == kind && in.Name == name
+	})
+	if idx == -1 {
+		c.Status.Inventory[hash] = append(c.Status.Inventory[hash], SourceStatus{Kind: kind, Name: name, Message: msg, Ready: ready})
+		return
+	}
+	c.Status.Inventory[hash][idx].Message = msg
+	c.Status.Inventory[hash][idx].Ready = ready
 }
 
 func (c *Catalog) GetConditions() greenhousemetav1alpha1.StatusConditions {
@@ -130,6 +226,47 @@ func (c *Catalog) GetConditions() greenhousemetav1alpha1.StatusConditions {
 
 func (c *Catalog) SetCondition(condition greenhousemetav1alpha1.Condition) {
 	c.Status.SetConditions(condition)
+}
+
+func (c *Catalog) UpdateLastReconciledAtStatus(value string) {
+	c.Status.LastReconciledAt = value
+}
+
+// SetUnknownCondition - sets ready conditions to Unknown if not already set.
+func (c *Catalog) SetUnknownCondition() {
+	if cond := c.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition); cond == nil {
+		c.SetCondition(
+			greenhousemetav1alpha1.UnknownCondition(greenhousemetav1alpha1.ReadyCondition, CatalogProgressingReason, "Catalog reconciliation in progress"),
+		)
+	}
+}
+
+func (c *Catalog) SetProgressingReason() {
+	cond := c.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
+	if cond != nil {
+		cond.Reason = CatalogProgressingReason
+		c.SetCondition(*cond)
+		return
+	}
+	c.SetCondition(greenhousemetav1alpha1.UnknownCondition(greenhousemetav1alpha1.ReadyCondition, CatalogProgressingReason, "Catalog reconciliation in progress"))
+}
+
+func (c *Catalog) SetFalseCondition(conditionType greenhousemetav1alpha1.ConditionType, reason greenhousemetav1alpha1.ConditionReason, message string) {
+	c.SetCondition(greenhousemetav1alpha1.FalseCondition(conditionType, reason, message))
+}
+
+func (c *Catalog) SetTrueCondition(conditionType greenhousemetav1alpha1.ConditionType, reason greenhousemetav1alpha1.ConditionReason, message string) {
+	c.SetCondition(greenhousemetav1alpha1.TrueCondition(conditionType, reason, message))
+}
+
+func (c *Catalog) RemoveCondition(conditionType greenhousemetav1alpha1.ConditionType) {
+	c.Status.Conditions = slices.DeleteFunc(c.Status.Conditions, func(cond greenhousemetav1alpha1.Condition) bool {
+		return cond.Type == conditionType
+	})
+}
+
+func (c *Catalog) CanBeSuspended() bool {
+	return true
 }
 
 func init() {

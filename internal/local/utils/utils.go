@@ -32,7 +32,7 @@ const (
 )
 
 func Log(args ...any) {
-	args[0] = "===== 🤖 " + args[0].(string) //nolint:errcheck
+	args[0] = "===== 🤖 " + args[0].(string)
 	klog.InfoDepth(1, args...)
 }
 
@@ -46,10 +46,6 @@ func LogErr(format string, args ...any) {
 
 func NewKLog(ctx context.Context) logr.Logger {
 	return klog.FromContext(ctx)
-}
-
-func Int32P(i int32) *int32 {
-	return &i
 }
 
 func StringP(s string) *string {

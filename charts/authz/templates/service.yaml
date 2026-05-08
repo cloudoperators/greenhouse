@@ -1,0 +1,35 @@
+{{/*
+SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+SPDX-License-Identifier: Apache-2.0
+*/}}
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "authz.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "authz.labels" . | nindent 4 }}
+  {{- with merge (.Values.service.annotations | default dict) (include "authz.annotations" . | fromYaml | default dict) }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  {{- if .Values.service.clusterIP }}
+  clusterIP: {{ .Values.service.clusterIP }}
+  {{- end }}
+  ports:
+    - name: webhook
+      port: {{ .Values.service.port }}
+      targetPort: webhook
+      protocol: TCP
+      {{- if .Values.service.nodePort }}
+      nodePort: {{ .Values.service.nodePort }}
+      {{- end }}
+    - name: metrics
+      port: 6543
+      targetPort: metrics
+      protocol: TCP
+  selector:
+    {{- include "authz.selectorLabels" . | nindent 4 }}

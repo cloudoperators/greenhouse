@@ -7,8 +7,7 @@ package catalog
 
 import (
 	"context"
-	"fmt"
-	"math/rand"
+	"strings"
 	"testing"
 	"time"
 
@@ -18,16 +17,20 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/e2e/catalog/expect"
+	"github.com/cloudoperators/greenhouse/e2e/catalog/scenarios"
 	"github.com/cloudoperators/greenhouse/e2e/shared"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
-	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
 const (
-	catalogRepositoryPatch = "oci://docker.io/greenhouse-extensions/charts"
-	e2eCatalogName         = "greenhouse-catalog-e2e"
+	greenhouseOrgYaml       = "./testdata/greenhouse_organization.yaml"
+	e2eOrgYaml              = "./testdata/catalog_e2e_organization.yaml"
+	catalogBranchYaml       = "./testdata/catalog_scenario_branch.yaml"
+	catalogCommitYaml       = "./testdata/catalog_scenario_commit.yaml"
+	catalogCPDYaml          = "./testdata/catalog_scenario_cpd.yaml"
+	catalogMultiYaml        = "./testdata/catalog_scenario_multi_source.yaml"
+	catalogArtifactFailYaml = "./testdata/catalog_scenario_artifact_fail.yaml"
 )
 
 var (
@@ -49,57 +52,84 @@ var _ = BeforeSuite(func() {
 	env = shared.NewExecutionEnv()
 	adminClient, err = clientutil.NewK8sClientFromRestClientGetter(env.AdminRestClientGetter)
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the admin client")
-	env = env.WithOrganization(ctx, adminClient, "./testdata/organization.yaml")
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating a Team")
 	testStartTime = time.Now().UTC()
 })
 
 var _ = AfterSuite(func() {
-	expect.CatalogDeleted(ctx, adminClient, env.TestNamespace, e2eCatalogName)
-	env.GenerateControllerLogs(ctx, testStartTime)
+	expect.AllCatalogDeleted(ctx, adminClient)
+	env.GenerateGreenhouseControllerLogs(ctx, testStartTime)
+	env.GenerateFluxControllerLogs(ctx, "source-controller", testStartTime)
+	env.GenerateFluxControllerLogs(ctx, "source-watcher", testStartTime)
+	env.GenerateFluxControllerLogs(ctx, "kustomize-controller", testStartTime)
 })
 
 var _ = Describe("Catalog E2E", Ordered, func() {
-	var catalog *greenhousev1alpha1.Catalog
-	var clusterPluginDefinitions *greenhousev1alpha1.ClusterPluginDefinitionList
-	It("should successfully create a Catalog resource", func() {
-		catalog = test.NewCatalog(
-			e2eCatalogName,
-			env.TestNamespace,
-			test.WithRepositoryBranch("main"),
-			test.WithRepositoryURL("https://github.com/cloudoperators/greenhouse-extensions"),
-		)
-		Expect(adminClient.Create(ctx, catalog)).To(Succeed(), "there should be no error creating the Catalog resource")
-		expect.CatalogReady(ctx, adminClient, env.TestNamespace, catalog.Name)
-		clusterPluginDefinitions = &greenhousev1alpha1.ClusterPluginDefinitionList{}
-		Expect(adminClient.List(ctx, clusterPluginDefinitions)).To(Succeed(), "there should be no error listing ClusterPluginDefinitions")
-		Expect(clusterPluginDefinitions.Items).ToNot(BeEmpty(), "there should be at least one ClusterPluginDefinition created from the Catalog")
-	})
-	It("should successfully patch a Catalog resource", func() {
-		randomIndex := rand.Intn(len(clusterPluginDefinitions.Items))
-		alias := clusterPluginDefinitions.Items[randomIndex].Name + fmt.Sprintf("-e2e-alias-%d", randomIndex)
-		override := greenhousev1alpha1.CatalogOverrides{
-			Name:  clusterPluginDefinitions.Items[randomIndex].Name,
-			Alias: alias,
-		}
-		expect.CatalogOverride(ctx, adminClient, override, env.TestNamespace, catalog.Name)
-		expect.CatalogReady(ctx, adminClient, env.TestNamespace, catalog.Name)
-
-		Eventually(func(g Gomega) {
-			clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
-			err := adminClient.Get(ctx, client.ObjectKey{Name: alias}, clusterPluginDefinition)
-			g.Expect(err).NotTo(HaveOccurred(), "there should be no error fetching the aliased ClusterPluginDefinition")
-		}).Should(Succeed(), "the patched Catalog resource should be available with the new alias")
-
-		override.Repository = catalogRepositoryPatch
-		expect.CatalogOverride(ctx, adminClient, override, env.TestNamespace, catalog.Name)
-		expect.CatalogReady(ctx, adminClient, env.TestNamespace, catalog.Name)
-
-		Eventually(func(g Gomega) {
-			clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
-			err := adminClient.Get(ctx, client.ObjectKey{Name: alias}, clusterPluginDefinition)
-			g.Expect(err).NotTo(HaveOccurred(), "there should be no error fetching the aliased ClusterPluginDefinition")
-			g.Expect(clusterPluginDefinition.Spec.HelmChart.Repository).To(Equal(catalogRepositoryPatch), "the patched ClusterPluginDefinition should have the new repository URL")
-		}).Should(Succeed(), "the patched Catalog resource should be available with the new repository URL")
-	})
+	DescribeTable("Catalog scenarios",
+		func(orgYamlPath, catalogYamlPath, secretName string, secretType shared.SecretType, execute func(scenarios.IScenario, string)) {
+			env := env.WithOrganization(ctx, adminClient, orgYamlPath)
+			if !env.IsRealCluster {
+				env = env.WithGitHubSecret(ctx, adminClient, secretName, secretType)
+			}
+			testNamespace := env.TestNamespace
+			scenario := scenarios.NewScenario(adminClient, catalogYamlPath, secretName, strings.TrimSpace(catalogYamlPath) == "")
+			execute(scenario, testNamespace)
+		},
+		Entry("Catalog Branch scenario",
+			e2eOrgYaml,
+			catalogBranchYaml,
+			"github-com-token",
+			shared.GitHubSecretTypeAPP,
+			func(s scenarios.IScenario, ns string) { s.ExecuteSuccessScenario(ctx, ns) },
+		),
+		Entry("Catalog Commit scenario",
+			e2eOrgYaml,
+			catalogCommitYaml,
+			"github-com-token",
+			shared.GitHubSecretTypeAPP,
+			func(s scenarios.IScenario, ns string) { s.ExecuteSuccessScenario(ctx, ns) },
+		),
+		Entry("Catalog CPD scenario",
+			greenhouseOrgYaml,
+			catalogCPDYaml,
+			"github-com-app",
+			shared.GitHubSecretTypeAPP,
+			func(s scenarios.IScenario, ns string) { s.ExecuteSuccessScenario(ctx, ns) },
+		),
+		Entry("Catalog Multi Source scenario",
+			e2eOrgYaml,
+			catalogMultiYaml,
+			"github-com-app",
+			shared.GitHubSecretTypeAPP,
+			func(s scenarios.IScenario, ns string) { s.ExecuteSuccessScenario(ctx, ns) },
+		),
+		Entry("Catalog CPD Fail scenario",
+			e2eOrgYaml,
+			catalogCPDYaml,
+			"github-com-app",
+			shared.GitHubSecretTypeAPP,
+			func(s scenarios.IScenario, ns string) { s.ExecuteCPDFailScenario(ctx, ns) },
+		),
+		Entry("Catalog Artifact Fail scenario",
+			e2eOrgYaml,
+			catalogArtifactFailYaml,
+			"github-com-app",
+			shared.GitHubSecretTypeAPP,
+			func(s scenarios.IScenario, ns string) { s.ExecuteArtifactFailScenario(ctx, ns) },
+		),
+		Entry("Catalog Git Auth Fail scenario",
+			e2eOrgYaml,
+			catalogBranchYaml,
+			"github-com-token",
+			shared.GitHubSecretTypeFake,
+			func(s scenarios.IScenario, ns string) { s.ExecuteGitAuthFailScenario(ctx, ns) },
+		),
+		Entry("Catalog Options Override scenario",
+			e2eOrgYaml,
+			"",
+			"github-com-app",
+			shared.GitHubSecretTypeAPP,
+			func(s scenarios.IScenario, ns string) { s.ExecuteOptionsOverrideScenario(ctx, ns) },
+		),
+	)
 })

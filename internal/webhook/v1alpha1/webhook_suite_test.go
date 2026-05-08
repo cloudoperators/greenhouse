@@ -27,8 +27,8 @@ var _ = BeforeSuite(func() {
 	test.RegisterWebhook("secretsWebhook", SetupSecretWebhookWithManager)
 	test.RegisterWebhook("teamsWebhook", SetupTeamWebhookWithManager)
 	test.RegisterWebhook("teamRoleWebhook", SetupTeamRoleWebhookWithManager)
-	test.RegisterWebhook("teamRoleBindingV1alpha1Webhook", SetupTeamRoleBindingWebhookWithManager)
 	test.RegisterWebhook("teamRolebindingV1alpha2Webhook", v1alpha2.SetupTeamRoleBindingWebhookWithManager)
+	test.RegisterWebhook("serviceAccountWebhook", SetupServiceAccountWebhookWithManager)
 	test.TestBeforeSuite()
 })
 

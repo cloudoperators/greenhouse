@@ -5,7 +5,31 @@ global:
   dnsDomain: green.house
   dex:
     backend: kubernetes
+  plugin:
+    expressionEvaluationEnabled: true
+    integrationEnabled: true
+    ociMirroringEnabled: true
 alerts:
   enabled: false
 certManager:
   enabled: false
+controllerManager:
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+  resources:
+    requests:
+      cpu: 10m
+      memory: 128Mi
+  args: []
+  replicas: 1
+  serviceAccount:
+    annotations: {}
+  env:
+    - name: LOCAL_REGISTRY
+      value: "registry:5000"
+  image:
+    repository: greenhouse/manager
+    tag: local

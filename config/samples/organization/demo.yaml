@@ -9,13 +9,42 @@ metadata:
 
 apiVersion: v1
 kind: Secret
-metadata: 
+metadata:
   name: demo-oidc
   namespace: demo
 type: greenhouse.sap/orgsecret
 data:
   clientID: Zm9vYmFy
   clientSecret: VG9wU2VjcmV0ISEh
+---
+# when running the controller locally, change the primaryMirror to localhost:5000
+# when running the controller in-cluster (KinD) the primaryMirror should be registry:5000
+# Flux and Greenhouse controllers running in-cluster will use the KinD network to access the registry
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-config
+  namespace: demo
+data:
+  containerRegistryConfig: |
+    primaryMirror: "registry:5000"
+    registryMirrors:
+      docker.io:
+        baseDomain: "registry:5000"
+        subPath: "greenhouse-dockerhub-mirror"
+      gcr.io:
+        baseDomain: "registry:5000"
+        subPath: "greenhouse-gcr-mirror"
+      ghcr.io:
+        baseDomain: "registry:5000"
+        subPath: "greenhouse-ghcr-io-mirror"
+      quay.io:
+        baseDomain: "registry:5000"
+        subPath: "greenhouse-quay-mirror"
+      registry.k8s.io:
+        baseDomain: "registry:5000"
+        subPath: "greenhouse-registry-k8s-io-mirror"
+
 ---
 
 apiVersion: greenhouse.sap/v1alpha1
@@ -25,13 +54,14 @@ metadata:
 spec:
   description: Greenhouse Demo Organization
   mappedOrgAdminIdPGroup: DEMO_ORG_ADMIN
-  authentication:
-    oidc:
-      clientIDReference:
-        key: clientID
-        name: demo-oidc
-      clientSecretReference:
-        key: clientSecret
-        name: demo-oidc
-      issuer: https://global.accounts.dev
-      redirectURI: https://bogus.accounts.foo
+  configMapRef: demo-config
+#  authentication:
+#    oidc:
+#      clientIDReference:
+#        key: clientID
+#        name: demo-oidc
+#      clientSecretReference:
+#        key: clientSecret
+#        name: demo-oidc
+#      issuer: https://global.accounts.dev
+#      redirectURI: https://bogus.accounts.foo

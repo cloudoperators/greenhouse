@@ -8,13 +8,13 @@ import (
 	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
@@ -24,7 +24,7 @@ import (
 func SetupPluginPresetWebhookWithManager(mgr ctrl.Manager) error {
 	return webhook.SetupWebhook(mgr,
 		&greenhousev1alpha1.PluginPreset{},
-		webhook.WebhookFuncs{
+		webhook.WebhookFuncs[*greenhousev1alpha1.PluginPreset]{
 			DefaultFunc:        DefaultPluginPreset,
 			ValidateCreateFunc: ValidateCreatePluginPreset,
 			ValidateUpdateFunc: ValidateUpdatePluginPreset,
@@ -35,12 +35,7 @@ func SetupPluginPresetWebhookWithManager(mgr ctrl.Manager) error {
 
 //+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-pluginpreset,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=pluginpresets,verbs=create;update,versions=v1alpha1,name=mpluginpreset.kb.io,admissionReviewVersions=v1
 
-func DefaultPluginPreset(ctx context.Context, c client.Client, o runtime.Object) error {
-	pluginPreset, ok := o.(*greenhousev1alpha1.PluginPreset)
-	if !ok {
-		return nil
-	}
-
+func DefaultPluginPreset(ctx context.Context, c client.Client, pluginPreset *greenhousev1alpha1.PluginPreset) error {
 	// prevent deletion on plugin preset creation
 	if pluginPreset.Annotations == nil {
 		pluginPreset.Annotations = map[string]string{}
@@ -49,15 +44,21 @@ func DefaultPluginPreset(ctx context.Context, c client.Client, o runtime.Object)
 		pluginPreset.Annotations[greenhousev1alpha1.PreventDeletionAnnotation] = "true"
 	}
 
-	deprecatedDefName := pluginPreset.Spec.Plugin.PluginDefinition //nolint:staticcheck
-
-	// Migrate PluginDefinition reference name.
-	if pluginPreset.Spec.Plugin.PluginDefinitionRef.Name == "" && deprecatedDefName != "" {
-		pluginPreset.Spec.Plugin.PluginDefinitionRef.Name = deprecatedDefName
-	}
-
 	if pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind == "" {
 		pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind = greenhousev1alpha1.PluginDefinitionKind
+	}
+
+	// Set a label identifying the referenced PluginDefinition for easier listing and watch-based reconciliation.
+	if pluginPreset.Labels == nil {
+		pluginPreset.Labels = make(map[string]string)
+	}
+	switch pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind {
+	case greenhousev1alpha1.PluginDefinitionKind:
+		pluginPreset.Labels[greenhouseapis.LabelKeyPluginDefinition] = pluginPreset.Spec.Plugin.PluginDefinitionRef.Name
+		delete(pluginPreset.Labels, greenhouseapis.LabelKeyClusterPluginDefinition)
+	case greenhousev1alpha1.ClusterPluginDefinitionKind:
+		pluginPreset.Labels[greenhouseapis.LabelKeyClusterPluginDefinition] = pluginPreset.Spec.Plugin.PluginDefinitionRef.Name
+		delete(pluginPreset.Labels, greenhouseapis.LabelKeyPluginDefinition)
 	}
 
 	return nil
@@ -65,11 +66,7 @@ func DefaultPluginPreset(ctx context.Context, c client.Client, o runtime.Object)
 
 //+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-pluginpreset,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=pluginpresets,verbs=create;update;delete,versions=v1alpha1,name=vpluginpreset.kb.io,admissionReviewVersions=v1
 
-func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.Object) (admission.Warnings, error) {
-	pluginPreset, ok := o.(*greenhousev1alpha1.PluginPreset)
-	if !ok {
-		return nil, nil
-	}
+func ValidateCreatePluginPreset(ctx context.Context, c client.Client, pluginPreset *greenhousev1alpha1.PluginPreset) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 	var allWarns admission.Warnings
 
@@ -99,6 +96,11 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 
 	if err := validateReleaseName(pluginPreset.Spec.Plugin.ReleaseName); err != nil {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("plugin").Child("releaseName"), pluginPreset.Spec.Plugin.ReleaseName, err.Error()))
+	}
+
+	// validate WaitFor items are unique and that PluginRef's fields are mutually exclusive
+	if errList := validateWaitForPluginRefs(pluginPreset.Spec.WaitFor, false); len(errList) > 0 {
+		allErrs = append(allErrs, errList...)
 	}
 
 	if len(allErrs) > 0 {
@@ -153,16 +155,7 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 	return allWarns, nil
 }
 
-func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, curObj runtime.Object) (admission.Warnings, error) {
-	oldPluginPreset, ok := oldObj.(*greenhousev1alpha1.PluginPreset)
-	if !ok {
-		return nil, nil
-	}
-	pluginPreset, ok := curObj.(*greenhousev1alpha1.PluginPreset)
-	if !ok {
-		return nil, nil
-	}
-
+func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldPluginPreset, pluginPreset *greenhousev1alpha1.PluginPreset) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 	var allWarns admission.Warnings
 
@@ -170,14 +163,13 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, cu
 		allWarns = append(allWarns, "PluginPreset should have a support-group Team set as its owner", warn)
 	}
 
-	if oldPluginPreset.Spec.Plugin.PluginDefinitionRef.Name != "" {
-		if err := webhook.ValidateImmutableField(oldPluginPreset.Spec.Plugin.PluginDefinitionRef.Name, pluginPreset.Spec.Plugin.PluginDefinitionRef.Name, field.NewPath("spec", "plugin", "pluginDefinitionRef", "name")); err != nil {
-			allErrs = append(allErrs, err)
-		}
-	}
-
 	if err := webhook.ValidateImmutableField(oldPluginPreset.Spec.Plugin.ClusterName, pluginPreset.Spec.Plugin.ClusterName, field.NewPath("spec", "plugin", "clusterName")); err != nil {
 		allErrs = append(allErrs, err)
+	}
+
+	// validate WaitFor items are unique and that PluginRef's fields are mutually exclusive
+	if errList := validateWaitForPluginRefs(pluginPreset.Spec.WaitFor, false); len(errList) > 0 {
+		allErrs = append(allErrs, errList...)
 	}
 
 	if len(allErrs) > 0 {
@@ -186,12 +178,7 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, cu
 	return allWarns, nil
 }
 
-func ValidateDeletePluginPreset(_ context.Context, _ client.Client, obj runtime.Object) (admission.Warnings, error) {
-	pluginPreset, ok := obj.(*greenhousev1alpha1.PluginPreset)
-	if !ok {
-		return nil, nil
-	}
-
+func ValidateDeletePluginPreset(_ context.Context, _ client.Client, pluginPreset *greenhousev1alpha1.PluginPreset) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 	if _, ok := pluginPreset.Annotations[greenhousev1alpha1.PreventDeletionAnnotation]; ok {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("metadata").Child("annotation").Child(greenhousev1alpha1.PreventDeletionAnnotation),
@@ -219,4 +206,45 @@ func validatePluginOptionValuesForPreset(pluginPreset *greenhousev1alpha1.Plugin
 		allErrs = append(allErrs, errors...)
 	}
 	return allErrs
+}
+
+// validateWaitForPluginRefs validates that the WaitFor list is unique and that each PluginRef has exactly one field set.
+func validateWaitForPluginRefs(items []greenhousev1alpha1.WaitForItem, isPluginInCentralCluster bool) field.ErrorList {
+	itemsPath := field.NewPath("spec", "waitFor")
+
+	seenPluginNames := make(map[string]int, 0)
+	seenPluginPresets := make(map[string]int, 0)
+
+	var errList field.ErrorList
+
+	for i, item := range items {
+		switch {
+		case item.Name != "" && item.PluginPreset != "":
+			errList = append(errList, field.Invalid(itemsPath.Index(i).Child("pluginRef", "name"), item.Name,
+				"pluginRef.name and pluginRef.pluginPreset are mutually exclusive"))
+		case item.Name != "":
+			if first, dup := seenPluginNames[item.Name]; dup {
+				errList = append(errList, field.Duplicate(itemsPath.Index(first).Child("pluginRef", "name"), item.Name))
+				errList = append(errList, field.Duplicate(itemsPath.Index(i).Child("pluginRef", "name"), item.Name))
+			} else {
+				seenPluginNames[item.Name] = i
+			}
+		case item.PluginPreset != "":
+			if isPluginInCentralCluster {
+				errList = append(errList, field.Invalid(itemsPath.Index(i).Child("pluginRef", "pluginPreset"),
+					item.PluginPreset, "plugins running in the central cluster cannot have PluginPreset dependencies"))
+				continue
+			}
+			if first, dup := seenPluginPresets[item.PluginPreset]; dup {
+				errList = append(errList, field.Duplicate(itemsPath.Index(first).Child("pluginRef", "pluginPreset"), item.PluginPreset))
+				errList = append(errList, field.Duplicate(itemsPath.Index(i).Child("pluginRef", "pluginPreset"), item.PluginPreset))
+			} else {
+				seenPluginPresets[item.PluginPreset] = i
+			}
+		default:
+			errList = append(errList, field.Required(itemsPath.Index(i).Child("pluginRef"),
+				"either pluginRef.name or pluginRef.pluginPreset must be set"))
+		}
+	}
+	return errList
 }

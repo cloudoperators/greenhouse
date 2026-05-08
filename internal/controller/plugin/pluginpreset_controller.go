@@ -14,7 +14,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -27,8 +27,8 @@ import (
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
-	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/util"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 // presetExposedConditions contains the conditions that are exposed in the PluginPreset's StatusConditions.
@@ -44,19 +44,21 @@ var presetExposedConditions = []greenhousemetav1alpha1.ConditionType{
 // PluginPresetReconciler reconciles a PluginPreset object
 type PluginPresetReconciler struct {
 	client.Client
-	recorder record.EventRecorder
+	recorder events.EventRecorder
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=pluginpresets,verbs=get;list;watch;update
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=pluginpresets/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=pluginpresets/finalizers,verbs=update
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=clusters,verbs=get;list;watch;
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch;
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=clusterplugindefinitions,verbs=get;list;watch;
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *PluginPresetReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
-	r.recorder = mgr.GetEventRecorderFor(name)
+	r.recorder = mgr.GetEventRecorder(name)
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&greenhousev1alpha1.PluginPreset{}).
@@ -64,10 +66,16 @@ func (r *PluginPresetReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 			predicate.Or(
 				predicate.GenerationChangedPredicate{},
 				clientutil.PredicatePluginWithStatusReadyChange(),
-			))).
+			),
+			clientutil.PredicateIgnoreDeletingResources(),
+		)).
 		// Clusters and teams are passed as values to each Helm operation. Reconcile on change.
 		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginPresetsInNamespace),
 			builder.WithPredicates(predicate.LabelChangedPredicate{})).
+		// If a PluginDefinition was changed, reconcile relevant PluginPresets.
+		Watches(&greenhousev1alpha1.PluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueuePluginPresetsForPluginDefinition), builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		// If a ClusterPluginDefinition was changed, reconcile relevant PluginPresets.
+		Watches(&greenhousev1alpha1.ClusterPluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueuePluginPresetsForClusterPluginDefinition), builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(r)
 }
 
@@ -92,7 +100,7 @@ func (r *PluginPresetReconciler) setConditions() lifecycle.Conditioner {
 }
 
 func (r *PluginPresetReconciler) EnsureCreated(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	pluginPreset := resource.(*greenhousev1alpha1.PluginPreset) //nolint:errcheck
+	pluginPreset := resource.(*greenhousev1alpha1.PluginPreset)
 
 	_ = log.FromContext(ctx)
 
@@ -131,7 +139,7 @@ func (r *PluginPresetReconciler) EnsureCreated(ctx context.Context, resource lif
 }
 
 func (r *PluginPresetReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	pluginPreset := resource.(*greenhousev1alpha1.PluginPreset) //nolint:errcheck
+	pluginPreset := resource.(*greenhousev1alpha1.PluginPreset)
 
 	plugins, err := r.listPlugins(ctx, pluginPreset)
 	if err != nil {
@@ -139,8 +147,8 @@ func (r *PluginPresetReconciler) EnsureDeleted(ctx context.Context, resource lif
 	}
 
 	switch pluginPreset.Spec.DeletionPolicy {
-	case greenhouseapis.DeletionPolicyOrphan:
-		// Remove the owner reference from all managed Plugins to orphan them.
+	case greenhouseapis.DeletionPolicyRetain:
+		// Remove the owner reference from all managed Plugins to retain them when deleting the Preset.
 		allErrs := make([]error, 0)
 		for _, plugin := range plugins.Items {
 			if isPluginManagedByPreset(&plugin, pluginPreset.Name) {
@@ -157,7 +165,7 @@ func (r *PluginPresetReconciler) EnsureDeleted(ctx context.Context, resource lif
 			}
 		}
 		if len(allErrs) > 0 {
-			return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("failed to orphan plugins for %s/%s: %w", pluginPreset.Namespace, pluginPreset.Name, errors.Join(allErrs...))
+			return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("failed to process retained plugins for %s/%s: %w", pluginPreset.Namespace, pluginPreset.Name, errors.Join(allErrs...))
 		}
 	default:
 		// Cleanup the plugins that are managed by this PluginPreset.
@@ -177,6 +185,10 @@ func (r *PluginPresetReconciler) EnsureDeleted(ctx context.Context, resource lif
 		}
 	}
 	return ctrl.Result{}, lifecycle.Success, nil
+}
+
+func (r *PluginPresetReconciler) EnsureSuspended(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, error) {
+	return ctrl.Result{}, nil
 }
 
 // reconcilePluginPreset reconciles the PluginPreset by creating or updating the Plugins for the given clusters.
@@ -228,8 +240,10 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 			plugin.Spec.ReleaseName = releaseName
 			// Set the cluster name to the name of the cluster. The PluginSpec contained in the PluginPreset does not have a cluster name.
 			plugin.Spec.ClusterName = cluster.GetName()
+			// Copy over the plugin dependencies
+			plugin.Spec.WaitFor = preset.Spec.WaitFor
 			// transport plugin preset labels to plugin
-			plugin = (lifecycle.NewPropagator(preset, plugin).ApplyLabels()).(*greenhousev1alpha1.Plugin) //nolint:errcheck
+			plugin = (lifecycle.NewPropagator(preset, plugin).Apply()).(*greenhousev1alpha1.Plugin)
 			// overrides options based on preset definition
 			overridesPluginOptionValues(plugin, preset)
 			return nil
@@ -338,7 +352,12 @@ func overridesPluginOptionValues(plugin *greenhousev1alpha1.Plugin, preset *gree
 
 // generatePluginName generates a name for a plugin based on the used PluginPreset's name and the Cluster.
 func generatePluginName(p *greenhousev1alpha1.PluginPreset, cluster *greenhousev1alpha1.Cluster) string {
-	return fmt.Sprintf("%s-%s", p.Name, cluster.GetName())
+	return buildPluginName(p.Name, cluster.GetName())
+}
+
+// buildPluginName takes PluginPreset name and Cluster name to create a name for the Plugin.
+func buildPluginName(pluginPresetName, clusterName string) string {
+	return fmt.Sprintf("%s-%s", pluginPresetName, clusterName)
 }
 
 func initPluginPresetStatus(p *greenhousev1alpha1.PluginPreset) {
@@ -415,7 +434,7 @@ func (r *PluginPresetReconciler) cleanupPlugins(ctx context.Context, pb *greenho
 			if err := r.Delete(ctx, &p); err != nil && !apierrors.IsNotFound(err) {
 				return err
 			}
-			r.recorder.Eventf(&p, corev1.EventTypeNormal, "PluginDeleted", "Dangling Plugin %s deleted by PluginPreset %s", p.Name, pb.Name)
+			r.recorder.Eventf(&p, pb, corev1.EventTypeNormal, "PluginDeleted", "cleaning up Plugins", "Dangling Plugin %s deleted by PluginPreset %s", p.Name, pb.Name)
 			ctrl.LoggerFrom(ctx).Info("Dangling Plugin deleted", "plugin", p.Name, "pluginPreset", pb.Name)
 		}
 	}
@@ -425,6 +444,23 @@ func (r *PluginPresetReconciler) cleanupPlugins(ctx context.Context, pb *greenho
 // enqueueAllPluginPresetsInNamespace returns a list of reconcile requests for all PluginPresets in the same namespace as obj.
 func (r *PluginPresetReconciler) enqueueAllPluginPresetsInNamespace(ctx context.Context, obj client.Object) []ctrl.Request {
 	return listPluginPresetAsReconcileRequests(ctx, r.Client, client.InNamespace(obj.GetNamespace()))
+}
+
+// enqueuePluginPresetsForPluginDefinition returns reconcile requests for all PluginPresets in the same namespace
+// that reference the changed PluginDefinition (identified via the greenhouse.sap/plugindefinition label).
+func (r *PluginPresetReconciler) enqueuePluginPresetsForPluginDefinition(ctx context.Context, obj client.Object) []ctrl.Request {
+	return listPluginPresetAsReconcileRequests(ctx, r.Client,
+		client.InNamespace(obj.GetNamespace()),
+		client.MatchingLabels{greenhouseapis.LabelKeyPluginDefinition: obj.GetName()},
+	)
+}
+
+// enqueuePluginPresetsForClusterPluginDefinition returns reconcile requests for all PluginPresets across all namespaces
+// that reference the changed ClusterPluginDefinition (identified via the greenhouse.sap/clusterplugindefinition label).
+func (r *PluginPresetReconciler) enqueuePluginPresetsForClusterPluginDefinition(ctx context.Context, obj client.Object) []ctrl.Request {
+	return listPluginPresetAsReconcileRequests(ctx, r.Client,
+		client.MatchingLabels{greenhouseapis.LabelKeyClusterPluginDefinition: obj.GetName()},
+	)
 }
 
 // listPluginPresetsAsReconcileRequests returns a list of reconcile requests for all PluginPresets that match the given list options.

@@ -1,18 +1,37 @@
 # SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
-
 apiVersion: greenhouse.sap/v1alpha1
 kind: Catalog
 metadata:
   name: greenhouse-extensions
   namespace: greenhouse
 spec:
-  source:
-    git:
-      url: https://github.com/cloudoperators/greenhouse-extensions
-      ref:
+  sources:
+    - ref:
         branch: main
-  overrides:
-    - name: perses
-      alias: perses-keppel-chart
-#     repository: oci://some-registry.io/some-repo/some-chart
+      repository: https://github.com/cloudoperators/greenhouse-extensions
+      resources:
+        - cert-manager/plugindefinition.yaml
+        - ingress-nginx/plugindefinition.yaml
+        - kube-monitoring/plugindefinition.yaml
+      overrides:
+        - name: cert-manager
+          alias: cert-manager-overridden
+          optionsOverride:
+            - name: "cert-manager.installCRDs"
+              value: true
+            - name: cert-manager.webhook.timeoutSeconds
+              value: 15
+    - ref:
+        sha: ed3ff23bca21eef6cffc0956df338d8185340fc5
+      repository: https://github.com/cloudoperators/greenhouse-extensions
+      resources:
+        - perses/plugindefinition.yaml
+      overrides:
+        - name: perses
+          alias: perses-overridden
+          optionsOverride:
+            - name: "perses.serviceMonitor.selector.matchLabels"
+              value:
+                foo: bar
+                baz: qux

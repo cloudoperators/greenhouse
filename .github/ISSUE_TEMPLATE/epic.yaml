@@ -1,6 +1,8 @@
 name: ✨ Epic
 description: Create an epic
 title: "[EPIC] - <title>"
+labels:
+  - "needs-triage"
 body:
   - type: textarea
     id: description

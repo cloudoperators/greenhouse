@@ -9,6 +9,10 @@ global:
       postgresqlDatabase: dex
       postgresqlPort: 5432
       postgresqlUsername: dex
+  plugin:
+    expressionEvaluationEnabled: false
+    integrationEnabled: false
+    ociMirroringEnabled: false
 
 controllerManager:
   args:

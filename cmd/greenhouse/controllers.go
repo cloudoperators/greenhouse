@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"slices"
 	"sort"
 
 	"k8s.io/utils/ptr"
@@ -33,21 +34,17 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	"teamRoleBindingController": (&teamrbaccontrollers.TeamRoleBindingReconciler{}).SetupWithManager,
 
 	// Plugin controllers.
-	"plugin": (&plugincontrollers.PluginReconciler{
-		KubeRuntimeOpts: kubeClientOpts,
-	}).SetupWithManager,
+	"plugin":       startPluginReconciler,
 	"pluginPreset": (&plugincontrollers.PluginPresetReconciler{}).SetupWithManager,
 
-	"catalog": (&catalog.CatalogReconciler{
-		Log: ctrl.Log.WithName("controllers").WithName("catalogs"),
-	}).SetupWithManager,
-	"pluginDefinition":        (&plugindefinitioncontroller.PluginDefinitionReconciler{}).SetupWithManager,
-	"clusterPluginDefinition": (&plugindefinitioncontroller.ClusterPluginDefinitionReconciler{}).SetupWithManager,
+	"catalog":                 startCatalogReconciler,
+	"pluginDefinition":        startPluginDefinitionReconciler,
+	"clusterPluginDefinition": startClusterPluginDefinitionReconciler,
 
 	// Cluster controllers
-	"bootStrap":         (&clustercontrollers.BootstrapReconciler{}).SetupWithManager,
-	"clusterReconciler": startClusterReconciler,
-	"kubeconfig":        (&clustercontrollers.KubeconfigReconciler{}).SetupWithManager,
+	"bootstrap":  (&clustercontrollers.BootstrapReconciler{}).SetupWithManager,
+	"cluster":    startClusterReconciler,
+	"kubeconfig": (&clustercontrollers.KubeconfigReconciler{}).SetupWithManager,
 }
 
 // knownControllers lists the name of known controllers.
@@ -62,12 +59,10 @@ func knownControllersNames() []string {
 
 // isControllerEnabled checks whether the given controller or regex is enabled
 func isControllerEnabled(controllerName string) bool {
-	for _, c := range enabledControllers {
-		if controllerName == "*" || controllerName == c {
-			return true
-		}
+	if slices.Contains(disabledControllers, controllerName) {
+		return false
 	}
-	return false
+	return controllerName == "*" || slices.Contains(enabledControllers, controllerName)
 }
 
 // startOrganizationReconciler - initializes the organization reconciler
@@ -85,6 +80,29 @@ func startOrganizationReconciler(name string, mgr ctrl.Manager) error {
 	}).SetupWithManager(name, mgr)
 }
 
+// startPluginReconciler initializes the plugin reconciler.
+// Resolves expression evaluation feature flag from greenhouse-feature-flags.
+func startPluginReconciler(name string, mgr ctrl.Manager) error {
+	return (&plugincontrollers.PluginReconciler{
+		KubeRuntimeOpts:             kubeClientOpts,
+		ExpressionEvaluationEnabled: featureFlags.IsExpressionEvaluationEnabled(),
+		IntegrationEnabled:          featureFlags.IsIntegrationEnabled(),
+		OCIMirroringEnabled:         featureFlags.IsOCIMirroringEnabled(),
+	}).SetupWithManager(name, mgr)
+}
+
+func startPluginDefinitionReconciler(name string, mgr ctrl.Manager) error {
+	return (&plugindefinitioncontroller.PluginDefinitionReconciler{
+		OCIMirroringEnabled: featureFlags.IsOCIMirroringEnabled(),
+	}).SetupWithManager(name, mgr)
+}
+
+func startClusterPluginDefinitionReconciler(name string, mgr ctrl.Manager) error {
+	return (&plugindefinitioncontroller.ClusterPluginDefinitionReconciler{
+		OCIMirroringEnabled: featureFlags.IsOCIMirroringEnabled(),
+	}).SetupWithManager(name, mgr)
+}
+
 func startClusterReconciler(name string, mgr ctrl.Manager) error {
 	if renewRemoteClusterBearerTokenAfter > remoteClusterBearerTokenValidity {
 		setupLog.Info("WARN: remoteClusterBearerTokenValidity is less than renewRemoteClusterBearerTokenAfter")
@@ -94,5 +112,13 @@ func startClusterReconciler(name string, mgr ctrl.Manager) error {
 	return (&clustercontrollers.RemoteClusterReconciler{
 		RemoteClusterBearerTokenValidity:   remoteClusterBearerTokenValidity,
 		RenewRemoteClusterBearerTokenAfter: renewRemoteClusterBearerTokenAfter,
+	}).SetupWithManager(name, mgr)
+}
+
+func startCatalogReconciler(name string, mgr ctrl.Manager) error {
+	return (&catalog.CatalogReconciler{
+		Log:         ctrl.Log.WithName("controllers").WithName("catalogs"),
+		StoragePath: artifactStoragePath,
+		HttpRetry:   artifactRetries,
 	}).SetupWithManager(name, mgr)
 }

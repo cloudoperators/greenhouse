@@ -11,10 +11,10 @@ permissions:
 jobs:
   title-lint:
     name: Validate PR title
-    runs-on: [default]
+    runs-on: [ ubuntu-latest ]
     steps:
       - name: CI Check Title
-        uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6
+        uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -35,6 +35,7 @@ jobs:
             style
             test
             docs
+            e2e
           # Configure which scopes are allowed (newline-delimited).
           # These are regex patterns auto-wrapped in `^ $`.
           scopes: |
@@ -64,6 +65,7 @@ jobs:
             e2e
             greenhouse
             greenhousectl
+            dev-env
             actions
             template
             tests
@@ -71,6 +73,7 @@ jobs:
             utils
             version
             webhook
+            authz
             ISSUE-\d+
             release\/v[0-9]+.[0-9]+
           # Configure that a scope must always be provided.

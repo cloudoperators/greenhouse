@@ -5,16 +5,16 @@ package v1alpha2
 
 import (
 	"context"
+	"slices"
+	"strings"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
@@ -24,7 +24,7 @@ import (
 func SetupTeamRoleBindingWebhookWithManager(mgr ctrl.Manager) error {
 	return webhook.SetupWebhook(mgr,
 		&greenhousev1alpha2.TeamRoleBinding{},
-		webhook.WebhookFuncs{
+		webhook.WebhookFuncs[*greenhousev1alpha2.TeamRoleBinding]{
 			DefaultFunc:        DefaultRoleBinding,
 			ValidateCreateFunc: ValidateCreateRoleBinding,
 			ValidateUpdateFunc: ValidateUpdateRoleBinding,
@@ -35,56 +35,41 @@ func SetupTeamRoleBindingWebhookWithManager(mgr ctrl.Manager) error {
 
 //+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha2-teamrolebinding,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=teamrolebindings,verbs=create;update,versions=v1alpha2,name=mrolebinding-v1alpha2.kb.io,admissionReviewVersions=v1
 
-func DefaultRoleBinding(_ context.Context, _ client.Client, _ runtime.Object) error {
+func DefaultRoleBinding(_ context.Context, _ client.Client, trb *greenhousev1alpha2.TeamRoleBinding) error {
+	if trb.Spec.TeamRef != "" && !slices.Contains(trb.Spec.TeamRefs, trb.Spec.TeamRef) { //nolint:staticcheck // defaulting migrates deprecated teamRef to teamRefs
+		trb.Spec.TeamRefs = append(trb.Spec.TeamRefs, trb.Spec.TeamRef) //nolint:staticcheck // defaulting migrates deprecated teamRef to teamRefs
+	}
+	trb.Spec.TeamRefs = slices.DeleteFunc(trb.Spec.TeamRefs, func(s string) bool {
+		return strings.TrimSpace(s) == ""
+	})
+	slices.Sort(trb.Spec.TeamRefs)
+	trb.Spec.TeamRefs = slices.Compact(trb.Spec.TeamRefs)
+	return nil
+}
+
+func deprecationWarnings(trb *greenhousev1alpha2.TeamRoleBinding) admission.Warnings {
+	if trb.Spec.TeamRef != "" { //nolint:staticcheck
+		return admission.Warnings{"spec.teamRef is deprecated, use spec.teamRefs instead"}
+	}
 	return nil
 }
 
 //+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha2-teamrolebinding,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=teamrolebindings,verbs=create;update;delete,versions=v1alpha2,name=vrolebinding-v1alpha2.kb.io,admissionReviewVersions=v1
 
-func ValidateCreateRoleBinding(ctx context.Context, c client.Client, o runtime.Object) (admission.Warnings, error) {
-	rb, ok := o.(*greenhousev1alpha2.TeamRoleBinding)
-	if !ok {
-		return nil, nil
-	}
-
-	// check if the referenced role exists
-	var r greenhousev1alpha1.TeamRole
-	if err := c.Get(ctx, client.ObjectKey{Namespace: rb.Namespace, Name: rb.Spec.TeamRoleRef}, &r); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil, apierrors.NewInvalid(rb.GroupVersionKind().GroupKind(), rb.Name, field.ErrorList{field.Invalid(field.NewPath("spec", "roleRef"), rb.Spec.TeamRoleRef, "role does not exist")})
-		}
-		return nil, apierrors.NewInternalError(err)
-	}
-
-	// check if the referenced team exists
-	var t greenhousev1alpha1.Team
-	if err := c.Get(ctx, client.ObjectKey{Namespace: rb.Namespace, Name: rb.Spec.TeamRef}, &t); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil, apierrors.NewInvalid(rb.GroupVersionKind().GroupKind(), rb.Name, field.ErrorList{field.Invalid(field.NewPath("spec", "teamRef"), rb.Spec.TeamRef, "team does not exist")})
-		}
-		return nil, apierrors.NewInternalError(err)
-	}
-
+func ValidateCreateRoleBinding(ctx context.Context, c client.Client, rb *greenhousev1alpha2.TeamRoleBinding) (admission.Warnings, error) {
 	if err := validateClusterSelector(rb); err != nil {
 		return nil, err
 	}
 
+	warns := deprecationWarnings(rb)
 	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, rb)
 	if labelValidationWarning != "" {
-		return admission.Warnings{"TeamRoleBinding should have a support-group Team set as its owner", labelValidationWarning}, nil
+		warns = append(warns, "TeamRoleBinding should have a support-group Team set as its owner", labelValidationWarning)
 	}
-	return nil, nil
+	return warns, nil
 }
 
-func ValidateUpdateRoleBinding(ctx context.Context, c client.Client, old, cur runtime.Object) (admission.Warnings, error) {
-	oldRB, ok := old.(*greenhousev1alpha2.TeamRoleBinding)
-	if !ok {
-		return nil, nil
-	}
-	curRB, ok := cur.(*greenhousev1alpha2.TeamRoleBinding)
-	if !ok {
-		return nil, nil
-	}
+func ValidateUpdateRoleBinding(ctx context.Context, c client.Client, oldRB, curRB *greenhousev1alpha2.TeamRoleBinding) (admission.Warnings, error) {
 	switch {
 	case validateClusterSelector(curRB) != nil:
 		return nil, apierrors.NewForbidden(
@@ -98,12 +83,6 @@ func ValidateUpdateRoleBinding(ctx context.Context, c client.Client, old, cur ru
 				Group:    oldRB.GroupVersionKind().Group,
 				Resource: oldRB.Kind,
 			}, oldRB.Name, field.Forbidden(field.NewPath("spec", "teamRoleRef"), "cannot change TeamRoleRef of an existing TeamRoleBinding"))
-	case oldRB.Spec.TeamRef != curRB.Spec.TeamRef:
-		return nil, apierrors.NewForbidden(
-			schema.GroupResource{
-				Group:    oldRB.GroupVersionKind().Group,
-				Resource: oldRB.Kind,
-			}, oldRB.Name, field.Forbidden(field.NewPath("spec", "teamRef"), "cannot change TeamRef of an existing TeamRoleBinding"))
 	case isClusterScoped(oldRB) && !isClusterScoped(curRB):
 		return nil, apierrors.NewForbidden(
 			schema.GroupResource{
@@ -125,7 +104,7 @@ func ValidateUpdateRoleBinding(ctx context.Context, c client.Client, old, cur ru
 	return nil, nil
 }
 
-func ValidateDeleteRoleBinding(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
+func ValidateDeleteRoleBinding(_ context.Context, _ client.Client, _ *greenhousev1alpha2.TeamRoleBinding) (admission.Warnings, error) {
 	return nil, nil
 }
 

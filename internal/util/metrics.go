@@ -9,7 +9,7 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	"github.com/cloudoperators/greenhouse/internal/lifecycle"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 type (
@@ -30,6 +30,7 @@ const (
 	MetricReasonTemplateFailed           MetricReason = "template_failed"
 	MetricReasonDiffFailed               MetricReason = "diff_failed"
 	MetricReasonHelmChartIsNotDefined    MetricReason = "helm_chart_is_not_defined"
+	MetricReasonSuspendFailed            MetricReason = "suspend_failed"
 )
 
 var (

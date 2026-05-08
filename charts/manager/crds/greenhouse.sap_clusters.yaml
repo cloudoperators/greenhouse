@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
 
 ---
@@ -6,7 +6,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.20.1
   name: clusters.greenhouse.sap
 spec:
   group: greenhouse.sap
@@ -18,15 +18,18 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .metadata.creationTimestamp
-      name: Age
-      type: date
     - jsonPath: .spec.accessMode
       name: AccessMode
       type: string
     - jsonPath: .status.statusConditions.conditions[?(@.type == "Ready")].status
       name: Ready
       type: string
+    - jsonPath: .status.kubernetesVersion
+      name: Version
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -116,12 +119,10 @@ spec:
                   ready:
                     description: ReadyNodes represent the number of ready nodes in
                       the cluster.
-                    format: int32
                     type: integer
                   total:
                     description: Total represent the number of all the nodes in the
                       cluster.
-                    format: int32
                     type: integer
                 type: object
               statusConditions:

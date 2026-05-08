@@ -1,0 +1,763 @@
+{
+  "kind": "Dashboard",
+  "metadata": {
+    "name": "alerts",
+    "createdAt": "2026-01-16T16:01:14.058060262Z",
+    "updatedAt": "2026-01-21T11:24:04.478064871Z",
+    "version": 1,
+    "project": "greenhouse"
+  },
+  "spec": {
+    "display": {
+      "name": "Alerts"
+    },
+    "panels": {
+      "5f2c2d5257e14effb0fececb55abb10e": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Kubernetes Update Required For Greenhouse Cluster",
+            "description": "GreenhouseClusterKubernetesVersionOutOfMaintenance: Cluster in namespace is running Kubernetes version which is out of maintenance."
+          },
+          "plugin": {
+            "kind": "Table",
+            "spec": {
+              "cellSettings": [
+                {
+                  "backgroundColor": "#EA4747",
+                  "condition": {
+                    "kind": "Regex",
+                    "spec": {
+                      "expr": "v1\\.((1|2)[0-9])+\\..*"
+                    }
+                  },
+                  "textColor": "#ffffff"
+                },
+                {
+                  "backgroundColor": "#2FBF71",
+                  "condition": {
+                    "kind": "Regex",
+                    "spec": {
+                      "expr": "v1\\.([3-9][0-9])+\\..*"
+                    }
+                  },
+                  "textColor": "#ffffff"
+                }
+              ],
+              "columnSettings": [
+                {
+                  "name": "clusterName"
+                },
+                {
+                  "name": "namespace"
+                },
+                {
+                  "hide": true,
+                  "name": "timestamp"
+                },
+                {
+                  "hide": true,
+                  "name": "value"
+                },
+                {
+                  "enableSorting": true,
+                  "name": "version",
+                  "sort": "asc"
+                }
+              ],
+              "density": "standard"
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "minStep": "",
+                    "query": "count by (clusterName, namespace, version) (greenhouse_cluster_k8s_versions_total)",
+                    "seriesNameFormat": "{{clusterName}}/{{namespace}}/{{version}}"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "ab1303e3f8a24cb3a41106b6a32a86f9": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Existence of 'owned-by' Label by Resource",
+            "description": "GreenhouseResourceOwnedByLabelMissing: The greenhouse.sap/owned-by label is missing on a resource"
+          },
+          "plugin": {
+            "kind": "Table",
+            "spec": {
+              "cellSettings": [
+                {
+                  "backgroundColor": "#EA4747",
+                  "condition": {
+                    "kind": "Value",
+                    "spec": {
+                      "value": "1"
+                    }
+                  },
+                  "text": "Missing 'owned_by' label.",
+                  "textColor": "#ffffff"
+                }
+              ],
+              "columnSettings": [
+                {
+                  "enableSorting": true,
+                  "hide": false,
+                  "name": "organization"
+                },
+                {
+                  "enableSorting": true,
+                  "name": "resource_kind"
+                },
+                {
+                  "enableSorting": true,
+                  "hide": false,
+                  "name": "resource_name"
+                },
+                {
+                  "header": "existence",
+                  "headerDescription": "Is this resource missing 'owned_by' a label?",
+                  "name": "value"
+                },
+                {
+                  "hide": true,
+                  "name": "__name__"
+                },
+                {
+                  "hide": true,
+                  "name": "cluster"
+                },
+                {
+                  "hide": true,
+                  "name": "container"
+                },
+                {
+                  "hide": true,
+                  "name": "endpoint"
+                },
+                {
+                  "hide": true,
+                  "name": "instance"
+                },
+                {
+                  "hide": true,
+                  "name": "job"
+                },
+                {
+                  "hide": true,
+                  "name": "namespace"
+                },
+                {
+                  "hide": true,
+                  "name": "region"
+                },
+                {
+                  "hide": true,
+                  "name": "pod"
+                },
+                {
+                  "hide": true,
+                  "name": "prometheus"
+                },
+                {
+                  "hide": true,
+                  "name": "service"
+                },
+                {
+                  "hide": true,
+                  "name": "timestamp"
+                }
+              ],
+              "defaultColumnHeight": "auto",
+              "defaultColumnWidth": "auto",
+              "density": "compact",
+              "pagination": false,
+              "transforms": []
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "greenhouse_owned_by_label_missing == 1",
+                    "seriesNameFormat": "{{organization}} | {{resource_kind}} | {{resource_name}}"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "b46f3a9fa7c54101894557ef319da152": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "KubeConfig Token Lifetime by Cluster/Namespace",
+            "description": "GreenhouseClusterTokenExpiry: The kubeconfig token for cluster in namespace will expire less than 20 hours."
+          },
+          "plugin": {
+            "kind": "TimeSeriesChart",
+            "spec": {
+              "legend": {
+                "position": "bottom"
+              },
+              "thresholds": {
+                "steps": [
+                  {
+                    "color": "#EA4747",
+                    "value": 72000
+                  }
+                ]
+              },
+              "yAxis": {
+                "format": {
+                  "unit": "seconds"
+                },
+                "label": "",
+                "show": true
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "minStep": "15m",
+                    "query": "greenhouse_cluster_kubeconfig_validity_seconds",
+                    "seriesNameFormat": "{{clusterName}}/{{namespace}}"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "ed9c3ec270b24c8196484eeec4e653a3": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Greenhouse Ready Status",
+            "description": " GreenhouseClusterNotReady: Cluster in namespace has not been ready for more than 15 minutes."
+          },
+          "plugin": {
+            "kind": "Table",
+            "spec": {
+              "cellSettings": [
+                {
+                  "backgroundColor": "#2FBF71",
+                  "condition": {
+                    "kind": "Value",
+                    "spec": {
+                      "value": "1"
+                    }
+                  },
+                  "text": "Ready",
+                  "textColor": "#ffffff"
+                },
+                {
+                  "backgroundColor": "#EA4747",
+                  "condition": {
+                    "kind": "Value",
+                    "spec": {
+                      "value": "0"
+                    }
+                  },
+                  "text": "Not Ready",
+                  "textColor": "#ffffff"
+                }
+              ],
+              "columnSettings": [
+                {
+                  "enableSorting": true,
+                  "name": "clusterName",
+                  "sort": "asc"
+                },
+                {
+                  "enableSorting": true,
+                  "name": "namespace",
+                  "sort": "asc"
+                },
+                {
+                  "hide": true,
+                  "name": "timestamp"
+                },
+                {
+                  "enableSorting": true,
+                  "header": "status",
+                  "name": "value",
+                  "sort": "asc"
+                }
+              ],
+              "density": "standard"
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "minStep": "",
+                    "query": "sum by (clusterName, namespace) (greenhouse_cluster_ready)",
+                    "seriesNameFormat": "{{clusterName}} | {{namespace}}"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "layouts": [
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "Cluster Alerts",
+            "collapse": {
+              "open": true
+            }
+          },
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 10,
+              "height": 10,
+              "content": {
+                "$ref": "#/spec/panels/ed9c3ec270b24c8196484eeec4e653a3"
+              }
+            },
+            {
+              "x": 10,
+              "y": 0,
+              "width": 7,
+              "height": 10,
+              "content": {
+                "$ref": "#/spec/panels/b46f3a9fa7c54101894557ef319da152"
+              }
+            },
+            {
+              "x": 17,
+              "y": 0,
+              "width": 7,
+              "height": 10,
+              "content": {
+                "$ref": "#/spec/panels/5f2c2d5257e14effb0fececb55abb10e"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "Resource Alerts",
+            "collapse": {
+              "open": true
+            }
+          },
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 12,
+              "height": 7,
+              "content": {
+                "$ref": "#/spec/panels/ab1303e3f8a24cb3a41106b6a32a86f9"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "variables": [
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "display": {
+            "name": "Cluster Alerts",
+            "hidden": true
+          },
+          "defaultValue": [
+            " GreenhouseClusterKubernetesVersionOutOfMaintenance"
+          ],
+          "allowAllValue": true,
+          "allowMultiple": true,
+          "sort": "alphabetical-asc",
+          "plugin": {
+            "kind": "StaticListVariable",
+            "spec": {
+              "values": [
+                {
+                  "label": "GreenhouseClusterNotReady",
+                  "value": "GreenhouseClusterNotReady"
+                },
+                {
+                  "label": " GreenhouseClusterTokenExpiry",
+                  "value": " GreenhouseClusterTokenExpiry"
+                },
+                {
+                  "label": " GreenhouseClusterKubernetesVersionOutOfMaintenance",
+                  "value": " GreenhouseClusterKubernetesVersionOutOfMaintenance"
+                }
+              ]
+            }
+          },
+          "name": "clusterAlert"
+        }
+      },
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "display": {
+            "name": "Operator Alerts",
+            "hidden": true
+          },
+          "defaultValue": [
+            " GreenhouseOperatorReconcileDurationHigher10Min"
+          ],
+          "allowAllValue": true,
+          "allowMultiple": true,
+          "sort": "alphabetical-asc",
+          "plugin": {
+            "kind": "StaticListVariable",
+            "spec": {
+              "values": [
+                {
+                  "label": "GreenhouseOperatorReconcileErrorsHigh",
+                  "value": "GreenhouseOperatorReconcileErrorsHigh"
+                },
+                {
+                  "label": " GreenhouseOperatorReconcileDurationHigher10Min",
+                  "value": " GreenhouseOperatorReconcileDurationHigher10Min"
+                },
+                {
+                  "label": " GreenhouseOperatorWorkqueueNotDrained",
+                  "value": " GreenhouseOperatorWorkqueueNotDrained"
+                },
+                {
+                  "label": " GreenhouseWebhookLatencyHigh",
+                  "value": " GreenhouseWebhookLatencyHigh"
+                },
+                {
+                  "label": " GreenhouseWebhookErrorsHigh\n",
+                  "value": " GreenhouseWebhookErrorsHigh\n"
+                }
+              ]
+            }
+          },
+          "name": "operatorAlert"
+        }
+      },
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "display": {
+            "name": "Plugin Alerts",
+            "hidden": true
+          },
+          "defaultValue": [
+            " GreenhousePluginConstantlyFailing"
+          ],
+          "allowAllValue": true,
+          "allowMultiple": true,
+          "sort": "alphabetical-asc",
+          "plugin": {
+            "kind": "StaticListVariable",
+            "spec": {
+              "values": [
+                {
+                  "label": "GreenhousePluginNotReady",
+                  "value": "GreenhousePluginNotReady"
+                },
+                {
+                  "label": " GreenhousePluginHelmChartTestFailures",
+                  "value": " GreenhousePluginHelmChartTestFailures"
+                },
+                {
+                  "label": " GreenhousePluginConstantlyFailing",
+                  "value": " GreenhousePluginConstantlyFailing"
+                },
+                {
+                  "label": " GreenhousePluginWorkloadNotReady\n",
+                  "value": " GreenhousePluginWorkloadNotReady\n"
+                }
+              ]
+            }
+          },
+          "name": "pluginAlert"
+        }
+      },
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "display": {
+            "name": "Proxy Alerts",
+            "hidden": true
+          },
+          "defaultValue": [
+            " GreenhouseIDProxyErrorsHigh\n"
+          ],
+          "allowAllValue": true,
+          "allowMultiple": true,
+          "sort": "alphabetical-asc",
+          "plugin": {
+            "kind": "StaticListVariable",
+            "spec": {
+              "values": [
+                {
+                  "label": "GreenhouseProxyRequestErrorsHigh",
+                  "value": "GreenhouseProxyRequestErrorsHigh"
+                },
+                {
+                  "label": " GreenhouseProxyRequestDurationHigh",
+                  "value": " GreenhouseProxyRequestDurationHigh"
+                },
+                {
+                  "label": " GreenhouseIDProxyErrorsHigh\n",
+                  "value": " GreenhouseIDProxyErrorsHigh\n"
+                }
+              ]
+            }
+          },
+          "name": "proxyAlert"
+        }
+      },
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "display": {
+            "name": "Organization Alerts",
+            "hidden": true
+          },
+          "defaultValue": [
+            " GreenhouseSCIMAccessNotReady\n"
+          ],
+          "allowAllValue": true,
+          "allowMultiple": true,
+          "sort": "alphabetical-asc",
+          "plugin": {
+            "kind": "StaticListVariable",
+            "spec": {
+              "values": [
+                {
+                  "label": "GreenhouseOrganizationNotReady",
+                  "value": "GreenhouseOrganizationNotReady"
+                },
+                {
+                  "label": " GreenhouseSCIMAccessNotReady\n",
+                  "value": " GreenhouseSCIMAccessNotReady\n"
+                }
+              ]
+            }
+          },
+          "name": "organizationAlert"
+        }
+      },
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "display": {
+            "name": "Resource alerts",
+            "hidden": true
+          },
+          "defaultValue": [
+            "GreenhouseResourceOwnedByLabelMissing\n"
+          ],
+          "allowAllValue": true,
+          "allowMultiple": true,
+          "sort": "alphabetical-asc",
+          "plugin": {
+            "kind": "StaticListVariable",
+            "spec": {
+              "values": [
+                {
+                  "label": "GreenhouseResourceOwnedByLabelMissing\n",
+                  "value": "GreenhouseResourceOwnedByLabelMissing\n"
+                }
+              ]
+            }
+          },
+          "name": "resourceAlert"
+        }
+      },
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "display": {
+            "name": "Team Alerts",
+            "hidden": true
+          },
+          "defaultValue": [
+            " GreenhouseTeamRoleBindingNotReady\n"
+          ],
+          "allowAllValue": true,
+          "allowMultiple": true,
+          "sort": "alphabetical-asc",
+          "plugin": {
+            "kind": "StaticListVariable",
+            "spec": {
+              "values": [
+                {
+                  "label": "GreenhouseTeamMembershipCountDrop",
+                  "value": "GreenhouseTeamMembershipCountDrop"
+                },
+                {
+                  "label": " GreenhouseTeamRoleBindingNotReady\n",
+                  "value": " GreenhouseTeamRoleBindingNotReady\n"
+                }
+              ]
+            }
+          },
+          "name": "teamAlert"
+        }
+      },
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "display": {
+            "name": "Owner",
+            "hidden": false
+          },
+          "defaultValue": "$__all",
+          "allowAllValue": true,
+          "allowMultiple": true,
+          "sort": "alphabetical-asc",
+          "plugin": {
+            "kind": "PrometheusLabelValuesVariable",
+            "spec": {
+              "labelName": "owned_by",
+              "matchers": [
+                "greenhouse_plugin_ready"
+              ]
+            }
+          },
+          "name": "ownedBy"
+        }
+      },
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "display": {
+            "name": "PluginDefinition",
+            "hidden": false
+          },
+          "defaultValue": "alerts",
+          "allowAllValue": false,
+          "allowMultiple": false,
+          "sort": "alphabetical-asc",
+          "plugin": {
+            "kind": "PrometheusLabelValuesVariable",
+            "spec": {
+              "labelName": "pluginDefinition",
+              "matchers": [
+                "greenhouse_plugin_ready"
+              ]
+            }
+          },
+          "name": "pluginDefinition"
+        }
+      },
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "display": {
+            "name": "Cluster name",
+            "hidden": false
+          },
+          "defaultValue": "$__all",
+          "allowAllValue": true,
+          "allowMultiple": true,
+          "sort": "alphabetical-asc",
+          "plugin": {
+            "kind": "PrometheusLabelValuesVariable",
+            "spec": {
+              "labelName": "clusterName"
+            }
+          },
+          "name": "clusterName"
+        }
+      },
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "display": {
+            "name": "Step size",
+            "hidden": false
+          },
+          "defaultValue": "1m",
+          "allowAllValue": false,
+          "allowMultiple": false,
+          "plugin": {
+            "kind": "StaticListVariable",
+            "spec": {
+              "values": [
+                {
+                  "label": "1m",
+                  "value": "1m"
+                },
+                {
+                  "label": "2m",
+                  "value": "2m"
+                },
+                {
+                  "label": "5m",
+                  "value": "5m"
+                },
+                {
+                  "label": "10m",
+                  "value": "10m"
+                },
+                {
+                  "label": "15m",
+                  "value": "15m"
+                },
+                {
+                  "label": "30m",
+                  "value": "30m"
+                },
+                {
+                  "label": "1h",
+                  "value": "1h"
+                },
+                {
+                  "label": "6h",
+                  "value": "6h"
+                },
+                {
+                  "label": "12h",
+                  "value": "12h"
+                },
+                {
+                  "label": "24h",
+                  "value": "24h"
+                }
+              ]
+            }
+          },
+          "name": "step"
+        }
+      }
+    ],
+    "duration": "1h",
+    "refreshInterval": "0s"
+  }
+}

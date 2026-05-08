@@ -7,7 +7,6 @@ import (
 	"context"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -23,7 +22,7 @@ import (
 func SetupOrganizationWebhookWithManager(mgr ctrl.Manager) error {
 	return webhook.SetupWebhook(mgr,
 		&greenhousev1alpha1.Organization{},
-		webhook.WebhookFuncs{
+		webhook.WebhookFuncs[*greenhousev1alpha1.Organization]{
 			DefaultFunc:        DefaultOrganization,
 			ValidateCreateFunc: ValidateCreateOrganization,
 			ValidateUpdateFunc: ValidateUpdateOrganization,
@@ -34,11 +33,7 @@ func SetupOrganizationWebhookWithManager(mgr ctrl.Manager) error {
 
 //+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-organization,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=organizations,verbs=create;update,versions=v1alpha1,name=morganization.kb.io,admissionReviewVersions=v1
 
-func DefaultOrganization(_ context.Context, _ client.Client, o runtime.Object) error {
-	org, ok := o.(*greenhousev1alpha1.Organization)
-	if !ok {
-		return nil
-	}
+func DefaultOrganization(_ context.Context, _ client.Client, org *greenhousev1alpha1.Organization) error {
 	// Default the displayName to a normalized version of metadata.name.
 	if org.Spec.DisplayName == "" {
 		normalizedName := strings.ReplaceAll(org.GetName(), "-", " ")
@@ -51,43 +46,33 @@ func DefaultOrganization(_ context.Context, _ client.Client, o runtime.Object) e
 
 //+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-organization,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=organizations,verbs=create;update;delete,versions=v1alpha1,name=vorganization.kb.io,admissionReviewVersions=v1
 
-func ValidateCreateOrganization(_ context.Context, _ client.Client, obj runtime.Object) (admission.Warnings, error) {
-	organization, ok := obj.(*greenhousev1alpha1.Organization)
-	if !ok {
-		return nil, nil
-	}
-
+func ValidateCreateOrganization(_ context.Context, _ client.Client, org *greenhousev1alpha1.Organization) (admission.Warnings, error) {
 	allErrs := field.ErrorList{}
-	if err := validateMappedOrgAdminIDPGroup(organization); err != nil {
+	if err := validateMappedOrgAdminIDPGroup(org); err != nil {
 		allErrs = append(allErrs, err)
 	}
 
-	if err := validateSCIMConfig(organization); err != nil {
+	if err := validateSCIMConfig(org); err != nil {
 		allErrs = append(allErrs, err...)
 	}
 
 	return nil, allErrs.ToAggregate()
 }
 
-func ValidateUpdateOrganization(_ context.Context, _ client.Client, _, newObj runtime.Object) (admission.Warnings, error) {
-	organization, ok := newObj.(*greenhousev1alpha1.Organization)
-	if !ok {
-		return nil, nil
-	}
-
+func ValidateUpdateOrganization(_ context.Context, _ client.Client, _, org *greenhousev1alpha1.Organization) (admission.Warnings, error) {
 	allErrs := field.ErrorList{}
-	if err := validateMappedOrgAdminIDPGroup(organization); err != nil {
+	if err := validateMappedOrgAdminIDPGroup(org); err != nil {
 		allErrs = append(allErrs, err)
 	}
 
-	if errs := validateSCIMConfig(organization); len(errs) > 0 {
+	if errs := validateSCIMConfig(org); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
 
 	return nil, allErrs.ToAggregate()
 }
 
-func ValidateDeleteOrganization(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
+func ValidateDeleteOrganization(_ context.Context, _ client.Client, _ *greenhousev1alpha1.Organization) (admission.Warnings, error) {
 	return nil, nil
 }
 

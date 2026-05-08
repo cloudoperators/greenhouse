@@ -17,8 +17,8 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 var _ = Describe("Cluster status", Ordered, func() {
@@ -130,8 +130,8 @@ var _ = Describe("Cluster status", Ordered, func() {
 	})
 
 	AfterAll(func() {
-		test.MustDeleteCluster(test.Ctx, test.K8sClient, client.ObjectKeyFromObject(&validCluster))
-		test.MustDeleteCluster(test.Ctx, test.K8sClient, client.ObjectKeyFromObject(invalidCluster))
+		test.MustDeleteCluster(test.Ctx, test.K8sClient, &validCluster)
+		test.MustDeleteCluster(test.Ctx, test.K8sClient, invalidCluster)
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
 		Expect(remoteEnv.Stop()).Should(Succeed(), "there should be no error stopping the remote environment")
 	})
@@ -155,9 +155,9 @@ var _ = Describe("Cluster status", Ordered, func() {
 			g.Expect(validCluster.Status.GetConditionByType(greenhousev1alpha1.AllNodesReady).Status).To(Equal(metav1.ConditionFalse))
 			g.Expect(validCluster.Status.GetConditionByType(greenhousev1alpha1.AllNodesReady).Message).To(ContainSubstring("test-node not ready, test-node-3 not ready"))
 			// Validate the counts of total and ready nodes.
-			g.Expect(validCluster.Status.Nodes).ToNot((BeNil()))
-			g.Expect(validCluster.Status.Nodes.Total).To(Equal(int32(3)))
-			g.Expect(validCluster.Status.Nodes.Ready).To(Equal(int32(1)))
+			g.Expect(validCluster.Status.Nodes).ToNot(BeNil())
+			g.Expect(validCluster.Status.Nodes.Total).To(Equal(3))
+			g.Expect(validCluster.Status.Nodes.Ready).To(Equal(1))
 			g.Expect(validCluster.Status.Nodes.NotReady).To(HaveLen(2))
 		}).Should(Succeed())
 
@@ -193,12 +193,15 @@ var _ = Describe("Cluster status", Ordered, func() {
 		}).Should(Succeed(), "we should see the condition change on the remote node")
 
 		By("Triggering a cluster reconcile by adding a label to speed up things. Requeue interval is set to 2min")
-		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
-		if validCluster.Labels == nil {
-			validCluster.Labels = make(map[string]string)
-		}
-		validCluster.Labels["reconcile-me"] = "true"
-		Expect(test.K8sClient.Update(test.Ctx, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error updating the cluster resource")
+		Eventually(func(g Gomega) {
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).
+				ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
+			if validCluster.Labels == nil {
+				validCluster.Labels = make(map[string]string)
+			}
+			validCluster.Labels["reconcile-me"] = "true"
+			g.Expect(test.K8sClient.Update(test.Ctx, &validCluster)).To(Succeed(), "there must be no error updating the cluster")
+		}).Should(Succeed(), "updating cluster with label should eventually succeed")
 
 		Eventually(func(g Gomega) {
 			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
@@ -217,9 +220,9 @@ var _ = Describe("Cluster status", Ordered, func() {
 			g.Expect(validCluster.Status.GetConditionByType(greenhousev1alpha1.AllNodesReady).Status).To(Equal(metav1.ConditionTrue), "The AllNodesReady condition should be true")
 			g.Expect(validCluster.Status.GetConditionByType(greenhousev1alpha1.AllNodesReady).Message).To(BeEmpty())
 			// Validate the counts of total and ready nodes.
-			g.Expect(validCluster.Status.Nodes).ToNot((BeNil()))
-			g.Expect(validCluster.Status.Nodes.Total).To(Equal(int32(3)))
-			g.Expect(validCluster.Status.Nodes.Ready).To(Equal(int32(3)))
+			g.Expect(validCluster.Status.Nodes).ToNot(BeNil())
+			g.Expect(validCluster.Status.Nodes.Total).To(Equal(3))
+			g.Expect(validCluster.Status.Nodes.Ready).To(Equal(3))
 			g.Expect(validCluster.Status.Nodes.NotReady).To(BeEmpty())
 		}).Should(Succeed())
 
@@ -232,7 +235,6 @@ var _ = Describe("Cluster status", Ordered, func() {
 			g.Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
 			g.Expect(validCluster.Status.KubernetesVersion).ToNot(BeNil())
 		}).Should(Succeed())
-
 	})
 
 	It("should reconcile the status of a cluster without a secret", func() {
@@ -264,11 +266,14 @@ var _ = Describe("Cluster status", Ordered, func() {
 
 	It("should set the deletion condition when the cluster is marked for deletion", func() {
 		By("marking the cluster for deletion")
-		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
-		validCluster.SetAnnotations(map[string]string{
-			greenhouseapis.MarkClusterDeletionAnnotation: "true",
-		})
-		Expect(test.K8sClient.Update(test.Ctx, &validCluster)).To(Succeed(), "there must be no error updating the object", "key", client.ObjectKeyFromObject(&validCluster))
+		Eventually(func(g Gomega) {
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).
+				ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
+			validCluster.SetAnnotations(map[string]string{
+				greenhouseapis.MarkClusterDeletionAnnotation: "true",
+			})
+			g.Expect(test.K8sClient.Update(test.Ctx, &validCluster)).To(Succeed(), "there must be no error updating the object")
+		}).Should(Succeed(), "marking cluster for deletion should eventually succeed")
 
 		By("checking the deletion condition")
 		Eventually(func(g Gomega) {

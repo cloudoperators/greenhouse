@@ -16,7 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -29,24 +29,24 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/controller/cluster/utils"
-	"github.com/cloudoperators/greenhouse/internal/lifecycle"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 type BootstrapReconciler struct {
 	client.Client
-	recorder record.EventRecorder
+	recorder events.EventRecorder
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=clusters,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=clusters/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=clusters/finalizers,verbs=update
-//+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups="events.k8s.io",resources=events,verbs=get;list;watch;update;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update;patch
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *BootstrapReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
-	r.recorder = mgr.GetEventRecorderFor(name)
+	r.recorder = mgr.GetEventRecorder(name)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
@@ -168,21 +168,22 @@ func (r *BootstrapReconciler) createOrUpdateCluster(
 	cluster.SetName(kubeConfigSecret.Name)
 	cluster.SetNamespace(kubeConfigSecret.Namespace)
 
-	annotations := make(map[string]string)
-	if cluster.GetAnnotations() != nil {
-		annotations = cluster.GetAnnotations()
+	annotations := cluster.GetAnnotations()
+	if annotations == nil {
+		annotations = make(map[string]string, 1)
 	}
-	if kubeConfigSecret.Type == greenhouseapis.SecretTypeKubeConfig {
+	switch kubeConfigSecret.Type {
+	case greenhouseapis.SecretTypeKubeConfig:
 		annotations[greenhouseapis.ClusterConnectivityAnnotation] = greenhouseapis.ClusterConnectivityKubeconfig
-	}
-	if kubeConfigSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
+	case greenhouseapis.SecretTypeOIDCConfig:
 		annotations[greenhouseapis.ClusterConnectivityAnnotation] = greenhouseapis.ClusterConnectivityOIDC
 	}
+
 	result, err := controllerutil.CreateOrUpdate(ctx, r.Client, cluster, func() error {
 		cluster.SetAnnotations(annotations)
 		cluster.Spec.AccessMode = accessMode
 		// Transport KubeConfigSecret labels to Cluster
-		cluster = (lifecycle.NewPropagator(kubeConfigSecret, cluster).ApplyLabels()).(*greenhousev1alpha1.Cluster) //nolint:errcheck
+		cluster = (lifecycle.NewPropagator(kubeConfigSecret, cluster).Apply()).(*greenhousev1alpha1.Cluster)
 		return nil
 	})
 	if err != nil {
