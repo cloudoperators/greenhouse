@@ -84,7 +84,7 @@ For human users, the webhook extracts support-group claims from the user's group
 
 **Example**: A user with groups `["support-group:my-team", "developers"]` would have `my-team` as their support-group.
 
-Users can belong to multiple support-groups. Access is granted if **any** of their support-groups matches the resource owner.
+Users are expected to belong to only one Support Group, as described in the [Teams documentation](../../core-concepts/teams#support-groups). However, the webhook also supports users with multiple `support-group:` claims and grants access if **any** of those claims matches the resource owner.
 
 ### ServiceAccount Requests (Team Automation)
 
