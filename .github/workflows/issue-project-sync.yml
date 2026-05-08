@@ -3,6 +3,9 @@ on:
   issues:
     types: [labeled]
 
+permissions:
+  issues: read
+
 jobs:
   sync:
     if: github.event.label.name == 'backlog'
