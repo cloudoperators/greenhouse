@@ -52,16 +52,9 @@ They control the actual resources deployed to their Greenhouse Organization:
 
 #### [Catalogs](./../../reference/api/index.html#greenhouse.sap/v1alpha1.Catalog)
 
-Catalogs enable Greenhouse Organizations to import the PluginDefinitions they want to use.
+Catalogs enable Greenhouse Organizations to import the PluginDefinitions they want to use. A Catalog resource points to a Git repository that contains PluginDefinition (or ClusterPluginDefinition) manifests and continuously syncs them into the Organization namespace.
 
-A Catalog resource points to a Git repository that contains PluginDefinition (or ClusterPluginDefinition) manifests. It is defined by:
-
-- **`spec.source.git.url`** — the URL of the Git repository containing the PluginDefinition manifests.
-- **`spec.source.git.ref`** — an optional Git reference to pin the catalog to a specific `branch`, `tag`, or `sha` (commit). If omitted, defaults to the repository's default branch.
-- **`spec.source.path`** — an optional path within the repository where the manifests are located (defaults to the repository root).
-- **`spec.overrides`** — an optional list of overrides to rename/alias PluginDefinitions via Kustomize patches. Each override specifies a `name` (original PluginDefinition name) and an `alias` (new name to apply).
-
-Under the hood, the Catalog controller creates a Flux [GitRepository](https://fluxcd.io/flux/components/source/gitrepositories/) and a [Kustomization](https://fluxcd.io/flux/components/kustomize/kustomizations/) to continuously sync PluginDefinitions from the referenced Git repository into the Organization namespace.
+For full configuration details, see the [Catalog reference documentation](https://cloudoperators.github.io/greenhouse/docs/reference/components/catalog/).
 
 #### [PluginDefinitions](./../../reference/api/index.html#greenhouse.sap/v1alpha1.PluginDefinition)
 
@@ -89,90 +82,11 @@ The underlying flux machinery's [`.spec.upgrade.remediation` is set to `rollback
 
 #### Version Pinning and Constraints
 
-Versioning of a PluginDefinition is achieved with the Catalog resource. Since a Catalog references a Git repository via `spec.source.git`, you control which PluginDefinition versions are available in your Organization by controlling the Git reference:
+Versioning of a PluginDefinition is achieved with the Catalog resource. Since a Catalog references a Git repository via `spec.source.git`, you control which PluginDefinition versions are available in your Organization by controlling the Git reference.
 
-- **Branch tracking** (e.g. `branch: main`): You always get the latest PluginDefinitions as they are committed to the branch. This is the default behavior and enables automatic updates.
-- **Tag pinning** (e.g. `tag: "kube-monitoring/1.2.3"`): You only get PluginDefinitions as of that tagged commit. Updates only happen when you change the tag reference.
-- **SHA pinning** (e.g. `sha: "a1b2c3d4e5f6..."`): You freeze to an exact commit. This provides the strongest version guarantee.
+For details on how to pin PluginDefinition versions using `spec.source.git.ref`, see the [Catalog Ref configuration](https://cloudoperators.github.io/greenhouse/docs/reference/components/catalog/#ref).
 
-##### Pinning PluginDefinition versions
-
-Reference by branch (always track latest):
-
-```yaml
-apiVersion: greenhouse.sap/v1alpha1
-kind: Catalog
-metadata:
-  name: my-catalog
-  namespace: my-org
-spec:
-  source:
-    git:
-      url: https://github.com/cloudoperators/greenhouse-extensions
-      ref:
-        branch: main
-    path: plugindefinitions
-```
-
-Reference by tag (pin to a specific release):
-
-```yaml
-apiVersion: greenhouse.sap/v1alpha1
-kind: Catalog
-metadata:
-  name: my-catalog-pinned
-  namespace: my-org
-spec:
-  source:
-    git:
-      url: https://github.com/cloudoperators/greenhouse-extensions
-      ref:
-        tag: "kube-monitoring/1.2.3"
-    path: plugindefinitions
-```
-
-Reference by commit SHA (freeze to exact state):
-
-```yaml
-apiVersion: greenhouse.sap/v1alpha1
-kind: Catalog
-metadata:
-  name: my-catalog-frozen
-  namespace: my-org
-spec:
-  source:
-    git:
-      url: https://github.com/cloudoperators/greenhouse-extensions
-      ref:
-        sha: "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
-    path: plugindefinitions
-```
-
-##### Overriding PluginDefinition names
-
-You can use `spec.overrides` to alias PluginDefinitions, for example to run multiple configurations of the same PluginDefinition side by side:
-
-```yaml
-apiVersion: greenhouse.sap/v1alpha1
-kind: Catalog
-metadata:
-  name: my-custom-catalog
-  namespace: my-org
-spec:
-  source:
-    git:
-      url: https://github.com/my-org/my-plugin-catalog
-      ref:
-        branch: main
-    path: plugindefinitions
-  overrides:
-    - name: cert-manager
-      alias: cert-manager-custom
-    - name: ingress-nginx
-      alias: ingress-nginx-custom
-    - name: kube-monitoring
-      alias: kube-monitoring-custom
-```
+For details on how to override PluginDefinition names using `spec.overrides`, see [Configuring overrides for PluginDefinitions](https://cloudoperators.github.io/greenhouse/docs/reference/components/catalog/#configuring-overrides-for-plugindefinitions).
 
 #### Staged rollouts
 

@@ -3,14 +3,14 @@ title: "Catalogs"
 weight: 5
 ---
 
-A Catalog is a collection of PluginDefinitions that can be made available to Organizations within Greenhouse. 
+A Catalog is a collection of PluginDefinitions that can be made available to Organizations within Greenhouse.
 Catalogs allow organization admins to manage the lifecycle of PluginDefinitions by controlling which version of a PluginDefinition is deployed to their cluster fleet.
 
 > The Catalog API is currently in **alpha** and is still under active development and is subjected to change.
 
 ## Example
 
-The following is an example of a Greenhouse Catalog that reconciles the PluginDefinition manifests stored in a Git Repository. 
+The following is an example of a Greenhouse Catalog that reconciles the PluginDefinition manifests stored in a Git Repository.
 
 ```yaml
 apiVersion: greenhouse.sap/v1alpha1
@@ -42,13 +42,12 @@ In the above example:
 - The Catalog is configured to target specific `PluginDefinition` manifests stored in a path within the repository specified under `.spec.sources[].resources[]`.
 - The Catalog watches for changes in the specified Git Repository branch and reconciles the `PluginDefinitions` in the Organization namespace accordingly.
 
-
 ## Writing a Catalog Spec
 
 ### Sources
 
 `.spec.sources` is a list of sources from which the Catalog will fetch PluginDefinition manifests. Currently, only Git repositories are supported as sources.
-Each source requires a `repository` URL and a list of `resources` that specify the paths to the PluginDefinition manifests within the repository. 
+Each source requires a `repository` URL and a list of `resources` that specify the paths to the PluginDefinition manifests within the repository.
 The `ref` field is used to specify the branch, tag, or commit SHA to fetch from the repository.
 
 ⚠️  Each Organization has a dedicated ServiceAccount used to apply the Catalog resources. This ServiceAccount only has permissions to apply PluginDefinitions into the Organization's Namespace. It will not be possible to bring other Kinds using the Catalog.
@@ -77,6 +76,59 @@ The priority order is: _sha_ > _tag_ > _branch_. If multiple fields are specifie
 
 > When multiple sources are defined with the same repository and ref, a duplicate error will be raised.
 
+#### Examples
+
+Reference by branch (always track latest — this is the default behavior and enables automatic updates):
+
+```yaml
+apiVersion: greenhouse.sap/v1alpha1
+kind: Catalog
+metadata:
+  name: my-catalog
+  namespace: my-org
+spec:
+  sources:
+    - repository: https://github.com/cloudoperators/greenhouse-extensions
+      resources:
+        - kube-monitoring/plugindefinition.yaml
+      ref:
+        branch: main
+```
+
+Reference by tag (pin to a specific release — updates only happen when you change the tag):
+
+```yaml
+apiVersion: greenhouse.sap/v1alpha1
+kind: Catalog
+metadata:
+  name: my-catalog-pinned
+  namespace: my-org
+spec:
+  sources:
+    - repository: https://github.com/cloudoperators/greenhouse-extensions
+      resources:
+        - kube-monitoring/plugindefinition.yaml
+      ref:
+        tag: "kube-monitoring/1.2.3"
+```
+
+Reference by commit SHA (freeze to an exact commit — provides the strongest version guarantee):
+
+```yaml
+apiVersion: greenhouse.sap/v1alpha1
+kind: Catalog
+metadata:
+  name: my-catalog-frozen
+  namespace: my-org
+spec:
+  sources:
+    - repository: https://github.com/cloudoperators/greenhouse-extensions
+      resources:
+        - kube-monitoring/plugindefinition.yaml
+      ref:
+        sha: "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
+```
+
 ### Interval (Optional)
 
 `.spec.sources[].interval` is an optional field that specifies how often the Catalog should check for updates in the source repository.
@@ -97,7 +149,7 @@ The Secret must be in the same namespace as the Catalog resource.
 
 ### Overrides (Optional)
 
-`.spec.sources[].overrides` is an optional field that allows specifying overrides for specific PluginDefinitions in the Catalog. 
+`.spec.sources[].overrides` is an optional field that allows specifying overrides for specific PluginDefinitions in the Catalog.
 This can be used to customize certain fields of PluginDefinitions.
 
 Currently, you can override the following fields:
@@ -107,7 +159,7 @@ Currently, you can override the following fields:
 
 ## Working with Catalog
 
-### Configuring Secret for Basic Authentication:
+### Configuring Secret for Basic Authentication
 
 To authenticate towards a Git repository over HTTPS using basic access authentication (in other words: using a username and password),
 the referenced Secret is expected to contain `.data.username` and `.data.password` values.
@@ -126,7 +178,7 @@ data:
 
 > password is the Personal Access Token (PAT) for accessing the Git repository.
 
-### Configure Secret for GitHub App authentication:
+### Configure Secret for GitHub App authentication
 
 Pre-requisites:
 
@@ -220,6 +272,7 @@ spec:
 PluginDefinitions can define configuration options with default values in their `.spec.options[]` array. You can override these default values using the `optionsOverride` field in the Catalog overrides.
 
 This is useful when you want to:
+
 - Provide different default values for different environments (dev, staging, production)
 - Customize plugin behavior without modifying the original PluginDefinition
 - Set organization-specific defaults for plugins
@@ -264,12 +317,12 @@ The annotation also blocks the deletion of the Catalog resource until the annota
 The Catalog resource orchestrates a combination of Flux resources to fetch and apply PluginDefinitions.
 The Flux resources managed by Catalog have their own reconciliation intervals.
 To trigger an immediate reconciliation of the Catalog and its managed resources, the annotation `greenhouse.sap/reconcile` can be set.
-This can be useful to trigger an immediate reconciliation when the source repository has changed, and you want to apply 
+This can be useful to trigger an immediate reconciliation when the source repository has changed, and you want to apply
 the changes without waiting for the next scheduled reconciliation.
 
 ### Troubleshooting
 
-Greenhouse uses [FluxCD](https://fluxcd.io/) under the hood to reconcile Catalog sources and 
+Greenhouse uses [FluxCD](https://fluxcd.io/) under the hood to reconcile Catalog sources and
 for each source a map of grouped status inventory is shown.
 
 Run `kubectl get cat -n <organization-namespace>` to see the reconciliation status.
@@ -369,7 +422,7 @@ In case of authentication failures due to invalid credentials, you will see erro
     type: Ready
 ```
 
-PluginDefinitions referenced in `.spec.sources[].resources` are accumulated using Flux ArtifactGenerator. Run `kubectl get artifactgenerator generator-9689366613293914683 -n greenhouse` to see the status. 
+PluginDefinitions referenced in `.spec.sources[].resources` are accumulated using Flux ArtifactGenerator. Run `kubectl get artifactgenerator generator-9689366613293914683 -n greenhouse` to see the status.
 
 ```shell
 NAME                            AGE     READY   STATUS
