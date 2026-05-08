@@ -21,9 +21,9 @@ The authorization model combines two layers:
 | **Authorization Webhook** | Grants elevated permissions on resources owned by the requesting Team |
 
 This allows:
-- **All Teams** to view resources across their Organization
-- **Resource owners** to have full control over their own resources
-- **Organization admins** to manage resources organization-wide via RBAC roles
+- **All Teams** to view resources across their Organization (via RBAC)
+- **Resource owners** to get, update, patch, and delete their own existing resources (via the webhook)
+- **Organization admins** to manage resources organization-wide via RBAC roles (including create and collection operations)
 
 ## How It Works
 
@@ -161,6 +161,8 @@ The ServiceAccount is managed by the Team controller:
 - **Created automatically** when a Team gets the `greenhouse.sap/support-group: "true"` label
 - **Named** `<team-name>-sa` (e.g., for team `my-team`, the SA is `my-team-sa`)
 - **Deleted automatically** if the support-group label is removed from the Team
+
+> **Note**: The ServiceAccount is created as part of the Team reconciliation cycle, which requires `spec.mappedIdPGroup` to be set and the Organization's SCIM integration to be configured and available. If these prerequisites are not met, the ServiceAccount will not be created even if the support-group label is present. See [Setting up Team members synchronization](../../../user-guides/organization/creation#setting-up-team-members-synchronization-with-greenhouse) for SCIM configuration details.
 
 > **Note**: The `greenhouse.sap/owned-by` label on the ServiceAccount is **immutable** once set - it cannot be changed or removed. This prevents cross-team privilege escalation.
 
