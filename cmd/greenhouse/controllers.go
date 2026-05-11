@@ -35,7 +35,7 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 
 	// Plugin controllers.
 	"plugin":       startPluginReconciler,
-	"pluginPreset": (&plugincontrollers.PluginPresetReconciler{}).SetupWithManager,
+	"pluginPreset": startPluginPresetReconciler,
 
 	"catalog":                 startCatalogReconciler,
 	"pluginDefinition":        startPluginDefinitionReconciler,
@@ -88,6 +88,14 @@ func startPluginReconciler(name string, mgr ctrl.Manager) error {
 		ExpressionEvaluationEnabled: featureFlags.IsExpressionEvaluationEnabled(),
 		IntegrationEnabled:          featureFlags.IsIntegrationEnabled(),
 		OCIMirroringEnabled:         featureFlags.IsOCIMirroringEnabled(),
+	}).SetupWithManager(name, mgr)
+}
+
+// Resolves feature flags for PluginPreset expression evaluation and integration.
+func startPluginPresetReconciler(name string, mgr ctrl.Manager) error {
+	return (&plugincontrollers.PluginPresetReconciler{
+		ExpressionEvaluationEnabled: featureFlags.IsExpressionEvaluationEnabled(),
+		IntegrationEnabled:          featureFlags.IsIntegrationEnabled(),
 	}).SetupWithManager(name, mgr)
 }
 

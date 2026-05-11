@@ -24,25 +24,34 @@ import (
 
 // resolvePluginOptionValuesForPreset resolves all expressions and references
 // in a PluginPreset's option values before writing to Plugin.
+// Respects feature flags: expressions are only evaluated when ExpressionEvaluationEnabled is true,
+// and references are only resolved when IntegrationEnabled is true.
 func (r *PluginPresetReconciler) resolvePluginOptionValuesForPreset(
 	ctx context.Context,
 	preset *greenhousev1alpha1.PluginPreset,
 	cluster *greenhousev1alpha1.Cluster,
 ) ([]greenhousev1alpha1.PluginOptionValue, error) {
 
-	// Phase 1: Resolve ALL expressions first
-	resolvedExpressions, err := r.resolveExpressionsForPreset(ctx, preset, cluster)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve expressions: %w", err)
+	optionValues := preset.Spec.Plugin.OptionValues
+
+	// Phase 1: Resolve expressions (only if feature flag is enabled)
+	if r.ExpressionEvaluationEnabled {
+		var err error
+		optionValues, err = r.resolveExpressionsForPreset(ctx, preset, cluster)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve expressions: %w", err)
+		}
 	}
 
-	// Phase 2: Resolve ALL references (expressions are now resolved)
-	finalValues, err := r.resolveReferencesForPreset(ctx, cluster, preset.Namespace, resolvedExpressions)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve references: %w", err)
+	// Phase 2: Resolve references (only if integration flag is enabled)
+	if r.IntegrationEnabled {
+		var err error
+		optionValues, err = r.resolveReferencesForPreset(ctx, cluster, preset.Namespace, optionValues)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve references: %w", err)
+		}
 	}
-
-	return finalValues, nil
+	return optionValues, nil
 }
 
 // resolveExpressionsForPreset evaluates all expression fields in PluginPreset option values
@@ -207,10 +216,19 @@ func (r *PluginPresetReconciler) resolvePluginPresetRefByName(
 		"name", ref.Name,
 		"expression", ref.Expression)
 
-	resolvedRefValues, err := r.resolveExpressionsForPreset(ctx, refPreset, cluster)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve expressions in referenced PluginPreset %s: %w", ref.Name, err)
+	// Resolve expressions in referenced PluginPreset (only if flag is enabled)
+	var resolvedRefValues []greenhousev1alpha1.PluginOptionValue
+
+	if r.ExpressionEvaluationEnabled {
+		var err error
+		resolvedRefValues, err = r.resolveExpressionsForPreset(ctx, refPreset, cluster)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve expressions in referenced PluginPreset %s: %w", ref.Name, err)
+		}
+	} else {
+		resolvedRefValues = refPreset.Spec.Plugin.OptionValues
 	}
+
 	celObject := buildCELObject(refPreset.Name, refPreset.Namespace, resolvedRefValues)
 	value, err := evaluateCELWithObject(ref.Expression, celObject)
 	if err != nil {
@@ -252,10 +270,18 @@ func (r *PluginPresetReconciler) resolvePluginPresetRefBySelector(
 	results := make([]any, 0, len(presetList.Items))
 	for i := range presetList.Items {
 		refPreset := &presetList.Items[i]
-		resolvedRefValues, err := r.resolveExpressionsForPreset(ctx, refPreset, cluster)
-		if err != nil {
-			return nil, fmt.Errorf("failed to resolve expressions in referenced PluginPreset %s: %w", refPreset.Name, err)
+
+		// Resolve expressions only if flag is enabled
+		var resolvedRefValues []greenhousev1alpha1.PluginOptionValue
+		if r.ExpressionEvaluationEnabled {
+			resolvedRefValues, err = r.resolveExpressionsForPreset(ctx, refPreset, cluster)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve expressions in referenced PluginPreset %s: %w", refPreset.Name, err)
+			}
+		} else {
+			resolvedRefValues = refPreset.Spec.Plugin.OptionValues
 		}
+
 		celObject := buildCELObject(refPreset.Name, refPreset.Namespace, resolvedRefValues)
 		value, err := evaluateCELWithObject(ref.Expression, celObject)
 		if err != nil {
