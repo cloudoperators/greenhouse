@@ -32,7 +32,7 @@ spec:
 
 `.spec.clusterName` is the name of the Cluster resource where the Helm chart associated with the PluginDefinition will be deployed.
 
-`.spec.pluginDefinitionRef` is the required and immutable reference to a PluginDefinition resource that defines the Helm chart and UI application associated with this Plugin.
+`.spec.pluginDefinitionRef` is the required reference to a PluginDefinition resource that defines the Helm chart and UI application associated with this Plugin.
 
 ```yaml
 spec:

@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -105,51 +104,6 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, pluginPres
 
 	if len(allErrs) > 0 {
 		return allWarns, apierrors.NewInvalid(pluginPreset.GroupVersionKind().GroupKind(), pluginPreset.Name, allErrs)
-	}
-
-	var pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec
-
-	// ensure (Cluster-)PluginDefinition exists and validate OptionValues defined by the Preset
-	switch pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind {
-	case greenhousev1alpha1.PluginDefinitionKind:
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{}
-		err := c.Get(ctx, types.NamespacedName{
-			Namespace: pluginPreset.GetNamespace(),
-			Name:      pluginPreset.Spec.Plugin.PluginDefinitionRef.Name,
-		}, pluginDefinition)
-		switch {
-		case apierrors.IsNotFound(err):
-			return allWarns, field.Invalid(pluginDefinitionRefNamePath, pluginPreset.Spec.Plugin.PluginDefinitionRef.Name,
-				fmt.Sprintf("PluginDefinition %s does not exist in namespace %s", pluginPreset.Spec.Plugin.PluginDefinitionRef.Name, pluginPreset.GetNamespace()))
-		case err != nil:
-			return allWarns, field.Invalid(pluginDefinitionRefNamePath, pluginPreset.Spec.Plugin.PluginDefinitionRef.Name,
-				fmt.Sprintf("PluginDefinition %s could not be retrieved from namespace %s: %s", pluginPreset.Spec.Plugin.PluginDefinitionRef.Name, pluginPreset.GetNamespace(), err.Error()))
-		default:
-			pluginDefinitionSpec = pluginDefinition.Spec
-		}
-	case greenhousev1alpha1.ClusterPluginDefinitionKind:
-		clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
-		err := c.Get(ctx, types.NamespacedName{
-			Namespace: "",
-			Name:      pluginPreset.Spec.Plugin.PluginDefinitionRef.Name,
-		}, clusterPluginDefinition)
-		switch {
-		case apierrors.IsNotFound(err):
-			return allWarns, field.Invalid(pluginDefinitionRefNamePath, pluginPreset.Spec.Plugin.PluginDefinitionRef.Name,
-				fmt.Sprintf("ClusterPluginDefinition %s does not exist", pluginPreset.Spec.Plugin.PluginDefinitionRef.Name))
-		case err != nil:
-			return allWarns, field.Invalid(pluginDefinitionRefNamePath, pluginPreset.Spec.Plugin.PluginDefinitionRef.Name,
-				fmt.Sprintf("ClusterPluginDefinition %s could not be retrieved: %s", pluginPreset.Spec.Plugin.PluginDefinitionRef.Name, err.Error()))
-		default:
-			pluginDefinitionSpec = clusterPluginDefinition.Spec
-		}
-	default:
-		return allWarns, field.Invalid(pluginDefinitionRefKindPath, pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind, "unsupported PluginDefinition kind")
-	}
-
-	// validate OptionValues defined by the Preset
-	if errList := validatePluginOptionValuesForPreset(pluginPreset, pluginPreset.Spec.Plugin.PluginDefinitionRef.Name, pluginDefinitionSpec); len(errList) > 0 {
-		return allWarns, apierrors.NewInvalid(pluginPreset.GroupVersionKind().GroupKind(), pluginPreset.Name, errList)
 	}
 
 	return allWarns, nil

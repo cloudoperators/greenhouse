@@ -850,6 +850,46 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, watchPluginDef)
 	})
+
+	It("should reflect a non-existing PluginDefinition in the PluginPreset status", func() {
+		const nonExistingDefinitionName = "non-existing-plugindefinition"
+
+		By("creating a PluginPreset referencing a non-existing ClusterPluginDefinition")
+		pluginPreset := test.NewPluginPreset(pluginPresetName+"-missing-def", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{"cluster": clusterA},
+			}),
+		)
+		pluginPreset.Spec.Plugin.PluginDefinitionRef = greenhousev1alpha1.PluginDefinitionReference{
+			Name: nonExistingDefinitionName,
+			Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+		}
+		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).To(Succeed(), "failed to create PluginPreset")
+
+		By("ensuring PluginFailedCondition is set due to missing PluginDefinition")
+		Eventually(func(g Gomega) {
+			presetKey := types.NamespacedName{Name: pluginPresetName + "-missing-def", Namespace: test.TestNamespace}
+			g.Expect(test.K8sClient.Get(test.Ctx, presetKey, pluginPreset)).To(Succeed())
+			pluginFailedCondition := pluginPreset.Status.GetConditionByType(greenhousev1alpha1.PluginFailedCondition)
+			g.Expect(pluginFailedCondition).ToNot(BeNil(), "PluginFailedCondition should be set")
+			g.Expect(pluginFailedCondition.Status).To(Equal(metav1.ConditionTrue), "PluginFailedCondition should be true")
+			g.Expect(pluginFailedCondition.Message).To(ContainSubstring(nonExistingDefinitionName),
+				"PluginFailedCondition message should reference the non-existing PluginDefinition")
+		}).Should(Succeed(), "PluginPreset should reflect the missing PluginDefinition in its status")
+
+		By("ensuring ReadyCondition is False")
+		Eventually(func(g Gomega) {
+			presetKey := types.NamespacedName{Name: pluginPresetName + "-missing-def", Namespace: test.TestNamespace}
+			g.Expect(test.K8sClient.Get(test.Ctx, presetKey, pluginPreset)).To(Succeed())
+			readyCondition := pluginPreset.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
+			g.Expect(readyCondition).ToNot(BeNil(), "ReadyCondition should be set")
+			g.Expect(readyCondition.IsFalse()).To(BeTrue(), "ReadyCondition should be false")
+		}).Should(Succeed())
+
+		By("removing plugin preset")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
+	})
 })
 
 var _ = Describe("overridesPluginOptionValues", Ordered, func() {
