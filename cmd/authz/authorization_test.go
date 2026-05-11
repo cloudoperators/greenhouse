@@ -75,6 +75,27 @@ var _ = Describe("handleAuthorize", func() {
 			}
 			resp := postReview(h, review)
 			Expect(resp.Status.Allowed).To(BeFalse(), "requests without resource attributes should be denied")
+			Expect(resp.Status.Reason).To(ContainSubstring("missing resource attributes"), "denial reason should mention missing attributes")
+		})
+
+		It("should deny collection operations with empty resource name", func() {
+			h := makeHandler(nil)
+			review := authv1.SubjectAccessReview{
+				Spec: authv1.SubjectAccessReviewSpec{
+					User:   "demo-user",
+					Groups: []string{"support-group:demo"},
+					ResourceAttributes: &authv1.ResourceAttributes{
+						Namespace: "my-org",
+						Verb:      "list",
+						Group:     greenhousev1alpha1.GroupVersion.Group,
+						Version:   greenhousev1alpha1.GroupVersion.Version,
+						Resource:  "plugins",
+						// Name intentionally empty (collection operation)
+					},
+				},
+			}
+			resp := postReview(h, review)
+			Expect(resp.Status.Allowed).To(BeFalse(), "collection operations with empty resource name should be denied")
 			Expect(resp.Status.Reason).To(ContainSubstring("cannot authorize collection operations"), "denial reason should mention collection operations")
 		})
 	})

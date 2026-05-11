@@ -42,7 +42,12 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, ma
 	}
 
 	attrs := review.Spec.ResourceAttributes
-	if attrs == nil || attrs.Name == "" {
+	if attrs == nil {
+		recordDenied("", "", reasonMissingAttributes, nil)
+		respond(w, review, false, "authorization webhook cannot authorize requests with missing resource attributes")
+		return
+	}
+	if attrs.Name == "" {
 		recordDenied("", "", reasonMissingAttributes, nil)
 		respond(w, review, false, "authorization webhook cannot authorize collection operations (e.g. list) - grant access via RBAC instead")
 		return
