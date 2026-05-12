@@ -99,4 +99,8 @@ var _ = Describe("PluginPreset E2E", Ordered, func() {
 	It("should resolve cross-PluginPreset references using label selector", func() {
 		scenarios.PluginPresetSelectorReference(ctx, adminClient, remoteClient, env, remoteClusterName, team.Name)
 	})
+
+	It("should support both legacy and new expression syntax styles", func() {
+		scenarios.PluginPresetExpressionSyntaxStyles(ctx, adminClient, remoteClient, env, remoteClusterName, team.Name)
+	})
 })

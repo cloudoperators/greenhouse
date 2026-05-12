@@ -414,9 +414,10 @@ func appendToResults(results []any, value any) []any {
 }
 
 // evaluateCELWithObject evaluates a CEL expression against an object map.
-// Supports two syntax styles:
-//   - ${...} syntax:  ${spec.optionValues.filter(v, v.name == "foo")[0].value}
-//   - Plain syntax:   spec.optionValues.filter(v, v.name == "foo")[0].value
+// Supports multiple syntax styles for backward compatibility:
+//   - object.spec.optionValues.filter(v, v.name == "foo")[0].value  (existing Plugin controller style)
+//   - spec.optionValues.filter(v, v.name == "foo")[0].value         (new simplified style)
+//   - ${spec.optionValues.filter(v, v.name == "foo")[0].value}      (new with wrapper)
 func evaluateCELWithObject(expression string, object map[string]any) (any, error) {
 	// Strip ${...} wrapper if present
 	expr := strings.TrimSpace(expression)
@@ -425,6 +426,7 @@ func evaluateCELWithObject(expression string, object map[string]any) (any, error
 	}
 
 	env, err := celgo.NewEnv(
+		celgo.Variable("object", celgo.DynType),
 		celgo.Variable("spec", celgo.DynType),
 		celgo.Variable("metadata", celgo.DynType),
 	)
@@ -442,8 +444,9 @@ func evaluateCELWithObject(expression string, object map[string]any) (any, error
 		return nil, fmt.Errorf("failed to create CEL program: %w", err)
 	}
 
-	// Pass spec and metadata directly as top-level variables
+	// Pass all variables: object (full), spec, and metadata
 	out, _, err := prg.Eval(map[string]any{
+		"object":   object,
 		"spec":     object["spec"],
 		"metadata": object["metadata"],
 	})
