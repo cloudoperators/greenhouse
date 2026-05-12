@@ -44,7 +44,7 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, ma
 	attrs := review.Spec.ResourceAttributes
 	if attrs == nil || attrs.Name == "" {
 		recordDenied("", "", reasonMissingAttributes, nil)
-		respond(w, review, false, "missing resource attributes or resource name")
+		respond(w, review, false, "missing resource name in request")
 		return
 	}
 

@@ -75,7 +75,7 @@ var _ = Describe("handleAuthorize", func() {
 			}
 			resp := postReview(h, review)
 			Expect(resp.Status.Allowed).To(BeFalse(), "requests without resource attributes should be denied")
-			Expect(resp.Status.Reason).To(ContainSubstring("missing resource attributes or resource name"), "denial reason should mention missing attributes")
+			Expect(resp.Status.Reason).To(ContainSubstring("missing resource name in request"), "denial reason should mention missing attributes")
 		})
 	})
 
