@@ -88,7 +88,7 @@ Users are expected to belong to only one Support Group, as described in the [Tea
 
 ### ServiceAccount Requests (Team Automation)
 
-ServiceAccounts enable Teams to set up automation that has the same elevated permissions on their owned resources as human team members. This is useful for CI/CD pipelines, custom controllers, or scheduled jobs that need to deploy or manage resources on behalf of a Team.
+ServiceAccounts enable Teams to set up automation that has the same elevated permissions on their owned resources as human team members.
 
 For ServiceAccounts, the webhook:
 
@@ -96,119 +96,22 @@ For ServiceAccounts, the webhook:
 2. Fetches the ServiceAccount from the cluster
 3. Extracts the team name from the `greenhouse.sap/owned-by` label on the ServiceAccount
 
-The ServiceAccount is then authorized as if it were a member of the owning Team, allowing it to manage resources with the same `owned-by` label.
-
-## Configuring Resource Ownership
-
-To enable authorization via the webhook, you must properly configure ownership on your resources. This section explains how to set up the required labels.
-
-### Step 1: Label Your Resources
-
-Add the `greenhouse.sap/owned-by` label to your Greenhouse resources, setting the value to your Team name:
-
-```yaml
-apiVersion: greenhouse.sap/v1alpha1
-kind: Plugin
-metadata:
-  name: my-plugin
-  namespace: my-organization
-  labels:
-    greenhouse.sap/owned-by: my-team  # Your team name
-spec:
-  # ...
-```
-
-Any namespaced resource in the `greenhouse.sap` API group that carries the `greenhouse.sap/owned-by` label can be authorized by the webhook. Common examples include:
-- **Plugins** - Application deployments
-- **PluginPresets** - Plugin templates
-- **Clusters** - Onboarded Kubernetes clusters
-- **TeamRoleBindings** - RBAC bindings
-
-### Step 2: Configure Your Team as a Support Group
-
-The Team referenced in the `owned-by` label must be marked as a support-group:
-
-```yaml
-apiVersion: greenhouse.sap/v1alpha1
-kind: Team
-metadata:
-  name: my-team
-  namespace: my-organization
-  labels:
-    greenhouse.sap/support-group: "true"  # Required for authorization
-spec:
-  description: "My operations team"
-  mappedIdPGroup: "my-team-idp-group"
-```
-
-> **Note**: Only Teams with `greenhouse.sap/support-group: "true"` are recognized by the authorization webhook. See [Support Groups](../../core-concepts/teams#support-groups) for more information.
-
-### Step 3: Configure Your IdP Group Claims
-
-Ensure your identity provider (IdP) includes group claims with the `support-group:` prefix in user tokens:
-
-```
-support-group:my-team
-```
-
-This maps your IdP group to the Team name used in the `owned-by` label.
-
-### Step 4 (Optional): Use Your Team's ServiceAccount for Automation
-
-When a Team is marked as a support-group, Greenhouse automatically creates a ServiceAccount named `<team-name>-sa` with the `greenhouse.sap/owned-by` label pre-configured. This ServiceAccount can be used for CI/CD pipelines or other automation that needs to manage resources on behalf of the Team.
-
-The ServiceAccount is managed by the Team controller:
-- **Created automatically** when a Team gets the `greenhouse.sap/support-group: "true"` label
-- **Named** `<team-name>-sa` (e.g., for team `my-team`, the SA is `my-team-sa`)
-- **Deleted automatically** if the support-group label is removed from the Team
-
-> **Note**: The ServiceAccount is created as part of the Team reconciliation cycle, which requires `spec.mappedIdPGroup` to be set and the Organization's SCIM integration to be configured and available. If these prerequisites are not met, the ServiceAccount will not be created even if the support-group label is present. See [Setting up Team members synchronization](../../../user-guides/organization/creation#setting-up-team-members-synchronization-with-greenhouse) for SCIM configuration details.
-
-> **Note**: The `greenhouse.sap/owned-by` label on the ServiceAccount is **immutable** once set - it cannot be changed or removed. This prevents cross-team privilege escalation.
+The ServiceAccount is then authorized as if it were a member of the owning Team.
 
 ## Troubleshooting
 
-### "user has no support-group claims and is not an authorized ServiceAccount"
-
-**Cause**: The user doesn't have any group memberships prefixed with `support-group:`.
-
-**Solution**: Ensure the user's IdP token includes group claims in the format `support-group:{team-name}` matching a valid Team in Greenhouse.
-
-### "resource has no owned-by label"
-
-**Cause**: The target resource doesn't have the `greenhouse.sap/owned-by` label.
-
-**Solution**: Add the label to the resource:
-```bash
-kubectl label plugin my-plugin greenhouse.sap/owned-by=my-team -n my-organization
-```
-
-### "team \<name\> is not a support-group"
-
-**Cause**: The Team referenced in the `owned-by` label exists but isn't marked as a support-group.
-
-**Solution**: Add the support-group label to the Team:
-```bash
-kubectl label team my-team greenhouse.sap/support-group=true -n my-organization
-```
-
-### "support-group does not match resource owner"
-
-**Cause**: The user's support-group claims don't match the `greenhouse.sap/owned-by` label on the resource.
-
-**Solution**: Verify that the user belongs to the correct support-group, or that the resource's `owned-by` label is set to the correct team name.
-
-### "ServiceAccount \<name\> not found"
-
-**Cause**: The ServiceAccount used for automation doesn't exist. Greenhouse automatically creates a ServiceAccount named `<team-name>-sa` for each support-group Team.
-
-**Solution**: Verify that your Team has the `greenhouse.sap/support-group: "true"` label set. The Team controller will automatically create the ServiceAccount. Check that the SA exists:
-```bash
-kubectl get serviceaccount my-team-sa -n my-organization
-```
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `user has no support-group claims and is not an authorized ServiceAccount` | User's IdP token has no `support-group:` prefixed groups | Ensure the IdP token includes claims in the format `support-group:{team-name}` |
+| `resource has no owned-by label` | Target resource is missing `greenhouse.sap/owned-by` | `kubectl label <resource> <name> greenhouse.sap/owned-by=<team> -n <org>` |
+| `team <name> is not a support-group` | Team exists but lacks `greenhouse.sap/support-group: "true"` | `kubectl label team <name> greenhouse.sap/support-group=true -n <org>` |
+| `support-group does not match resource owner` | User's support-group doesn't match the resource's `owned-by` label | Verify the user's group membership and the resource label are consistent |
+| `ServiceAccount <name> not found` | SA for team automation doesn't exist yet | Verify the Team has `greenhouse.sap/support-group: "true"` set; the controller creates the SA automatically |
 
 ## Related Documentation
 
 - [Ownership](./../ownership) - Understanding resource ownership in Greenhouse
 - [Teams](../../core-concepts/teams) - Team management and support-groups
+- [Managing team-owned resources](../../../user-guides/team/create#managing-resources-as-a-team) - How to label resources and use the team ServiceAccount
+- [Installing the Authorization Webhook](../../install#installing-the-authorization-webhook) - Deploying the webhook server
 - [Processes](./../processes) - Operational processes enabled by ownership
