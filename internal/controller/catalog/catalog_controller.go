@@ -256,7 +256,7 @@ func (r *CatalogReconciler) EnsureCreated(ctx context.Context, obj lifecycle.Run
 		}
 
 		if err = sourcer.reconcileGitRepository(ctx); err != nil {
-			r.Log.Error(err, "failed to reconcile git repository for catalog source", "namespace", catalog.Namespace, "name", sourcer.getGitRepoName())
+			r.Log.Error(err, "failed to reconcile git repository for catalog source", "catalog", catalog.Name, "namespace", catalog.Namespace, "name", sourcer.getGitRepoName())
 			sourcer.setInventory(sourcev1.GitRepositoryKind, sourcer.getGitRepoName(), err.Error(), metav1.ConditionFalse)
 			allErrors = append(allErrors, catalogError{InventoryType: sourcev1.GitRepositoryKind, Name: sourcer.getGitRepoName(), Error: err})
 			continue
@@ -264,20 +264,20 @@ func (r *CatalogReconciler) EnsureCreated(ctx context.Context, obj lifecycle.Run
 
 		var externalArtifact *sourcev1.ExternalArtifact
 		if externalArtifact, err = sourcer.reconcileArtifactGeneration(ctx); err != nil {
-			r.Log.Error(err, "failed to reconcile artifact generation for catalog source", "namespace", catalog.Namespace, "name", sourcer.getArtifactName())
+			r.Log.Error(err, "failed to reconcile artifact generation for catalog source", "catalog", catalog.Name, "namespace", catalog.Namespace, "name", sourcer.getArtifactName())
 			allErrors = append(allErrors, catalogError{InventoryType: sourcev2.ArtifactGeneratorKind, Name: sourcer.getGeneratorName(), Error: err})
 			continue
 		}
 
 		ready, msg := sourcer.objectReadiness(ctx, externalArtifact)
 		if ready != metav1.ConditionTrue {
-			r.Log.Info("external artifact not ready yet, retry in next reconciliation loop", "namespace", catalog.Namespace, "name", sourcer.getArtifactName())
+			r.Log.Info("external artifact not ready yet, retry in next reconciliation loop", "catalog", catalog.Name, "namespace", catalog.Namespace, "name", sourcer.getArtifactName())
 			allErrors = append(allErrors, catalogError{InventoryType: sourcev1.ExternalArtifactKind, Name: sourcer.getArtifactName(), Error: errors.New(msg)})
 			continue
 		}
 
 		if err = sourcer.reconcileKustomization(ctx, externalArtifact); err != nil {
-			r.Log.Error(err, "failed to reconcile kustomization for catalog source", "namespace", catalog.Namespace, "name", sourcer.getKustomizationName())
+			r.Log.Error(err, "failed to reconcile kustomization for catalog source", "catalog", catalog.Name, "namespace", catalog.Namespace, "name", sourcer.getKustomizationName())
 			allErrors = append(allErrors, catalogError{InventoryType: kustomizev1.KustomizationKind, Name: sourcer.getKustomizationName(), Error: err})
 			continue
 		}
