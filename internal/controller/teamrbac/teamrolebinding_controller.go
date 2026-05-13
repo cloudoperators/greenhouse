@@ -85,9 +85,9 @@ func (r *TeamRoleBindingReconciler) SetupWithManager(name string, mgr ctrl.Manag
 			handler.EnqueueRequestsFromMapFunc(r.enqueueTeamRoleBindingsFor)).
 		Watches(&greenhousev1alpha1.Team{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueTeamRoleBindingsFor)).
-		// Reconcile TeamRoleBindings for all Cluster label changes in the same namespace
+		// Reconcile TeamRoleBindings for all Cluster label changes or Ready status transitions in the same namespace
 		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllTeamRoleBindingsInNamespace),
-			builder.WithPredicates(predicate.LabelChangedPredicate{})).
+			builder.WithPredicates(predicate.Or(predicate.LabelChangedPredicate{}, clientutil.PredicateClusterReadyStatusChange()))).
 		Complete(r)
 }
 
