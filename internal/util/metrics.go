@@ -38,7 +38,7 @@ var (
 		prometheus.CounterOpts{
 			Name: "greenhouse_plugin_reconcile_total",
 		},
-		[]string{"pluginDefinition", "clusterName", "plugin", "namespace", "result", "reason", "owned_by"})
+		[]string{"pluginDefinition", "clusterName", "plugin", "organization", "result", "reason", "owned_by"})
 	OwnedByLabelMissingGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "greenhouse_owned_by_label_missing",
@@ -58,7 +58,7 @@ func UpdatePluginReconcileTotalMetric(plugin *greenhousev1alpha1.Plugin, result 
 		"pluginDefinition": plugin.Spec.PluginDefinitionRef.Name,
 		"clusterName":      plugin.Spec.ClusterName,
 		"plugin":           plugin.Name,
-		"namespace":        plugin.Namespace,
+		"organization":     plugin.Namespace,
 		"result":           string(result),
 		"reason":           string(reason),
 		"owned_by":         plugin.Labels[greenhouseapis.LabelKeyOwnedBy],
