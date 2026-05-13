@@ -1,0 +1,14 @@
+groups:
+- name: greenhouse-catalog.rules
+  rules:
+  - alert: GreenhouseCatalogNotReady
+    expr: max by (catalog, organization, owned_by, reason) (last_over_time(greenhouse_catalog_ready[15m])) == 0
+    for: 15m
+    labels:
+      severity: warning
+      service: '{{ $labels.catalog }}'
+      organization: '{{ $labels.organization }}'
+      support_group: '{{ $labels.owned_by }}'
+    annotations:
+      summary: "Catalog not ready for over 15 minutes"
+      description: "The catalog {{ $labels.catalog }} in organization {{ $labels.organization }} has not been ready for more than 15 minutes. Reason: {{ $labels.reason }}."
