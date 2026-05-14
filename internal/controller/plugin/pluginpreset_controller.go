@@ -238,7 +238,11 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 
 			releaseName := getReleaseName(plugin, preset)
 
-			resolvedValues, err := r.resolvePluginOptionValuesForPreset(ctx, preset, &cluster)
+			// Apply overrides first (merge into preset option values)
+			presetWithOverrides := applyOverridesToPreset(preset, cluster.GetName())
+
+			// Resolve expressions and refs
+			resolvedValues, err := r.resolvePluginOptionValuesForPreset(ctx, presetWithOverrides, &cluster)
 			if err != nil {
 				return fmt.Errorf("failed to resolve option values for plugin %s: %w", plugin.Name, err)
 			}
@@ -252,8 +256,6 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 			plugin.Spec.WaitFor = preset.Spec.WaitFor
 			// transport plugin preset labels to plugin
 			plugin = (lifecycle.NewPropagator(preset, plugin).Apply()).(*greenhousev1alpha1.Plugin)
-			// overrides options based on preset definition
-			overridesPluginOptionValues(plugin, preset)
 			return nil
 		})
 		if err != nil {
@@ -337,6 +339,35 @@ func (r *PluginPresetReconciler) reconcilePluginStatuses(
 	}
 
 	return nil
+}
+
+// applyOverridesToPreset returns a copy of the preset with cluster-specific overrides
+// merged into the plugin option values. This ensures overrides are resolved together
+// with the original option values.
+func applyOverridesToPreset(preset *greenhousev1alpha1.PluginPreset, clusterName string) *greenhousev1alpha1.PluginPreset {
+	presetCopy := preset.DeepCopy()
+
+	index := slices.IndexFunc(presetCopy.Spec.ClusterOptionOverrides, func(override greenhousev1alpha1.ClusterOptionOverride) bool {
+		return override.ClusterName == clusterName
+	})
+
+	if index == -1 {
+		return presetCopy
+	}
+
+	for _, overrideValue := range presetCopy.Spec.ClusterOptionOverrides[index].Overrides {
+		valueIndex := slices.IndexFunc(presetCopy.Spec.Plugin.OptionValues, func(value greenhousev1alpha1.PluginOptionValue) bool {
+			return value.Name == overrideValue.Name
+		})
+
+		if valueIndex == -1 {
+			presetCopy.Spec.Plugin.OptionValues = append(presetCopy.Spec.Plugin.OptionValues, overrideValue)
+		} else {
+			presetCopy.Spec.Plugin.OptionValues[valueIndex] = overrideValue
+		}
+	}
+
+	return presetCopy
 }
 
 func isPluginManagedByPreset(plugin *greenhousev1alpha1.Plugin, presetName string) bool {
