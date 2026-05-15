@@ -64,7 +64,7 @@ var _ = Describe("handleAuthorize", func() {
 	})
 
 	Context("request validation", func() {
-		It("should deny requests with missing resource attributes", func() {
+		It("should deny requests with missing resource attributes or resource name", func() {
 			h := makeHandler(nil)
 			review := authv1.SubjectAccessReview{
 				Spec: authv1.SubjectAccessReviewSpec{
@@ -75,7 +75,7 @@ var _ = Describe("handleAuthorize", func() {
 			}
 			resp := postReview(h, review)
 			Expect(resp.Status.Allowed).To(BeFalse(), "requests without resource attributes should be denied")
-			Expect(resp.Status.Reason).To(ContainSubstring("missing resource attributes"), "denial reason should mention missing attributes")
+			Expect(resp.Status.Reason).To(ContainSubstring("missing resource name in request"), "denial reason should mention missing attributes")
 		})
 	})
 
