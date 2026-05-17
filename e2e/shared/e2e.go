@@ -56,6 +56,9 @@ const (
 
 	// Define retry timeout for when backoff should stop
 	maxRetries = 10
+
+	// OCIReplicationTimeout allows for registry mirror pull-through from ghcr.io which can take 60-90s on first access.
+	OCIReplicationTimeout = 5 * time.Minute
 )
 
 const (

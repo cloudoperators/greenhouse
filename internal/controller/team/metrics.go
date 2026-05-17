@@ -16,7 +16,7 @@ var (
 			Name: "greenhouse_team_members_count",
 			Help: "Members count in team",
 		},
-		[]string{"namespace", "team"},
+		[]string{"organization", "team"},
 	)
 )
 
@@ -26,7 +26,14 @@ func init() {
 
 func UpdateTeamMembersCountMetric(team *greenhousev1alpha1.Team, membersCount int) {
 	membersCountMetric.With(prometheus.Labels{
-		"namespace": team.Namespace,
-		"team":      team.Name,
+		"organization": team.Namespace,
+		"team":         team.Name,
 	}).Set(float64(membersCount))
+}
+
+func DeleteTeamMembersCountMetric(team *greenhousev1alpha1.Team) {
+	membersCountMetric.Delete(prometheus.Labels{
+		"organization": team.Namespace,
+		"team":         team.Name,
+	})
 }

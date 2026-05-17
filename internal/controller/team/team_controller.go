@@ -103,7 +103,9 @@ func (r *TeamController) setConditions() lifecycle.Conditioner {
 	}
 }
 
-func (r *TeamController) EnsureDeleted(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+func (r *TeamController) EnsureDeleted(_ context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	team := obj.(*greenhousev1alpha1.Team)
+	DeleteTeamMembersCountMetric(team)
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 

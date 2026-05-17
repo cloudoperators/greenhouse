@@ -14,7 +14,7 @@ The _PluginPreset_ resource is used to create and deploy Plugins with a the iden
 
 As a result, whenever a cluster, that matches the _ClusterSelector_ is onboarded or offboarded, the Controller for the PluginPresets will take care of the Plugin Lifecycle. This means creating or deleting the Plugin for the respective cluster.
 
-The same validation applies to the _PluginPreset_ as to the _Plugin_. This includes immutable _PluginDefinition_ and _ReleaseNamespace_ fields, as well as the validation of the _OptionValues_ against the _PluginDefinition_.
+The same validation applies to the _PluginPreset_ as to the _Plugin_ for immutable fields (e.g. _ReleaseNamespace_). A _PluginPreset_ can be created even if the referenced _(Cluster-)PluginDefinition_ does not yet exist - the PluginPreset will be admitted and the controller will reflect the missing definition via a `PluginFailed` condition with reason `PluginDefinitionNotFound`. Once the PluginDefinition is created, the controller will automatically reconcile and create the managed Plugins.
 
 In case the _PluginPreset_ is updated all of the Plugin instances that are managed by the _PluginPreset_ will be updated as well. Each Plugin instance that is created from a _PluginPreset_ has a label `greenhouse.sap/pluginpreset: <PluginPreset name>`. Also the name of the _Plugin_ follows the scheme `<PluginPreset name>-<cluster name>`.
 

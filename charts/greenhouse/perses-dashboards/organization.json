@@ -93,10 +93,6 @@
                 },
                 {
                   "hide": true,
-                  "name": "namespace"
-                },
-                {
-                  "hide": true,
                   "name": "owned_by"
                 },
                 {
@@ -130,7 +126,7 @@
                 "plugin": {
                   "kind": "PrometheusTimeSeriesQuery",
                   "spec": {
-                    "query": "greenhouse_team_rbac_ready{cluster=~\"$cluster\", team=~\"$team\", namespace=~\"$organization\"}",
+                    "query": "greenhouse_team_rbac_ready{cluster=~\"$cluster\", team=~\"$team\", organization=~\"$organization\"}",
                     "seriesNameFormat": "{{organization}} | {{team}} | {{ team_role_binding }}"
                   }
                 }
@@ -199,7 +195,7 @@
         "spec": {
           "display": {
             "name": "Change in Number of Team Members by Organization/Team",
-            "description": "GreenhouseTeamMembershipCountDrop: The number of members for team {{ $labels.teams }} in organization {{ $labels.namespace }} has dropped by more than 5 in the last 5 minutes."
+            "description": "GreenhouseTeamMembershipCountDrop: The number of members for team {{ $labels.team }} in organization {{ $labels.organization }} has dropped by more than 5 in the last 5 minutes."
           },
           "plugin": {
             "kind": "TimeSeriesChart",
@@ -216,7 +212,7 @@
                 "plugin": {
                   "kind": "PrometheusTimeSeriesQuery",
                   "spec": {
-                    "query": "greenhouse_team_members_count{cluster=~\"$cluster\", team=~\"$team\", namespace=~\"$organization\"}",
+                    "query": "greenhouse_team_members_count{cluster=~\"$cluster\", team=~\"$team\", organization=~\"$organization\"}",
                     "seriesNameFormat": "{{team}}"
                   }
                 }

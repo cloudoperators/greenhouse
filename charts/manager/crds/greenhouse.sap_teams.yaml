@@ -24,12 +24,15 @@ spec:
     - jsonPath: .spec.mappedIdPGroup
       name: IDP Group
       type: string
-    - jsonPath: .metadata.creationTimestamp
-      name: Age
-      type: date
     - jsonPath: .status.statusConditions.conditions[?(@.type == "SCIMAccessReady")].status
       name: SCIM Ready
       type: string
+    - jsonPath: .status.statusConditions.conditions[?(@.type == "Ready")].status
+      name: Ready
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
     name: v1alpha1
     schema:
       openAPIV3Schema:

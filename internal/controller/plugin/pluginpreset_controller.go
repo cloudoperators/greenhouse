@@ -249,6 +249,15 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 			return nil
 		})
 		if err != nil {
+			if isPluginDefinitionNotFoundError(err) {
+				preset.SetCondition(greenhousemetav1alpha1.TrueCondition(
+					greenhousev1alpha1.PluginFailedCondition,
+					greenhousev1alpha1.PluginDefinitionNotFound,
+					"PluginDefinition referenced by this PluginPreset does not exist: "+preset.Spec.Plugin.PluginDefinitionRef.Name,
+				))
+				preset.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.PluginSkippedCondition, "", ""))
+				return nil
+			}
 			errorMessage := err.Error()
 			var e *apierrors.StatusError
 			if errors.As(err, &e) && e.ErrStatus.Details != nil && len(e.ErrStatus.Details.Causes) > 0 {
@@ -377,7 +386,11 @@ func (r *PluginPresetReconciler) computeReadyCondition(
 
 	if conditions.GetConditionByType(greenhousev1alpha1.PluginFailedCondition).IsTrue() {
 		readyCondition.Status = metav1.ConditionFalse
-		readyCondition.Message = "Plugin reconciliation failed"
+		if failedCond := conditions.GetConditionByType(greenhousev1alpha1.PluginFailedCondition); failedCond.Reason == greenhousev1alpha1.PluginDefinitionNotFound {
+			readyCondition.Message = failedCond.Message
+		} else {
+			readyCondition.Message = "Plugin reconciliation failed"
+		}
 		return readyCondition
 	}
 
@@ -488,4 +501,12 @@ func getReleaseName(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha
 	default:
 		return preset.Spec.Plugin.ReleaseName
 	}
+}
+
+// isPluginDefinitionNotFoundError returns true if the error indicates that a Plugin could not be created/updated because the referenced PluginDefinition does not exist.
+func isPluginDefinitionNotFoundError(err error) bool {
+	if apierrors.IsNotFound(err) && strings.Contains(err.Error(), "spec.PluginDefinitionRef.name") {
+		return true
+	}
+	return false
 }

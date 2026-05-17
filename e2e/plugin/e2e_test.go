@@ -56,6 +56,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the admin client")
 	remoteClient, err = clientutil.NewK8sClientFromRestClientGetter(env.RemoteRestClientGetter)
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the remote client")
+	env = env.WithOrganization(ctx, adminClient, "./testdata/greenhouse_organization.yaml")
 	env = env.WithOrganization(ctx, adminClient, "./testdata/organization.yaml")
 	team = test.NewTeam(ctx, "test-plugin-e2e-team", env.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 	err = adminClient.Create(ctx, team)
@@ -126,5 +127,25 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 	It("should resolve option values from plugin reference by label selector", func() {
 		By("executing the plugin integration scenario with plugin reference by label selector")
 		scenarios.PluginIntegrationBySelector(ctx, adminClient, remoteClient, env, remoteIntegrationCluster)
+	})
+
+	Context("OCI image replication", Ordered, func() {
+		BeforeAll(func() {
+			By("configuring mirror registry for OCI image replication tests")
+			shared.SetupOCIMirroringForOrg(ctx, adminClient, env.TestNamespace)
+		})
+
+		AfterAll(func() {
+			By("removing mirror registry configuration")
+			shared.TeardownOCIMirroringForOrg(ctx, adminClient, env.TestNamespace)
+		})
+
+		It("should replicate container images to registry mirror before HelmRelease", func() {
+			scenarios.PluginImageReplication(ctx, adminClient, remoteClient, env, remoteClusterName)
+		})
+
+		It("should block HelmRelease creation when image replication fails", func() {
+			scenarios.PluginImageReplicationFailure(ctx, adminClient, env, remoteClusterName)
+		})
 	})
 })

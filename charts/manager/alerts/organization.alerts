@@ -2,7 +2,7 @@ groups:
 - name: organization.alerts
   rules:
   - alert: GreenhouseOrganizationNotReady
-    expr: sum by (organization) (greenhouse_organization_ready) == 0
+    expr: max by (organization) (last_over_time(greenhouse_organization_ready[15m])) == 0
     for: 15m
     labels:
         severity: warning
@@ -14,7 +14,7 @@ groups:
         summary: "Greenhouse Organization is not ready"
         description: "The Greenhouse Organization {{ $labels.organization }} has not been ready for more than 15 minutes."
   - alert: GreenhouseSCIMAccessNotReady
-    expr: sum by (organization) (greenhouse_scim_access_ready) == 0
+    expr: max by (organization) (last_over_time(greenhouse_scim_access_ready[15m])) == 0
     for: 15m
     labels:
         severity: warning

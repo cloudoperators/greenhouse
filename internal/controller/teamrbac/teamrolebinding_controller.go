@@ -108,7 +108,7 @@ func (r *TeamRoleBindingReconciler) setConditions() lifecycle.Conditioner {
 		ownerLabelCondition := util.ComputeOwnerLabelCondition(ctx, r.Client, trb)
 		util.UpdateOwnedByLabelMissingMetric(trb, ownerLabelCondition.IsFalse())
 		trb.Status.SetConditions(readyCondition, ownerLabelCondition)
-		UpdateTeamrbacMetrics(trb)
+		UpdateTeamRBACMetrics(trb)
 	}
 }
 
@@ -145,6 +145,8 @@ func (r *TeamRoleBindingReconciler) EnsureCreated(ctx context.Context, resource 
 	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
+
+	UpdateTeamRBACClustersMetric(trb, len(clusters.Items))
 
 	// exit early if the cluster list is empty
 	if len(clusters.Items) == 0 {
@@ -216,6 +218,7 @@ func (r *TeamRoleBindingReconciler) EnsureDeleted(ctx context.Context, resource 
 	// all clusters have been processed, finalizer can be removed
 	if len(trb.Status.PropagationStatus) == 0 {
 		r.recorder.Eventf(trb, nil, corev1.EventTypeNormal, greenhousemetav1alpha1.SuccessfulDeletedEvent, "deleting TeamRoleBinding", "Deleted TeamRoleBinding %s from all clusters", trb.GetName())
+		DeleteTeamRBACMetrics(trb)
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 	return ctrl.Result{}, lifecycle.Pending, nil

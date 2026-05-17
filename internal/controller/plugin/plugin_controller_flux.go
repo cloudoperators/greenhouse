@@ -153,6 +153,11 @@ func (r *PluginReconciler) ensureHelmRelease(
 		return fmt.Errorf("failed to generate HelmRelease values for Plugin %s: %w", plugin.Name, err)
 	}
 
+	postRenderer, err := r.createRegistryMirrorPostRenderer(ctx, plugin, pluginDefinitionSpec, optionValues)
+	if err != nil {
+		return err
+	}
+
 	result, err := controllerutil.CreateOrPatch(ctx, r.Client, release, func() error {
 		builder := flux.NewHelmReleaseSpecBuilder().
 			WithHelmChartRef(&helmv2.CrossNamespaceSourceReference{
@@ -191,10 +196,6 @@ func (r *PluginReconciler) ensureHelmRelease(
 			WithStorageNamespace(plugin.Spec.ReleaseNamespace).
 			WithTargetNamespace(plugin.Spec.ReleaseNamespace)
 
-		postRenderer, err := r.createRegistryMirrorPostRenderer(ctx, plugin, pluginDefinitionSpec, optionValues)
-		if err != nil {
-			return err
-		}
 		if postRenderer != nil {
 			builder = builder.WithPostRenderers([]helmv2.PostRenderer{*postRenderer})
 		}

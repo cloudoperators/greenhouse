@@ -276,7 +276,7 @@ type PluginDefinitionStatus struct {
 //+kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.spec.version`
 //+kubebuilder:printcolumn:name="Catalog",type=string,JSONPath=`.metadata.labels.greenhouse\.sap/catalog`
 //+kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`
-// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+//+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // PluginDefinition is the Schema for the PluginDefinitions API
 type PluginDefinition struct {

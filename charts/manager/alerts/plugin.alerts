@@ -2,7 +2,7 @@ groups:
   - name: greenhouse-plugin.rules
     rules:
     - alert: GreenhousePluginNotReady
-      expr: sum by (namespace, clusterName, plugin, owned_by) (greenhouse_plugin_ready) == 0
+      expr: max by (namespace, clusterName, plugin, owned_by) (last_over_time(greenhouse_plugin_ready[15m])) == 0
       for: 15m
       labels:
         severity: warning

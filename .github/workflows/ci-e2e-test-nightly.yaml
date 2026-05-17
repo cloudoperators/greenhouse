@@ -2,7 +2,7 @@ name: Nightly E2E Workflow
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 1-6 * * *" # run hourly from 1am to 6am
+    - cron: "0 1-5/2 * * *" # run every 2 hours from 1am to 5am
 jobs:
 
   init:
