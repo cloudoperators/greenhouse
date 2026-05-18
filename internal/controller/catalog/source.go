@@ -221,7 +221,12 @@ func (s *source) reconcileGitRepository(ctx context.Context) error {
 	}
 
 	result, err := controllerutil.CreateOrPatch(ctx, s.Client, gitRepo, func() error {
-		gitRepo.Spec = spec
+		gitRepo.Spec.URL = spec.URL
+		gitRepo.Spec.Interval = spec.Interval
+		gitRepo.Spec.Reference = spec.Reference
+		gitRepo.Spec.Provider = spec.Provider
+		gitRepo.Spec.Suspend = spec.Suspend
+		gitRepo.Spec.SecretRef = spec.SecretRef
 		common.EnsureAnnotation(gitRepo, fluxmeta.ReconcileRequestAnnotation, s.lastReconciledAt)
 		return controllerutil.SetControllerReference(s.catalog, gitRepo, s.scheme)
 	})
@@ -230,13 +235,13 @@ func (s *source) reconcileGitRepository(ctx context.Context) error {
 	}
 	switch result {
 	case controllerutil.OperationResultCreated:
-		s.log.Info("created git repository for catalog", "name", gitRepo.Name, "namespace", gitRepo.Namespace)
+		s.log.Info("created git repository for catalog", "catalog", s.catalog.Name, "name", gitRepo.Name, "namespace", gitRepo.Namespace)
 	case controllerutil.OperationResultUpdated:
-		s.log.Info("updated git repository for catalog", "name", gitRepo.Name, "namespace", gitRepo.Namespace)
+		s.log.Info("updated git repository for catalog", "catalog", s.catalog.Name, "name", gitRepo.Name, "namespace", gitRepo.Namespace)
 	case controllerutil.OperationResultNone:
-		s.log.Info("No changes to catalog git repository", "name", gitRepo.Name, "namespace", gitRepo.Namespace)
+		s.log.Info("no changes to catalog git repository", "catalog", s.catalog.Name, "name", gitRepo.Name, "namespace", gitRepo.Namespace)
 	default:
-		s.log.Info("result is unknown for catalog git repository", "name", gitRepo.Name, "namespace", gitRepo.Namespace, "result", result)
+		s.log.Info("unknown result for catalog git repository", "catalog", s.catalog.Name, "name", gitRepo.Name, "namespace", gitRepo.Namespace, "result", result)
 	}
 	return nil
 }
@@ -299,13 +304,13 @@ func (s *source) reconcileArtifactGeneration(ctx context.Context) (*sourcev1.Ext
 	}
 	switch result {
 	case controllerutil.OperationResultCreated:
-		s.log.Info("created artifact generator for catalog", "name", generator.Name, "namespace", generator.Namespace)
+		s.log.Info("created artifact generator for catalog", "catalog", s.catalog.Name, "name", generator.Name, "namespace", generator.Namespace)
 	case controllerutil.OperationResultUpdated:
-		s.log.Info("updated artifact generator for catalog", "name", generator.Name, "namespace", generator.Namespace)
+		s.log.Info("updated artifact generator for catalog", "catalog", s.catalog.Name, "name", generator.Name, "namespace", generator.Namespace)
 	case controllerutil.OperationResultNone:
-		s.log.Info("no changes to catalog artifact generator", "name", generator.Name, "namespace", generator.Namespace)
+		s.log.Info("no changes to catalog artifact generator", "catalog", s.catalog.Name, "name", generator.Name, "namespace", generator.Namespace)
 	default:
-		s.log.Info("result is unknown for catalog artifact generator", "name", generator.Name, "namespace", generator.Namespace, "result", result)
+		s.log.Info("unknown result for catalog artifact generator", "catalog", s.catalog.Name, "name", generator.Name, "namespace", generator.Namespace, "result", result)
 	}
 	extArtifact := &sourcev1.ExternalArtifact{}
 	extArtifact.SetName(s.externalArtifact.Name)
@@ -392,13 +397,13 @@ func (s *source) reconcileKustomization(ctx context.Context, extArtifact *source
 	}
 	switch result {
 	case controllerutil.OperationResultCreated:
-		s.log.Info("created kustomization for catalog", "name", kustomization.Name, "namespace", kustomization.Namespace)
+		s.log.Info("created kustomization for catalog", "catalog", s.catalog.Name, "name", kustomization.Name, "namespace", kustomization.Namespace)
 	case controllerutil.OperationResultUpdated:
-		s.log.Info("updated kustomization for catalog", "name", kustomization.Name, "namespace", kustomization.Namespace)
+		s.log.Info("updated kustomization for catalog", "catalog", s.catalog.Name, "name", kustomization.Name, "namespace", kustomization.Namespace)
 	case controllerutil.OperationResultNone:
-		s.log.Info("No changes to catalog kustomization", "name", kustomization.Name, "namespace", kustomization.Namespace)
+		s.log.Info("no changes to catalog kustomization", "catalog", s.catalog.Name, "name", kustomization.Name, "namespace", kustomization.Namespace)
 	default:
-		s.log.Info("result is unknown for catalog kustomization", "name", kustomization.Name, "namespace", kustomization.Namespace, "result", result)
+		s.log.Info("unknown result for catalog kustomization", "catalog", s.catalog.Name, "name", kustomization.Name, "namespace", kustomization.Namespace, "result", result)
 	}
 	return nil
 }
@@ -433,11 +438,11 @@ func (s *source) fetchArtifact(extArtifact *sourcev1.ExternalArtifact) error {
 func (s *source) getOptionOverridePatches(optionOverrides []greenhousev1alpha1.OptionsOverride, pluginDefinitionName string) ([]kustomize.Patch, error) {
 	spec, err := s.findPluginDefinition(s.externalArtifactManifest, pluginDefinitionName)
 	if err != nil {
-		s.log.Error(err, "failed to find plugin definition in store", "name", pluginDefinitionName)
+		s.log.Error(err, "failed to find plugin definition in store", "catalog", s.catalog.Name, "name", pluginDefinitionName)
 		return nil, err
 	}
 	if spec == nil {
-		s.log.Info("plugin definition not found in artifact for option overrides", "name", pluginDefinitionName)
+		s.log.Info("plugin definition not found in artifact for option overrides", "catalog", s.catalog.Name, "name", pluginDefinitionName)
 		return nil, nil
 	}
 	patches := make([]kustomize.Patch, 0, len(optionOverrides))
@@ -448,7 +453,7 @@ func (s *source) getOptionOverridePatches(optionOverrides []greenhousev1alpha1.O
 		})
 		if idx == -1 {
 			err = fmt.Errorf("failed to find plugin option override %s in plugin definition %s/%s", ov.Name, s.catalog.Namespace, pluginDefinitionName)
-			s.log.Info("option not found in plugin definition for override", "pluginDefinition", pluginDefinitionName, "option", ov.Name)
+			s.log.Info("option not found in plugin definition for override", "catalog", s.catalog.Name, "pluginDefinition", pluginDefinitionName, "option", ov.Name)
 			return nil, err
 		}
 		spec.Options[idx].Default = ov.Value
@@ -473,7 +478,7 @@ func (s *source) getOptionOverridePatches(optionOverrides []greenhousev1alpha1.O
 func (s *source) findPluginDefinition(manifestBytes []byte, name string) (spec *greenhousev1alpha1.PluginDefinitionSpec, err error) {
 	var manifestMap map[string][]byte
 	if err = json.Unmarshal(manifestBytes, &manifestMap); err != nil {
-		s.log.Error(err, "failed to unmarshal manifest bytes", "name", name)
+		s.log.Error(err, "failed to unmarshal manifest bytes", "catalog", s.catalog.Name, "name", name)
 		return
 	}
 	var combinedManifests strings.Builder
@@ -497,7 +502,7 @@ func (s *source) findPluginDefinition(manifestBytes []byte, name string) (spec *
 	}
 	objectMaps, err := helm.ObjectMapFromLocalManifest(filters, combinedManifests.String())
 	if err != nil {
-		s.log.Error(err, "failed to get object map from manifest", "name", name)
+		s.log.Error(err, "failed to get object map from manifest", "catalog", s.catalog.Name, "name", name)
 		return
 	}
 	for _, helmObj := range objectMaps {
@@ -531,7 +536,7 @@ func (s *source) objectReadiness(ctx context.Context, obj client.Object) (ready 
 	ready = metav1.ConditionFalse
 	key := client.ObjectKeyFromObject(obj)
 	if err := s.Get(ctx, key, obj); err != nil {
-		s.log.Error(err, "failed to get object", "key", key)
+		s.log.Error(err, "failed to get object", "catalog", s.catalog.Name, "key", key)
 		msg = err.Error()
 		return
 	}
@@ -540,7 +545,7 @@ func (s *source) objectReadiness(ctx context.Context, obj client.Object) (ready 
 	cObj, ok := obj.(lifecycle.CatalogObject)
 	if !ok {
 		err := fmt.Errorf("failed to assert catalog object kind %s - %s/%s", kind, key.Namespace, key.Name)
-		s.log.Error(err, "failed to assert catalog object", "key", key)
+		s.log.Error(err, "failed to assert catalog object", "catalog", s.catalog.Name, "key", key)
 		msg = err.Error()
 		return
 	}
@@ -548,7 +553,7 @@ func (s *source) objectReadiness(ctx context.Context, obj client.Object) (ready 
 	readyCondition := meta.FindStatusCondition(conditions, fluxmeta.ReadyCondition)
 
 	if readyCondition == nil {
-		s.log.Info("Object not ready yet, requeue...", "kind", kind, "namespace", key.Namespace, "name", key.Name)
+		s.log.Info("object not ready yet, requeue", "catalog", s.catalog.Name, "kind", kind, "namespace", key.Namespace, "name", key.Name)
 		msg = kind + " not ready yet"
 		return
 	}

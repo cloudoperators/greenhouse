@@ -44,6 +44,8 @@ spec:
 
 `.spec.plugin` is the template for the Plugins that will be created for each matching Cluster. This field has the same structure as the PluginSpec. Only `.spec.clusterName` is not allowed in the PluginPreset's Plugin template, as the Cluster name is determined by the matching Clusters.
 
+> :information_source: A non-existing PluginDefinition can be referenced in the PluginPreset. The PluginPreset will be reconciled once the PluginDefinition is created. This allows rolling out new PluginDefinitions via a Catalog together with the PluginPresets that reference them.
+
 ```yaml
 spec:
   plugin:
