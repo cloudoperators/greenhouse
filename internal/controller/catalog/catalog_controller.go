@@ -29,6 +29,7 @@ import (
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
@@ -42,13 +43,15 @@ type CatalogReconciler struct {
 	Log         logr.Logger
 	recorder    events.EventRecorder
 	StoragePath string
-	HttpRetry   int
+	HTTPRetry   int
+	artifactory flux.IArtifactory
 }
 
 func (r *CatalogReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
 	r.Scheme = mgr.GetScheme()
 	r.recorder = mgr.GetEventRecorder(name)
+	r.artifactory = flux.NewArtifactory(r.Log.WithName("artifactory"), r.StoragePath, r.HTTPRetry)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).

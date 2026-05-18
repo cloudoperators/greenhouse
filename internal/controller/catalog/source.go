@@ -74,7 +74,8 @@ type source struct {
 	externalArtifact         greenhousev1alpha1.SourceStatus
 	kustomize                greenhousev1alpha1.SourceStatus
 	lastReconciledAt         string
-	artifactory              IArtifactory
+	artifactory              flux.IArtifactory
+	artifactID               string
 	externalArtifactManifest []byte
 }
 
@@ -130,7 +131,8 @@ func (r *CatalogReconciler) newCatalogSource(catalogSource greenhousev1alpha1.Ca
 		externalArtifact:         greenhousev1alpha1.SourceStatus{Kind: sourcev1.ExternalArtifactKind, Name: externalArtifactPrefix + "-" + hash},
 		externalArtifactManifest: nil,
 		kustomize:                greenhousev1alpha1.SourceStatus{Kind: kustomizev1.KustomizationKind, Name: kustomizeArtifactPrefix + "-" + hash},
-		artifactory:              newArtifactory(r.Log.WithName("artifactory"), catalog.Namespace+"/"+hashGroup+"-"+hash, r.StoragePath, r.HttpRetry),
+		artifactory:              r.artifactory,
+		artifactID:               catalog.Namespace + "/" + hashGroup + "-" + hash,
 	}
 
 	if lastReconciledAt, ok := lifecycle.ReconcileAnnotationValue(catalog); ok {
@@ -415,19 +417,19 @@ func (s *source) fetchArtifact(extArtifact *sourcev1.ExternalArtifact) error {
 	defer cancel()
 
 	// Fetch manifest from artifactory
-	manifestBytes, err := s.artifactory.Get(ctx, extArtifact.GetArtifact().URL, digest)
+	manifestBytes, err := s.artifactory.Get(ctx, s.artifactID, extArtifact.GetArtifact().URL, digest)
 	if err != nil {
 		return err
 	}
 
 	// Save manifest in artifactory
-	err = s.artifactory.Save(manifestBytes, digest)
+	err = s.artifactory.Save(s.artifactID, digest, manifestBytes)
 	if err != nil {
 		return err
 	}
 
 	// delete all artifact from artifactory except the new digest
-	err = s.artifactory.DeleteAllExcept(digest)
+	err = s.artifactory.DeleteAllExcept(s.artifactID, digest)
 	if err != nil {
 		return err
 	}

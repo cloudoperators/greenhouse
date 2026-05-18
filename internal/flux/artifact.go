@@ -1,10 +1,11 @@
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package catalog
+package flux
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"context"
 	"encoding/json"
@@ -24,14 +25,15 @@ import (
 type artifactory struct {
 	log             logr.Logger
 	client          *retry.Client
-	artifactID      string
 	storageBasePath string
 }
 
 type IArtifactory interface {
-	Save(content []byte, digest string) error
-	Get(ctx context.Context, url, digest string) ([]byte, error)
-	DeleteAllExcept(digest string) error
+	Save(artifactID, digest string, content []byte) error
+	Get(ctx context.Context, artifactID, url, digest string) ([]byte, error)
+	GetRaw(ctx context.Context, artifactID, url, digest string) ([]byte, error)
+	DeleteAllExcept(artifactID, digest string) error
+	Path(artifactID, digest string) string
 }
 
 // noopLogger implements retryable http.LeveledLogger using logr
@@ -50,8 +52,8 @@ func (l noopLogger) Warn(msg string, keysAndValues ...any) {
 	l.log.V(1).Info("WARN: "+msg, keysAndValues...)
 }
 
-// newArtifactory creates a new Artifactory instance with retryable HTTP client
-func newArtifactory(log logr.Logger, artifactID, storagePath string, retries int) IArtifactory {
+// NewArtifactory creates a new Artifactory instance with retryable HTTP client
+func NewArtifactory(log logr.Logger, storagePath string, retries int) IArtifactory {
 	retryClient := retry.NewClient()
 	retryClient.RetryMax = retries              // retry
 	retryClient.RetryWaitMin = 3 * time.Second  // initial delay
@@ -69,16 +71,15 @@ func newArtifactory(log logr.Logger, artifactID, storagePath string, retries int
 	return &artifactory{
 		log:             log,
 		client:          retryClient,
-		artifactID:      artifactID,
 		storageBasePath: storagePath,
 	}
 }
 
-func (a *artifactory) Get(ctx context.Context, srcURL, digest string) ([]byte, error) {
+func (a *artifactory) Get(ctx context.Context, artifactID, srcURL, digest string) ([]byte, error) {
 	// 1. Try local fetch first
-	data, err := a.fetchFromFileSystem(digest)
+	data, err := a.fetchFromFileSystem(artifactID, digest)
 	if err == nil {
-		a.log.V(1).Info("artifact found in local cache", "digest", digest)
+		a.log.V(1).Info("artifact found in local cache", "artifactID", artifactID, "digest", digest)
 		return data, nil
 	}
 	if !errors.Is(err, os.ErrNotExist) {
@@ -99,19 +100,48 @@ func (a *artifactory) Get(ctx context.Context, srcURL, digest string) ([]byte, e
 		return nil, fmt.Errorf("failed to marshal artifact content: %w", err)
 	}
 
-	a.log.V(1).Info("artifact fetched successfully from remote", "digest", digest)
+	a.log.V(1).Info("artifact fetched successfully from remote", "artifactID", artifactID, "digest", digest)
 	return content, nil
 }
 
-func (a *artifactory) Save(content []byte, digest string) error {
-	return a.saveToFileSystem(content, digest)
+func (a *artifactory) Save(artifactID, digest string, content []byte) error {
+	return a.saveToFileSystem(artifactID, digest, content)
 }
 
-func (a *artifactory) DeleteAllExcept(digest string) error {
-	return a.deleteAllExceptFromFileSystem(digest)
+// GetRaw fetches the artifact bytes verbatim — no gzip/tar extraction.
+// Use this when the caller wants the original archive on disk (e.g. a Helm chart .tgz
+// to hand to the chart loader). Local cache is checked first.
+func (a *artifactory) GetRaw(ctx context.Context, artifactID, srcURL, digest string) ([]byte, error) {
+	data, err := a.fetchFromFileSystem(artifactID, digest)
+	if err == nil {
+		a.log.V(1).Info("artifact found in local cache", "artifactID", artifactID, "digest", digest)
+		return data, nil
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		return nil, fmt.Errorf("failed to fetch artifact from filesystem: %w", err)
+	}
+
+	a.log.V(1).Info("artifact not found locally, fetching raw bytes from remote source", "url", srcURL)
+	body, err := a.download(ctx, srcURL)
+	if err != nil {
+		return nil, err
+	}
+	a.log.V(1).Info("artifact fetched successfully from remote", "artifactID", artifactID, "digest", digest, "bytes", len(body))
+	return body, nil
 }
 
-func (a *artifactory) saveToFileSystem(content []byte, digest string) error {
+func (a *artifactory) DeleteAllExcept(artifactID, digest string) error {
+	return a.deleteAllExceptFromFileSystem(artifactID, digest)
+}
+
+func (a *artifactory) Path(artifactID, digest string) string {
+	return filepath.Join(a.storageBasePath, artifactID, digest)
+}
+
+func (a *artifactory) saveToFileSystem(artifactID, digest string, content []byte) error {
+	if artifactID == "" {
+		return errors.New("artifactID must not be empty")
+	}
 	if digest == "" {
 		return errors.New("digest must not be empty")
 	}
@@ -119,7 +149,7 @@ func (a *artifactory) saveToFileSystem(content []byte, digest string) error {
 		return errors.New("content must not be empty")
 	}
 
-	filePath := filepath.Join(a.storageBasePath, a.artifactID, digest)
+	filePath := filepath.Join(a.storageBasePath, artifactID, digest)
 
 	// Ensure parent directory exists
 	if err := os.MkdirAll(filepath.Dir(filePath), 0o755); err != nil {
@@ -134,17 +164,17 @@ func (a *artifactory) saveToFileSystem(content []byte, digest string) error {
 	a.log.V(1).Info("artifact saved to disk",
 		"path", filePath,
 		"digest", digest,
-		"artifactID", a.artifactID,
+		"artifactID", artifactID,
 	)
 	return nil
 }
 
-func (a *artifactory) deleteAllExceptFromFileSystem(keepDigest string) error {
-	dir := filepath.Join(a.storageBasePath, a.artifactID)
+func (a *artifactory) deleteAllExceptFromFileSystem(artifactID, keepDigest string) error {
+	dir := filepath.Join(a.storageBasePath, artifactID)
 
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			a.log.V(1).Info("no artifact directory found to clean up", "path", dir)
 			return nil
 		}
@@ -175,12 +205,12 @@ func (a *artifactory) deleteAllExceptFromFileSystem(keepDigest string) error {
 	return nil
 }
 
-func (a *artifactory) fetchFromFileSystem(digest string) ([]byte, error) {
+func (a *artifactory) fetchFromFileSystem(artifactID, digest string) ([]byte, error) {
 	if digest == "" {
 		return nil, errors.New("digest must not be empty")
 	}
 
-	filePath := filepath.Join(a.storageBasePath, a.artifactID, digest)
+	filePath := filepath.Join(a.storageBasePath, artifactID, digest)
 
 	data, err := os.ReadFile(filePath)
 	if err != nil {
@@ -194,6 +224,16 @@ func (a *artifactory) fetchFromFileSystem(digest string) ([]byte, error) {
 }
 
 func (a *artifactory) fetchFromSource(ctx context.Context, srcURL string) (map[string][]byte, error) {
+	body, err := a.download(ctx, srcURL)
+	if err != nil {
+		return nil, err
+	}
+	return extractTarGz(body)
+}
+
+// download fetches the artifact body from srcURL using the retry client. The returned
+// bytes are the raw response body (unchanged). ARTIFACT_DOMAIN rewriting is applied.
+func (a *artifactory) download(ctx context.Context, srcURL string) ([]byte, error) {
 	srcURL = replaceArtifactDomain(srcURL)
 	a.log.V(1).Info("fetching artifact", "srcUrl", srcURL)
 	req, err := retry.NewRequestWithContext(ctx, http.MethodGet, srcURL, http.NoBody)
@@ -210,7 +250,16 @@ func (a *artifactory) fetchFromSource(ctx context.Context, srcURL string) (map[s
 		return nil, fmt.Errorf("bad response: %s", resp.Status)
 	}
 
-	gzr, err := gzip.NewReader(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+	return body, nil
+}
+
+// extractTarGz unpacks a gzipped tar archive into a map keyed by entry name.
+func extractTarGz(body []byte) (map[string][]byte, error) {
+	gzr, err := gzip.NewReader(bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gzip reader: %w", err)
 	}
@@ -222,7 +271,7 @@ func (a *artifactory) fetchFromSource(ctx context.Context, srcURL string) (map[s
 	for {
 		header, err := tr.Next()
 		if err == io.EOF {
-			break // done
+			break
 		}
 		if err != nil {
 			return nil, fmt.Errorf("error reading tar: %w", err)
@@ -230,16 +279,12 @@ func (a *artifactory) fetchFromSource(ctx context.Context, srcURL string) (map[s
 
 		switch header.Typeflag {
 		case tar.TypeReg:
-			// Read the file contents for this entry into memory.
-			// NOTE: io.ReadAll streams from the tar reader; we don't buffer the whole tarball.
 			data, err := io.ReadAll(tr)
 			if err != nil {
 				return nil, fmt.Errorf("failed to read file %q from tar: %w", header.Name, err)
 			}
 			files[header.Name] = data
-
 		case tar.TypeDir:
-			// Nothing to do; directories are implicit in map form.
 			continue
 		}
 	}
