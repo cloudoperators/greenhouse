@@ -112,6 +112,5 @@ The ServiceAccount is then authorized as if it were a member of the owning Team.
 
 - [Ownership](./../ownership) - Understanding resource ownership in Greenhouse
 - [Teams](../../core-concepts/teams) - Team management and support-groups
-- [Managing team-owned resources](../../../user-guides/team/create#managing-resources-as-a-team) - How to label resources and use the team ServiceAccount
-- [Installing the Authorization Webhook](../../install#installing-the-authorization-webhook) - Deploying the webhook server
+- [Managing team-owned resources](../../../user-guides/team/authorization) - How to label resources and use the team ServiceAccount
 - [Processes](./../processes) - Operational processes enabled by ownership

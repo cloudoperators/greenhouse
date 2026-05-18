@@ -307,9 +307,7 @@ The TeamRoleBinding's `.spec.namespaces` can be amended to include more namespac
 
 ## Related: Authorization Webhook for Greenhouse Resources
 
-> :information_source: This guide covers RBAC for **remote clusters** (TeamRoles/TeamRoleBindings). For controlling access to **Greenhouse resources themselves** (Plugins, Clusters, etc.) on the central Greenhouse cluster, see the [Authorization Webhook](./../../../getting-started/operations/authorization-webhook) documentation.
-
-The authorization webhook evaluates access to Greenhouse resources based on the `greenhouse.sap/owned-by` label when RBAC does not already allow the request, enabling support-group owners to access their own resources without implying that all access is limited to support-group-owned resources.
+> :information_source: This guide covers RBAC for **remote clusters** (TeamRoles/TeamRoleBindings). For controlling access to **Greenhouse resources themselves** (Plugins, Clusters, etc.) on the central Greenhouse cluster, see [Managing team-owned resources](../authorization).
 
 ## Next Steps
 
