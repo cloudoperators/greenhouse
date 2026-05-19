@@ -10,6 +10,8 @@ go:
   - 'go.mod'
   - 'go.sum'
   - '.golangci.yaml'
+  - 'Dockerfile*'
+  - 'Makefile'
 
 api:
   - 'api/**'
@@ -17,13 +19,3 @@ api:
 
 charts:
   - 'charts/**'
-
-docker:
-  - 'Dockerfile*'
-  - 'Makefile'
-  - 'cmd/**'
-  - 'internal/**'
-  - 'pkg/**'
-  - 'api/**'
-  - 'go.mod'
-  - 'go.sum'
