@@ -106,6 +106,31 @@ func PredicateOrganizationSCIMStatusChange() predicate.Predicate {
 	}
 }
 
+// PredicateClusterReadyStatusChange triggers on updates where a Cluster's Ready condition transitions to True.
+func PredicateClusterReadyStatusChange() predicate.Predicate {
+	return predicate.Funcs{
+		CreateFunc: func(_ event.CreateEvent) bool { return false },
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			if e.ObjectOld == nil || e.ObjectNew == nil {
+				return false
+			}
+			oldCluster, okOld := e.ObjectOld.(*greenhousev1alpha1.Cluster)
+			newCluster, okNew := e.ObjectNew.(*greenhousev1alpha1.Cluster)
+			if !okOld || !okNew {
+				return false
+			}
+			oldCondition := oldCluster.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
+			newCondition := newCluster.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
+			if newCondition == nil {
+				return false
+			}
+			return (oldCondition == nil || !oldCondition.IsTrue()) && newCondition.IsTrue()
+		},
+		DeleteFunc:  func(_ event.DeleteEvent) bool { return false },
+		GenericFunc: func(_ event.GenericEvent) bool { return false },
+	}
+}
+
 func PredicateIgnoreDeletingResources() predicate.Predicate {
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
