@@ -158,6 +158,9 @@ const (
 	// HelmUninstallFailedReason is set when the Helm release could not be uninstalled.
 	HelmUninstallFailedReason greenhousemetav1alpha1.ConditionReason = "HelmUninstallFailed"
 
+	// HelmReleaseUninstallPendingReason is set while waiting for Flux to complete the Helm uninstall.
+	HelmReleaseUninstallPendingReason greenhousemetav1alpha1.ConditionReason = "HelmReleaseUninstallPending"
+
 	// OptionValueResolutionFailedReason is set when option values could not be resolved
 	OptionValueResolutionFailedReason greenhousemetav1alpha1.ConditionReason = "OptionValueResolutionFailed"
 
