@@ -227,6 +227,11 @@ func shouldReconcileOrRequeue(ctx context.Context, c client.Client, plugin *gree
 	if err != nil {
 		return nil, err
 	}
+	if cluster.GetDeletionTimestamp() != nil {
+		msg := fmt.Sprintf("cluster %s is being deleted", plugin.Spec.ClusterName)
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousemetav1alpha1.DeleteCondition, lifecycle.ScheduledDeletionReason, msg))
+		return &reconcileResult{requeueAfter: 10 * time.Second}, nil
+	}
 	scheduleExists, schedule, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
 	if err != nil {
 		return nil, err
