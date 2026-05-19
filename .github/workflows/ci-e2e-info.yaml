@@ -54,21 +54,18 @@ jobs:
             const suites = matched.filter(s => s !== 'shared');
 
             const codeBlock = (s) => '```\n' + s + '\n```';
-            const suiteBlock = (list) =>
-              `<details>\n<summary><b>Run individual suites</b></summary>\n\n` +
-              [...list, 'all'].map(s => codeBlock('/e2e ' + s)).join('\n\n') +
-              `\n</details>\n`;
 
             let body = `${marker}\n## E2E\n\n`;
 
             if (sharedHit) {
-              body += `Shared code changed — the full suite is recommended. Comment on this PR:\n\n`;
-              body += codeBlock('/e2e all') + '\n';
+              body += `Shared code changed — full E2E run is recommended.\n\n`;
+              body += codeBlock('/e2e all');
             } else {
-              body += `Relevant suites detected: ${suites.map(s => `\`${s}\``).join(', ')}.\n\n`;
-              body += `Comment on this PR:\n\n`;
-              body += codeBlock('/e2e ' + suites.join(' ')) + '\n\n';
-              body += suiteBlock(suites);
+              body += `E2E suites were found for the changes — [${suites.map(s => `\`${s}\``).join(', ')}]\n\n`;
+              body += suites.map(s => `<details><summary><b>/e2e ${s}</b></summary></details>`).join('\n') + '\n\n';
+              body += `Comment in the PR to trigger an E2E test, for example:\n\n`;
+              body += codeBlock('/e2e ' + suites.join(' ')) + '\n';
+              body += `_or run the full set:_ \`/e2e all\`\n`;
             }
 
             const { data: comments } = await github.rest.issues.listComments({

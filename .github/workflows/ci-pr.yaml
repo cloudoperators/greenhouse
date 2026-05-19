@@ -101,6 +101,8 @@ jobs:
 
   lint-license:
     name: Lint (license)
+    permissions:
+      contents: write
     uses: cloudoperators/common/.github/workflows/shared-license.yaml@17d3d6b80851574fcd8c7b6e5c4fe6aee2922359
     with:
       apply_header: false
