@@ -1,105 +1,167 @@
 name: E2E Workflow
+
 on:
-  workflow_dispatch:
-  pull_request:
-    paths:
-      - 'internal/**'
-      - 'pkg/**'
-      - 'e2e/**'
-      - 'cmd/**'
-      - 'Dockerfile*'
-      - 'go.mod'
-      - 'go.sum'
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: read
+  statuses: write
 
 jobs:
-
-  init:
+  parse:
+    name: Parse E2E Command
+    if: ${{ github.event.issue.pull_request && startsWith(github.event.comment.body, '/e2e') }}
+    runs-on: [ubuntu-latest]
     outputs:
-      tests: ${{ steps.e2es.outputs.result }}
-    runs-on: [ ubuntu-latest ]
-    name: "Prepare E2E Scenarios"
+      sha: ${{ steps.pr.outputs.sha }}
+      suites: ${{ steps.suites.outputs.suites }}
+      run: ${{ steps.cmd.outputs.run }}
     steps:
-      - name: "Checkout"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Resolve PR head SHA
+        id: pr
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v8.0.0
+        with:
+          script: |
+            const { owner, repo, number } = context.issue;
+            const pr = await github.rest.pulls.get({ owner, repo, pull_number: number });
+            core.setOutput('sha', pr.data.head.sha);
 
-      # find all e2e scenarios in the e2e directory and generate an array of scenario names
-      - name: "E2E Detection"
-        id: e2es
+      - name: Parse comment body
+        id: cmd
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v8.0.0
+        env:
+          BODY: ${{ github.event.comment.body }}
+        with:
+          script: |
+            const body = process.env.BODY || '';
+            const tokens = body.split('/e2e')
+              .map(s => s.trim())
+              .filter(s => s !== '');
+            if (tokens.length === 0) {
+              core.setFailed('no suites provided. Use `/e2e all`, `/e2e skip`, or `/e2e <suite> [/e2e <suite>...]`.');
+              return;
+            }
+            if (tokens.includes('skip')) {
+              if (tokens.length !== 1) {
+                core.setFailed('`/e2e skip` cannot be combined with other suites.');
+                return;
+              }
+              core.setOutput('run', 'false');
+              core.setOutput('discover', 'false');
+              core.setOutput('explicit', '[]');
+              return;
+            }
+            if (tokens.includes('all')) {
+              if (tokens.length !== 1) {
+                core.setFailed('`/e2e all` cannot be combined with other suites.');
+                return;
+              }
+              core.setOutput('run', 'true');
+              core.setOutput('discover', 'true');
+              core.setOutput('explicit', '[]');
+              return;
+            }
+            core.setOutput('run', 'true');
+            core.setOutput('discover', 'false');
+            core.setOutput('explicit', JSON.stringify([...new Set(tokens)]));
+
+      - name: Checkout PR head (for suite discovery)
+        if: steps.cmd.outputs.discover == 'true'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ steps.pr.outputs.sha }}
+
+      - name: Resolve suite list
+        id: suites
+        env:
+          DISCOVER: ${{ steps.cmd.outputs.discover }}
+          EXPLICIT: ${{ steps.cmd.outputs.explicit }}
         run: |
-          scenarios=$(find ${GITHUB_WORKSPACE}/e2e -type f -name 'e2e_test.go' -not -path "*/authz/*" -exec dirname {} \; | xargs -n 1 basename | jq -R -s -c 'split("\n")[:-1]')
-          echo $scenarios
-          echo "result=$scenarios" >> $GITHUB_OUTPUT
+          if [ "$DISCOVER" = "true" ]; then
+            scenarios=$(find "${GITHUB_WORKSPACE}/e2e" -type f -name 'e2e_test.go' -not -path "*/authz/*" -exec dirname {} \; | xargs -n 1 basename | jq -R -s -c 'split("\n")[:-1]')
+            echo "suites=$scenarios" >> "$GITHUB_OUTPUT"
+          else
+            echo "suites=$EXPLICIT" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Acknowledge command
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v8.0.0
+        with:
+          script: |
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: 'rocket',
+            });
 
   e2e:
-    name: "Run ${{ matrix.e2es }}(${{ matrix.k8s-version}}) E2E"
-    if: needs.init.outputs.tests != '[]'
-    needs: [ init ]
-    runs-on: [ ubuntu-latest ]
+    name: E2E ${{ matrix.suite }}
+    needs: [parse]
+    if: needs.parse.outputs.run == 'true'
+    runs-on: [ubuntu-latest]
+    strategy:
+      fail-fast: true
+      matrix:
+        suite: ${{ fromJson(needs.parse.outputs.suites) }}
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    strategy:
-      fail-fast: false
-      matrix:
-        k8s-version: [ "v1.32.11" ]
-        e2es: ${{fromJson(needs.init.outputs.tests)}}
     steps:
-      # run the e2e tests using composite common/workflows/e2e action
-      - name: "E2E"
+      - name: Checkout PR head
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.parse.outputs.sha }}
+
+      - name: Run ${{ matrix.suite }} e2e
         id: e2e
-        continue-on-error: true
-        uses: cloudoperators/common/workflows/e2e@17d3d6b80851574fcd8c7b6e5c4fe6aee2922359 # main
+        uses: cloudoperators/common/workflows/e2e@17d3d6b80851574fcd8c7b6e5c4fe6aee2922359
         env:
           RUNTIME_ENV: "CI"
           GH_APP_ID: ${{ secrets.CLOUDOPERATOR_APP_ID }}
           GH_APP_PRIVATE_KEY: ${{ secrets.CLOUDOPERATOR_APP_PRIVATE_KEY }}
           GH_APP_INSTALLATION_ID: ${{ secrets.CLOUDOPERATOR_APP_INSTALLATION_ID }}
         with:
-          admin-k8s-version: "v1.33.7"
-          remote-k8s-version: ${{ matrix.k8s-version }}
-          scenario: ${{ matrix.e2es }}
+          admin-k8s-version: "v1.34.3"
+          remote-k8s-version: "v1.32.11"
+          scenario: ${{ matrix.suite }}
           admin-config: ${{ github.workspace }}/e2e/greenhouse-admin-cluster.yaml
           remote-config: ${{ github.workspace }}/dev-env/greenhouse-remote-cluster.yaml
 
-      - name: "Display Logs"
+      - name: Show e2e logs
+        if: failure()
         continue-on-error: true
         env:
-          SCENARIO: ${{ matrix.e2es }}
-          E2E_RESULT_DIR: ${{github.workspace}}/bin
-        run: |
-          make show-e2e-logs
+          SCENARIO: ${{ matrix.suite }}
+          E2E_RESULT_DIR: ${{ github.workspace }}/bin
+        run: make show-e2e-logs
 
-      - name: "E2E Failure?"
-        if: ${{ steps.e2e.outcome == 'failure' }}
-        run: |
-          exit 1
-
-  lint:
-    runs-on: [ ubuntu-latest ]
+  e2eOK:
+    name: e2eOK
+    needs: [parse, e2e]
+    if: always() && needs.parse.result == 'success'
+    runs-on: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Post e2eOK commit status
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v8.0.0
+        env:
+          RUN: ${{ needs.parse.outputs.run }}
+          E2E_RESULT: ${{ needs.e2e.result }}
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Go
-        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
-        with:
-          go-version-file: 'go.mod'
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: golangci-lint
-        run: make lint
-
-  # check if the e2e tests passed for all scenarios
-  checksOK:
-    name: "E2E Check"
-    needs: [ e2e ]
-    runs-on: [ ubuntu-latest ]
-    if: always()
-    steps:
-      - name: "Check if e2e passed"
-        run: |
-          if [ "${{ needs.e2e.result }}" == "success" ]; then
-            echo "✅ E2E passed 🎉"
-          else
-            echo "❌ E2E failed 😭"
-            exit 1
-          fi
+          script: |
+            const skipped = process.env.RUN !== 'true';
+            const ok = skipped || process.env.E2E_RESULT === 'success';
+            const description = skipped
+              ? 'skipped via /e2e skip'
+              : (ok ? 'all suites passed' : 'one or more suites failed');
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: '${{ needs.parse.outputs.sha }}',
+              state: ok ? 'success' : 'failure',
+              context: 'e2eOK',
+              description,
+              target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
+            if (!ok) core.setFailed(description);
