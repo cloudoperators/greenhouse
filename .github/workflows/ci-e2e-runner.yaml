@@ -1,4 +1,4 @@
-name: CI E2E Runner
+name: E2E Workflow
 
 on:
   issue_comment:
