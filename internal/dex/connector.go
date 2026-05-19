@@ -85,7 +85,7 @@ func (c *oidcConnector) HandleCallback(s connector.Scopes, connData []byte, r *h
 	// reported by the upstream IdP, including overriding an explicit email_verified=false.
 	// It is required for IdPs that report email_verified=false (or omit the claim) for users
 	// federated via SAML, where the email is verified by other means. Enabled per organization
-	// via OIDCConfig.ExtraConfig.InsecureSkipEmailVerified.
+	// via the effective InsecureSkipEmailVerified flag.
 	if c.overrideEmailVerified {
 		identity.EmailVerified = true
 	}
