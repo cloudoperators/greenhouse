@@ -132,7 +132,7 @@ func buildPostRenderer(mirror *ocimirror.ImageMirror, manifestSets ...string) *h
 }
 
 // ensureImageReplication pre-replicates container images referenced in renderedManifests.
-// On failure it flags HelmReleaseCreatedCondition with ImageReplicationFailedReason and keeps
+// On failure, it flags HelmReleaseCreatedCondition with ImageReplicationFailedReason and keeps
 // the previous status.ImageReplication list intact, so transient errors dont wipe history.
 func ensureImageReplication(ctx context.Context, mirror *ocimirror.ImageMirror, plugin *greenhousev1alpha1.Plugin, manifestSets ...string) error {
 	replicated, err := mirror.ReplicateOCIArtifacts(ctx, plugin.Status.ImageReplication, manifestSets...)
