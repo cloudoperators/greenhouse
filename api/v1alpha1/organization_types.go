@@ -90,8 +90,11 @@ type OIDCConfig struct {
 }
 
 type OIDCExtraConfig struct {
-	// InsecureSkipEmailVerified if set to true, treats email_verified as true when the claim is absent from the ID token.
-	// This does not override an explicit email_verified=false. Only enable for providers that omit the claim entirely (e.g. some Okta, EntraID or CloudFoundry configurations).
+	// InsecureSkipEmailVerified, if set to true, forces the email_verified claim to true
+	// regardless of the value reported by the upstream IdP, including overriding an explicit
+	// email_verified=false. Enable only for IdPs where the email address is verified by other
+	// means, e.g. Keycloak with SAML or user federation, or providers that omit the claim
+	// entirely such as some Okta, EntraID or CloudFoundry configurations.
 	// +kubebuilder:default:=false
 	InsecureSkipEmailVerified bool `json:"insecureSkipEmailVerified,omitempty"`
 	// UserIDClaim is the claim to be used as both user ID and username.

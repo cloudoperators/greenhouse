@@ -134,7 +134,8 @@ func WithOIDCConfig(issuer, secretName, clientIDKey, clientSecretKey string) fun
 }
 
 // WithOIDCExtraConfig sets the OIDCExtraConfig on an Organization's OIDCConfig.
-// Must be used after WithOIDCConfig to ensure OIDCConfig is initialized.
+// Must be used after WithOIDCConfig: WithOIDCConfig replaces OIDCConfig wholesale,
+// so any ExtraConfig set beforehand would be discarded.
 func WithOIDCExtraConfig(userIDClaim string, insecureSkipEmailVerified bool) func(*greenhousev1alpha1.Organization) {
 	return func(org *greenhousev1alpha1.Organization) {
 		if org.Spec.Authentication == nil {
