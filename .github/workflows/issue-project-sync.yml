@@ -1,0 +1,16 @@
+name: Issue Project Sync
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  issues: read
+
+jobs:
+  sync:
+    if: github.event.label.name == 'backlog'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: cloudoperators/common/workflows/issue-project-sync@main
+        with:
+          GH_TOKEN: ${{ secrets.GH_PROJECT_TOKEN }}
