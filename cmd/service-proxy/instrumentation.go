@@ -19,9 +19,9 @@ var (
 		return cluster
 	})
 
-	namespaceFromContext = promhttp.WithLabelFromCtx("namespace", func(ctx context.Context) string {
-		namespace, _ := ctx.Value(contextNamespaceKey{}).(string)
-		return namespace
+	organizationFromContext = promhttp.WithLabelFromCtx("organization", func(ctx context.Context) string {
+		organization, _ := ctx.Value(contextOrganizationKey{}).(string)
+		return organization
 	})
 
 	nameFromContext = promhttp.WithLabelFromCtx("name", func(ctx context.Context) string {
@@ -36,7 +36,7 @@ func InstrumentHandler(pm *ProxyManager, registry prometheus.Registerer) http.Ha
 			Name: "http_requests_total",
 			Help: "A counter for requests to the wrapped handler.",
 		},
-		[]string{"code", "method", "clusterName", "namespace", "name"},
+		[]string{"code", "method", "clusterName", "organization", "name"},
 	)
 	registry.MustRegister(requestCounter)
 
@@ -46,7 +46,7 @@ func InstrumentHandler(pm *ProxyManager, registry prometheus.Registerer) http.Ha
 			Help:    "A histogram of latencies for requests.",
 			Buckets: []float64{.25, .5, 1, 2.5, 5, 10},
 		},
-		[]string{"code", "method", "clusterName", "namespace", "name"},
+		[]string{"code", "method", "clusterName", "organization", "name"},
 	)
 	registry.MustRegister(requestDuration)
 
@@ -56,7 +56,7 @@ func InstrumentHandler(pm *ProxyManager, registry prometheus.Registerer) http.Ha
 			Help:    "A histogram of response sizes for requests.",
 			Buckets: []float64{0, 512, 4096, 16384, 65536, 262144, 1048576, 4194304, 16777216},
 		},
-		[]string{"code", "method", "clusterName", "namespace", "name"},
+		[]string{"code", "method", "clusterName", "organization", "name"},
 	)
 	registry.MustRegister(responseSizeHistogram)
 
@@ -67,7 +67,7 @@ func InstrumentHandler(pm *ProxyManager, registry prometheus.Registerer) http.Ha
 				ctx = context.WithValue(ctx, contextClusterKey{}, cluster)
 				route, found := pm.GetClusterRoute(cluster, req.Host)
 				if found {
-					ctx = context.WithValue(ctx, contextNamespaceKey{}, route.namespace)
+					ctx = context.WithValue(ctx, contextOrganizationKey{}, route.namespace)
 					ctx = context.WithValue(ctx, contextNameKey{}, route.serviceName)
 				}
 				req = req.WithContext(ctx)
@@ -81,11 +81,11 @@ func InstrumentHandler(pm *ProxyManager, registry prometheus.Registerer) http.Ha
 			promhttp.InstrumentHandlerDuration(requestDuration,
 				promhttp.InstrumentHandlerResponseSize(responseSizeHistogram,
 					pm.ReverseProxy(),
-					clusterFromContext, namespaceFromContext, nameFromContext,
+					clusterFromContext, organizationFromContext, nameFromContext,
 				),
-				clusterFromContext, namespaceFromContext, nameFromContext,
+				clusterFromContext, organizationFromContext, nameFromContext,
 			),
-			clusterFromContext, namespaceFromContext, nameFromContext,
+			clusterFromContext, organizationFromContext, nameFromContext,
 		),
 	)
 }

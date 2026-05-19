@@ -17,7 +17,7 @@
         "spec": {
           "display": {
             "name": "Kubernetes Update Required For Greenhouse Cluster",
-            "description": "GreenhouseClusterKubernetesVersionOutOfMaintenance: Cluster in namespace is running Kubernetes version which is out of maintenance."
+            "description": "GreenhouseClusterKubernetesVersionOutOfMaintenance: Cluster in organization is running Kubernetes version which is out of maintenance."
           },
           "plugin": {
             "kind": "Table",
@@ -49,7 +49,7 @@
                   "name": "clusterName"
                 },
                 {
-                  "name": "namespace"
+                  "name": "organization"
                 },
                 {
                   "hide": true,
@@ -76,8 +76,8 @@
                   "kind": "PrometheusTimeSeriesQuery",
                   "spec": {
                     "minStep": "",
-                    "query": "count by (clusterName, namespace, version) (greenhouse_cluster_k8s_versions_total)",
-                    "seriesNameFormat": "{{clusterName}}/{{namespace}}/{{version}}"
+                    "query": "count by (clusterName, organization, version) (greenhouse_cluster_k8s_versions_total)",
+                    "seriesNameFormat": "{{clusterName}}/{{organization}}/{{version}}"
                   }
                 }
               }
@@ -204,8 +204,8 @@
         "kind": "Panel",
         "spec": {
           "display": {
-            "name": "KubeConfig Token Lifetime by Cluster/Namespace",
-            "description": "GreenhouseClusterTokenExpiry: The kubeconfig token for cluster in namespace will expire less than 20 hours."
+            "name": "KubeConfig Token Lifetime by Cluster/Organization",
+            "description": "GreenhouseClusterTokenExpiry: The kubeconfig token for cluster in organization will expire less than 20 hours."
           },
           "plugin": {
             "kind": "TimeSeriesChart",
@@ -239,7 +239,7 @@
                   "spec": {
                     "minStep": "15m",
                     "query": "greenhouse_cluster_kubeconfig_validity_seconds",
-                    "seriesNameFormat": "{{clusterName}}/{{namespace}}"
+                    "seriesNameFormat": "{{clusterName}}/{{organization}}"
                   }
                 }
               }
@@ -252,7 +252,7 @@
         "spec": {
           "display": {
             "name": "Greenhouse Ready Status",
-            "description": " GreenhouseClusterNotReady: Cluster in namespace has not been ready for more than 15 minutes."
+            "description": " GreenhouseClusterNotReady: Cluster in organization has not been ready for more than 15 minutes."
           },
           "plugin": {
             "kind": "Table",
@@ -289,7 +289,7 @@
                 },
                 {
                   "enableSorting": true,
-                  "name": "namespace",
+                  "name": "organization",
                   "sort": "asc"
                 },
                 {
@@ -314,8 +314,8 @@
                   "kind": "PrometheusTimeSeriesQuery",
                   "spec": {
                     "minStep": "",
-                    "query": "sum by (clusterName, namespace) (greenhouse_cluster_ready)",
-                    "seriesNameFormat": "{{clusterName}} | {{namespace}}"
+                    "query": "sum by (clusterName, organization) (greenhouse_cluster_ready)",
+                    "seriesNameFormat": "{{clusterName}} | {{organization}}"
                   }
                 }
               }

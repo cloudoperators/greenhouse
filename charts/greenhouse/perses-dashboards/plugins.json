@@ -37,7 +37,7 @@
                   "spec": {
                     "minStep": "",
                     "query": "greenhouse_plugin_workload_status_up{cluster=~\"$clusterName\", owned_by=~\"$ownedBy\"}",
-                    "seriesNameFormat": "{{cluster}} | {{namespace}} | {{owned_by}} | {{plugin}}"
+                    "seriesNameFormat": "{{cluster}} | {{organization}} | {{owned_by}} | {{plugin}}"
                   }
                 }
               }
@@ -155,7 +155,7 @@
                   "kind": "PrometheusTimeSeriesQuery",
                   "spec": {
                     "minStep": "",
-                    "query": "sum by (namespace, pluginDefinition, reason, clusterName) (increase(greenhouse_plugin_reconcile_total{clusterName=~\"$clusterName\",result=\"error\"}[5m])) > 0",
+                    "query": "sum by (organization, pluginDefinition, reason, clusterName) (increase(greenhouse_plugin_reconcile_total{clusterName=~\"$clusterName\",result=\"error\"}[5m])) > 0",
                     "seriesNameFormat": "{{clusterName}}/{{pluginDefinition}}: \"{{reason}}\""
                   }
                 }
@@ -288,8 +288,8 @@
                   "kind": "PrometheusTimeSeriesQuery",
                   "spec": {
                     "minStep": "",
-                    "query": "sum by(plugin, cluster, namespace)(rate(greenhouse_plugin_chart_test_runs_total{cluster=~\"$clusterName\", owned_by=~\"$ownedBy\", result=\"Error\"}[15m])) > 0",
-                    "seriesNameFormat": "{{cluster}} | {{namespace}} | {{owned_by}} | {{plugin}}"
+                    "query": "sum by(plugin, cluster, organization)(rate(greenhouse_plugin_chart_test_runs_total{cluster=~\"$clusterName\", owned_by=~\"$ownedBy\", result=\"Error\"}[15m])) > 0",
+                    "seriesNameFormat": "{{cluster}} | {{organization}} | {{owned_by}} | {{plugin}}"
                   }
                 }
               }
