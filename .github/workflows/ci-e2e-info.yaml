@@ -1,0 +1,129 @@
+name: CI E2E Info
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  detect:
+    name: Detect relevant suites
+    runs-on: [ubuntu-latest]
+    outputs:
+      changes: ${{ steps.filter.outputs.changes }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Filter suites by changed paths
+        id: filter
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        with:
+          filters: .github/paths-filters-e2e.yaml
+
+  comment:
+    name: Post info comment
+    needs: [detect]
+    if: github.event.pull_request.user.login != 'renovate[bot]'
+    runs-on: [ubuntu-latest]
+    steps:
+      - name: Compose and post comment
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v8.0.0
+        env:
+          CHANGES: ${{ needs.detect.outputs.changes }}
+        with:
+          script: |
+            const marker = '<!-- ci-e2e:info -->';
+            const allSuites = [
+              'organization', 'cluster', 'catalog', 'plugin',
+              'plugindefinition', 'clusterplugindefinition',
+              'teamrolebinding'
+            ];
+            const matched = JSON.parse(process.env.CHANGES || '[]');
+            const sharedHit = matched.includes('shared');
+            const suites = matched.filter(s => s !== 'shared');
+
+            const codeBlock = (s) => '```\n' + s + '\n```';
+            const detailsForSuite = (s) =>
+              `<details>\n<summary><b>/e2e ${s}</b></summary>\n\n` +
+              `Runs the \`${s}\` e2e suite against the PR head.\n\n` +
+              `Comment on this PR:\n\n${codeBlock('/e2e ' + s)}\n` +
+              `</details>\n`;
+
+            let body = `${marker}\n## E2E\n\n`;
+
+            if (sharedHit) {
+              body += `Shared code changed — the full suite is recommended. Comment on this PR:\n\n`;
+              body += codeBlock('/e2e all') + '\n\n';
+              body += `<details>\n<summary><b>Run individual suites</b></summary>\n\n`;
+              body += allSuites.map(detailsForSuite).join('\n');
+              body += `</details>\n`;
+            } else if (suites.length === 0) {
+              body += `No e2e-relevant changes detected. To satisfy \`e2eOK\` without running any suite, comment:\n\n`;
+              body += codeBlock('/e2e skip') + '\n\n';
+              body += `<details>\n<summary><b>Run a suite anyway</b></summary>\n\n`;
+              body += allSuites.map(detailsForSuite).join('\n');
+              body += `\n${codeBlock('/e2e all')}\n`;
+              body += `</details>\n`;
+            } else {
+              body += `Relevant suites detected: ${suites.map(s => `\`${s}\``).join(', ')}.\n\n`;
+              body += `Comment on this PR:\n\n`;
+              body += codeBlock('/e2e ' + suites.join(' ')) + '\n\n';
+              body += `_or run the full set:_\n\n${codeBlock('/e2e all')}\n\n`;
+              body += `<details>\n<summary><b>Run individual suites</b></summary>\n\n`;
+              body += suites.map(detailsForSuite).join('\n');
+              body += `</details>\n`;
+            }
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body && c.body.startsWith(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  renovate-autorun:
+    name: Auto-trigger /e2e all for renovate
+    needs: [detect]
+    if: github.event.pull_request.user.login == 'renovate[bot]'
+    runs-on: [ubuntu-latest]
+    steps:
+      - name: Post /e2e all comment
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v8.0.0
+        with:
+          script: |
+            const marker = '<!-- ci-e2e:renovate-autorun -->';
+            const body = `${marker}\n/e2e all`;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body && c.body.startsWith(marker));
+            if (existing) {
+              core.info('Renovate autorun comment already posted; skipping.');
+              return;
+            }
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });

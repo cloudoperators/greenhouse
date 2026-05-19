@@ -1,0 +1,29 @@
+# Path filters consumed by .github/workflows/ci-pr.yaml via dorny/paths-filter.
+# Edit this file to change which paths trigger which lint/test/build jobs —
+# no workflow YAML changes required.
+
+go:
+  - 'internal/**'
+  - 'cmd/**'
+  - 'pkg/**'
+  - 'api/**'
+  - 'go.mod'
+  - 'go.sum'
+  - '.golangci.yaml'
+
+api:
+  - 'api/**'
+  - 'charts/manager/crds/**'
+
+charts:
+  - 'charts/**'
+
+docker:
+  - 'Dockerfile*'
+  - 'Makefile'
+  - 'cmd/**'
+  - 'internal/**'
+  - 'pkg/**'
+  - 'api/**'
+  - 'go.mod'
+  - 'go.sum'
