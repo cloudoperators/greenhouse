@@ -59,8 +59,8 @@ jobs:
               body += `Shared code changed — full E2E run is recommended.\n\n`;
               body += `Comment \`/e2e all\` to run all suites.\n`;
             } else {
-              const suiteList = suites.map(s => `- \`${s}\``).join('\n');
-              body += `<details><summary><b>Detected E2E Suites</b></summary>\n\n${suiteList}\n\n</details>\n\n`;
+              const suiteList = suites.map(s => `/e2e ${s}`).join('\n');
+              body += `<details><summary><b>Detected E2E Suites</b></summary>\n\n\`\`\`\n${suiteList}\n\`\`\`\n\n</details>\n\n`;
               body += `Comment \`/e2e all\` to run all suites.\n`;
             }
 
