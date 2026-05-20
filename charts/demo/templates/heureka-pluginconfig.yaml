@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse c
 SPDX-License-Identifier: Apache-2.0
 */}}
 
-{{- if .Values.heureka.enabled }}
+{{- if and .Values.heureka.enabled .Values.heureka.apiEndpoint }}
 apiVersion: greenhouse.sap/v1alpha1
 kind: Plugin
 metadata:
@@ -15,5 +15,5 @@ spec:
   displayName: {{ required ".Values.heureka.displayName missing" .Values.heureka.displayName }}
   optionValues:
     - name: apiEndpoint
-      value: "https://demo.{{ .Values.global.dnsDomain }}"
+      value: {{ required ".Values.heureka.apiEndpoint missing" .Values.heureka.apiEndpoint | quote }}
 {{ end }}
