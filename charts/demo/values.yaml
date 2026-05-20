@@ -49,4 +49,4 @@ doop:
 heureka:
   enabled: true
   displayName: Compliance
-  apiEndpoint:
+  apiEndpoint: https://heureka-demo.scaleout.ap-jp-2.cloud.sap/query
