@@ -99,6 +99,9 @@ linters:
           msg: github.com/howeyc/gopass is archived, use golang.org/x/term instead
     goconst:
       min-occurrences: 5
+      ignore-tests: true
+      ignore-string-values:
+        - "^[a-zA-Z_-]{1,16}$" # ignore short identifiers like "account" or "project_id"
     gocritic:
       enabled-checks:
         - boolExprSimplify

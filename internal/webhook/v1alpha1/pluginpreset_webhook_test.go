@@ -336,7 +336,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 
 		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: greenhouseNamespace,
+				Namespace: "greenhouse",
 				Name:      "testPlugin",
 			},
 			Spec: greenhousev1alpha1.PluginDefinitionSpec{
@@ -410,7 +410,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 
 		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: greenhouseNamespace,
+				Namespace: "greenhouse",
 				Name:      "testPlugin",
 			},
 			Spec: greenhousev1alpha1.PluginDefinitionSpec{

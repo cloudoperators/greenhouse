@@ -46,7 +46,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 
 		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: greenhouseNamespace,
+				Namespace: "greenhouse",
 				Name:      "testPlugin",
 			},
 			Spec: greenhousev1alpha1.PluginDefinitionSpec{
@@ -82,7 +82,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 	DescribeTable("Validate PluginOptionValue is consistent with PluginOption Type", func(defaultValue any, defaultType greenhousev1alpha1.PluginOptionType, actValue any, expErr bool) {
 		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: greenhouseNamespace,
+				Namespace: "greenhouse",
 				Name:      "testPlugin",
 			},
 			Spec: greenhousev1alpha1.PluginDefinitionSpec{
@@ -132,7 +132,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 	DescribeTable("Validate PluginOptionValue references a Secret", func(actValue *greenhousev1alpha1.PluginOptionValue, expErr bool) {
 		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: greenhouseNamespace,
+				Namespace: "greenhouse",
 				Name:      "testPlugin",
 			},
 			Spec: greenhousev1alpha1.PluginDefinitionSpec{
@@ -169,7 +169,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 	DescribeTable("Validate Plugin specifies all required options", func(optionValues []greenhousev1alpha1.PluginOptionValue, expErr bool) {
 		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: greenhouseNamespace,
+				Namespace: "greenhouse",
 				Name:      "testPlugin",
 			},
 			Spec: greenhousev1alpha1.PluginDefinitionSpec{

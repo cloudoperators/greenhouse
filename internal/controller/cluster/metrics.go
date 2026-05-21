@@ -13,32 +13,25 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
-const (
-	metricLabelClusterName  = "clusterName"
-	metricLabelOrganization = "organization"
-	metricLabelOwnedBy      = "owned_by"
-	metricLabelVersion      = "version"
-)
-
 var (
 	ClusterReadyGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "greenhouse_cluster_ready",
 			Help: "Indicates whether the cluster is ready",
 		},
-		[]string{metricLabelClusterName, metricLabelOrganization, metricLabelOwnedBy})
+		[]string{"clusterName", "organization", "owned_by"})
 
 	KubernetesVersionsGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "greenhouse_cluster_k8s_versions_total",
 		},
-		[]string{metricLabelClusterName, metricLabelOrganization, metricLabelVersion, metricLabelOwnedBy})
+		[]string{"clusterName", "organization", "version", "owned_by"})
 
 	SecondsToTokenExpiryGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "greenhouse_cluster_kubeconfig_validity_seconds",
 		},
-		[]string{metricLabelClusterName, metricLabelOrganization, metricLabelOwnedBy})
+		[]string{"clusterName", "organization", "owned_by"})
 )
 
 func init() {
@@ -49,25 +42,25 @@ func init() {
 
 func UpdateClusterMetrics(cluster *greenhousev1alpha1.Cluster) {
 	kubernetesVersionLabels := prometheus.Labels{
-		metricLabelClusterName:  cluster.Name,
-		metricLabelOrganization: cluster.Namespace,
-		metricLabelVersion:      cluster.Status.KubernetesVersion,
-		metricLabelOwnedBy:      cluster.Labels[greenhouseapis.LabelKeyOwnedBy],
+		"clusterName":  cluster.Name,
+		"organization": cluster.Namespace,
+		"version":      cluster.Status.KubernetesVersion,
+		"owned_by":     cluster.Labels[greenhouseapis.LabelKeyOwnedBy],
 	}
 	KubernetesVersionsGauge.With(kubernetesVersionLabels).Set(float64(1))
 
 	secondsToExpiry := cluster.Status.BearerTokenExpirationTimestamp.Unix() - time.Now().Unix()
 	secondsToExpiryLabels := prometheus.Labels{
-		metricLabelClusterName:  cluster.Name,
-		metricLabelOrganization: cluster.Namespace,
-		metricLabelOwnedBy:      cluster.Labels[greenhouseapis.LabelKeyOwnedBy],
+		"clusterName":  cluster.Name,
+		"organization": cluster.Namespace,
+		"owned_by":     cluster.Labels[greenhouseapis.LabelKeyOwnedBy],
 	}
 	SecondsToTokenExpiryGauge.With(secondsToExpiryLabels).Set(float64(secondsToExpiry))
 
 	clusterReadyLabels := prometheus.Labels{
-		metricLabelClusterName:  cluster.Name,
-		metricLabelOrganization: cluster.Namespace,
-		metricLabelOwnedBy:      cluster.Labels[greenhouseapis.LabelKeyOwnedBy],
+		"clusterName":  cluster.Name,
+		"organization": cluster.Namespace,
+		"owned_by":     cluster.Labels[greenhouseapis.LabelKeyOwnedBy],
 	}
 	if cluster.Status.IsReadyTrue() {
 		ClusterReadyGauge.With(clusterReadyLabels).Set(float64(1))

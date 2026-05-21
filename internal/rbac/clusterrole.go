@@ -15,7 +15,7 @@ func OrganizationAdminClusterRolePolicyRules(organizationName string) []rbacv1.P
 		// Grant extensive permissions for this Organization to its administrators.
 		// Creation and deletion is only permitted for Greenhouse administrators though.
 		{
-			Verbs:         []string{verbGet, verbList, verbWatch, verbUpdate, verbPatch},
+			Verbs:         []string{"get", "list", "watch", "update", "patch"},
 			APIGroups:     []string{greenhouseapisv1alpha1.GroupVersion.Group},
 			Resources:     []string{"organizations"},
 			ResourceNames: []string{organizationName},
@@ -29,14 +29,14 @@ func OrganizationMemberClusterRolePolicyRules(organizationName string) []rbacv1.
 	return []rbacv1.PolicyRule{
 		// Grant read permissions for this Organization to its members.
 		{
-			Verbs:         []string{verbGet, verbList, verbWatch},
+			Verbs:         []string{"get", "list", "watch"},
 			APIGroups:     []string{greenhouseapisv1alpha1.GroupVersion.Group},
 			Resources:     []string{"organizations"},
 			ResourceNames: []string{organizationName},
 		},
 		// Grant read permissions for PluginDefinitions.
 		{
-			Verbs:     []string{verbGet, verbList, verbWatch},
+			Verbs:     []string{"get", "list", "watch"},
 			APIGroups: []string{greenhouseapisv1alpha1.GroupVersion.Group},
 			Resources: []string{"clusterplugindefinitions"},
 		},

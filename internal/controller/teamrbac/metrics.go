@@ -11,20 +11,13 @@ import (
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 )
 
-const (
-	metricLabelOrganization    = "organization"
-	metricLabelTeamRoleBinding = "team_role_binding"
-	metricLabelTeam            = "team"
-	metricLabelOwnedBy         = "owned_by"
-)
-
 var (
 	teamRBACReadyGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "greenhouse_team_rbac_ready",
 			Help: "Indicates whether the team RBAC is ready",
 		},
-		[]string{metricLabelTeamRoleBinding, metricLabelTeam, metricLabelOrganization, metricLabelOwnedBy},
+		[]string{"team_role_binding", "team", "organization", "owned_by"},
 	)
 
 	teamRBACClustersGauge = prometheus.NewGaugeVec(
@@ -32,7 +25,7 @@ var (
 			Name: "greenhouse_team_rbac_clusters_total",
 			Help: "Number of clusters currently targeted by a TeamRoleBinding",
 		},
-		[]string{metricLabelTeamRoleBinding, metricLabelTeam, metricLabelOrganization, metricLabelOwnedBy},
+		[]string{"team_role_binding", "team", "organization", "owned_by"},
 	)
 )
 
@@ -42,8 +35,8 @@ func init() {
 
 func UpdateTeamRBACMetrics(teamRoleBinding *greenhousev1alpha2.TeamRoleBinding) {
 	teamRBACReadyGauge.DeletePartialMatch(prometheus.Labels{
-		metricLabelTeamRoleBinding: teamRoleBinding.Name,
-		metricLabelOrganization:    teamRoleBinding.Namespace,
+		"team_role_binding": teamRoleBinding.Name,
+		"organization":      teamRoleBinding.Namespace,
 	})
 
 	var value float64
@@ -54,36 +47,36 @@ func UpdateTeamRBACMetrics(teamRoleBinding *greenhousev1alpha2.TeamRoleBinding) 
 	teamRefs := resolveTeamRefs(teamRoleBinding)
 	for _, team := range teamRefs {
 		teamRBACReadyGauge.With(prometheus.Labels{
-			metricLabelTeamRoleBinding: teamRoleBinding.Name,
-			metricLabelTeam:            team,
-			metricLabelOrganization:    teamRoleBinding.Namespace,
-			metricLabelOwnedBy:         teamRoleBinding.GetLabels()[greenhouseapis.LabelKeyOwnedBy],
+			"team_role_binding": teamRoleBinding.Name,
+			"team":              team,
+			"organization":      teamRoleBinding.Namespace,
+			"owned_by":          teamRoleBinding.GetLabels()[greenhouseapis.LabelKeyOwnedBy],
 		}).Set(value)
 	}
 }
 
 func DeleteTeamRBACMetrics(teamRoleBinding *greenhousev1alpha2.TeamRoleBinding) {
 	teamRBACReadyGauge.DeletePartialMatch(prometheus.Labels{
-		metricLabelTeamRoleBinding: teamRoleBinding.Name,
-		metricLabelOrganization:    teamRoleBinding.Namespace,
+		"team_role_binding": teamRoleBinding.Name,
+		"organization":      teamRoleBinding.Namespace,
 	})
 	teamRBACClustersGauge.DeletePartialMatch(prometheus.Labels{
-		metricLabelTeamRoleBinding: teamRoleBinding.Name,
-		metricLabelOrganization:    teamRoleBinding.Namespace,
+		"team_role_binding": teamRoleBinding.Name,
+		"organization":      teamRoleBinding.Namespace,
 	})
 }
 
 func UpdateTeamRBACClustersMetric(trb *greenhousev1alpha2.TeamRoleBinding, count int) {
 	teamRBACClustersGauge.DeletePartialMatch(prometheus.Labels{
-		metricLabelTeamRoleBinding: trb.Name,
-		metricLabelOrganization:    trb.Namespace,
+		"team_role_binding": trb.Name,
+		"organization":      trb.Namespace,
 	})
 	for _, team := range resolveTeamRefs(trb) {
 		teamRBACClustersGauge.With(prometheus.Labels{
-			metricLabelTeamRoleBinding: trb.Name,
-			metricLabelTeam:            team,
-			metricLabelOrganization:    trb.Namespace,
-			metricLabelOwnedBy:         trb.GetLabels()[greenhouseapis.LabelKeyOwnedBy],
+			"team_role_binding": trb.Name,
+			"team":              team,
+			"organization":      trb.Namespace,
+			"owned_by":          trb.GetLabels()[greenhouseapis.LabelKeyOwnedBy],
 		}).Set(float64(count))
 	}
 }

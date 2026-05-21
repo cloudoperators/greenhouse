@@ -20,8 +20,6 @@ const (
 	reasonDecodeError            = "decode_error"
 	reasonMissingAttributes      = "missing_attributes"
 	reasonServiceAccountNotFound = "service_account_not_found"
-
-	metricLabelResult = "result"
 )
 
 var (
@@ -30,7 +28,7 @@ var (
 			Name: "greenhouse_authz_requests_total",
 			Help: "Total number of authorization requests labeled by result and verb.",
 		},
-		[]string{metricLabelResult, "verb"},
+		[]string{"result", "verb"},
 	)
 
 	authzDeniedTotal = prometheus.NewCounterVec(
@@ -46,7 +44,7 @@ var (
 			Name: "greenhouse_authz_access_total",
 			Help: "Authorization decisions by support_group, resource and result.",
 		},
-		[]string{"support_group", "resource", metricLabelResult},
+		[]string{"support_group", "resource", "result"},
 	)
 
 	authzKubeFetchErrorsTotal = prometheus.NewCounterVec(
@@ -91,14 +89,14 @@ func instrumentHandler(h http.Handler) http.Handler {
 }
 
 func recordAllowed(verb, resource, supportGroup string) {
-	authzRequestsTotal.With(prometheus.Labels{metricLabelResult: "allowed", "verb": verb}).Inc()
-	authzAccessTotal.With(prometheus.Labels{"support_group": supportGroup, "resource": resource, metricLabelResult: "allowed"}).Inc()
+	authzRequestsTotal.With(prometheus.Labels{"result": "allowed", "verb": verb}).Inc()
+	authzAccessTotal.With(prometheus.Labels{"support_group": supportGroup, "resource": resource, "result": "allowed"}).Inc()
 }
 
 func recordDenied(verb, resource, reason string, supportGroups []string) {
-	authzRequestsTotal.With(prometheus.Labels{metricLabelResult: "denied", "verb": verb}).Inc()
+	authzRequestsTotal.With(prometheus.Labels{"result": "denied", "verb": verb}).Inc()
 	authzDeniedTotal.With(prometheus.Labels{"reason": reason}).Inc()
 	for _, sg := range supportGroups {
-		authzAccessTotal.With(prometheus.Labels{"support_group": sg, "resource": resource, metricLabelResult: "denied"}).Inc()
+		authzAccessTotal.With(prometheus.Labels{"support_group": sg, "resource": resource, "result": "denied"}).Inc()
 	}
 }

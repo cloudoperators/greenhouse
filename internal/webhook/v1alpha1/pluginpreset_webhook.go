@@ -18,10 +18,6 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
 
-const (
-	labelValueTrue = "true"
-)
-
 // Webhook for the PluginPreset custom resource.
 
 func SetupPluginPresetWebhookWithManager(mgr ctrl.Manager) error {
@@ -44,7 +40,7 @@ func DefaultPluginPreset(ctx context.Context, c client.Client, pluginPreset *gre
 		pluginPreset.Annotations = map[string]string{}
 	}
 	if pluginPreset.CreationTimestamp.IsZero() {
-		pluginPreset.Annotations[greenhousev1alpha1.PreventDeletionAnnotation] = labelValueTrue
+		pluginPreset.Annotations[greenhousev1alpha1.PreventDeletionAnnotation] = "true"
 	}
 
 	if pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind == "" {
