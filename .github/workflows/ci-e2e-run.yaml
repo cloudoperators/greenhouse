@@ -21,7 +21,7 @@ jobs:
     steps:
       - name: Resolve PR head SHA
         id: pr
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const { owner, repo, number } = context.issue;
@@ -30,7 +30,7 @@ jobs:
 
       - name: Parse comment body
         id: cmd
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           BODY: ${{ github.event.comment.body }}
         with:
@@ -87,7 +87,7 @@ jobs:
           fi
 
       - name: Acknowledge command
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             await github.rest.reactions.createForIssueComment({
@@ -144,7 +144,7 @@ jobs:
     runs-on: [ubuntu-latest]
     steps:
       - name: Post e2eOK commit status
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           RUN: ${{ needs.parse.outputs.run }}
           E2E_RESULT: ${{ needs.e2e.result }}
