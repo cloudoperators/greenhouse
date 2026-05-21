@@ -30,6 +30,15 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
+const (
+	labelKeyApp           = "app"
+	labelValueTrue        = "true"
+	labelValueTestCluster = "test-cluster"
+	fieldType             = "Type"
+	fieldReason           = "Reason"
+	fieldStatus           = "Status"
+)
+
 func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName string) {
 	By("Creating plugin definition")
 	testPluginDefinition := fixtures.PreparePodInfoClusterPluginDefinition(env.TestNamespace, "6.9.0")
@@ -56,14 +65,14 @@ func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClien
 		test.WithReleaseName("test-podinfo-plugin"),
 		test.WithReleaseNamespace(env.TestNamespace),
 		test.WithPluginOptionValue("replicaCount", test.MustReturnJSONFor("1")),
-		test.WithPluginOptionValue("ingress.enabled", test.MustReturnJSONFor("true")),
-		test.WithPluginOptionValue("ingress.annotations", test.MustReturnJSONFor(map[string]string{"greenhouse.sap/expose": "true"})))
+		test.WithPluginOptionValue("ingress.enabled", test.MustReturnJSONFor(labelValueTrue)),
+		test.WithPluginOptionValue("ingress.annotations", test.MustReturnJSONFor(map[string]string{"greenhouse.sap/expose": labelValueTrue})))
 	By("Add labels to remote cluster")
 	remoteCluster := &greenhousev1alpha1.Cluster{}
 	err = adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterName, Namespace: env.TestNamespace}, remoteCluster)
 	Expect(err).ToNot(HaveOccurred())
 	remoteCluster.Labels = map[string]string{
-		"app": "test-cluster",
+		labelKeyApp: labelValueTestCluster,
 	}
 	err = adminClient.Update(ctx, remoteCluster)
 	Expect(err).ToNot(HaveOccurred())
@@ -71,7 +80,7 @@ func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClien
 	By("Creating the plugin preset")
 	testPluginPreset := test.NewPluginPreset("test-podinfo-plugin-preset", env.TestNamespace,
 		test.WithPluginPresetPluginSpec(testPlugin.Spec),
-		test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"app": "test-cluster"}}),
+		test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{labelKeyApp: labelValueTestCluster}}),
 	)
 	err = adminClient.Create(ctx, testPluginPreset)
 	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
@@ -95,9 +104,9 @@ func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClien
 		g.Expect(helmReleaseList.Items).To(HaveLen(1))
 		helmRelease = &helmReleaseList.Items[0]
 		g.Expect(helmRelease.Status.Conditions).To(ContainElement(MatchFields(IgnoreExtras, Fields{
-			"Type":   Equal(helmv2.ReleasedCondition),
-			"Reason": Equal(helmv2.InstallSucceededReason),
-			"Status": Equal(metav1.ConditionTrue),
+			fieldType:   Equal(helmv2.ReleasedCondition),
+			fieldReason: Equal(helmv2.InstallSucceededReason),
+			fieldStatus: Equal(metav1.ConditionTrue),
 		})))
 		releaseReady := meta.FindStatusCondition(helmRelease.Status.Conditions, fluxmeta.ReadyCondition)
 		g.Expect(releaseReady).ToNot(BeNil(), "HelmRelease Ready condition must be set")
@@ -157,9 +166,9 @@ func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClien
 		err = adminClient.Get(ctx, client.ObjectKeyFromObject(helmRelease), helmRelease)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(helmRelease.Status.Conditions).To(ContainElement(MatchFields(IgnoreExtras, Fields{
-			"Type":   Equal(helmv2.ReleasedCondition),
-			"Reason": Equal(helmv2.UpgradeSucceededReason),
-			"Status": Equal(metav1.ConditionTrue),
+			fieldType:   Equal(helmv2.ReleasedCondition),
+			fieldReason: Equal(helmv2.UpgradeSucceededReason),
+			fieldStatus: Equal(metav1.ConditionTrue),
 		})))
 	}).Should(Succeed())
 
@@ -173,7 +182,7 @@ func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClien
 	}).Should(Succeed())
 
 	By("Disabling exposed services for the cluster")
-	test.MustSetAnnotation(ctx, adminClient, remoteCluster, greenhousev1alpha1.ServiceProxyDisabledKey, "true")
+	test.MustSetAnnotation(ctx, adminClient, remoteCluster, greenhousev1alpha1.ServiceProxyDisabledKey, labelValueTrue)
 
 	By("verifying exposed services are not-nil and condition reflects synced state if ingress are present but service-proxy is disabled")
 	Eventually(func(g Gomega) {
@@ -246,7 +255,7 @@ func FluxControllerUIOnlyPlugin(ctx context.Context, adminClient client.Client, 
 	err = adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterName, Namespace: env.TestNamespace}, remoteCluster)
 	Expect(err).ToNot(HaveOccurred())
 	remoteCluster.Labels = map[string]string{
-		"app": "test-cluster",
+		labelKeyApp: labelValueTestCluster,
 	}
 	err = adminClient.Update(ctx, remoteCluster)
 	Expect(err).ToNot(HaveOccurred())
@@ -254,7 +263,7 @@ func FluxControllerUIOnlyPlugin(ctx context.Context, adminClient client.Client, 
 	By("Creating the plugin preset")
 	testPluginPreset := test.NewPluginPreset("test-ui-only-plugin-preset", env.TestNamespace,
 		test.WithPluginPresetPluginSpec(testPlugin.Spec),
-		test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"app": "test-cluster"}}),
+		test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{labelKeyApp: labelValueTestCluster}}),
 	)
 	err = adminClient.Create(ctx, testPluginPreset)
 	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
@@ -348,7 +357,7 @@ func FluxControllerPluginDependencies(ctx context.Context, adminClient client.Cl
 	err = adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterName, Namespace: env.TestNamespace}, remoteCluster)
 	Expect(err).ToNot(HaveOccurred())
 	remoteCluster.Labels = map[string]string{
-		"app": "test-cluster",
+		labelKeyApp: labelValueTestCluster,
 	}
 	err = adminClient.Update(ctx, remoteCluster)
 	Expect(err).ToNot(HaveOccurred())
@@ -361,7 +370,7 @@ func FluxControllerPluginDependencies(ctx context.Context, adminClient client.Cl
 	leafPluginPreset := test.NewPluginPreset("test-leaf-plugin-preset", env.TestNamespace,
 		test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamName),
 		test.WithPluginPresetPluginSpec(testPluginSpec),
-		test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"app": "test-cluster"}}),
+		test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{labelKeyApp: labelValueTestCluster}}),
 		test.WithPluginPresetWaitFor(
 			greenhousev1alpha1.WaitForItem{
 				PluginRef: greenhousev1alpha1.PluginRef{
@@ -409,10 +418,10 @@ func FluxControllerPluginDependencies(ctx context.Context, adminClient client.Cl
 			helmv2.DependencyReference{Name: midPluginPresetResolvedPluginName},
 		), "HelmRelease dependencies should be set to resolved Plugin names it depends on")
 		g.Expect(leafHelmRelease.Status.Conditions).To(ContainElement(MatchFields(IgnoreExtras, Fields{
-			"Type":    Equal(fluxmeta.ReadyCondition),
-			"Reason":  Equal(helmv2.DependencyNotReadyReason),
-			"Status":  Equal(metav1.ConditionFalse),
-			"Message": ContainSubstring("unable to get '" + env.TestNamespace + "/" + midPluginPresetResolvedPluginName + "' dependency"),
+			fieldType:   Equal(fluxmeta.ReadyCondition),
+			fieldReason: Equal(helmv2.DependencyNotReadyReason),
+			fieldStatus: Equal(metav1.ConditionFalse),
+			"Message":   ContainSubstring("unable to get '" + env.TestNamespace + "/" + midPluginPresetResolvedPluginName + "' dependency"),
 		})))
 	}).Should(Succeed())
 
@@ -420,7 +429,7 @@ func FluxControllerPluginDependencies(ctx context.Context, adminClient client.Cl
 	midPluginPreset := test.NewPluginPreset(midPluginPresetName, env.TestNamespace,
 		test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamName),
 		test.WithPluginPresetPluginSpec(testPluginSpec),
-		test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"app": "test-cluster"}}),
+		test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{labelKeyApp: labelValueTestCluster}}),
 		test.WithPluginPresetWaitFor(greenhousev1alpha1.WaitForItem{
 			PluginRef: greenhousev1alpha1.PluginRef{
 				Name: globalPluginName,
@@ -449,10 +458,10 @@ func FluxControllerPluginDependencies(ctx context.Context, adminClient client.Cl
 			helmv2.DependencyReference{Name: globalPluginName},
 		), "HelmRelease dependency should be set to the globalPlugin name it depends on")
 		g.Expect(midHelmRelease.Status.Conditions).To(ContainElement(MatchFields(IgnoreExtras, Fields{
-			"Type":    Equal(fluxmeta.ReadyCondition),
-			"Reason":  Equal(helmv2.DependencyNotReadyReason),
-			"Status":  Equal(metav1.ConditionFalse),
-			"Message": ContainSubstring("unable to get '" + env.TestNamespace + "/" + globalPluginName + "' dependency"),
+			fieldType:   Equal(fluxmeta.ReadyCondition),
+			fieldReason: Equal(helmv2.DependencyNotReadyReason),
+			fieldStatus: Equal(metav1.ConditionFalse),
+			"Message":   ContainSubstring("unable to get '" + env.TestNamespace + "/" + globalPluginName + "' dependency"),
 		})))
 	}).Should(Succeed())
 
@@ -474,9 +483,9 @@ func FluxControllerPluginDependencies(ctx context.Context, adminClient client.Cl
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(globalPluginHelmRelease.Spec.DependsOn).To(BeEmpty())
 		g.Expect(globalPluginHelmRelease.Status.Conditions).To(ContainElement(MatchFields(IgnoreExtras, Fields{
-			"Type":   Equal(helmv2.ReleasedCondition),
-			"Reason": Equal(helmv2.InstallSucceededReason),
-			"Status": Equal(metav1.ConditionTrue),
+			fieldType:   Equal(helmv2.ReleasedCondition),
+			fieldReason: Equal(helmv2.InstallSucceededReason),
+			fieldStatus: Equal(metav1.ConditionTrue),
 		})))
 	}).Should(Succeed())
 
@@ -485,9 +494,9 @@ func FluxControllerPluginDependencies(ctx context.Context, adminClient client.Cl
 		err = adminClient.Get(ctx, types.NamespacedName{Name: midPluginPresetResolvedPluginName, Namespace: env.TestNamespace}, midHelmRelease)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(midHelmRelease.Status.Conditions).To(ContainElement(MatchFields(IgnoreExtras, Fields{
-			"Type":   Equal(helmv2.ReleasedCondition),
-			"Reason": Equal(helmv2.InstallSucceededReason),
-			"Status": Equal(metav1.ConditionTrue),
+			fieldType:   Equal(helmv2.ReleasedCondition),
+			fieldReason: Equal(helmv2.InstallSucceededReason),
+			fieldStatus: Equal(metav1.ConditionTrue),
 		})))
 	}).Should(Succeed())
 
@@ -496,9 +505,9 @@ func FluxControllerPluginDependencies(ctx context.Context, adminClient client.Cl
 		err = adminClient.Get(ctx, client.ObjectKeyFromObject(leafHelmRelease), leafHelmRelease)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(leafHelmRelease.Status.Conditions).To(ContainElement(MatchFields(IgnoreExtras, Fields{
-			"Type":   Equal(helmv2.ReleasedCondition),
-			"Reason": Equal(helmv2.UpgradeSucceededReason),
-			"Status": Equal(metav1.ConditionTrue),
+			fieldType:   Equal(helmv2.ReleasedCondition),
+			fieldReason: Equal(helmv2.UpgradeSucceededReason),
+			fieldStatus: Equal(metav1.ConditionTrue),
 		})))
 	}).Should(Succeed())
 
@@ -548,7 +557,7 @@ func FluxControllerPluginDeletePolicyRetain(ctx context.Context, adminClient cli
 	err = adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterName, Namespace: env.TestNamespace}, remoteCluster)
 	Expect(err).ToNot(HaveOccurred())
 	remoteCluster.Labels = map[string]string{
-		"app": "test-cluster",
+		labelKeyApp: labelValueTestCluster,
 	}
 	err = adminClient.Update(ctx, remoteCluster)
 	Expect(err).ToNot(HaveOccurred())
@@ -559,7 +568,7 @@ func FluxControllerPluginDeletePolicyRetain(ctx context.Context, adminClient cli
 	pluginPreset := test.NewPluginPreset(pluginPresetName, env.TestNamespace,
 		test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamName),
 		test.WithPluginPresetPluginSpec(testPluginSpec),
-		test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"app": "test-cluster"}}),
+		test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{labelKeyApp: labelValueTestCluster}}),
 		test.WithPluginPresetDeletionPolicy(greenhouseapis.DeletionPolicyRetain),
 	)
 	err = adminClient.Create(ctx, pluginPreset)

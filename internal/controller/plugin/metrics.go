@@ -11,13 +11,22 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
+const (
+	metricLabelOrganization     = "organization"
+	metricLabelOwnedBy          = "owned_by"
+	metricLabelVersion          = "version"
+	metricLabelClusterName      = "clusterName"
+	metricLabelPluginDefinition = "pluginDefinition"
+	metricLabelPlugin           = "plugin"
+)
+
 var (
 	pluginReady = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "greenhouse_plugin_ready",
 			Help: "Indicates whether the plugin is ready",
 		},
-		[]string{"pluginDefinition", "clusterName", "plugin", "organization", "owned_by"})
+		[]string{metricLabelPluginDefinition, metricLabelClusterName, metricLabelPlugin, metricLabelOrganization, metricLabelOwnedBy})
 )
 
 func init() {
@@ -26,11 +35,11 @@ func init() {
 
 func UpdatePluginReadyMetric(plugin *greenhousev1alpha1.Plugin, ready bool) {
 	pluginReadyLabels := prometheus.Labels{
-		"pluginDefinition": plugin.Spec.PluginDefinitionRef.Name,
-		"clusterName":      plugin.Spec.ClusterName,
-		"plugin":           plugin.Name,
-		"organization":     plugin.Namespace,
-		"owned_by":         plugin.Labels[greenhouseapis.LabelKeyOwnedBy],
+		metricLabelPluginDefinition: plugin.Spec.PluginDefinitionRef.Name,
+		metricLabelClusterName:      plugin.Spec.ClusterName,
+		metricLabelPlugin:           plugin.Name,
+		metricLabelOrganization:     plugin.Namespace,
+		metricLabelOwnedBy:          plugin.Labels[greenhouseapis.LabelKeyOwnedBy],
 	}
 	if ready {
 		pluginReady.With(pluginReadyLabels).Set(1)

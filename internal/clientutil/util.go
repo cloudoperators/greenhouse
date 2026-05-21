@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -116,14 +117,9 @@ func ShouldProceedDeletion(now, schedule time.Time) (bool, error) {
 
 // FilterClustersBeingDeleted - filters out the clusters that are marked for deletion
 func FilterClustersBeingDeleted(clusters *greenhousev1alpha1.ClusterList) *greenhousev1alpha1.ClusterList {
-	// Iterate over the cluster list in reverse to safely remove elements to prevent index shifting when an item is removed.
-	for i := len(clusters.Items) - 1; i >= 0; i-- {
-		c := clusters.Items[i]
-		if isMarkedForDeletion(clusters.Items[i].GetAnnotations()) || c.GetDeletionTimestamp() != nil {
-			// Remove the cluster marked for deletion by slicing the array
-			clusters.Items = append(clusters.Items[:i], clusters.Items[i+1:]...)
-		}
-	}
+	clusters.Items = slices.DeleteFunc(clusters.Items, func(c greenhousev1alpha1.Cluster) bool {
+		return isMarkedForDeletion(c.GetAnnotations()) || c.GetDeletionTimestamp() != nil
+	})
 	return clusters
 }
 

@@ -27,6 +27,10 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
 
+const (
+	greenhouseNamespace = "greenhouse"
+)
+
 // pluginsAllowedInCentralCluster is a list of PluginDefinitions that are allowed to be installed in the central cluster.
 // TODO: Make this configurable on pluginDefinition level (AdminPlugin discussion) instead of maintaining a list here.
 var pluginsAllowedInCentralCluster = []string{
@@ -357,7 +361,7 @@ func validateReleaseName(name string) error {
 
 func validatePluginForCluster(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec) error {
 	// Exclude front-end only Plugins as well as the greenhouse namespace from the below check.
-	if pluginDefinitionSpec.HelmChart == nil || plugin.GetNamespace() == "greenhouse" {
+	if pluginDefinitionSpec.HelmChart == nil || plugin.GetNamespace() == greenhouseNamespace {
 		return nil
 	}
 	// Ensure whitelisted plugins are deployed in the organization namespace

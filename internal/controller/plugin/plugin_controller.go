@@ -43,6 +43,10 @@ type PluginReconciler struct {
 	OCIMirroringEnabled         bool
 }
 
+const (
+	labelValueTrue = "true"
+)
+
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=clusterplugindefinitions,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins,verbs=get;list;watch;create;update;patch;delete
@@ -144,13 +148,13 @@ func (r *PluginReconciler) reconcileTechnicalLabels(ctx context.Context, plugin 
 		}
 
 		if plugin.Status.UIApplication != nil {
-			labels[greenhouseapis.LabelKeyUIPlugin] = "true"
+			labels[greenhouseapis.LabelKeyUIPlugin] = labelValueTrue
 		} else {
 			delete(labels, greenhouseapis.LabelKeyUIPlugin)
 		}
 
 		if len(plugin.Status.ExposedServices) > 0 {
-			labels[greenhouseapis.LabelKeyPluginExposedServices] = "true"
+			labels[greenhouseapis.LabelKeyPluginExposedServices] = labelValueTrue
 		} else {
 			delete(labels, greenhouseapis.LabelKeyPluginExposedServices)
 		}
@@ -239,7 +243,7 @@ func getExposedServicesForPluginFromHelmRelease(restClientGetter genericclioptio
 		APIVersion: "v1",
 		Kind:       "Service",
 		Annotations: map[string]string{
-			greenhouseapis.AnnotationKeyExpose: "true",
+			greenhouseapis.AnnotationKeyExpose: labelValueTrue,
 		},
 	})
 	if err != nil {
@@ -288,7 +292,7 @@ func getExposedIngressesForPluginFromHelmRelease(restClientGetter genericcliopti
 		APIVersion: "v1",
 		Kind:       "Ingress",
 		Annotations: map[string]string{
-			greenhouseapis.AnnotationKeyExpose: "true",
+			greenhouseapis.AnnotationKeyExpose: labelValueTrue,
 		},
 	})
 	if err != nil {
