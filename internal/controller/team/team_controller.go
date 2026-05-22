@@ -105,7 +105,7 @@ func (r *TeamController) setConditions() lifecycle.Conditioner {
 
 func (r *TeamController) EnsureDeleted(_ context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	team := obj.(*greenhousev1alpha1.Team)
-	DeleteTeamMembersCountMetric(team)
+	deleteTeamMembersCountMetric(team)
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 
@@ -161,7 +161,7 @@ func (r *TeamController) EnsureCreated(ctx context.Context, object lifecycle.Run
 	team.Status.Members = users
 	team.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.SCIMAccessReadyCondition, "", ""))
 
-	UpdateTeamMembersCountMetric(team, len(users))
+	updateTeamMembersCountMetric(team, len(users))
 
 	// Reconcile ServiceAccount for support group teams
 	if team.Labels[greenhouseapis.LabelKeySupportGroup] == "true" {
