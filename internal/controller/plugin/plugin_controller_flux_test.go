@@ -17,6 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
@@ -386,7 +387,7 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 		Eventually(func(g Gomega) {
 			err := test.K8sClient.Get(test.Ctx, releaseKey, helmRelease)
 			g.Expect(err).ToNot(HaveOccurred())
-			helmRelease.Finalizers = append(helmRelease.Finalizers, helmv2.HelmReleaseFinalizer)
+			controllerutil.AddFinalizer(helmRelease, helmv2.HelmReleaseFinalizer)
 			err = test.K8sClient.Update(test.Ctx, helmRelease)
 			g.Expect(err).ToNot(HaveOccurred())
 		}).Should(Succeed())
@@ -450,7 +451,7 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 		Eventually(func(g Gomega) {
 			err := test.K8sClient.Get(test.Ctx, releaseKey, helmRelease)
 			g.Expect(err).ToNot(HaveOccurred())
-			helmRelease.Finalizers = append(helmRelease.Finalizers, helmv2.HelmReleaseFinalizer)
+			controllerutil.AddFinalizer(helmRelease, helmv2.HelmReleaseFinalizer)
 			err = test.K8sClient.Update(test.Ctx, helmRelease)
 			g.Expect(err).ToNot(HaveOccurred())
 		}).Should(Succeed())

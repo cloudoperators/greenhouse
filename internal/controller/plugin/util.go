@@ -48,6 +48,8 @@ var deprecatedConditions = []greenhousemetav1alpha1.ConditionType{
 	"RetriesExhausted",
 }
 
+const clusterDeletingRequeueAfter = 30 * time.Second
+
 type reconcileResult struct {
 	requeueAfter time.Duration
 }
@@ -230,7 +232,7 @@ func shouldReconcileOrRequeue(ctx context.Context, c client.Client, plugin *gree
 	if cluster.GetDeletionTimestamp() != nil {
 		msg := fmt.Sprintf("cluster %s is being deleted", plugin.Spec.ClusterName)
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousemetav1alpha1.DeleteCondition, lifecycle.PendingDeletionReason, msg))
-		return &reconcileResult{}, nil
+		return &reconcileResult{requeueAfter: clusterDeletingRequeueAfter}, nil
 	}
 	scheduleExists, schedule, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
 	if err != nil {
