@@ -19,14 +19,17 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
@@ -56,10 +59,27 @@ func (r *CatalogReconciler) SetupWithManager(name string, mgr ctrl.Manager) erro
 		Owns(&sourcev1.GitRepository{}).
 		Owns(&sourcev2.ArtifactGenerator{}).
 		Owns(&kustomizev1.Kustomization{}).
+		Watches(
+			&sourcev1.ExternalArtifact{},
+			handler.EnqueueRequestsFromMapFunc(r.enqueueForExternalArtifact),
+		).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: 5,
 		}).
 		Complete(r)
+}
+
+func (r *CatalogReconciler) enqueueForExternalArtifact(ctx context.Context, obj client.Object) []ctrl.Request {
+	catalogName, ok := obj.GetLabels()[greenhouseapis.LabelKeyCatalog]
+	if !ok || catalogName == "" {
+		return nil
+	}
+	return []ctrl.Request{
+		{NamespacedName: types.NamespacedName{
+			Namespace: obj.GetNamespace(),
+			Name:      catalogName,
+		}},
+	}
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=catalogs,verbs=get;list;watch;create;update;patch;delete
