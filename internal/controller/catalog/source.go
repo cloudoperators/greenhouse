@@ -19,6 +19,7 @@ import (
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/events"
@@ -317,6 +318,12 @@ func (s *source) reconcileArtifactGeneration(ctx context.Context) (*sourcev1.Ext
 	extArtifact.SetNamespace(s.catalog.Namespace)
 	err = s.Get(ctx, client.ObjectKeyFromObject(extArtifact), extArtifact)
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			// ExternalArtifact is created asynchronously by the source-watcher.
+			// Return the unpopulated object so the caller's objectReadiness check
+			// treats this as "not ready yet" rather than a hard failure with backoff.
+			return extArtifact, nil
+		}
 		return nil, err
 	}
 	labels := extArtifact.GetLabels()
