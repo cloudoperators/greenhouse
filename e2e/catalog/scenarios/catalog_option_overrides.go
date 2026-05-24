@@ -43,7 +43,7 @@ func baseCatalog(name, namespace, secretName string) (*greenhousev1alpha1.Catalo
 func overriddenCatalog(name, namespace, secretName string) (*greenhousev1alpha1.Catalog, greenhousev1alpha1.CatalogSource) {
 	GinkgoHelper()
 	catalog, source := baseCatalog(name, namespace, secretName)
-	source.Ref.Branch = new("dev")
+	source.Ref.Branch = new("main")
 	source.Overrides = append(source.Overrides, greenhousev1alpha1.CatalogOverrides{
 		Name:       "cert-manager",
 		Alias:      "cert-manager-override",
