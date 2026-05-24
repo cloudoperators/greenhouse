@@ -28,7 +28,7 @@ func baseCatalog(name, namespace, secretName string) (*greenhousev1alpha1.Catalo
 	catalog := test.NewCatalog(name, namespace)
 	source := test.NewCatalogSource(
 		test.WithRepository("https://github.com/cloudoperators/extensions-e2e"),
-		test.WithRepositoryBranch("main"),
+		test.WithRepositoryBranch("fix/plugindefinition-required-field"),
 		test.WithCatalogResources([]string{
 			"plugindefinitions/pd-cert-manager.yaml",
 		}),
@@ -43,7 +43,7 @@ func baseCatalog(name, namespace, secretName string) (*greenhousev1alpha1.Catalo
 func overriddenCatalog(name, namespace, secretName string) (*greenhousev1alpha1.Catalog, greenhousev1alpha1.CatalogSource) {
 	GinkgoHelper()
 	catalog, source := baseCatalog(name, namespace, secretName)
-	source.Ref.Branch = new("main")
+	source.Ref.Branch = new("fix/plugindefinition-required-field")
 	source.Overrides = append(source.Overrides, greenhousev1alpha1.CatalogOverrides{
 		Name:       "cert-manager",
 		Alias:      "cert-manager-override",

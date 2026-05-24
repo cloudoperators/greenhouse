@@ -16,5 +16,5 @@ spec:
         - plugindefinitions/pd-disco.yaml
         - plugindefinitions/pd-ingress-nginx.yaml
       ref:
-        sha: f9ca701c358167647377271bd54b6c7426e1b57b
+        sha: 2e639233d9d0858af041101a38f1763dc59c4107
       secretName: github-com-token

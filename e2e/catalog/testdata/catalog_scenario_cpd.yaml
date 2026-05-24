@@ -16,5 +16,5 @@ spec:
         - plugindefinitions/cpd-disco.yaml
         - plugindefinitions/cpd-ingress-nginx.yaml
       ref:
-        branch: main
+        branch: fix/plugindefinition-required-field
       secretName: github-com-app
