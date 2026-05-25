@@ -14,11 +14,6 @@ jobs:
     name: Parse E2E Command
     if: ${{ github.event.issue.pull_request && startsWith(github.event.comment.body, '/e2e') }}
     runs-on: [ubuntu-latest]
-    permissions:
-      contents: read
-      pull-requests: read
-      statuses: write
-      issues: write
     outputs:
       sha: ${{ steps.pr.outputs.sha }}
       suites: ${{ steps.suites.outputs.suites }}
@@ -109,16 +104,6 @@ jobs:
             echo "suites=$EXPLICIT" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Acknowledge command
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        with:
-          script: |
-            await github.rest.reactions.createForIssueComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: context.payload.comment.id,
-              content: 'rocket',
-            });
 
   e2e:
     name: E2E ${{ matrix.suite }}
