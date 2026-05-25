@@ -21,14 +21,14 @@ Use [shoot-dns-service](https://gardener.cloud/docs/extensions/others/gardener-e
 
 ### How it works
 
-1. **Reversed VPN tunnel** — makes ClusterIPs reachable from the seed. See [Gardener docs](https://gardener.cloud/contribute/gardener/reversed-vpn-tunnel/).
+1. **HA VPN tunnel** — makes ClusterIPs reachable from the seed. See [Gardener docs](https://gardener.cloud/contribute/gardener/reversed-vpn-tunnel/).
 2. **DNSEntry** — shoot-dns-service registers a DNS record pointing to the static ClusterIP. See [Gardener docs](https://gardener.cloud/docs/extensions/others/gardener-extension-shoot-dns-service/).
 3. **TLS SAN** — the serving certificate includes the DNS hostname as a SAN.
 
 ### Requirements
 
 - [shoot-dns-service](https://gardener.cloud/docs/extensions/others/gardener-extension-shoot-dns-service/) extension enabled on the shoot
-- [Reversed VPN tunnel](https://gardener.cloud/contribute/gardener/reversed-vpn-tunnel/) enabled on the shoot
+- [HA VPN tunnel](https://gardener.cloud/contribute/gardener/reversed-vpn-tunnel/) enabled on the shoot
 
 ### Configuration
 
