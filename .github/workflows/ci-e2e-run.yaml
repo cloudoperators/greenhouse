@@ -8,6 +8,7 @@ permissions:
   contents: read
   pull-requests: read
   statuses: write
+  issues: write
 
 jobs:
   parse:
@@ -19,6 +20,20 @@ jobs:
       suites: ${{ steps.suites.outputs.suites }}
       run: ${{ steps.cmd.outputs.run }}
     steps:
+      - name: Check commenter is a collaborator
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const { data } = await github.rest.repos.getCollaboratorPermissionLevel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              username: context.actor,
+            });
+            const level = data.permission;
+            if (level !== 'write' && level !== 'admin') {
+              core.setFailed(`e2e trigger denied — @${context.actor} is not a maintainer.`);
+            }
+
       - name: Resolve PR head SHA
         id: pr
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
