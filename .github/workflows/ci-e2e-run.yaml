@@ -8,13 +8,17 @@ permissions:
   contents: read
   pull-requests: read
   statuses: write
-  issues: write
 
 jobs:
   parse:
     name: Parse E2E Command
     if: ${{ github.event.issue.pull_request && startsWith(github.event.comment.body, '/e2e') }}
     runs-on: [ubuntu-latest]
+    permissions:
+      contents: read
+      pull-requests: read
+      statuses: write
+      issues: write
     outputs:
       sha: ${{ steps.pr.outputs.sha }}
       suites: ${{ steps.suites.outputs.suites }}
@@ -24,13 +28,17 @@ jobs:
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
-            const { data } = await github.rest.repos.getCollaboratorPermissionLevel({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              username: context.actor,
-            });
-            const level = data.permission;
-            if (level !== 'write' && level !== 'admin') {
+            try {
+              const { data } = await github.rest.repos.getCollaboratorPermissionLevel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                username: context.actor,
+              });
+              const level = data.permission;
+              if (level !== 'write' && level !== 'maintain' && level !== 'admin') {
+                core.setFailed(`e2e trigger denied — @${context.actor} is not a maintainer.`);
+              }
+            } catch {
               core.setFailed(`e2e trigger denied — @${context.actor} is not a maintainer.`);
             }
 
