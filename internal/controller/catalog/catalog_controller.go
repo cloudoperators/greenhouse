@@ -465,7 +465,10 @@ func (r *CatalogReconciler) verifyStatus(ctx context.Context, catalog *greenhous
 		}
 		r.Log.Info(errMsg, "namespace", catalog.Namespace, "name", catalog.Name)
 		catalog.SetFalseCondition(greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.CatalogNotReadyReason, errMsg)
-		return ctrl.Result{}, lifecycle.Failed, errors.New(errMsg)
+		// Only return a hard error (which triggers controller-runtime backoff) when there
+		// is an actual reconcile error. If resources are simply not ready yet (notReady but
+		// no aggErr), return nil so the watch-triggered requeue runs without backoff delay.
+		return ctrl.Result{}, lifecycle.Failed, aggErr
 	}
 
 	r.Log.Info("all catalog objects are ready", "namespace", catalog.Namespace, "name", catalog.Name)
