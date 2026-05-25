@@ -17,7 +17,7 @@ helm upgrade --install greenhouse-authz oci://ghcr.io/cloudoperators/greenhouse/
 
 ## Gardener Usage
 
-Use [shoot-dns-service](https://gardener.cloud/docs/extensions/others/gardener-extension-shoot-dns-service/) and [reversed VPN tunnel](https://gardener.cloud/contribute/gardener/reversed-vpn-tunnel/) to make the webhook reachable from the seed.
+Use [shoot-dns-service](https://gardener.cloud/docs/extensions/others/gardener-extension-shoot-dns-service/) and [HA VPN tunnel](https://gardener.cloud/contribute/gardener/reversed-vpn-tunnel/) to make the webhook reachable from the seed.
 
 ### How it works
 
