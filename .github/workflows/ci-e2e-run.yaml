@@ -19,6 +19,24 @@ jobs:
       suites: ${{ steps.suites.outputs.suites }}
       run: ${{ steps.cmd.outputs.run }}
     steps:
+      - name: Check commenter is a collaborator
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            try {
+              const { data } = await github.rest.repos.getCollaboratorPermissionLevel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                username: context.actor,
+              });
+              const level = data.permission;
+              if (level !== 'write' && level !== 'maintain' && level !== 'admin') {
+                core.setFailed(`e2e trigger denied — @${context.actor} is not a maintainer.`);
+              }
+            } catch {
+              core.setFailed(`e2e trigger denied — @${context.actor} is not a maintainer.`);
+            }
+
       - name: Resolve PR head SHA
         id: pr
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
@@ -86,16 +104,6 @@ jobs:
             echo "suites=$EXPLICIT" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Acknowledge command
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        with:
-          script: |
-            await github.rest.reactions.createForIssueComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: context.payload.comment.id,
-              content: 'rocket',
-            });
 
   e2e:
     name: E2E ${{ matrix.suite }}
