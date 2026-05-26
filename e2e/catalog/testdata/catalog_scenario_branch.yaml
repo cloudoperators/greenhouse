@@ -16,5 +16,5 @@ spec:
         - plugindefinitions/pd-disco.yaml
         - plugindefinitions/pd-ingress-nginx.yaml
       ref:
-        branch: main
+        branch: dev
       secretName: github-com-token

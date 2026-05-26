@@ -317,24 +317,20 @@ func (s *source) reconcileArtifactGeneration(ctx context.Context) (*sourcev1.Ext
 	extArtifact.SetName(s.externalArtifact.Name)
 	extArtifact.SetNamespace(s.catalog.Namespace)
 	err = s.Get(ctx, client.ObjectKeyFromObject(extArtifact), extArtifact)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			// ExternalArtifact is created asynchronously by the source-watcher.
-			// Return the unpopulated object so the caller's objectReadiness check
-			// treats this as "not ready yet" rather than a hard failure with backoff.
-			return extArtifact, nil
+	if err != nil && !apierrors.IsNotFound(err) {
+		return nil, err
+	}
+	if err == nil {
+		labels := extArtifact.GetLabels()
+		if labels == nil {
+			labels = make(map[string]string)
 		}
-		return nil, err
-	}
-	labels := extArtifact.GetLabels()
-	if labels == nil {
-		labels = make(map[string]string)
-	}
-	labels[greenhouseapis.LabelKeyCatalog] = s.commonLabels[greenhouseapis.LabelKeyCatalog]
-	extArtifact.SetLabels(labels)
-	err = s.Update(ctx, extArtifact)
-	if err != nil {
-		return nil, err
+		labels[greenhouseapis.LabelKeyCatalog] = s.commonLabels[greenhouseapis.LabelKeyCatalog]
+		extArtifact.SetLabels(labels)
+		err = s.Update(ctx, extArtifact)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return extArtifact, nil
 }

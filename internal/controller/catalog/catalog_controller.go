@@ -269,6 +269,12 @@ func (r *CatalogReconciler) EnsureCreated(ctx context.Context, obj lifecycle.Run
 			continue
 		}
 
+		if externalArtifact.UID == "" {
+			r.Log.Info("external artifact not found yet, retry in next reconciliation loop", "catalog", catalog.Name, "namespace", catalog.Namespace, "name", sourcer.getArtifactName())
+			allErrors = append(allErrors, catalogError{InventoryType: sourcev1.ExternalArtifactKind, Name: sourcer.getArtifactName(), Error: errors.New("ExternalArtifact not found yet")})
+			continue
+		}
+
 		ready, msg := sourcer.objectReadiness(ctx, externalArtifact)
 		if ready != metav1.ConditionTrue {
 			r.Log.Info("external artifact not ready yet, retry in next reconciliation loop", "catalog", catalog.Name, "namespace", catalog.Namespace, "name", sourcer.getArtifactName())
