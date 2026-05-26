@@ -29,6 +29,7 @@ import (
 
 type IScenario interface {
 	ExecuteSuccessScenario(ctx context.Context, namespace string)
+	ExecuteCPDFailScenario(ctx context.Context, namespace string)
 	ExecuteArtifactFailScenario(ctx context.Context, namespace string)
 	ExecuteGitAuthFailScenario(ctx context.Context, namespace string)
 	ExecuteOptionsOverrideScenario(ctx context.Context, namespace string)
@@ -220,6 +221,20 @@ func (s *scenario) expectKustomizationNotFound(ctx context.Context, groupKey str
 		err := s.k8sClient.Get(ctx, client.ObjectKeyFromObject(kustomization), kustomization)
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "the Kustomization should be not found - "+kustomization.Name)
 	}).Should(Succeed(), "flux Kustomization should not exist for the Catalog source")
+}
+
+func (s *scenario) expectKustomizationFailed(ctx context.Context, groupKey string) {
+	GinkgoHelper()
+	By("checking if Kustomization has Ready=False condition")
+	Eventually(func(g Gomega) {
+		kustomization := s.getKustomizationObject(groupKey)
+		g.Expect(s.k8sClient.Get(ctx, client.ObjectKeyFromObject(kustomization), kustomization)).To(Succeed(), "there should be no error getting the Kustomization")
+		readyCond := meta.FindStatusCondition(kustomization.GetConditions(), fluxmeta.ReadyCondition)
+		g.Expect(readyCond).ToNot(BeNil(), "the Kustomization should have a Ready condition")
+		g.Expect(readyCond.Status).To(Equal(metav1.ConditionFalse), "the Kustomization Ready condition status should be False - "+kustomization.Name)
+		g.Expect(readyCond.Reason).To(Equal(fluxmeta.ReconciliationFailedReason), "the Kustomization Ready condition reason should be ReconciliationFailed - "+kustomization.Name)
+		g.Expect(readyCond.Message).To(ContainSubstring("forbidden"), "kustomization failure message should contain 'forbidden' error - "+kustomization.Name)
+	}).Should(Succeed(), "flux Kustomization should have Ready=False condition for the Catalog source")
 }
 
 func (s *scenario) getGitRepositoryObject(groupKey string) *sourcev1.GitRepository {

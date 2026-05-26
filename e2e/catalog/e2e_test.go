@@ -24,8 +24,10 @@ import (
 )
 
 const (
+	greenhouseOrgYaml       = "./testdata/greenhouse_organization.yaml"
 	e2eOrgYaml              = "./testdata/catalog_e2e_organization.yaml"
 	catalogCommitYaml       = "./testdata/catalog_scenario_commit.yaml"
+	catalogCPDYaml          = "./testdata/catalog_scenario_cpd.yaml"
 	catalogMultiYaml        = "./testdata/catalog_scenario_multi_source.yaml"
 	catalogArtifactFailYaml = "./testdata/catalog_scenario_artifact_fail.yaml"
 )
@@ -79,6 +81,13 @@ var _ = Describe("Catalog E2E", Ordered, func() {
 			shared.GitHubSecretTypeAPP,
 			func(s scenarios.IScenario, ns string) { s.ExecuteSuccessScenario(ctx, ns) },
 		),
+		Entry("Catalog CPD scenario",
+			greenhouseOrgYaml,
+			catalogCPDYaml,
+			"github-com-app",
+			shared.GitHubSecretTypeAPP,
+			func(s scenarios.IScenario, ns string) { s.ExecuteSuccessScenario(ctx, ns) },
+		),
 		Entry("Catalog Multi Source scenario",
 			e2eOrgYaml,
 			catalogMultiYaml,
@@ -92,6 +101,13 @@ var _ = Describe("Catalog E2E", Ordered, func() {
 			"github-com-app",
 			shared.GitHubSecretTypeAPP,
 			func(s scenarios.IScenario, ns string) { s.ExecuteArtifactFailScenario(ctx, ns) },
+		),
+		Entry("Catalog CPD Fail scenario",
+			e2eOrgYaml,
+			catalogCPDYaml,
+			"github-com-app",
+			shared.GitHubSecretTypeAPP,
+			func(s scenarios.IScenario, ns string) { s.ExecuteCPDFailScenario(ctx, ns) },
 		),
 		Entry("Catalog Git Auth Fail scenario",
 			e2eOrgYaml,
