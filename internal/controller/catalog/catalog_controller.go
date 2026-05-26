@@ -269,6 +269,12 @@ func (r *CatalogReconciler) EnsureCreated(ctx context.Context, obj lifecycle.Run
 			continue
 		}
 
+		if externalArtifact.UID == "" {
+			r.Log.Info("external artifact not found yet, retry in next reconciliation loop", "catalog", catalog.Name, "namespace", catalog.Namespace, "name", sourcer.getArtifactName())
+			allErrors = append(allErrors, catalogError{InventoryType: sourcev1.ExternalArtifactKind, Name: sourcer.getArtifactName(), Error: errors.New("ExternalArtifact not found yet")})
+			continue
+		}
+
 		ready, msg := sourcer.objectReadiness(ctx, externalArtifact)
 		if ready != metav1.ConditionTrue {
 			r.Log.Info("external artifact not ready yet, retry in next reconciliation loop", "catalog", catalog.Name, "namespace", catalog.Namespace, "name", sourcer.getArtifactName())
@@ -445,7 +451,10 @@ func (r *CatalogReconciler) verifyStatus(ctx context.Context, catalog *greenhous
 		}
 		r.Log.Info(errMsg, "namespace", catalog.Namespace, "name", catalog.Name)
 		catalog.SetFalseCondition(greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.CatalogNotReadyReason, errMsg)
-		return ctrl.Result{}, lifecycle.Failed, errors.New(errMsg)
+		// Only return a hard error (which triggers controller-runtime backoff) when there
+		// is an actual reconcile error. If resources are simply not ready yet (notReady but
+		// no aggErr), return nil so the watch-triggered requeue runs without backoff delay.
+		return ctrl.Result{}, lifecycle.Failed, aggErr
 	}
 
 	r.Log.Info("all catalog objects are ready", "namespace", catalog.Namespace, "name", catalog.Name)
