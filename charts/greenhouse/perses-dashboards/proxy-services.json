@@ -287,11 +287,11 @@
           "plugin": {
             "kind": "PrometheusLabelValuesVariable",
             "spec": {
-              "labelName": "namespace",
+              "labelName": "organization",
               "matchers": ["http_requests_total"]
             }
           },
-          "name": "namespace"
+          "name": "organization"
         }
       }
     ],

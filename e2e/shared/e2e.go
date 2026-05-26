@@ -21,7 +21,7 @@ import (
 	"github.com/cenkalti/backoff/v5"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/google/go-github/v85/github"
+	"github.com/google/go-github/v88/github"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
@@ -529,7 +529,8 @@ func (env *TestEnv) withGithubTokenSecret(ctx context.Context, k8sClient client.
 func getGitHubTokenUserName(ctx context.Context, token string) string {
 	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
 	tc := oauth2.NewClient(ctx, ts)
-	ghClient := github.NewClient(tc)
+	ghClient, err := github.NewClient(github.WithHTTPClient(tc))
+	Expect(err).NotTo(HaveOccurred(), "error creating github client")
 	user, _, err := ghClient.Users.Get(ctx, "")
 	Expect(err).NotTo(HaveOccurred(), "error getting github token user")
 	return user.GetLogin()

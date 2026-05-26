@@ -80,8 +80,8 @@ type route struct {
 type contextClusterKey struct {
 }
 
-// contextNamespaceKey is used to embed a namespace in the context
-type contextNamespaceKey struct {
+// contextOrganizationKey is used to embed an organization in the context
+type contextOrganizationKey struct {
 }
 
 // contextNameKey is used to embed a name in the context
