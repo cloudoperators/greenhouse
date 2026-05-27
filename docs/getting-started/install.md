@@ -3,7 +3,7 @@ title: "Installation"
 weight: 3
 ---
 
-This section provides a step-by-step guide to install Greenhouse on a Gardner shoot cluster.
+This section provides a step-by-step guide to install Greenhouse on a Gardener shoot cluster.
 
 ## Prerequisites
 
