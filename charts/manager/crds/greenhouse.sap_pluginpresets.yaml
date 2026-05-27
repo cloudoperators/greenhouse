@@ -15,315 +15,58 @@ spec:
     listKind: PluginPresetList
     plural: pluginpresets
     shortNames:
-      - pp
+    - pp
     singular: pluginpreset
   scope: Namespaced
   versions:
-    - additionalPrinterColumns:
-        - jsonPath: .spec.plugin.pluginDefinitionRef.name
-          name: Plugin Definition
-          type: string
-        - jsonPath: .spec.plugin.releaseNamespace
-          name: Release Namespace
-          type: string
-        - jsonPath: .status.statusConditions.conditions[?(@.type == "Ready")].status
-          name: Ready
-          type: string
-        - jsonPath: .metadata.creationTimestamp
-          name: Age
-          type: date
-      name: v1alpha1
-      schema:
-        openAPIV3Schema:
-          description: PluginPreset is the Schema for the PluginPresets API
-          properties:
-            apiVersion:
-              description: |-
-                APIVersion defines the versioned schema of this representation of an object.
-                Servers should convert recognized schemas to the latest internal value, and
-                may reject unrecognized values.
-                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
-              type: string
-            kind:
-              description: |-
-                Kind is a string value representing the REST resource this object represents.
-                Servers may infer this from the endpoint the client submits requests to.
-                Cannot be updated.
-                In CamelCase.
-                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-              type: string
-            metadata:
-              type: object
-            spec:
-              description: PluginPresetSpec defines the desired state of PluginPreset
-              properties:
-                clusterOptionOverrides:
-                  description:
-                    ClusterOptionOverrides define plugin option values to
-                    override by the PluginPreset
-                  items:
-                    description:
-                      ClusterOptionOverride defines which plugin option should
-                      be override in which cluster
-                    properties:
-                      clusterName:
-                        type: string
-                      overrides:
-                        items:
-                          description: PluginOptionValue is the value for a PluginOption.
-                          properties:
-                            expression:
-                              description: |-
-                                Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions.
-
-                                Deprecated: Expression is deprecated on standalone Plugins and will be removed in a future release.
-                                Consider using a PluginPreset to deploy Plugins utilizing the Expression field.
-                              type: string
-                            name:
-                              description: Name of the values.
-                              type: string
-                            value:
-                              description: Value is the actual value in plain text.
-                              x-kubernetes-preserve-unknown-fields: true
-                            valueFrom:
-                              description: ValueFrom references value in another source.
-                              properties:
-                                ref:
-                                  description: |-
-                                    Ref references values defined in another resource (Plugin, PluginPreset)
-
-                                    Deprecated: Ref is deprecated on standalone Plugins and will be removed in a future release.
-                                    Consider using a PluginPreset to deploy Plugins utilizing the Ref field.
-                                  properties:
-                                    expression:
-                                      description:
-                                        Expression is a CEL expression to
-                                        extract the value from the referenced resource
-                                      type: string
-                                    kind:
-                                      description: |-
-                                        Kind is the resource kind to target
-                                        if not set, defaults to the same kind as the referencing resource (Plugin or PluginPreset)
-                                      enum:
-                                        - Plugin
-                                        - PluginPreset
-                                      type: string
-                                    name:
-                                      description: |-
-                                        Name is the name of the resource to target
-                                        this field is mutually exclusive with LabelSelector
-                                      minLength: 1
-                                      type: string
-                                    selector:
-                                      description: |-
-                                        Selector selects the resources to target based on labels
-                                        this field is mutually exclusive with Name
-                                      properties:
-                                        matchExpressions:
-                                          description:
-                                            matchExpressions is a list of
-                                            label selector requirements. The requirements
-                                            are ANDed.
-                                          items:
-                                            description: |-
-                                              A label selector requirement is a selector that contains values, a key, and an operator that
-                                              relates the key and values.
-                                            properties:
-                                              key:
-                                                description:
-                                                  key is the label key that
-                                                  the selector applies to.
-                                                type: string
-                                              operator:
-                                                description: |-
-                                                  operator represents a key's relationship to a set of values.
-                                                  Valid operators are In, NotIn, Exists and DoesNotExist.
-                                                type: string
-                                              values:
-                                                description: |-
-                                                  values is an array of string values. If the operator is In or NotIn,
-                                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                                  the values array must be empty. This array is replaced during a strategic
-                                                  merge patch.
-                                                items:
-                                                  type: string
-                                                type: array
-                                                x-kubernetes-list-type: atomic
-                                            required:
-                                              - key
-                                              - operator
-                                            type: object
-                                          type: array
-                                          x-kubernetes-list-type: atomic
-                                        matchLabels:
-                                          additionalProperties:
-                                            type: string
-                                          description: |-
-                                            matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
-                                            map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                            operator is "In", and the values array contains only "value". The requirements are ANDed.
-                                          type: object
-                                      type: object
-                                      x-kubernetes-map-type: atomic
-                                  required:
-                                    - expression
-                                  type: object
-                                  x-kubernetes-validations:
-                                    - message:
-                                        exactly one of the fields in [name selector]
-                                        must be set
-                                      rule:
-                                        "[has(self.name),has(self.selector)].filter(x,x==true).size()
-                                        == 1"
-                                secret:
-                                  description:
-                                    Secret references the v1.Secret containing
-                                    the value that needs to be extracted
-                                  properties:
-                                    key:
-                                      description:
-                                        Key in the secret to select the value
-                                        from.
-                                      type: string
-                                    name:
-                                      description: Name of the secret in the same namespace.
-                                      type: string
-                                  required:
-                                    - key
-                                    - name
-                                  type: object
-                              type: object
-                              x-kubernetes-validations:
-                                - message: both secret and ref cannot be set
-                                  rule: "!(has(self.secret) && has(self.ref))"
-                                - message: one of secret or ref must be set
-                                  rule: has(self.secret) || has(self.ref)
-                          required:
-                            - name
-                          type: object
-                        type: array
-                    required:
-                      - clusterName
-                      - overrides
-                    type: object
-                  type: array
-                clusterSelector:
-                  description:
-                    ClusterSelector is a label selector to select the clusters
-                    the plugin bundle should be deployed to.
+  - additionalPrinterColumns:
+    - jsonPath: .spec.plugin.pluginDefinitionRef.name
+      name: Plugin Definition
+      type: string
+    - jsonPath: .spec.plugin.releaseNamespace
+      name: Release Namespace
+      type: string
+    - jsonPath: .status.statusConditions.conditions[?(@.type == "Ready")].status
+      name: Ready
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: PluginPreset is the Schema for the PluginPresets API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: PluginPresetSpec defines the desired state of PluginPreset
+            properties:
+              clusterOptionOverrides:
+                description: ClusterOptionOverrides define plugin option values to
+                  override by the PluginPreset
+                items:
+                  description: ClusterOptionOverride defines which plugin option should
+                    be override in which cluster
                   properties:
-                    matchExpressions:
-                      description:
-                        matchExpressions is a list of label selector requirements.
-                        The requirements are ANDed.
-                      items:
-                        description: |-
-                          A label selector requirement is a selector that contains values, a key, and an operator that
-                          relates the key and values.
-                        properties:
-                          key:
-                            description:
-                              key is the label key that the selector applies
-                              to.
-                            type: string
-                          operator:
-                            description: |-
-                              operator represents a key's relationship to a set of values.
-                              Valid operators are In, NotIn, Exists and DoesNotExist.
-                            type: string
-                          values:
-                            description: |-
-                              values is an array of string values. If the operator is In or NotIn,
-                              the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                              the values array must be empty. This array is replaced during a strategic
-                              merge patch.
-                            items:
-                              type: string
-                            type: array
-                            x-kubernetes-list-type: atomic
-                        required:
-                          - key
-                          - operator
-                        type: object
-                      type: array
-                      x-kubernetes-list-type: atomic
-                    matchLabels:
-                      additionalProperties:
-                        type: string
-                      description: |-
-                        matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
-                        map is equivalent to an element of matchExpressions, whose key field is "key", the
-                        operator is "In", and the values array contains only "value". The requirements are ANDed.
-                      type: object
-                  type: object
-                  x-kubernetes-map-type: atomic
-                deletionPolicy:
-                  default: Delete
-                  description: |-
-                    DeletionPolicy defines how Plugins owned by a PluginPreset are handled on deletion of the PluginPreset.
-                    Supported values are "Delete" and "Retain". If not set, defaults to "Delete".
-                  enum:
-                    - Delete
-                    - Retain
-                  type: string
-                plugin:
-                  description:
-                    PluginSpec is the spec of the plugin to be deployed by
-                    the PluginPreset.
-                  properties:
-                    deletionPolicy:
-                      default: Delete
-                      description: |-
-                        DeletionPolicy defines how Helm Releases created by a Plugin are handled upon deletion of the Plugin.
-                        Supported values are "Delete" and "Retain". If not set, defaults to "Delete".
-                      enum:
-                        - Delete
-                        - Retain
+                    clusterName:
                       type: string
-                    displayName:
-                      description: |-
-                        DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
-                        This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.
-                        Defaults to a normalized version of metadata.name.
-                      type: string
-                    ignoreDifferences:
-                      description:
-                        IgnoreDifferences defines paths to ignore when detecting
-                        drift between desired and actual state.
-                      items:
-                        description:
-                          IgnoreDifference defines a set of paths to ignore
-                          for matching resources.
-                        properties:
-                          group:
-                            description:
-                              Group matches the APIVersion group of the resources
-                              to ignore.
-                            type: string
-                          kind:
-                            description: Kind matches the Kind of the resources to ignore.
-                            type: string
-                          name:
-                            description: Name matches the name of the resources to ignore.
-                            type: string
-                          paths:
-                            description:
-                              Paths is a list of JSON paths to ignore when
-                              detecting drifts.
-                            items:
-                              type: string
-                            type: array
-                          version:
-                            description:
-                              Version matches the APIVersion version of the
-                              resources to ignore.
-                            type: string
-                        required:
-                          - paths
-                        type: object
-                      type: array
-                    optionValues:
-                      description: Values are the values for a PluginDefinition instance.
+                    overrides:
                       items:
                         description: PluginOptionValue is the value for a PluginOption.
                         properties:
@@ -351,17 +94,16 @@ spec:
                                   Consider using a PluginPreset to deploy Plugins utilizing the Ref field.
                                 properties:
                                   expression:
-                                    description:
-                                      Expression is a CEL expression to extract
-                                      the value from the referenced resource
+                                    description: Expression is a CEL expression to
+                                      extract the value from the referenced resource
                                     type: string
                                   kind:
                                     description: |-
                                       Kind is the resource kind to target
                                       if not set, defaults to the same kind as the referencing resource (Plugin or PluginPreset)
                                     enum:
-                                      - Plugin
-                                      - PluginPreset
+                                    - Plugin
+                                    - PluginPreset
                                     type: string
                                   name:
                                     description: |-
@@ -375,18 +117,16 @@ spec:
                                       this field is mutually exclusive with Name
                                     properties:
                                       matchExpressions:
-                                        description:
-                                          matchExpressions is a list of label
-                                          selector requirements. The requirements are
-                                          ANDed.
+                                        description: matchExpressions is a list of
+                                          label selector requirements. The requirements
+                                          are ANDed.
                                         items:
                                           description: |-
                                             A label selector requirement is a selector that contains values, a key, and an operator that
                                             relates the key and values.
                                           properties:
                                             key:
-                                              description:
-                                                key is the label key that
+                                              description: key is the label key that
                                                 the selector applies to.
                                               type: string
                                             operator:
@@ -405,8 +145,8 @@ spec:
                                               type: array
                                               x-kubernetes-list-type: atomic
                                           required:
-                                            - key
-                                            - operator
+                                          - key
+                                          - operator
                                           type: object
                                         type: array
                                         x-kubernetes-list-type: atomic
@@ -421,215 +161,431 @@ spec:
                                     type: object
                                     x-kubernetes-map-type: atomic
                                 required:
-                                  - expression
+                                - expression
                                 type: object
                                 x-kubernetes-validations:
-                                  - message:
-                                      exactly one of the fields in [name selector]
-                                      must be set
-                                    rule:
-                                      "[has(self.name),has(self.selector)].filter(x,x==true).size()
-                                      == 1"
+                                - message: exactly one of the fields in [name selector]
+                                    must be set
+                                  rule: '[has(self.name),has(self.selector)].filter(x,x==true).size()
+                                    == 1'
                               secret:
-                                description:
-                                  Secret references the v1.Secret containing
+                                description: Secret references the v1.Secret containing
                                   the value that needs to be extracted
                                 properties:
                                   key:
-                                    description:
-                                      Key in the secret to select the value
+                                    description: Key in the secret to select the value
                                       from.
                                     type: string
                                   name:
                                     description: Name of the secret in the same namespace.
                                     type: string
                                 required:
-                                  - key
-                                  - name
+                                - key
+                                - name
                                 type: object
                             type: object
                             x-kubernetes-validations:
-                              - message: both secret and ref cannot be set
-                                rule: "!(has(self.secret) && has(self.ref))"
-                              - message: one of secret or ref must be set
-                                rule: has(self.secret) || has(self.ref)
+                            - message: both secret and ref cannot be set
+                              rule: '!(has(self.secret) && has(self.ref))'
+                            - message: one of secret or ref must be set
+                              rule: has(self.secret) || has(self.ref)
                         required:
-                          - name
+                        - name
                         type: object
                       type: array
-                    pluginDefinitionRef:
-                      description: PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition.
+                  required:
+                  - clusterName
+                  - overrides
+                  type: object
+                type: array
+              clusterSelector:
+                description: ClusterSelector is a label selector to select the clusters
+                  the plugin bundle should be deployed to.
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
                       properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                          type: string
+                        values:
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                    type: object
+                type: object
+                x-kubernetes-map-type: atomic
+              deletionPolicy:
+                default: Delete
+                description: |-
+                  DeletionPolicy defines how Plugins owned by a PluginPreset are handled on deletion of the PluginPreset.
+                  Supported values are "Delete" and "Retain". If not set, defaults to "Delete".
+                enum:
+                - Delete
+                - Retain
+                type: string
+              plugin:
+                description: PluginSpec is the spec of the plugin to be deployed by
+                  the PluginPreset.
+                properties:
+                  deletionPolicy:
+                    default: Delete
+                    description: |-
+                      DeletionPolicy defines how Helm Releases created by a Plugin are handled upon deletion of the Plugin.
+                      Supported values are "Delete" and "Retain". If not set, defaults to "Delete".
+                    enum:
+                    - Delete
+                    - Retain
+                    type: string
+                  displayName:
+                    description: |-
+                      DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
+                      This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.
+                      Defaults to a normalized version of metadata.name.
+                    type: string
+                  ignoreDifferences:
+                    description: IgnoreDifferences defines paths to ignore when detecting
+                      drift between desired and actual state.
+                    items:
+                      description: IgnoreDifference defines a set of paths to ignore
+                        for matching resources.
+                      properties:
+                        group:
+                          description: Group matches the APIVersion group of the resources
+                            to ignore.
+                          type: string
                         kind:
-                          description:
-                            "Kind of the referent. Supported values: PluginDefinition,
-                            ClusterPluginDefinition."
-                          enum:
-                            - PluginDefinition
-                            - ClusterPluginDefinition
+                          description: Kind matches the Kind of the resources to ignore.
                           type: string
                         name:
-                          description:
-                            Name of the referenced PluginDefinition or ClusterPluginDefinition
-                            resource.
+                          description: Name matches the name of the resources to ignore.
+                          type: string
+                        paths:
+                          description: Paths is a list of JSON paths to ignore when
+                            detecting drifts.
+                          items:
+                            type: string
+                          type: array
+                        version:
+                          description: Version matches the APIVersion version of the
+                            resources to ignore.
+                          type: string
+                      required:
+                      - paths
+                      type: object
+                    type: array
+                  optionValues:
+                    description: Values are the values for a PluginDefinition instance.
+                    items:
+                      description: PluginOptionValue is the value for a PluginOption.
+                      properties:
+                        expression:
+                          description: |-
+                            Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions.
+
+                            Deprecated: Expression is deprecated on standalone Plugins and will be removed in a future release.
+                            Consider using a PluginPreset to deploy Plugins utilizing the Expression field.
+                          type: string
+                        name:
+                          description: Name of the values.
+                          type: string
+                        value:
+                          description: Value is the actual value in plain text.
+                          x-kubernetes-preserve-unknown-fields: true
+                        valueFrom:
+                          description: ValueFrom references value in another source.
+                          properties:
+                            ref:
+                              description: |-
+                                Ref references values defined in another resource (Plugin, PluginPreset)
+
+                                Deprecated: Ref is deprecated on standalone Plugins and will be removed in a future release.
+                                Consider using a PluginPreset to deploy Plugins utilizing the Ref field.
+                              properties:
+                                expression:
+                                  description: Expression is a CEL expression to extract
+                                    the value from the referenced resource
+                                  type: string
+                                kind:
+                                  description: |-
+                                    Kind is the resource kind to target
+                                    if not set, defaults to the same kind as the referencing resource (Plugin or PluginPreset)
+                                  enum:
+                                  - Plugin
+                                  - PluginPreset
+                                  type: string
+                                name:
+                                  description: |-
+                                    Name is the name of the resource to target
+                                    this field is mutually exclusive with LabelSelector
+                                  minLength: 1
+                                  type: string
+                                selector:
+                                  description: |-
+                                    Selector selects the resources to target based on labels
+                                    this field is mutually exclusive with Name
+                                  properties:
+                                    matchExpressions:
+                                      description: matchExpressions is a list of label
+                                        selector requirements. The requirements are
+                                        ANDed.
+                                      items:
+                                        description: |-
+                                          A label selector requirement is a selector that contains values, a key, and an operator that
+                                          relates the key and values.
+                                        properties:
+                                          key:
+                                            description: key is the label key that
+                                              the selector applies to.
+                                            type: string
+                                          operator:
+                                            description: |-
+                                              operator represents a key's relationship to a set of values.
+                                              Valid operators are In, NotIn, Exists and DoesNotExist.
+                                            type: string
+                                          values:
+                                            description: |-
+                                              values is an array of string values. If the operator is In or NotIn,
+                                              the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                              the values array must be empty. This array is replaced during a strategic
+                                              merge patch.
+                                            items:
+                                              type: string
+                                            type: array
+                                            x-kubernetes-list-type: atomic
+                                        required:
+                                        - key
+                                        - operator
+                                        type: object
+                                      type: array
+                                      x-kubernetes-list-type: atomic
+                                    matchLabels:
+                                      additionalProperties:
+                                        type: string
+                                      description: |-
+                                        matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                        map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                        operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                      type: object
+                                  type: object
+                                  x-kubernetes-map-type: atomic
+                              required:
+                              - expression
+                              type: object
+                              x-kubernetes-validations:
+                              - message: exactly one of the fields in [name selector]
+                                  must be set
+                                rule: '[has(self.name),has(self.selector)].filter(x,x==true).size()
+                                  == 1'
+                            secret:
+                              description: Secret references the v1.Secret containing
+                                the value that needs to be extracted
+                              properties:
+                                key:
+                                  description: Key in the secret to select the value
+                                    from.
+                                  type: string
+                                name:
+                                  description: Name of the secret in the same namespace.
+                                  type: string
+                              required:
+                              - key
+                              - name
+                              type: object
+                          type: object
+                          x-kubernetes-validations:
+                          - message: both secret and ref cannot be set
+                            rule: '!(has(self.secret) && has(self.ref))'
+                          - message: one of secret or ref must be set
+                            rule: has(self.secret) || has(self.ref)
+                      required:
+                      - name
+                      type: object
+                    type: array
+                  pluginDefinitionRef:
+                    description: PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition.
+                    properties:
+                      kind:
+                        description: 'Kind of the referent. Supported values: PluginDefinition,
+                          ClusterPluginDefinition.'
+                        enum:
+                        - PluginDefinition
+                        - ClusterPluginDefinition
+                        type: string
+                      name:
+                        description: Name of the referenced PluginDefinition or ClusterPluginDefinition
+                          resource.
+                        type: string
+                    type: object
+                  releaseName:
+                    description: |-
+                      ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
+                      If the Plugin was already deployed, the Plugin's name is used as the release name.
+                      If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.
+                    maxLength: 53
+                    type: string
+                    x-kubernetes-validations:
+                    - message: ReleaseName is immutable
+                      rule: self == oldSelf
+                  releaseNamespace:
+                    description: |-
+                      ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.
+                      Defaults to the Greenhouse managed namespace if not set.
+                    type: string
+                required:
+                - pluginDefinitionRef
+                type: object
+              waitFor:
+                description: WaitFor defines other Plugins to wait for before creating
+                  the Plugin.
+                items:
+                  description: WaitForItem is a wrapper around PluginRef to add context
+                    for every WaitFor list item.
+                  properties:
+                    pluginRef:
+                      description: PluginRef defines a reference to the Plugin.
+                      properties:
+                        name:
+                          description: Name of the Plugin.
+                          type: string
+                        pluginPreset:
+                          description: PluginPreset is the name of the PluginPreset
+                            which creates the Plugin.
                           type: string
                       type: object
-                    releaseName:
-                      description: |-
-                        ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
-                        If the Plugin was already deployed, the Plugin's name is used as the release name.
-                        If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.
-                      maxLength: 53
-                      type: string
-                      x-kubernetes-validations:
-                        - message: ReleaseName is immutable
-                          rule: self == oldSelf
-                    releaseNamespace:
-                      description: |-
-                        ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.
-                        Defaults to the Greenhouse managed namespace if not set.
-                      type: string
                   required:
-                    - pluginDefinitionRef
+                  - pluginRef
                   type: object
-                waitFor:
-                  description:
-                    WaitFor defines other Plugins to wait for before creating
-                    the Plugin.
-                  items:
-                    description:
-                      WaitForItem is a wrapper around PluginRef to add context
-                      for every WaitFor list item.
-                    properties:
-                      pluginRef:
-                        description: PluginRef defines a reference to the Plugin.
-                        properties:
-                          name:
-                            description: Name of the Plugin.
-                            type: string
-                          pluginPreset:
-                            description:
-                              PluginPreset is the name of the PluginPreset
-                              which creates the Plugin.
-                            type: string
-                        type: object
-                    required:
-                      - pluginRef
-                    type: object
-                  type: array
-              required:
-                - clusterSelector
-                - plugin
-              type: object
-            status:
-              description: PluginPresetStatus defines the observed state of PluginPreset
-              properties:
-                failedPlugins:
-                  description:
-                    FailedPlugins is the number of failed Plugins managed
-                    by the PluginPreset.
-                  type: integer
-                pluginStatuses:
-                  description:
-                    PluginStatuses contains statuses of Plugins managed by
-                    the PluginPreset.
-                  items:
-                    description:
-                      ManagedPluginStatus defines the Ready condition of
-                      a managed Plugin identified by its name.
-                    properties:
-                      pluginName:
-                        type: string
-                      readyCondition:
-                        description:
-                          Condition contains additional information on the
-                          state of a resource.
-                        properties:
-                          lastTransitionTime:
-                            description:
-                              LastTransitionTime is the last time the condition
-                              transitioned from one status to another.
-                            format: date-time
-                            type: string
-                          message:
-                            description:
-                              Message is an optional human-readable message
-                              indicating details about the last transition.
-                            type: string
-                          reason:
-                            description:
-                              Reason is a one-word, CamelCase reason for
-                              the condition's last transition.
-                            type: string
-                          status:
-                            description: Status of the condition.
-                            type: string
-                          type:
-                            description: Type of the condition.
-                            type: string
-                        required:
-                          - lastTransitionTime
-                          - status
-                          - type
-                        type: object
-                    type: object
-                  type: array
-                readyPlugins:
-                  description:
-                    ReadyPlugins is the number of ready Plugins managed by
-                    the PluginPreset.
-                  type: integer
-                statusConditions:
-                  description:
-                    StatusConditions contain the different conditions that
-                    constitute the status of the PluginPreset.
+                type: array
+            required:
+            - clusterSelector
+            - plugin
+            type: object
+          status:
+            description: PluginPresetStatus defines the observed state of PluginPreset
+            properties:
+              failedPlugins:
+                description: FailedPlugins is the number of failed Plugins managed
+                  by the PluginPreset.
+                type: integer
+              pluginStatuses:
+                description: PluginStatuses contains statuses of Plugins managed by
+                  the PluginPreset.
+                items:
+                  description: ManagedPluginStatus defines the Ready condition of
+                    a managed Plugin identified by its name.
                   properties:
-                    conditions:
-                      items:
-                        description:
-                          Condition contains additional information on the
-                          state of a resource.
-                        properties:
-                          lastTransitionTime:
-                            description:
-                              LastTransitionTime is the last time the condition
-                              transitioned from one status to another.
-                            format: date-time
-                            type: string
-                          message:
-                            description:
-                              Message is an optional human-readable message
-                              indicating details about the last transition.
-                            type: string
-                          reason:
-                            description:
-                              Reason is a one-word, CamelCase reason for
-                              the condition's last transition.
-                            type: string
-                          status:
-                            description: Status of the condition.
-                            type: string
-                          type:
-                            description: Type of the condition.
-                            type: string
-                        required:
-                          - lastTransitionTime
-                          - status
-                          - type
-                        type: object
-                      type: array
-                      x-kubernetes-list-map-keys:
-                        - type
-                      x-kubernetes-list-type: map
+                    pluginName:
+                      type: string
+                    readyCondition:
+                      description: Condition contains additional information on the
+                        state of a resource.
+                      properties:
+                        lastTransitionTime:
+                          description: LastTransitionTime is the last time the condition
+                            transitioned from one status to another.
+                          format: date-time
+                          type: string
+                        message:
+                          description: Message is an optional human-readable message
+                            indicating details about the last transition.
+                          type: string
+                        reason:
+                          description: Reason is a one-word, CamelCase reason for
+                            the condition's last transition.
+                          type: string
+                        status:
+                          description: Status of the condition.
+                          type: string
+                        type:
+                          description: Type of the condition.
+                          type: string
+                      required:
+                      - lastTransitionTime
+                      - status
+                      - type
+                      type: object
                   type: object
-                totalPlugins:
-                  description:
-                    TotalPlugins is the number of Plugins in total managed
-                    by the PluginPreset.
-                  type: integer
-              type: object
-          type: object
-      served: true
-      storage: true
-      subresources:
-        status: {}
+                type: array
+              readyPlugins:
+                description: ReadyPlugins is the number of ready Plugins managed by
+                  the PluginPreset.
+                type: integer
+              statusConditions:
+                description: StatusConditions contain the different conditions that
+                  constitute the status of the PluginPreset.
+                properties:
+                  conditions:
+                    items:
+                      description: Condition contains additional information on the
+                        state of a resource.
+                      properties:
+                        lastTransitionTime:
+                          description: LastTransitionTime is the last time the condition
+                            transitioned from one status to another.
+                          format: date-time
+                          type: string
+                        message:
+                          description: Message is an optional human-readable message
+                            indicating details about the last transition.
+                          type: string
+                        reason:
+                          description: Reason is a one-word, CamelCase reason for
+                            the condition's last transition.
+                          type: string
+                        status:
+                          description: Status of the condition.
+                          type: string
+                        type:
+                          description: Type of the condition.
+                          type: string
+                      required:
+                      - lastTransitionTime
+                      - status
+                      - type
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - type
+                    x-kubernetes-list-type: map
+                type: object
+              totalPlugins:
+                description: TotalPlugins is the number of Plugins in total managed
+                  by the PluginPreset.
+                type: integer
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
