@@ -33,7 +33,7 @@ func init() {
 	crmetrics.Registry.MustRegister(teamRBACReadyGauge, teamRBACClustersGauge)
 }
 
-func UpdateTeamRBACMetrics(teamRoleBinding *greenhousev1alpha2.TeamRoleBinding) {
+func updateTeamRBACMetrics(teamRoleBinding *greenhousev1alpha2.TeamRoleBinding) {
 	teamRBACReadyGauge.DeletePartialMatch(prometheus.Labels{
 		"team_role_binding": teamRoleBinding.Name,
 		"organization":      teamRoleBinding.Namespace,
@@ -55,7 +55,7 @@ func UpdateTeamRBACMetrics(teamRoleBinding *greenhousev1alpha2.TeamRoleBinding) 
 	}
 }
 
-func DeleteTeamRBACMetrics(teamRoleBinding *greenhousev1alpha2.TeamRoleBinding) {
+func deleteTeamRBACMetrics(teamRoleBinding *greenhousev1alpha2.TeamRoleBinding) {
 	teamRBACReadyGauge.DeletePartialMatch(prometheus.Labels{
 		"team_role_binding": teamRoleBinding.Name,
 		"organization":      teamRoleBinding.Namespace,

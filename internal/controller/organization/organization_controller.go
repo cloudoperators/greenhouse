@@ -139,7 +139,8 @@ func (r *OrganizationReconciler) EnsureDeleted(ctx context.Context, obj lifecycl
 			return ctrl.Result{}, lifecycle.Failed, err
 		}
 	}
-	return ctrl.Result{}, lifecycle.Success, nil // nothing to do in that case
+	deleteOrganizationMetrics(org)
+	return ctrl.Result{}, lifecycle.Success, nil
 }
 
 func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
@@ -373,7 +374,7 @@ func (r *OrganizationReconciler) setStatus() lifecycle.Conditioner {
 		scimAPIAvailableCondition := r.checkSCIMAPIAvailability(ctx, org)
 		readyCondition := calculateReadyCondition(scimAPIAvailableCondition)
 		org.Status.SetConditions(scimAPIAvailableCondition, readyCondition)
-		UpdateOrganizationMetrics(org)
+		updateOrganizationMetrics(org)
 	}
 }
 

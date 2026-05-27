@@ -294,6 +294,7 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 	cluster := resource.(*greenhousev1alpha1.Cluster)
 	c := cluster.Status.GetConditionByType(greenhousev1alpha1.KubeConfigValid)
 	if c != nil && c.IsFalse() {
+		deleteClusterMetrics(cluster)
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 	// delete all plugins that are bound to this cluster
@@ -312,6 +313,7 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 	// early return if the cluster connectivity is via OIDC
 	if kubeConfigSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
 		log.FromContext(ctx).Info("no resources to clean up", "secretType", kubeConfigSecret.Type, "cluster", cluster.Name)
+		deleteClusterMetrics(cluster)
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 	restClientGetter, err := clientutil.NewRestClientGetterFromSecret(kubeConfigSecret, cluster.Namespace)
@@ -328,6 +330,7 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 	if err := r.deleteClusterRoleBindingInRemoteCluster(ctx, remoteClient); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
+	deleteClusterMetrics(cluster)
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 

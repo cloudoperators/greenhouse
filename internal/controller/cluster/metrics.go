@@ -41,6 +41,13 @@ func init() {
 }
 
 func UpdateClusterMetrics(cluster *greenhousev1alpha1.Cluster) {
+	// Drop any previous KubernetesVersionsGauge series for this cluster so that
+	// a version change does not leave a stale time series behind.
+	KubernetesVersionsGauge.DeletePartialMatch(prometheus.Labels{
+		"clusterName":  cluster.Name,
+		"organization": cluster.Namespace,
+	})
+
 	kubernetesVersionLabels := prometheus.Labels{
 		"clusterName":  cluster.Name,
 		"organization": cluster.Namespace,
@@ -67,4 +74,14 @@ func UpdateClusterMetrics(cluster *greenhousev1alpha1.Cluster) {
 	} else {
 		ClusterReadyGauge.With(clusterReadyLabels).Set(float64(0))
 	}
+}
+
+func deleteClusterMetrics(cluster *greenhousev1alpha1.Cluster) {
+	matchLabels := prometheus.Labels{
+		"clusterName":  cluster.Name,
+		"organization": cluster.Namespace,
+	}
+	KubernetesVersionsGauge.DeletePartialMatch(matchLabels)
+	SecondsToTokenExpiryGauge.DeletePartialMatch(matchLabels)
+	ClusterReadyGauge.DeletePartialMatch(matchLabels)
 }
