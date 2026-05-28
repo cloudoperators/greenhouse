@@ -28,6 +28,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName string) {
@@ -667,15 +668,15 @@ func FluxControllerPluginDeletionLifecycle(ctx context.Context, adminClient clie
 	test.MustRemoveAnnotation(ctx, adminClient, pluginPreset, greenhousev1alpha1.PreventDeletionAnnotation)
 	Expect(adminClient.Delete(ctx, pluginPreset)).To(Succeed())
 
-	By("Waiting for the Plugin to enter deletion phase with uninstall-pending condition")
+	By("Waiting for the Plugin to enter deletion phase with pending condition")
 	Eventually(func(g Gomega) {
 		err = adminClient.Get(ctx, pluginKey, plugin)
 		g.Expect(err).ToNot(HaveOccurred(), "Plugin must still exist while HelmRelease is held")
 		g.Expect(plugin.GetDeletionTimestamp()).ToNot(BeNil(), "Plugin must be marked for deletion")
-		cond := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseDeployedCondition)
+		cond := plugin.Status.GetConditionByType(greenhousemetav1alpha1.DeleteCondition)
 		g.Expect(cond).ToNot(BeNil())
-		g.Expect(string(cond.Reason)).To(Equal(string(greenhousev1alpha1.HelmReleaseUninstallPendingReason)),
-			"condition should show uninstall is pending")
+		g.Expect(string(cond.Reason)).To(Equal(string(lifecycle.PendingDeletionReason)),
+			"Delete condition should show deletion is pending")
 	}).Should(Succeed(), "Plugin should enter deletion-pending state while HelmRelease is held")
 
 	By("Verifying the Plugin finalizer is retained while uninstall is pending")

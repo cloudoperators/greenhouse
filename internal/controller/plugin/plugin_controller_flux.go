@@ -61,7 +61,6 @@ func (r *PluginReconciler) EnsureFluxDeleted(ctx context.Context, plugin *greenh
 	err := r.Get(ctx, types.NamespacedName{Name: plugin.Name, Namespace: plugin.Namespace}, hr)
 	if apierrors.IsNotFound(err) {
 		// HelmRelease is fully gone — uninstall complete.
-		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseDeployedCondition, greenhousev1alpha1.HelmReleaseUninstalledReason, ""))
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 	if err != nil {
@@ -80,7 +79,6 @@ func (r *PluginReconciler) EnsureFluxDeleted(ctx context.Context, plugin *greenh
 	}
 
 	// Flux is still running the uninstall; return Pending to keep the finalizer and requeue.
-	plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseDeployedCondition, greenhousev1alpha1.HelmReleaseUninstallPendingReason, "waiting for HelmRelease to be removed"))
 	return ctrl.Result{RequeueAfter: 10 * time.Second}, lifecycle.Pending, nil
 }
 

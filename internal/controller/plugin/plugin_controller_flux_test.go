@@ -399,10 +399,10 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 		Eventually(func(g Gomega) {
 			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(deletionPlugin), deletionPlugin)
 			g.Expect(err).ToNot(HaveOccurred(), "Plugin should still exist with finalizer")
-			cond := deletionPlugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseDeployedCondition)
+			cond := deletionPlugin.Status.GetConditionByType(greenhousemetav1alpha1.DeleteCondition)
 			g.Expect(cond).ToNot(BeNil())
-			g.Expect(cond.Reason).To(Equal(greenhousev1alpha1.HelmReleaseUninstallPendingReason),
-				"HelmReleaseDeployed condition should show uninstall is pending")
+			g.Expect(cond.Reason).To(Equal(lifecycle.PendingDeletionReason),
+				"Delete condition should show deletion is pending")
 		}).Should(Succeed())
 
 		By("verifying the Plugin finalizer is still present")
@@ -463,9 +463,9 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 		Eventually(func(g Gomega) {
 			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(failPlugin), failPlugin)
 			g.Expect(err).ToNot(HaveOccurred())
-			cond := failPlugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseDeployedCondition)
+			cond := failPlugin.Status.GetConditionByType(greenhousemetav1alpha1.DeleteCondition)
 			g.Expect(cond).ToNot(BeNil())
-			g.Expect(cond.Reason).To(Equal(greenhousev1alpha1.HelmReleaseUninstallPendingReason))
+			g.Expect(cond.Reason).To(Equal(lifecycle.PendingDeletionReason))
 		}).Should(Succeed())
 
 		By("simulating Flux reporting an uninstall failure on the HelmRelease")
