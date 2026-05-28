@@ -238,7 +238,13 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 
 			releaseName := getReleaseName(plugin, preset)
 
+			resolvedValues, err := r.resolveExpressionsForPreset(ctx, preset, &cluster)
+			if err != nil {
+				return fmt.Errorf("failed to resolve option values for plugin %s: %w", plugin.Name, err)
+			}
+
 			plugin.Spec = preset.Spec.Plugin
+			plugin.Spec.OptionValues = resolvedValues
 			plugin.Spec.ReleaseName = releaseName
 			// Set the cluster name to the name of the cluster. The PluginSpec contained in the PluginPreset does not have a cluster name.
 			plugin.Spec.ClusterName = cluster.GetName()
