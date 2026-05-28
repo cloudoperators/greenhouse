@@ -305,6 +305,10 @@ After the TeamRoleBinding has been created, it can be updated with some limitati
 
 The TeamRoleBinding's `.spec.namespaces` can be amended to include more namespaces. However, the scope of the TeamRoleBinding cannot be changed. If a TeamRoleBinding has been created with `.spec.namespaces` specified, it is namespace-scoped, and cannot be changed to cluster-scoped by removing the `.spec.namespaces`. The reverse is true for a cluster-scoped TeamRoleBinding, where it is not possible to add `.spec.namespaces` once created.
 
+## Related: Authorization Webhook for Greenhouse Resources
+
+> :information_source: This guide covers RBAC for **remote clusters** (TeamRoles/TeamRoleBindings). For controlling access to **Greenhouse resources themselves** (Plugins, Clusters, etc.) on the central Greenhouse cluster, see [Managing team-owned resources](../authorization).
+
 ## Next Steps
 
 - [TeamRoleBinding reference](./../../../reference/components/teamrolebinding)
