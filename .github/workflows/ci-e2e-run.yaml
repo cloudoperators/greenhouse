@@ -19,10 +19,13 @@ jobs:
       suites: ${{ steps.suites.outputs.suites }}
       run: ${{ steps.cmd.outputs.run }}
     steps:
-      - name: Check commenter is a collaborator
+      - name: Check Collaborator Permission
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
+            if (context.actor === 'cloud-operator-bot[bot]') {
+              return;
+            }
             try {
               const { data } = await github.rest.repos.getCollaboratorPermissionLevel({
                 owner: context.repo.owner,
@@ -37,7 +40,7 @@ jobs:
               core.setFailed(`e2e trigger denied — @${context.actor} is not a maintainer.`);
             }
 
-      - name: Resolve PR head SHA
+      - name: Resolve PR SHA
         id: pr
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
@@ -46,7 +49,7 @@ jobs:
             const pr = await github.rest.pulls.get({ owner, repo, pull_number: number });
             core.setOutput('sha', pr.data.head.sha);
 
-      - name: Parse comment body
+      - name: Parse Command
         id: cmd
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
@@ -85,13 +88,13 @@ jobs:
             core.setOutput('discover', 'false');
             core.setOutput('explicit', JSON.stringify([...new Set(tokens)]));
 
-      - name: Checkout PR head (for suite discovery)
+      - name: Checkout PR
         if: steps.cmd.outputs.discover == 'true'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ steps.pr.outputs.sha }}
 
-      - name: Resolve suite list
+      - name: Resolve Suites
         id: suites
         env:
           DISCOVER: ${{ steps.cmd.outputs.discover }}
@@ -115,7 +118,7 @@ jobs:
       matrix:
         suite: ${{ fromJson(needs.parse.outputs.suites) }}
     steps:
-      - name: Set suite status pending
+      - name: "Set e2e/${{ matrix.suite }} Pending"
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
@@ -153,7 +156,7 @@ jobs:
           E2E_RESULT_DIR: ${{ github.workspace }}/bin
         run: make show-e2e-logs
 
-      - name: Set suite status
+      - name: "Set e2e/${{ matrix.suite }} Status"
         if: always()
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
