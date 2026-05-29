@@ -1,0 +1,55 @@
+# Path filters consumed by .github/workflows/ci-e2e-info.yaml via dorny/paths-filter.
+# Each top-level key (other than `shared`) is an e2e suite name. The info workflow
+# uses these to suggest `/e2e <suite>` comments on a PR.
+# Edit this file to change suite scoping — no workflow YAML changes required.
+
+# Shared changes affect every suite — info workflow recommends `/e2e all`.
+shared:
+  - 'go.mod'
+  - 'go.sum'
+  - 'Dockerfile*'
+  - 'cmd/greenhouse/**'
+  - 'internal/helm/**'
+  - 'internal/flux/**'
+  - 'internal/clientutil/**'
+  - 'charts/**'
+  - 'e2e/shared/**'
+
+organization:
+  - 'internal/controller/organization/**'
+  - 'api/v1alpha1/organization*.go'
+  - 'e2e/organization/**'
+
+cluster:
+  - 'internal/controller/cluster/**'
+  - 'api/v1alpha1/cluster*.go'
+  - 'api/v1alpha2/cluster*.go'
+  - 'e2e/cluster/**'
+
+catalog:
+  - 'internal/controller/catalog/**'
+  - 'internal/flux/**'
+  - 'api/v1alpha1/catalog*.go'
+  - 'e2e/catalog/**'
+
+plugin:
+  - 'internal/controller/plugin/**'
+  - 'internal/controller/pluginpreset/**'
+  - 'internal/ocimirror/**'
+  - 'api/v1alpha1/plugin*.go'
+  - 'e2e/plugin/**'
+
+plugindefinition:
+  - 'internal/controller/plugindefinition/**'
+  - 'api/v1alpha1/plugindefinition*.go'
+  - 'e2e/plugindefinition/**'
+
+clusterplugindefinition:
+  - 'internal/controller/clusterplugindefinition/**'
+  - 'api/v1alpha1/clusterplugindefinition*.go'
+  - 'e2e/clusterplugindefinition/**'
+
+teamrolebinding:
+  - 'internal/controller/teamrolebinding/**'
+  - 'api/v1alpha1/teamrole*.go'
+  - 'e2e/teamrolebinding/**'
