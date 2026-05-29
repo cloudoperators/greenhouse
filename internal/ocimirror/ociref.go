@@ -10,7 +10,9 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 )
 
-var imageFieldPattern = regexp.MustCompile(`(?m)^[\s-]*image:\s+["']?([^\s"']+)["']?`)
+// imageFieldPattern matches `image: <ref>` only when <ref> is on the same line.
+// Avoids false matches when `image:` opens a nested map (e.g. CRD field schemas).
+var imageFieldPattern = regexp.MustCompile(`(?m)^[\s-]*image:[\t ]+["']?([^\s"']+)["']?\s*$`)
 
 // ExtractUniqueOCIRefs extracts and deduplicates all OCI image references from YAML manifests.
 func ExtractUniqueOCIRefs(manifests string) []string {
