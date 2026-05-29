@@ -211,6 +211,10 @@ linters:
       - linters:
           - goconst
         path: (.+)_test\.go
+      # Deprecated fields on v1alpha1.PluginOptionValue / PluginValueFromSource are intentionally
+      # still referenced during the deprecation window (see api/v1alpha1/plugin_types.go).
+      - linters: [staticcheck]
+        text: 'SA1019: .*\.(Expression|Ref) is deprecated'
     paths:
       - third_party$
       - builtin$
