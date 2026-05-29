@@ -18,6 +18,7 @@ import (
 	sourcev2 "github.com/fluxcd/source-watcher/api/v2/v1beta1"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -318,18 +319,20 @@ func (s *source) reconcileArtifactGeneration(ctx context.Context) (*sourcev1.Ext
 	extArtifact.SetName(s.externalArtifact.Name)
 	extArtifact.SetNamespace(s.catalog.Namespace)
 	err = s.Get(ctx, client.ObjectKeyFromObject(extArtifact), extArtifact)
-	if err != nil {
+	if err != nil && !apierrors.IsNotFound(err) {
 		return nil, err
 	}
-	labels := extArtifact.GetLabels()
-	if labels == nil {
-		labels = make(map[string]string)
-	}
-	labels[greenhouseapis.LabelKeyCatalog] = s.commonLabels[greenhouseapis.LabelKeyCatalog]
-	extArtifact.SetLabels(labels)
-	err = s.Update(ctx, extArtifact)
-	if err != nil {
-		return nil, err
+	if err == nil {
+		labels := extArtifact.GetLabels()
+		if labels == nil {
+			labels = make(map[string]string)
+		}
+		labels[greenhouseapis.LabelKeyCatalog] = s.commonLabels[greenhouseapis.LabelKeyCatalog]
+		extArtifact.SetLabels(labels)
+		err = s.Update(ctx, extArtifact)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return extArtifact, nil
 }

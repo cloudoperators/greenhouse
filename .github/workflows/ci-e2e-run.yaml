@@ -19,6 +19,24 @@ jobs:
       suites: ${{ steps.suites.outputs.suites }}
       run: ${{ steps.cmd.outputs.run }}
     steps:
+      - name: Check commenter is a collaborator
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            try {
+              const { data } = await github.rest.repos.getCollaboratorPermissionLevel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                username: context.actor,
+              });
+              const level = data.permission;
+              if (level !== 'write' && level !== 'maintain' && level !== 'admin') {
+                core.setFailed(`e2e trigger denied — @${context.actor} is not a maintainer.`);
+              }
+            } catch {
+              core.setFailed(`e2e trigger denied — @${context.actor} is not a maintainer.`);
+            }
+
       - name: Resolve PR head SHA
         id: pr
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
@@ -86,16 +104,6 @@ jobs:
             echo "suites=$EXPLICIT" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Acknowledge command
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        with:
-          script: |
-            await github.rest.reactions.createForIssueComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: context.payload.comment.id,
-              content: 'rocket',
-            });
 
   e2e:
     name: E2E ${{ matrix.suite }}
@@ -106,17 +114,10 @@ jobs:
       fail-fast: true
       matrix:
         suite: ${{ fromJson(needs.parse.outputs.suites) }}
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - name: Checkout PR head
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          ref: ${{ needs.parse.outputs.sha }}
-
       - name: Run ${{ matrix.suite }} e2e
         id: e2e
-        uses: cloudoperators/common/workflows/e2e@17d3d6b80851574fcd8c7b6e5c4fe6aee2922359
+        uses: cloudoperators/common/workflows/e2e@f87e1e6b7889707a9c10d1a8a9f9f481eb311c06
         env:
           RUNTIME_ENV: "CI"
           GH_APP_ID: ${{ secrets.CLOUDOPERATOR_APP_ID }}
@@ -126,6 +127,7 @@ jobs:
           admin-k8s-version: "v1.34.3"
           remote-k8s-version: "v1.32.11"
           scenario: ${{ matrix.suite }}
+          ref: ${{ needs.parse.outputs.sha }}
           admin-config: ${{ github.workspace }}/e2e/greenhouse-admin-cluster.yaml
           remote-config: ${{ github.workspace }}/dev-env/greenhouse-remote-cluster.yaml
 

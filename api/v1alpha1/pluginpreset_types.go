@@ -6,6 +6,7 @@ package v1alpha1
 import (
 	"slices"
 
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
@@ -30,7 +31,7 @@ const (
 type PluginPresetSpec struct {
 
 	// PluginSpec is the spec of the plugin to be deployed by the PluginPreset.
-	Plugin PluginSpec `json:"plugin"`
+	Plugin PluginPresetPluginSpec `json:"plugin"`
 
 	// ClusterSelector is a label selector to select the clusters the plugin bundle should be deployed to.
 	ClusterSelector metav1.LabelSelector `json:"clusterSelector"`
@@ -48,6 +49,66 @@ type PluginPresetSpec struct {
 	// +kubebuilder:default=Delete
 	// +kubebuilder:validation:Enum=Delete;Retain
 	DeletionPolicy string `json:"deletionPolicy,omitempty"`
+}
+
+// PluginPresetPluginSpec defines the desired state of Plugin
+type PluginPresetPluginSpec struct {
+	// PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition.
+	PluginDefinitionRef PluginDefinitionReference `json:"pluginDefinitionRef"`
+
+	// DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
+	// This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.
+	// Defaults to a normalized version of metadata.name.
+	DisplayName string `json:"displayName,omitempty"`
+
+	// Values are the values for a PluginDefinition instance.
+	OptionValues []PluginOptionValue `json:"optionValues,omitempty"`
+
+	// ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.
+	// Defaults to the Greenhouse managed namespace if not set.
+	ReleaseNamespace string `json:"releaseNamespace,omitempty"`
+
+	// ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
+	// If the Plugin was already deployed, the Plugin's name is used as the release name.
+	// If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.
+	// +Optional
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="ReleaseName is immutable"
+	// +kubebuilder:validation:MaxLength=53
+	ReleaseName string `json:"releaseName,omitempty"`
+
+	// DeletionPolicy defines how Helm Releases created by a Plugin are handled upon deletion of the Plugin.
+	// Supported values are "Delete" and "Retain". If not set, defaults to "Delete".
+	// +Optional
+	// +kubebuilder:default=Delete
+	// +kubebuilder:validation:Enum=Delete;Retain
+	DeletionPolicy string `json:"deletionPolicy,omitempty"`
+
+	// IgnoreDifferences defines paths to ignore when detecting drift between desired and actual state.
+	// +Optional
+	IgnoreDifferences []IgnoreDifference `json:"ignoreDifferences,omitempty"`
+}
+
+// PluginPresetPluginOptionValue is the value for a PluginOption.
+type PluginPresetPluginOptionValue struct {
+	// Name of the values.
+	Name string `json:"name"`
+	// Value is the actual value in plain text.
+	Value *apiextensionsv1.JSON `json:"value,omitempty"`
+	// ValueFrom references value in another source.
+	ValueFrom *PluginPresetPluginValueFromSource `json:"valueFrom,omitempty"`
+	// Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions.
+	Expression *string `json:"expression,omitempty"`
+}
+
+// PluginPresetPluginValueFromSource defines how to extract dynamic values
+// only one of secret or ref can be set
+// +kubebuilder:validation:XValidation:rule="!(has(self.secret) && has(self.ref))",message="both secret and ref cannot be set"
+// +kubebuilder:validation:XValidation:rule="has(self.secret) || has(self.ref)",message="one of secret or ref must be set"
+type PluginPresetPluginValueFromSource struct {
+	// Secret references the v1.Secret containing the value that needs to be extracted
+	Secret *SecretKeyReference `json:"secret,omitempty"`
+	// Ref references values defined in another resource (Plugin, PluginPreset)
+	Ref *ExternalValueSource `json:"ref,omitempty"`
 }
 
 // ClusterOptionOverride defines which plugin option should be override in which cluster

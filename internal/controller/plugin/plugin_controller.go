@@ -132,7 +132,7 @@ func (r *PluginReconciler) setConditions() lifecycle.Conditioner {
 		}
 
 		readyCondition := r.computeReadyConditionFlux(ctx, plugin)
-		UpdatePluginReadyMetric(plugin, readyCondition.Status == metav1.ConditionTrue)
+		updatePluginReadyMetric(plugin, readyCondition.Status == metav1.ConditionTrue)
 
 		ownerLabelCondition := util.ComputeOwnerLabelCondition(ctx, r.Client, plugin)
 		util.UpdateOwnedByLabelMissingMetric(plugin, ownerLabelCondition.IsFalse())
@@ -171,7 +171,11 @@ func (r *PluginReconciler) reconcileTechnicalLabels(ctx context.Context, plugin 
 
 func (r *PluginReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	plugin := resource.(*greenhousev1alpha1.Plugin)
-	return r.EnsureFluxDeleted(ctx, plugin)
+	result, lifecycleResult, err := r.EnsureFluxDeleted(ctx, plugin)
+	if lifecycleResult == lifecycle.Success && err == nil {
+		deletePluginReadyMetric(plugin)
+	}
+	return result, lifecycleResult, err
 }
 
 func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {

@@ -26,7 +26,6 @@ import (
 const (
 	greenhouseOrgYaml       = "./testdata/greenhouse_organization.yaml"
 	e2eOrgYaml              = "./testdata/catalog_e2e_organization.yaml"
-	catalogBranchYaml       = "./testdata/catalog_scenario_branch.yaml"
 	catalogCommitYaml       = "./testdata/catalog_scenario_commit.yaml"
 	catalogCPDYaml          = "./testdata/catalog_scenario_cpd.yaml"
 	catalogMultiYaml        = "./testdata/catalog_scenario_multi_source.yaml"
@@ -75,13 +74,6 @@ var _ = Describe("Catalog E2E", Ordered, func() {
 			scenario := scenarios.NewScenario(adminClient, catalogYamlPath, secretName, strings.TrimSpace(catalogYamlPath) == "")
 			execute(scenario, testNamespace)
 		},
-		Entry("Catalog Branch scenario",
-			e2eOrgYaml,
-			catalogBranchYaml,
-			"github-com-token",
-			shared.GitHubSecretTypeAPP,
-			func(s scenarios.IScenario, ns string) { s.ExecuteSuccessScenario(ctx, ns) },
-		),
 		Entry("Catalog Commit scenario",
 			e2eOrgYaml,
 			catalogCommitYaml,
@@ -103,13 +95,6 @@ var _ = Describe("Catalog E2E", Ordered, func() {
 			shared.GitHubSecretTypeAPP,
 			func(s scenarios.IScenario, ns string) { s.ExecuteSuccessScenario(ctx, ns) },
 		),
-		Entry("Catalog CPD Fail scenario",
-			e2eOrgYaml,
-			catalogCPDYaml,
-			"github-com-app",
-			shared.GitHubSecretTypeAPP,
-			func(s scenarios.IScenario, ns string) { s.ExecuteCPDFailScenario(ctx, ns) },
-		),
 		Entry("Catalog Artifact Fail scenario",
 			e2eOrgYaml,
 			catalogArtifactFailYaml,
@@ -117,9 +102,16 @@ var _ = Describe("Catalog E2E", Ordered, func() {
 			shared.GitHubSecretTypeAPP,
 			func(s scenarios.IScenario, ns string) { s.ExecuteArtifactFailScenario(ctx, ns) },
 		),
+		Entry("Catalog CPD Fail scenario",
+			e2eOrgYaml,
+			catalogCPDYaml,
+			"github-com-app",
+			shared.GitHubSecretTypeAPP,
+			func(s scenarios.IScenario, ns string) { s.ExecuteCPDFailScenario(ctx, ns) },
+		),
 		Entry("Catalog Git Auth Fail scenario",
 			e2eOrgYaml,
-			catalogBranchYaml,
+			catalogCommitYaml,
 			"github-com-token",
 			shared.GitHubSecretTypeFake,
 			func(s scenarios.IScenario, ns string) { s.ExecuteGitAuthFailScenario(ctx, ns) },

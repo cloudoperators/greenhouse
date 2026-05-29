@@ -24,7 +24,7 @@ func init() {
 	crmetrics.Registry.MustRegister(pluginReady)
 }
 
-func UpdatePluginReadyMetric(plugin *greenhousev1alpha1.Plugin, ready bool) {
+func updatePluginReadyMetric(plugin *greenhousev1alpha1.Plugin, ready bool) {
 	pluginReadyLabels := prometheus.Labels{
 		"pluginDefinition": plugin.Spec.PluginDefinitionRef.Name,
 		"clusterName":      plugin.Spec.ClusterName,
@@ -37,4 +37,11 @@ func UpdatePluginReadyMetric(plugin *greenhousev1alpha1.Plugin, ready bool) {
 	} else {
 		pluginReady.With(pluginReadyLabels).Set(0)
 	}
+}
+
+func deletePluginReadyMetric(plugin *greenhousev1alpha1.Plugin) {
+	pluginReady.DeletePartialMatch(prometheus.Labels{
+		"plugin":       plugin.Name,
+		"organization": plugin.Namespace,
+	})
 }
