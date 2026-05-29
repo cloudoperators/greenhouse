@@ -24,6 +24,7 @@ spec:
             - /greenhouse
           args:
             - --dns-domain={{ required ".Values.global.dnsDomain missing" .Values.global.dnsDomain }}
+            - --artifact-storage-path={{ .Values.controllerManager.artifactStorage.path }}
         {{- if gt (len .Values.controllerManager.args) 0 }}
         {{- include "manager.params" . | indent 12 }}
         {{- end }}
@@ -85,7 +86,14 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 10
           securityContext: {{- toYaml .Values.controllerManager.containerSecurityContext | nindent 12 }}
+          volumeMounts:
+            - name: artifacts
+              mountPath: {{ .Values.controllerManager.artifactStorage.path }}
       securityContext:
         runAsNonRoot: true
       serviceAccountName: {{ include "manager.fullname" . }}-controller-manager
       terminationGracePeriodSeconds: 10
+      volumes:
+        - name: artifacts
+          emptyDir:
+            sizeLimit: {{ .Values.controllerManager.artifactStorage.sizeLimit }}
