@@ -98,7 +98,7 @@ jobs:
         with:
           app-id: ${{ secrets.CLOUDOPERATOR_APP_ID }}
           private-key: ${{ secrets.CLOUDOPERATOR_APP_PRIVATE_KEY }}
-          permission-issues: write
+          permission-pull-requests: write
 
       - name: Post /e2e skip comment
         if: ${{ !github.event.pull_request.head.repo.fork }}
@@ -126,7 +126,7 @@ jobs:
         with:
           app-id: ${{ secrets.CLOUDOPERATOR_APP_ID }}
           private-key: ${{ secrets.CLOUDOPERATOR_APP_PRIVATE_KEY }}
-          permission-issues: write
+          permission-pull-requests: write
 
       - name: Post /e2e command comment
         if: ${{ !github.event.pull_request.head.repo.fork }}
