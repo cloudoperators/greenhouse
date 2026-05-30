@@ -8,6 +8,7 @@ import (
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 )
@@ -302,7 +303,10 @@ type PluginList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&Plugin{}, &PluginList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &Plugin{}, &PluginList{})
+		return nil
+	})
 }
 
 func (o *Plugin) GetConditions() greenhousemetav1alpha1.StatusConditions {
