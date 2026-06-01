@@ -58,6 +58,16 @@ Use this ServiceAccount for CI/CD pipelines, custom controllers, or scheduled jo
 kubectl get serviceaccount my-team-sa -n my-organization
 ```
 
+### Requesting a token
+
+Greenhouse creates a Role and RoleBinding that allow both support-group members and the ServiceAccount itself to request tokens. Use `kubectl create token` to obtain a credential for CI/CD use:
+
+```bash
+kubectl create token my-team-sa -n my-organization --duration=2160h
+```
+
+The actual token lifetime is capped by the API server's `--service-account-max-token-expiration` setting. The token can be used as a `Bearer` token when authenticating against the Greenhouse API server.
+
 > **Note**: The ServiceAccount is created during Team reconciliation, which requires `spec.mappedIdPGroup` to be set and the Organization's SCIM integration to be configured. See [Setting up Team members synchronization](../../organization/creation#setting-up-team-members-synchronization-with-greenhouse) for SCIM configuration details.
 
 > **Note**: The `greenhouse.sap/owned-by` label on the ServiceAccount is immutable once set — it cannot be changed or removed.
