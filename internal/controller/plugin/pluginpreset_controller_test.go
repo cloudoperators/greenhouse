@@ -934,7 +934,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			for _, ov := range expPlugin.Spec.OptionValues {
 				if ov.Name == "test.hostname" {
 					hostnameFound = true
-					g.Expect(ov.Expression).To(BeNil(), "Expression should be resolved") //nolint:staticcheck // SA1019: checking deprecated field in test
+					g.Expect(ov.Expression).To(BeNil(), "Expression should be resolved")
 					g.Expect(ov.Value).ToNot(BeNil(), "Value should be set")
 					g.Expect(string(ov.Value.Raw)).To(Equal(`"app-`+clusterA+`.example.com"`),
 						"Expression should resolve with cluster name")
@@ -1002,7 +1002,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			for _, ov := range expPlugin.Spec.OptionValues {
 				if ov.Name == "test.serviceHost" {
 					found = true
-					g.Expect(ov.Expression).To(BeNil()) //nolint:staticcheck // SA1019
+					g.Expect(ov.Expression).To(BeNil())
 					g.Expect(ov.Value).ToNot(BeNil())
 					g.Expect(string(ov.Value.Raw)).To(Equal(`"service.eu-de-1.example.com"`))
 				}
@@ -1074,7 +1074,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			for _, ov := range expPlugin.Spec.OptionValues {
 				if ov.Name == "expression.value" {
 					exprResolved = true
-					g.Expect(ov.Expression).To(BeNil()) //nolint:staticcheck // SA1019
+					g.Expect(ov.Expression).To(BeNil())
 					g.Expect(ov.Value).ToNot(BeNil())
 					g.Expect(string(ov.Value.Raw)).To(Equal(`"generated-` + clusterA + `"`))
 				}

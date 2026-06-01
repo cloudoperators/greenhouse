@@ -48,7 +48,7 @@ func (r *PluginPresetReconciler) resolveExpressionsForPreset(
 
 	hasExpressions := false
 	for _, ov := range preset.Spec.Plugin.OptionValues {
-		if ov.Expression != nil { //nolint:staticcheck // SA1019: deprecated field kept for later clean up
+		if ov.Expression != nil {
 			hasExpressions = true
 			break
 		}
@@ -64,8 +64,8 @@ func (r *PluginPresetReconciler) resolveExpressionsForPreset(
 
 	result := make([]greenhousev1alpha1.PluginOptionValue, 0, len(preset.Spec.Plugin.OptionValues))
 	for _, optionValue := range preset.Spec.Plugin.OptionValues {
-		if optionValue.Expression != nil { //nolint:staticcheck // SA1019: deprecated field kept for later clean up
-			evaluatedValue, err := cel.EvaluateExpression(*optionValue.Expression, templateData) //nolint:staticcheck // SA1019: deprecated field kept for later clean up
+		if optionValue.Expression != nil {
+			evaluatedValue, err := cel.EvaluateExpression(*optionValue.Expression, templateData)
 			if err != nil {
 				return nil, fmt.Errorf("failed to evaluate expression for option %s: %w", optionValue.Name, err)
 			}

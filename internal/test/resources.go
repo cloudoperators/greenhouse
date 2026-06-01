@@ -337,7 +337,7 @@ func WithPluginOptionValue(name string, value *apiextensionsv1.JSON) func(*green
 			if v.Name == name {
 				v.Value = value
 				v.ValueFrom = nil
-				v.Expression = nil //nolint:staticcheck // SA1019: deprecated fields kept for later clean up
+				v.Expression = nil
 				p.Spec.OptionValues[i] = v
 				return
 			}
@@ -360,7 +360,7 @@ func WithPluginOptionValueFrom(name string, valueFrom *greenhousev1alpha1.Plugin
 				v.ValueFrom = &greenhousev1alpha1.PluginValueFromSource{
 					Secret: valueFrom.Secret,
 				}
-				v.Expression = nil //nolint:staticcheck // SA1019: deprecated fields kept for later clean up
+				v.Expression = nil
 				p.Spec.OptionValues[i] = v
 				return
 			}
@@ -385,7 +385,7 @@ func WithPluginOptionValueFromRef(name string, ref *greenhousev1alpha1.ExternalV
 				v.ValueFrom = &greenhousev1alpha1.PluginValueFromSource{
 					Ref: ref,
 				}
-				v.Expression = nil //nolint:staticcheck // SA1019: deprecated fields kept for later clean up
+				v.Expression = nil
 				p.Spec.OptionValues[i] = v
 				return
 			}
@@ -407,7 +407,7 @@ func WithPluginOptionValueExpression(name string, expression *string) func(*gree
 		for i, v := range p.Spec.OptionValues {
 			if v.Name == name {
 				v.Value = nil
-				v.Expression = expression //nolint:staticcheck // SA1019: deprecated fields kept for later clean up
+				v.Expression = expression
 				v.ValueFrom = nil
 				p.Spec.OptionValues[i] = v
 				return

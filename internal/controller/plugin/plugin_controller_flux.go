@@ -468,7 +468,7 @@ func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhou
 			// noop, direct values are already set
 			continue
 
-		case v.Expression != nil: //nolint:staticcheck // SA1019: deprecated field kept for later clean up
+		case v.Expression != nil:
 			// TODO(#1775): Expressions should no longer be evaluated by Plugin controller.
 			// Once PluginPreset controller handles all expression evaluation,
 			// this branch should return an error instead of evaluating.
@@ -481,7 +481,7 @@ func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhou
 			}
 			optionValues[i] = *resolvedOptionValue
 
-		case v.ValueFrom != nil && v.ValueFrom.Ref != nil: //nolint:staticcheck // SA1019: deprecated field kept for later clean up
+		case v.ValueFrom != nil && v.ValueFrom.Ref != nil:
 			// TODO(#1776): References should no longer be resolved by Plugin controller.
 			// Once PluginPreset controller handles all reference resolution,
 			// this branch should return an error instead of resolving.
