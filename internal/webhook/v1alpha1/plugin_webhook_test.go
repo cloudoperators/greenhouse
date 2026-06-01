@@ -347,7 +347,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		Eventually(func() bool {
 			for _, actOption := range actPlugin.Spec.OptionValues {
 				if actOption.Name == "expressionOption" {
-					return actOption.Expression != nil
+					return actOption.Expression != nil //nolint:staticcheck // SA1019: deprecated fields kept for later clean up
 				}
 			}
 			return false

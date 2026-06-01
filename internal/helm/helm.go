@@ -405,13 +405,13 @@ func CalculatePluginOptionChecksum(ctx context.Context, c client.Client, plugin 
 		case v.Value != nil:
 			buf = append(buf, v.Value.Raw...)
 
-		case v.Expression != nil:
+		case v.Expression != nil: //nolint:staticcheck // SA1019: deprecated field kept for later clean up
 			buf = append(buf, []byte(*v.Expression)...)
 
-		case v.ValueFrom != nil && v.ValueFrom.Ref != nil:
-			buf = append(buf, []byte(v.ValueFrom.Ref.Name)...)
-			buf = append(buf, []byte(v.ValueFrom.Ref.Kind)...)
-			buf = append(buf, []byte(v.ValueFrom.Ref.Expression)...)
+		case v.ValueFrom != nil && v.ValueFrom.Ref != nil: //nolint:staticcheck // SA1019: deprecated field kept for later clean up
+			buf = append(buf, []byte(v.ValueFrom.Ref.Name)...)       //nolint:staticcheck // SA1019: deprecated fields kept for later clean up
+			buf = append(buf, []byte(v.ValueFrom.Ref.Kind)...)       //nolint:staticcheck // SA1019: deprecated fields kept for later clean up
+			buf = append(buf, []byte(v.ValueFrom.Ref.Expression)...) //nolint:staticcheck // SA1019: deprecated fields kept for later clean up
 
 		default:
 			continue
