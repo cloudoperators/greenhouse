@@ -9,6 +9,10 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+
+	sourcev1 "github.com/fluxcd/source-controller/api/v1"
+
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
 // HashValue - returns a hash of the string
@@ -40,4 +44,23 @@ func GetOwnerRepoInfo(s string) (host, owner, repo string, err error) {
 	owner = comp[0]
 	repo = comp[1]
 	return
+}
+
+func getGitRepositoryReference(s *greenhousev1alpha1.CatalogSource) *sourcev1.GitRepositoryRef {
+	gitReference := &sourcev1.GitRepositoryRef{}
+	if s.Ref != nil {
+		// flux precedence 1
+		if s.Ref.SHA != nil {
+			gitReference.Commit = *s.Ref.SHA
+		}
+		// flux precedence 2
+		if s.Ref.Tag != nil {
+			gitReference.Tag = *s.Ref.Tag
+		}
+		// flux precedence 3
+		if s.Ref.Branch != nil {
+			gitReference.Branch = *s.Ref.Branch
+		}
+	}
+	return gitReference
 }

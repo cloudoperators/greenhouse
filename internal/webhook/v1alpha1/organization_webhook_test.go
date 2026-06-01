@@ -11,7 +11,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	"github.com/cloudoperators/greenhouse/internal/scim"
 )
 
 var _ = Describe("Validate Organization Defaulting Webhook", func() {
@@ -53,7 +52,7 @@ var _ = Describe("Validate Organization Webhook", func() {
 				Authentication: &greenhousev1alpha1.Authentication{
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 						BaseURL:  "https://example.org",
-						AuthType: scim.Basic,
+						AuthType: greenhousev1alpha1.AuthTypeBasic,
 						BasicAuthUser: &greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
@@ -76,7 +75,7 @@ var _ = Describe("Validate Organization Webhook", func() {
 				Authentication: &greenhousev1alpha1.Authentication{
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 						BaseURL:  "https://example.org",
-						AuthType: scim.BearerToken,
+						AuthType: greenhousev1alpha1.AuthTypeBearerToken,
 						BearerToken: &greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
@@ -93,7 +92,7 @@ var _ = Describe("Validate Organization Webhook", func() {
 				Authentication: &greenhousev1alpha1.Authentication{
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 						BaseURL:  "https://example.org",
-						AuthType: scim.Basic,
+						AuthType: greenhousev1alpha1.AuthTypeBasic,
 						BearerToken: &greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
@@ -110,7 +109,7 @@ var _ = Describe("Validate Organization Webhook", func() {
 				Authentication: &greenhousev1alpha1.Authentication{
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 						BaseURL:  "https://example.org",
-						AuthType: scim.BearerToken,
+						AuthType: greenhousev1alpha1.AuthTypeBearerToken,
 						BasicAuthUser: &greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
@@ -172,7 +171,7 @@ var _ = Describe("Validate Organization Webhook", func() {
 				Authentication: &greenhousev1alpha1.Authentication{
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 						BaseURL:  "https://example.org",
-						AuthType: scim.Basic,
+						AuthType: greenhousev1alpha1.AuthTypeBasic,
 						BasicAuthUser: &greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
@@ -195,7 +194,7 @@ var _ = Describe("Validate Organization Webhook", func() {
 				Authentication: &greenhousev1alpha1.Authentication{
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 						BaseURL:  "https://example.org",
-						AuthType: scim.BearerToken,
+						AuthType: greenhousev1alpha1.AuthTypeBearerToken,
 						BearerToken: &greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",

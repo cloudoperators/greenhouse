@@ -17,6 +17,8 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
+
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
 type scimClient struct {
@@ -33,7 +35,7 @@ type basicAuthTransport struct {
 
 type Config struct {
 	URL         string
-	AuthType    AuthType
+	AuthType    greenhousev1alpha1.AuthType
 	BasicAuth   *BasicAuthConfig
 	BearerToken *BearerTokenConfig
 }
@@ -96,7 +98,7 @@ func NewSCIMClient(logger logr.Logger, config *Config) (ISCIMClient, error) {
 	}
 
 	switch config.AuthType {
-	case Basic:
+	case greenhousev1alpha1.AuthTypeBasic:
 		if config.BasicAuth == nil {
 			return nil, errors.New("could not create http scim client, Basic Auth Config missing")
 		}
@@ -109,7 +111,7 @@ func NewSCIMClient(logger logr.Logger, config *Config) (ISCIMClient, error) {
 			Password: config.BasicAuth.Password,
 			Next:     http.DefaultTransport,
 		}
-	case BearerToken:
+	case greenhousev1alpha1.AuthTypeBearerToken:
 		if config.BearerToken == nil {
 			return nil, errors.New("could not create http scim client, BearerToken Config missing")
 		}

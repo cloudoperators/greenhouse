@@ -3,6 +3,8 @@ module github.com/cloudoperators/greenhouse
 go 1.26.0
 
 replace (
+	github.com/cloudoperators/greenhouse/api => ./api //nolint:gomoddirectives
+
 	// DEX import matches version v2.45.1.
 	github.com/dexidp/dex => github.com/dexidp/dex v0.0.0-20260303133905-11d2eeb52b42
 	github.com/dexidp/dex/api/v2 => github.com/dexidp/dex/api/v2 v2.4.0
@@ -28,6 +30,7 @@ replace (
 
 require (
 	github.com/cenkalti/backoff/v5 v5.0.3
+	github.com/cloudoperators/greenhouse/api v0.0.0-00010101000000-000000000000
 	github.com/dexidp/dex v0.0.0-20260303133905-11d2eeb52b42
 	github.com/fluxcd/cli-utils v1.2.1
 	github.com/fluxcd/helm-controller/api v1.5.5
