@@ -9,6 +9,8 @@ import (
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	"github.com/fluxcd/pkg/apis/kustomize"
+	sourcev1 "github.com/fluxcd/source-controller/api/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
@@ -21,6 +23,7 @@ func (r *PluginReconciler) createRegistryMirrorPostRenderer(
 	ctx context.Context,
 	plugin *greenhousev1alpha1.Plugin,
 	pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec,
+	helmChart *sourcev1.HelmChart,
 	optionValues []greenhousev1alpha1.PluginOptionValue,
 ) (*helmv2.PostRenderer, error) {
 
@@ -54,7 +57,14 @@ func (r *PluginReconciler) createRegistryMirrorPostRenderer(
 		return nil, fmt.Errorf("failed to init client getter for Plugin %s: %w", plugin.Name, err)
 	}
 
-	helmRelease, err := helm.TemplateHelmChartFromPluginOptionValues(ctx, r.Client, restClientGetter, &pluginDefinitionSpec, plugin, optionValues)
+	chartPath, err := r.fetchChartArtifact(ctx, helmChart)
+	if err != nil {
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
+			greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.PluginHelmTemplateFailedReason, err.Error()))
+		return nil, fmt.Errorf("failed to fetch chart artifact for Plugin %s: %w", plugin.Name, err)
+	}
+
+	helmRelease, err := helm.TemplateHelmChartFromPluginOptionValues(ctx, r.Client, restClientGetter, &pluginDefinitionSpec, plugin, optionValues, chartPath)
 	if err != nil {
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.PluginHelmTemplateFailedReason, err.Error()))
 		return nil, fmt.Errorf("failed to template helm chart for Plugin %s: %w", plugin.Name, err)
@@ -70,6 +80,30 @@ func (r *PluginReconciler) createRegistryMirrorPostRenderer(
 	}
 
 	return buildPostRenderer(mirror, manifestSets...), nil
+}
+
+// fetchChartArtifact pulls the chart from source-controller (or the local on-disk cache),
+// persists it under the artifactID for this HelmChart, evicts older digests, and returns
+// the on-disk path so the Helm chart loader can read it directly.
+func (r *PluginReconciler) fetchChartArtifact(ctx context.Context, helmChart *sourcev1.HelmChart) (string, error) {
+	artifact := helmChart.GetArtifact()
+	if artifact == nil {
+		return "", fmt.Errorf("HelmChart %s/%s has no artifact yet", helmChart.Namespace, helmChart.Name)
+	}
+	digest := artifact.Digest
+	artifactID := helmChart.Namespace + "/" + helmChart.Name
+
+	content, err := r.artifactory.GetRaw(ctx, artifactID, artifact.URL, digest)
+	if err != nil {
+		return "", fmt.Errorf("fetch chart artifact: %w", err)
+	}
+	if err := r.artifactory.Save(artifactID, digest, content); err != nil {
+		return "", fmt.Errorf("save chart artifact: %w", err)
+	}
+	if err := r.artifactory.DeleteAllExcept(artifactID, digest); err != nil {
+		ctrl.LoggerFrom(ctx).Error(err, "failed to clean up old artifact, will be retried in next reconcile", "name", helmChart.Name, "namespace", helmChart.Namespace, "artifactID", artifactID)
+	}
+	return r.artifactory.Path(artifactID, digest), nil
 }
 
 func buildPostRenderer(mirror *ocimirror.ImageMirror, manifestSets ...string) *helmv2.PostRenderer {

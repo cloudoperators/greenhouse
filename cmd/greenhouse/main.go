@@ -74,8 +74,8 @@ const (
 	flagLeaseDuration                      = "leader-election-lease-duration"
 	flagRenewDeadline                      = "leader-election-renew-deadline"
 	flagRetryPeriod                        = "leader-election-retry-period"
-	flagArtifactStoragePath                = "catalog-artifact-storage-path"
-	flagArtifactRetries                    = "catalog-http-retry"
+	flagArtifactStoragePath                = "artifact-storage-path"
+	flagArtifactRetries                    = "artifact-http-retry"
 )
 
 var (
@@ -128,7 +128,7 @@ func main() {
 	flag.DurationVar(&leaseDuration, flagLeaseDuration, 60*time.Second, "Leader election lease duration")
 	flag.DurationVar(&renewDeadline, flagRenewDeadline, 30*time.Second, "Leader election renew deadline")
 	flag.DurationVar(&retryPeriod, flagRetryPeriod, 5*time.Second, "Leader election retry period")
-	flag.StringVar(&artifactStoragePath, flagArtifactStoragePath, "/tmp/data", "The path to store catalog artifacts")
+	flag.StringVar(&artifactStoragePath, flagArtifactStoragePath, "/tmp/data", "The path to store artifacts")
 	flag.IntVar(&artifactRetries, flagArtifactRetries, 5, "Max number of retries to acquire artifact, default: 5 attempts")
 
 	opts := zap.Options{

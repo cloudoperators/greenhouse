@@ -28,6 +28,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/common"
+	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/util"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
@@ -41,6 +42,9 @@ type PluginReconciler struct {
 	ExpressionEvaluationEnabled bool
 	IntegrationEnabled          bool
 	OCIMirroringEnabled         bool
+	StoragePath                 string
+	HTTPRetry                   int
+	artifactory                 flux.IArtifactory
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch;create;update;patch;delete
@@ -80,6 +84,8 @@ func (r *PluginReconciler) SetupWithManager(name string, mgr ctrl.Manager) error
 	}); err != nil {
 		return err
 	}
+
+	r.artifactory = flux.NewArtifactory(ctrl.Log.WithName("artifactory"), r.StoragePath, r.HTTPRetry)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
