@@ -26,7 +26,6 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/dex"
 	dexapi "github.com/cloudoperators/greenhouse/internal/dex/api"
 	"github.com/cloudoperators/greenhouse/internal/rbac"
-	"github.com/cloudoperators/greenhouse/internal/scim"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
@@ -157,7 +156,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 					o.Spec.Authentication = &greenhousev1alpha1.Authentication{
 						SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 							BaseURL:  groupsServer.URL + "/scim",
-							AuthType: scim.Basic,
+							AuthType: greenhousev1alpha1.AuthTypeBasic,
 							BasicAuthUser: &greenhousev1alpha1.ValueFromSource{
 								Secret: &greenhousev1alpha1.SecretKeyReference{
 									Name: "test-secret",
@@ -199,7 +198,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 					o.Spec.Authentication = &greenhousev1alpha1.Authentication{
 						SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 							BaseURL:  groupsServer.URL + "/scim",
-							AuthType: scim.BearerToken,
+							AuthType: greenhousev1alpha1.AuthTypeBearerToken,
 							BearerToken: &greenhousev1alpha1.ValueFromSource{
 								Secret: &greenhousev1alpha1.SecretKeyReference{
 									Name: "test-secret",
@@ -247,7 +246,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 				testOrg.Spec.Authentication = &greenhousev1alpha1.Authentication{
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 						BaseURL:  groupsServer.URL + "/scim",
-						AuthType: scim.Basic,
+						AuthType: greenhousev1alpha1.AuthTypeBasic,
 						BasicAuthUser: &greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
