@@ -38,7 +38,7 @@ const (
 // filterValueRefOptions filters option values to only include those with external references (ValueFrom.Ref).
 func filterValueRefOptions(optionValues []greenhousev1alpha1.PluginOptionValue) []greenhousev1alpha1.PluginOptionValue {
 	return slices.DeleteFunc(optionValues, func(o greenhousev1alpha1.PluginOptionValue) bool {
-		return o.ValueFrom == nil || o.ValueFrom.Ref == nil
+		return o.ValueFrom == nil || o.ValueFrom.Ref == nil //nolint:staticcheck // SA1019: deprecated field kept for later clean up
 	})
 }
 
@@ -61,20 +61,20 @@ func resolveValueFromRef(ctx context.Context, c client.Client, plugin *greenhous
 	var trackedObjects []string
 	var err error
 	resolveKind := defaultKind
-	if option.ValueFrom.Ref.Kind != "" {
-		resolveKind = option.ValueFrom.Ref.Kind
+	if option.ValueFrom.Ref.Kind != "" { //nolint:staticcheck // SA1019: deprecated fields kept for later clean up
+		resolveKind = option.ValueFrom.Ref.Kind //nolint:staticcheck // SA1019: deprecated fields kept for later clean up
 	}
 	gvk := buildGVK(resolveKind)
 	// resolve by name
-	if option.ValueFrom.Ref.Name != "" {
+	if option.ValueFrom.Ref.Name != "" { //nolint:staticcheck // SA1019: deprecated fields kept for later clean up
 		value, err = resolveByName(ctx, c, plugin, option, gvk, tracker)
 		if err != nil {
 			return nil, nil, err
 		}
-		trackedObjects = append(trackedObjects, trackingID(resolveKind, option.ValueFrom.Ref.Name))
+		trackedObjects = append(trackedObjects, trackingID(resolveKind, option.ValueFrom.Ref.Name)) //nolint:staticcheck // SA1019: deprecated fields kept for later clean up
 	}
 	// resolve by label selector
-	if option.ValueFrom.Ref.Selector != nil {
+	if option.ValueFrom.Ref.Selector != nil { //nolint:staticcheck // SA1019: deprecated fields kept for later clean up
 		var selectorTrackedObjects []string
 		value, selectorTrackedObjects, err = resolveBySelector(ctx, c, plugin, option, gvk, tracker)
 		if err != nil {
@@ -102,7 +102,7 @@ func resolveValueFromRef(ctx context.Context, c client.Client, plugin *greenhous
 // resolveByName resolves an option value by fetching a specific named resource.
 func resolveByName(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, option greenhousev1alpha1.PluginOptionValue, gvk schema.GroupVersionKind, tracker string) (any, error) {
 	key := types.NamespacedName{
-		Name:      option.ValueFrom.Ref.Name,
+		Name:      option.ValueFrom.Ref.Name, //nolint:staticcheck // SA1019: deprecated fields kept for later clean up
 		Namespace: plugin.GetNamespace(),
 	}
 	uObject := &unstructured.Unstructured{}
@@ -122,7 +122,7 @@ func resolveByName(ctx context.Context, c client.Client, plugin *greenhousev1alp
 			"namespace", key.Namespace)
 		return nil, err
 	}
-	value, err := evaluateExpression(ctx, uObject, option.ValueFrom.Ref.Expression)
+	value, err := evaluateExpression(ctx, uObject, option.ValueFrom.Ref.Expression) //nolint:staticcheck // SA1019: deprecated fields kept for later clean up
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +138,7 @@ func resolveByName(ctx context.Context, c client.Client, plugin *greenhousev1alp
 
 // resolveBySelector resolves option values by fetching resources matching a label selector.
 func resolveBySelector(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, option greenhousev1alpha1.PluginOptionValue, gvk schema.GroupVersionKind, tracker string) (value any, trackedObjects []string, err error) {
-	selector, err := metav1.LabelSelectorAsSelector(option.ValueFrom.Ref.Selector)
+	selector, err := metav1.LabelSelectorAsSelector(option.ValueFrom.Ref.Selector) //nolint:staticcheck // SA1019: deprecated fields kept for later clean up
 	if err != nil {
 		log.FromContext(ctx).Error(err, "failed to parse label selector",
 			"namespace", plugin.GetNamespace(),
@@ -147,7 +147,7 @@ func resolveBySelector(ctx context.Context, c client.Client, plugin *greenhousev
 		return nil, nil, err
 	}
 
-	value, trackedObjects, err = resolveMany(ctx, c, gvk, selector, plugin.GetNamespace(), option.ValueFrom.Ref.Expression, tracker)
+	value, trackedObjects, err = resolveMany(ctx, c, gvk, selector, plugin.GetNamespace(), option.ValueFrom.Ref.Expression, tracker) //nolint:staticcheck // SA1019: deprecated fields kept for later clean up
 	if err != nil {
 		return nil, nil, err
 	}

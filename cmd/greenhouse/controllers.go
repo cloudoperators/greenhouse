@@ -35,7 +35,7 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 
 	// Plugin controllers.
 	"plugin":       startPluginReconciler,
-	"pluginPreset": (&plugincontrollers.PluginPresetReconciler{}).SetupWithManager,
+	"pluginPreset": startPluginPresetReconciler,
 
 	"catalog":                 startCatalogReconciler,
 	"pluginDefinition":        startPluginDefinitionReconciler,
@@ -90,6 +90,12 @@ func startPluginReconciler(name string, mgr ctrl.Manager) error {
 		OCIMirroringEnabled:         featureFlags.IsOCIMirroringEnabled(),
 		StoragePath:                 artifactStoragePath,
 		HTTPRetry:                   artifactRetries,
+	}).SetupWithManager(name, mgr)
+}
+
+func startPluginPresetReconciler(name string, mgr ctrl.Manager) error {
+	return (&plugincontrollers.PluginPresetReconciler{
+		ExpressionEvaluationEnabled: featureFlags.IsPresetExpressionEvaluationEnabled(),
 	}).SetupWithManager(name, mgr)
 }
 

@@ -391,7 +391,7 @@ func hasExactlyOneValueSource(val greenhousev1alpha1.PluginOptionValue) bool {
 	sources := []bool{
 		val.Value != nil,
 		val.ValueFrom != nil,
-		val.Expression != nil,
+		val.Expression != nil, //nolint:staticcheck // SA1019: deprecated fields kept for later clean up
 	}
 
 	count := 0
