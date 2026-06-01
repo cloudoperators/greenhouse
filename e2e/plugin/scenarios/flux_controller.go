@@ -503,8 +503,25 @@ func FluxControllerPluginDependencies(ctx context.Context, adminClient client.Cl
 	}).Should(Succeed())
 
 	By("Deleting both plugin presets")
-	test.EventuallyDeleted(ctx, adminClient, midPluginPreset)
-	test.EventuallyDeleted(ctx, adminClient, leafPluginPreset)
+	test.MustRemoveAnnotation(ctx, adminClient, midPluginPreset, greenhousev1alpha1.PreventDeletionAnnotation)
+	test.MustRemoveAnnotation(ctx, adminClient, leafPluginPreset, greenhousev1alpha1.PreventDeletionAnnotation)
+	Expect(adminClient.Delete(ctx, midPluginPreset)).To(Succeed())
+	Expect(adminClient.Delete(ctx, leafPluginPreset)).To(Succeed())
+
+	By("Verifying Plugins are marked for deletion before HelmReleases are gone")
+	Eventually(func(g Gomega) {
+		midPlugin := &greenhousev1alpha1.Plugin{}
+		err = adminClient.Get(ctx, types.NamespacedName{Name: midPluginPresetResolvedPluginName, Namespace: env.TestNamespace}, midPlugin)
+		g.Expect(err).ToNot(HaveOccurred(), "mid Plugin must still exist while HelmRelease is being uninstalled")
+		g.Expect(midPlugin.GetDeletionTimestamp()).ToNot(BeNil(), "mid Plugin must be marked for deletion")
+
+		leafPlugin := &greenhousev1alpha1.Plugin{}
+		leafPluginName := leafPluginPreset.Name + "-" + remoteClusterName
+		err = adminClient.Get(ctx, types.NamespacedName{Name: leafPluginName, Namespace: env.TestNamespace}, leafPlugin)
+		g.Expect(err).ToNot(HaveOccurred(), "leaf Plugin must still exist while HelmRelease is being uninstalled")
+		g.Expect(leafPlugin.GetDeletionTimestamp()).ToNot(BeNil(), "leaf Plugin must be marked for deletion")
+	}).Should(Succeed(), "Plugins must be marked for deletion while their HelmReleases are being uninstalled")
+
 	By("deleting global plugin")
 	test.EventuallyDeleted(ctx, adminClient, globalPlugin)
 	By("Verifying all HelmReleases are deleted")

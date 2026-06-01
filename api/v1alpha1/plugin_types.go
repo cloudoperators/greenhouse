@@ -158,9 +158,6 @@ const (
 	// PluginDefinitionNotBackedByHelmChartReason is set when the PluginDefinition is not backed by a Helm chart.
 	PluginDefinitionNotBackedByHelmChartReason greenhousemetav1alpha1.ConditionReason = "PluginDefinitionNotBackedByHelmChart"
 
-	// HelmReleaseUninstalledReason is set when the Helm release has been uninstalled.
-	HelmReleaseUninstalledReason greenhousemetav1alpha1.ConditionReason = "HelmReleaseUninstalled"
-
 	// HelmUninstallFailedReason is set when the Helm release could not be uninstalled.
 	HelmUninstallFailedReason greenhousemetav1alpha1.ConditionReason = "HelmUninstallFailed"
 
