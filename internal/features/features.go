@@ -16,14 +16,16 @@ import (
 )
 
 const (
-	DexFeatureKey    = "dex"
-	PluginFeatureKey = "plugin"
+	DexFeatureKey          = "dex"
+	PluginFeatureKey       = "plugin"
+	PluginPresetFeatureKey = "pluginPreset"
 )
 
 type Features struct {
-	raw    map[string]string
-	dex    *dexFeatures    `yaml:"dex"`
-	plugin *pluginFeatures `yaml:"plugin"`
+	raw          map[string]string
+	dex          *dexFeatures          `yaml:"dex"`
+	plugin       *pluginFeatures       `yaml:"plugin"`
+	pluginPreset *pluginPresetFeatures `yaml:"pluginPreset"`
 }
 
 type dexFeatures struct {
@@ -34,6 +36,10 @@ type pluginFeatures struct {
 	ExpressionEvaluationEnabled bool `yaml:"expressionEvaluationEnabled"`
 	IntegrationEnabled          bool `yaml:"integrationEnabled"`
 	OCIMirroringEnabled         bool `yaml:"ociMirroringEnabled"`
+}
+
+type pluginPresetFeatures struct {
+	ExpressionEvaluationEnabled bool `yaml:"expressionEvaluationEnabled"`
 }
 
 func NewFeatures(ctx context.Context, k8sClient client.Reader, configMapName, namespace string) (*Features, error) {
@@ -93,6 +99,33 @@ func (f *Features) resolvePluginFeatures() error {
 	}
 	f.plugin = plugin
 	return nil
+}
+
+func (f *Features) resolvePluginPresetFeatures() error {
+	pluginPreset, err := resolve[pluginPresetFeatures](f, PluginPresetFeatureKey)
+	if err != nil {
+		return err
+	}
+	f.pluginPreset = pluginPreset
+	return nil
+}
+
+// IsPresetExpressionEvaluationEnabled returns whether CEL expression evaluation
+// is enabled in the PluginPreset controller.
+// Returns false as default.
+func (f *Features) IsPresetExpressionEvaluationEnabled() bool {
+	if f == nil {
+		return false
+	}
+
+	if f.pluginPreset != nil {
+		return f.pluginPreset.ExpressionEvaluationEnabled
+	}
+	if err := f.resolvePluginPresetFeatures(); err != nil {
+		ctrl.LoggerFrom(context.Background()).Error(err, "failed to resolve pluginPreset features")
+		return false
+	}
+	return f.pluginPreset.ExpressionEvaluationEnabled
 }
 
 // IsExpressionEvaluationEnabled returns whether plugin option expression evaluation is enabled.

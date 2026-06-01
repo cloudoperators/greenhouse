@@ -39,7 +39,9 @@ var _ = BeforeSuite(func() {
 	test.RegisterController("plugin", (&PluginReconciler{
 		KubeRuntimeOpts: clientutil.RuntimeOptions{QPS: 5, Burst: 10},
 	}).SetupWithManager)
-	test.RegisterController("pluginPreset", (&PluginPresetReconciler{}).SetupWithManager)
+	test.RegisterController("pluginPreset", (&PluginPresetReconciler{
+		ExpressionEvaluationEnabled: true,
+	}).SetupWithManager)
 	test.RegisterController("pluginDefinition", (&greenhouseDef.PluginDefinitionReconciler{}).SetupWithManager)
 	test.RegisterController("clusterPluginDefinition", (&greenhouseDef.ClusterPluginDefinitionReconciler{}).SetupWithManager)
 	test.RegisterController("cluster", (&greenhousecluster.RemoteClusterReconciler{}).SetupWithManager)
