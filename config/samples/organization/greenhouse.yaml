@@ -8,3 +8,31 @@ metadata:
 spec:
   description: Greenhouse Organization
   mappedOrgAdminIdPGroup: GREENHOUSE_ORG_ADMIN
+  configMapRef: greenhouse-config
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: greenhouse-config
+  namespace: greenhouse
+data:
+  containerRegistryConfig: |
+    primaryMirror: "registry:5000"
+    registryMirrors:
+      docker.io:
+        baseDomain: "registry:5000"
+        subPath: "greenhouse-dockerhub-mirror"
+      gcr.io:
+        baseDomain: "registry:5000"
+        subPath: "greenhouse-gcr-mirror"
+      ghcr.io:
+        baseDomain: "registry:5000"
+        subPath: "greenhouse-ghcr-io-mirror"
+      quay.io:
+        baseDomain: "registry:5000"
+        subPath: "greenhouse-quay-mirror"
+      registry.k8s.io:
+        baseDomain: "registry:5000"
+        subPath: "greenhouse-registry-k8s-io-mirror"

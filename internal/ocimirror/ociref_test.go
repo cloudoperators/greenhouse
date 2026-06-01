@@ -55,6 +55,23 @@ containers:
 			images := ExtractUniqueOCIRefs(manifests)
 			Expect(images).To(HaveLen(2))
 		})
+
+		It("should ignore `image:` used as a CRD field name with nested children", func() {
+			// Regression: OpenSearch index templates declare `image` as a field, not a container ref.
+			manifests := `
+mappings:
+  properties:
+    container:
+      properties:
+        image:
+          properties:
+            name:
+              type: keyword
+            tag:
+              type: keyword
+`
+			Expect(ExtractUniqueOCIRefs(manifests)).To(BeEmpty())
+		})
 	})
 
 	Describe("SplitOCIRef", func() {

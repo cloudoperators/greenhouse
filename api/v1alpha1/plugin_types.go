@@ -66,6 +66,9 @@ type PluginOptionValue struct {
 	// ValueFrom references value in another source.
 	ValueFrom *PluginValueFromSource `json:"valueFrom,omitempty"`
 	// Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions.
+	//
+	// Deprecated: Expression is deprecated on standalone Plugins and will be removed in a future release.
+	// Consider using a PluginPreset to deploy Plugins utilizing the Expression field.
 	Expression *string `json:"expression,omitempty"`
 }
 
@@ -77,6 +80,9 @@ type PluginValueFromSource struct {
 	// Secret references the v1.Secret containing the value that needs to be extracted
 	Secret *SecretKeyReference `json:"secret,omitempty"`
 	// Ref references values defined in another resource (Plugin, PluginPreset)
+	//
+	// Deprecated: Ref is deprecated on standalone Plugins and will be removed in a future release.
+	// Consider using a PluginPreset to deploy Plugins utilizing the Ref field.
 	Ref *ExternalValueSource `json:"ref,omitempty"`
 }
 

@@ -1108,7 +1108,11 @@ components:
                       description: PluginOptionValue is the value for a PluginOption.
                       properties:
                         expression:
-                          description: Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions.
+                          description: |-
+                            Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions.
+      
+                            Deprecated: Expression is deprecated on standalone Plugins and will be removed in a future release.
+                            Consider using a PluginPreset to deploy Plugins utilizing the Expression field.
                           type: string
                         name:
                           description: Name of the values.
@@ -1120,7 +1124,11 @@ components:
                           description: ValueFrom references value in another source.
                           properties:
                             ref:
-                              description: Ref references values defined in another resource (Plugin, PluginPreset)
+                              description: |-
+                                Ref references values defined in another resource (Plugin, PluginPreset)
+      
+                                Deprecated: Ref is deprecated on standalone Plugins and will be removed in a future release.
+                                Consider using a PluginPreset to deploy Plugins utilizing the Ref field.
                               properties:
                                 expression:
                                   description: Expression is a CEL expression to extract the value from the referenced resource
@@ -1275,9 +1283,6 @@ components:
             plugin:
               description: PluginSpec is the spec of the plugin to be deployed by the PluginPreset.
               properties:
-                clusterName:
-                  description: ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster.
-                  type: string
                 deletionPolicy:
                   default: Delete
                   description: |-
@@ -1325,7 +1330,11 @@ components:
                     description: PluginOptionValue is the value for a PluginOption.
                     properties:
                       expression:
-                        description: Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions.
+                        description: |-
+                          Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions.
+      
+                          Deprecated: Expression is deprecated on standalone Plugins and will be removed in a future release.
+                          Consider using a PluginPreset to deploy Plugins utilizing the Expression field.
                         type: string
                       name:
                         description: Name of the values.
@@ -1337,7 +1346,11 @@ components:
                         description: ValueFrom references value in another source.
                         properties:
                           ref:
-                            description: Ref references values defined in another resource (Plugin, PluginPreset)
+                            description: |-
+                              Ref references values defined in another resource (Plugin, PluginPreset)
+      
+                              Deprecated: Ref is deprecated on standalone Plugins and will be removed in a future release.
+                              Consider using a PluginPreset to deploy Plugins utilizing the Ref field.
                             properties:
                               expression:
                                 description: Expression is a CEL expression to extract the value from the referenced resource
@@ -1459,25 +1472,6 @@ components:
                     ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.
                     Defaults to the Greenhouse managed namespace if not set.
                   type: string
-                waitFor:
-                  description: WaitFor defines other Plugins to wait for before installing this Plugin.
-                  items:
-                    description: WaitForItem is a wrapper around PluginRef to add context for every WaitFor list item.
-                    properties:
-                      pluginRef:
-                        description: PluginRef defines a reference to the Plugin.
-                        properties:
-                          name:
-                            description: Name of the Plugin.
-                            type: string
-                          pluginPreset:
-                            description: PluginPreset is the name of the PluginPreset which creates the Plugin.
-                            type: string
-                        type: object
-                    required:
-                      - pluginRef
-                    type: object
-                  type: array
               required:
                 - pluginDefinitionRef
               type: object
@@ -1661,7 +1655,11 @@ components:
                 description: PluginOptionValue is the value for a PluginOption.
                 properties:
                   expression:
-                    description: Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions.
+                    description: |-
+                      Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions.
+      
+                      Deprecated: Expression is deprecated on standalone Plugins and will be removed in a future release.
+                      Consider using a PluginPreset to deploy Plugins utilizing the Expression field.
                     type: string
                   name:
                     description: Name of the values.
@@ -1673,7 +1671,11 @@ components:
                     description: ValueFrom references value in another source.
                     properties:
                       ref:
-                        description: Ref references values defined in another resource (Plugin, PluginPreset)
+                        description: |-
+                          Ref references values defined in another resource (Plugin, PluginPreset)
+      
+                          Deprecated: Ref is deprecated on standalone Plugins and will be removed in a future release.
+                          Consider using a PluginPreset to deploy Plugins utilizing the Ref field.
                         properties:
                           expression:
                             description: Expression is a CEL expression to extract the value from the referenced resource

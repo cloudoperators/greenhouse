@@ -28,6 +28,9 @@ controllerManager:
   replicas: 3
   serviceAccount:
     annotations: {}
+  artifactStorage:
+    path: /tmp/data
+    sizeLimit: 1Gi
 
 certManager:
   enabled: true
