@@ -7,7 +7,7 @@ on:
 
 jobs:
   cleanup:
-    uses: cloudoperators/common/.github/workflows/shared-ghcr-cleanup.yaml@f87e1e6b7889707a9c10d1a8a9f9f481eb311c06 # main
+    uses: cloudoperators/common/.github/workflows/shared-ghcr-cleanup.yaml@c5ee48b3e45f779545e42861b3f361cd3848abd8 # main
     with:
       package: greenhouse,greenhouse/charts/greenhouse
       dry-run: true
