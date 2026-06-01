@@ -2085,6 +2085,66 @@ SecretKeyReference
 the client application, the URI requested to redirect to must be contained in this list.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>extraConfig</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.OIDCExtraConfig">
+OIDCExtraConfig
+</a>
+</em>
+</td>
+<td>
+<p>ExtraConfig contains additional OIDC configuration for claim mapping and token validation behavior.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.OIDCExtraConfig">OIDCExtraConfig
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.OIDCConfig">OIDCConfig</a>)
+</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>insecureSkipEmailVerified</code><br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>InsecureSkipEmailVerified, if set to true, forces the email_verified claim to true
+regardless of the value reported by the upstream IdP, including overriding an explicit
+email_verified=false. Enable only for IdPs where the email address is verified by other
+means, e.g. Keycloak with SAML or user federation, or providers that omit the claim
+entirely such as some Okta, EntraID or CloudFoundry configurations.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>userIDClaim</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>UserIDClaim is the claim to be used as both user ID and username.
+When set, it overrides both UserIDKey and UserNameKey in the dex OIDC connector config.</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
