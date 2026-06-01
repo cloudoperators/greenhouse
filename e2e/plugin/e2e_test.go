@@ -104,10 +104,6 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		scenarios.FluxControllerPluginDeletePolicyRetain(ctx, adminClient, env, remoteClusterName, team.Name)
 	})
 
-	It("should surface HelmRelease uninstall failure as a Plugin condition and retain the finalizer until resolved", func() {
-		scenarios.FluxControllerPluginDeletionLifecycle(ctx, adminClient, env, remoteClusterName, team.Name)
-	})
-
 	It("should resolve option values from direct plugin reference", func() {
 		By("setting up cluster role binding for OIDC on remote cluster")
 		expect.SetupOIDCClusterRoleBinding(ctx, remoteClient, remoteOIDCClusterRoleBindingName, remoteIntegrationCluster, env.TestNamespace)

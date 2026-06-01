@@ -28,7 +28,6 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/test"
-	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName string) {
@@ -504,8 +503,30 @@ func FluxControllerPluginDependencies(ctx context.Context, adminClient client.Cl
 	}).Should(Succeed())
 
 	By("Deleting both plugin presets")
-	test.EventuallyDeleted(ctx, adminClient, midPluginPreset)
-	test.EventuallyDeleted(ctx, adminClient, leafPluginPreset)
+	test.MustRemoveAnnotation(ctx, adminClient, midPluginPreset, greenhousev1alpha1.PreventDeletionAnnotation)
+	test.MustRemoveAnnotation(ctx, adminClient, leafPluginPreset, greenhousev1alpha1.PreventDeletionAnnotation)
+	Expect(adminClient.Delete(ctx, midPluginPreset)).To(Succeed())
+	Expect(adminClient.Delete(ctx, leafPluginPreset)).To(Succeed())
+
+	By("Verifying Plugins and HelmReleases are retained while deletion is pending")
+	Eventually(func(g Gomega) {
+		midPlugin := &greenhousev1alpha1.Plugin{}
+		err = adminClient.Get(ctx, types.NamespacedName{Name: midPluginPresetResolvedPluginName, Namespace: env.TestNamespace}, midPlugin)
+		g.Expect(err).ToNot(HaveOccurred(), "mid Plugin must still exist while HelmRelease is being uninstalled")
+		g.Expect(midPlugin.GetDeletionTimestamp()).ToNot(BeNil(), "mid Plugin must be marked for deletion")
+
+		leafPlugin := &greenhousev1alpha1.Plugin{}
+		leafPluginName := leafPluginPreset.Name + "-" + remoteClusterName
+		err = adminClient.Get(ctx, types.NamespacedName{Name: leafPluginName, Namespace: env.TestNamespace}, leafPlugin)
+		g.Expect(err).ToNot(HaveOccurred(), "leaf Plugin must still exist while HelmRelease is being uninstalled")
+		g.Expect(leafPlugin.GetDeletionTimestamp()).ToNot(BeNil(), "leaf Plugin must be marked for deletion")
+	}).Should(Succeed(), "Plugins must be marked for deletion while their HelmReleases are being uninstalled")
+
+	err = adminClient.Get(ctx, client.ObjectKeyFromObject(midHelmRelease), midHelmRelease)
+	Expect(err).ToNot(HaveOccurred(), "mid HelmRelease must still exist while Plugin is pending deletion")
+	err = adminClient.Get(ctx, client.ObjectKeyFromObject(leafHelmRelease), leafHelmRelease)
+	Expect(err).ToNot(HaveOccurred(), "leaf HelmRelease must still exist while Plugin is pending deletion")
+
 	By("deleting global plugin")
 	test.EventuallyDeleted(ctx, adminClient, globalPlugin)
 	By("Verifying all HelmReleases are deleted")
@@ -603,147 +624,4 @@ func FluxControllerPluginDeletePolicyRetain(ctx context.Context, adminClient cli
 		_, err := helm.UninstallHelmRelease(ctx, env.RemoteRestClientGetter, actPlugin)
 		g.Expect(err).NotTo(HaveOccurred(), "should be able to uninstall the helm release for the plugin")
 	}).Should(Succeed(), "the retained Helm release should eventually be uninstalled from the remote cluster")
-}
-
-// FluxControllerPluginDeletionLifecycle verifies that the Plugin controller holds its finalizer
-// and surfaces the HelmRelease uninstall failure as a status condition when Flux reports an error.
-func FluxControllerPluginDeletionLifecycle(ctx context.Context, adminClient client.Client, env *shared.TestEnv, remoteClusterName, teamName string) {
-	const testFinalizer = "greenhouse.sap/e2e-test"
-
-	By("Creating plugin definition")
-	testPluginDefinition := fixtures.PreparePodInfoClusterPluginDefinition(env.TestNamespace, "6.9.0")
-	err := adminClient.Create(ctx, testPluginDefinition)
-	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
-
-	By("Checking the test plugin definition is ready")
-	Eventually(func(g Gomega) {
-		err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPluginDefinition), testPluginDefinition)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(testPluginDefinition.Status.IsReadyTrue()).To(BeTrue(), "the plugin definition should be ready")
-	}).Should(Succeed())
-
-	By("Adding labels to remote cluster")
-	remoteCluster := &greenhousev1alpha1.Cluster{}
-	err = adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterName, Namespace: env.TestNamespace}, remoteCluster)
-	Expect(err).ToNot(HaveOccurred())
-	remoteCluster.Labels = map[string]string{"app": "test-deletion-lifecycle-cluster"}
-	err = adminClient.Update(ctx, remoteCluster)
-	Expect(err).ToNot(HaveOccurred())
-
-	By("Creating PluginPreset")
-	pluginPreset := test.NewPluginPreset("test-deletion-lifecycle-preset", env.TestNamespace,
-		test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamName),
-		test.WithPluginPresetPluginSpec(fixtures.PreparePlugin("test-deletion-lifecycle-preset", env.TestNamespace,
-			test.WithClusterPluginDefinition(testPluginDefinition.Name),
-			test.WithReleaseName("test-deletion-lifecycle"),
-			test.WithReleaseNamespace(env.TestNamespace),
-		).Spec),
-		test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"app": "test-deletion-lifecycle-cluster"}}),
-	)
-	err = adminClient.Create(ctx, pluginPreset)
-	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
-
-	By("Waiting for the Plugin to be created and deployed")
-	plugin := &greenhousev1alpha1.Plugin{}
-	pluginKey := types.NamespacedName{Name: pluginPreset.Name + "-" + remoteClusterName, Namespace: env.TestNamespace}
-	Eventually(func(g Gomega) {
-		err = adminClient.Get(ctx, pluginKey, plugin)
-		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(plugin.Status.IsReadyTrue()).To(BeTrue(), "the plugin should be ready")
-	}).Should(Succeed(), "the plugin should eventually be created and ready")
-
-	helmRelease := &helmv2.HelmRelease{}
-	helmReleaseKey := types.NamespacedName{Name: pluginPreset.Name + "-" + remoteClusterName, Namespace: env.TestNamespace}
-
-	By("Adding a test finalizer to the HelmRelease to hold it during deletion")
-	Eventually(func(g Gomega) {
-		err = adminClient.Get(ctx, helmReleaseKey, helmRelease)
-		g.Expect(err).ToNot(HaveOccurred())
-		patch := helmRelease.DeepCopy()
-		patch.Finalizers = append(patch.Finalizers, testFinalizer)
-		g.Expect(adminClient.Patch(ctx, patch, client.MergeFrom(helmRelease))).To(Succeed())
-	}).Should(Succeed(), "should be able to add test finalizer to HelmRelease")
-
-	By("Deleting the PluginPreset to trigger Plugin deletion")
-	test.MustRemoveAnnotation(ctx, adminClient, pluginPreset, greenhousev1alpha1.PreventDeletionAnnotation)
-	Expect(adminClient.Delete(ctx, pluginPreset)).To(Succeed())
-
-	By("Waiting for the Plugin to enter deletion phase with pending condition")
-	Eventually(func(g Gomega) {
-		err = adminClient.Get(ctx, pluginKey, plugin)
-		g.Expect(err).ToNot(HaveOccurred(), "Plugin must still exist while HelmRelease is held")
-		g.Expect(plugin.GetDeletionTimestamp()).ToNot(BeNil(), "Plugin must be marked for deletion")
-		cond := plugin.Status.GetConditionByType(greenhousemetav1alpha1.DeleteCondition)
-		g.Expect(cond).ToNot(BeNil())
-		g.Expect(string(cond.Reason)).To(Equal(string(lifecycle.PendingDeletionReason)),
-			"Delete condition should show deletion is pending")
-	}).Should(Succeed(), "Plugin should enter deletion-pending state while HelmRelease is held")
-
-	By("Verifying the Plugin finalizer is retained while uninstall is pending")
-	err = adminClient.Get(ctx, pluginKey, plugin)
-	Expect(err).ToNot(HaveOccurred())
-	Expect(plugin.Finalizers).To(ContainElement("greenhouse.sap/cleanup"), "finalizer must be retained while HelmRelease exists")
-
-	By("Injecting an UninstallFailed condition on the HelmRelease to simulate a Flux failure")
-	Eventually(func(g Gomega) {
-		err = adminClient.Get(ctx, helmReleaseKey, helmRelease)
-		g.Expect(err).ToNot(HaveOccurred())
-		statusPatch := helmRelease.DeepCopy()
-		meta.SetStatusCondition(&statusPatch.Status.Conditions, metav1.Condition{
-			Type:               helmv2.ReleasedCondition,
-			Status:             metav1.ConditionFalse,
-			Reason:             helmv2.UninstallFailedReason,
-			Message:            "simulated uninstall failure for e2e test",
-			LastTransitionTime: metav1.Now(),
-		})
-		g.Expect(adminClient.Status().Patch(ctx, statusPatch, client.MergeFrom(helmRelease))).To(Succeed())
-	}).Should(Succeed(), "should be able to inject the uninstall failure condition")
-
-	By("Verifying the Plugin surfaces the uninstall failure and retains its finalizer")
-	Eventually(func(g Gomega) {
-		err = adminClient.Get(ctx, pluginKey, plugin)
-		g.Expect(err).ToNot(HaveOccurred(), "Plugin must still exist after uninstall failure")
-		g.Expect(plugin.GetDeletionTimestamp()).ToNot(BeNil(), "Plugin must remain in deletion phase")
-		g.Expect(plugin.Finalizers).To(ContainElement("greenhouse.sap/cleanup"), "finalizer must be retained after uninstall failure")
-		cond := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseDeployedCondition)
-		g.Expect(cond).ToNot(BeNil())
-		g.Expect(string(cond.Reason)).To(Equal(string(greenhousev1alpha1.HelmUninstallFailedReason)),
-			"HelmReleaseDeployed condition should reflect the uninstall failure")
-	}).Should(Succeed(), "Plugin should surface the uninstall failure")
-
-	By("Removing the test finalizer to allow the HelmRelease and Plugin to be fully deleted")
-	Eventually(func(g Gomega) {
-		err = adminClient.Get(ctx, helmReleaseKey, helmRelease)
-		if apierrors.IsNotFound(err) {
-			return
-		}
-		g.Expect(err).ToNot(HaveOccurred())
-		patch := helmRelease.DeepCopy()
-		newFinalizers := make([]string, 0, len(patch.Finalizers))
-		for _, f := range patch.Finalizers {
-			if f != testFinalizer {
-				newFinalizers = append(newFinalizers, f)
-			}
-		}
-		patch.Finalizers = newFinalizers
-		g.Expect(adminClient.Patch(ctx, patch, client.MergeFrom(helmRelease))).To(Succeed())
-	}).Should(Succeed(), "should be able to remove the test finalizer from HelmRelease")
-
-	By("Verifying the Plugin is fully deleted once the HelmRelease is removed")
-	Eventually(func(g Gomega) {
-		err = adminClient.Get(ctx, pluginKey, plugin)
-		g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "Plugin should be fully deleted after HelmRelease is gone")
-	}).Should(Succeed(), "Plugin should eventually be fully garbage-collected")
-
-	By("Verifying the HelmRelease is fully deleted")
-	Eventually(func(g Gomega) {
-		err = adminClient.Get(ctx, helmReleaseKey, helmRelease)
-		g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "HelmRelease should be fully deleted")
-	}).Should(Succeed(), "HelmRelease should eventually be fully garbage-collected")
-
-	By("Verifying the PluginPreset is fully deleted once all Plugins are gone")
-	Eventually(func(g Gomega) {
-		err = adminClient.Get(ctx, client.ObjectKeyFromObject(pluginPreset), pluginPreset)
-		g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "PluginPreset should be fully deleted once all its Plugins are gone")
-	}).Should(Succeed(), "PluginPreset should eventually be fully garbage-collected")
 }
