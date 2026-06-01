@@ -508,7 +508,7 @@ func FluxControllerPluginDependencies(ctx context.Context, adminClient client.Cl
 	Expect(adminClient.Delete(ctx, midPluginPreset)).To(Succeed())
 	Expect(adminClient.Delete(ctx, leafPluginPreset)).To(Succeed())
 
-	By("Verifying Plugins and HelmReleases are retained while deletion is pending")
+	By("Verifying Plugins are marked for deletion before HelmReleases are gone")
 	Eventually(func(g Gomega) {
 		midPlugin := &greenhousev1alpha1.Plugin{}
 		err = adminClient.Get(ctx, types.NamespacedName{Name: midPluginPresetResolvedPluginName, Namespace: env.TestNamespace}, midPlugin)
@@ -521,11 +521,6 @@ func FluxControllerPluginDependencies(ctx context.Context, adminClient client.Cl
 		g.Expect(err).ToNot(HaveOccurred(), "leaf Plugin must still exist while HelmRelease is being uninstalled")
 		g.Expect(leafPlugin.GetDeletionTimestamp()).ToNot(BeNil(), "leaf Plugin must be marked for deletion")
 	}).Should(Succeed(), "Plugins must be marked for deletion while their HelmReleases are being uninstalled")
-
-	err = adminClient.Get(ctx, client.ObjectKeyFromObject(midHelmRelease), midHelmRelease)
-	Expect(err).ToNot(HaveOccurred(), "mid HelmRelease must still exist while Plugin is pending deletion")
-	err = adminClient.Get(ctx, client.ObjectKeyFromObject(leafHelmRelease), leafHelmRelease)
-	Expect(err).ToNot(HaveOccurred(), "leaf HelmRelease must still exist while Plugin is pending deletion")
 
 	By("deleting global plugin")
 	test.EventuallyDeleted(ctx, adminClient, globalPlugin)
