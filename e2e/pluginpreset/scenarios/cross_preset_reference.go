@@ -134,7 +134,7 @@ func PluginPresetCrossPresetReference(ctx context.Context, adminClient, remoteCl
 			if ov.Name == optionUIMessage {
 				found = true
 				g.Expect(ov.ValueFrom).To(BeNil(), "ValueFrom should be resolved")
-				g.Expect(ov.Expression).To(BeNil(), "Expression should not exist") //nolint:staticcheck // SA1019
+				g.Expect(ov.Expression).To(BeNil(), "Expression should not exist")
 				g.Expect(ov.Value).ToNot(BeNil())
 				g.Expect(string(ov.Value.Raw)).To(Equal(`"generated-` + remoteClusterName + `"`))
 			}

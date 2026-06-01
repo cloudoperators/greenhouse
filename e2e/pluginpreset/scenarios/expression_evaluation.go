@@ -92,7 +92,7 @@ func PluginPresetExpressionEvaluation(ctx context.Context, adminClient, remoteCl
 
 		// Verify no expression fields remain
 		for _, ov := range plugin.Spec.OptionValues {
-			g.Expect(ov.Expression).To(BeNil(), "Plugin should not contain expression fields - option: "+ov.Name) //nolint:staticcheck // SA1019
+			g.Expect(ov.Expression).To(BeNil(), "Plugin should not contain expression fields - option: "+ov.Name)
 		}
 
 		// Verify hostname resolved

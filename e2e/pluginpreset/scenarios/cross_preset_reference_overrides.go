@@ -102,7 +102,7 @@ func PluginPresetCrossPresetReferenceWithOverrides(ctx context.Context, adminCli
 		for _, ov := range sourcePlugin.Spec.OptionValues {
 			if ov.Name == optionServiceHostname {
 				found = true
-				g.Expect(ov.Expression).To(BeNil()) //nolint:staticcheck // SA1019
+				g.Expect(ov.Expression).To(BeNil())
 				g.Expect(ov.Value).ToNot(BeNil())
 				// Should be the OVERRIDE expression result, not the default
 				g.Expect(string(ov.Value.Raw)).To(Equal(`"overridden-`+remoteClusterName+`.special.com"`),

@@ -27,7 +27,6 @@ func NewCELResolver(optionValues []greenhousev1alpha1.PluginOptionValue) (*CELRe
 	return &CELResolver{templateData: templateData}, nil
 }
 
-//nolint:staticcheck // SA1019: deprecated fields kept for later clean up
 func (c *CELResolver) ResolveExpression(optionValue greenhousev1alpha1.PluginOptionValue, expressionEvaluationEnabled bool) (*greenhousev1alpha1.PluginOptionValue, error) {
 	// early return if there is no expression to resolve
 	if optionValue.Expression == nil {

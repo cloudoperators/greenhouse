@@ -62,7 +62,7 @@ func (r *PluginPresetReconciler) resolveExpressionsForPreset(
 
 	hasExpressions := false
 	for _, ov := range preset.Spec.Plugin.OptionValues {
-		if ov.Expression != nil { //nolint:staticcheck // SA1019: deprecated field kept for later clean up
+		if ov.Expression != nil {
 			hasExpressions = true
 			break
 		}
@@ -78,8 +78,8 @@ func (r *PluginPresetReconciler) resolveExpressionsForPreset(
 
 	result := make([]greenhousev1alpha1.PluginOptionValue, 0, len(preset.Spec.Plugin.OptionValues))
 	for _, optionValue := range preset.Spec.Plugin.OptionValues {
-		if optionValue.Expression != nil { //nolint:staticcheck // SA1019: deprecated field kept for later clean up
-			evaluatedValue, err := cel.EvaluateExpression(*optionValue.Expression, templateData) //nolint:staticcheck // SA1019: deprecated field kept for later clean up
+		if optionValue.Expression != nil {
+			evaluatedValue, err := cel.EvaluateExpression(*optionValue.Expression, templateData)
 			if err != nil {
 				return nil, fmt.Errorf("failed to evaluate expression for option %s: %w", optionValue.Name, err)
 			}
@@ -105,7 +105,7 @@ func (r *PluginPresetReconciler) resolveReferencesForPreset(
 
 	hasRefs := false
 	for _, ov := range optionValues {
-		if ov.ValueFrom != nil && ov.ValueFrom.Ref != nil { //nolint:staticcheck // SA1019: deprecated field kept for later clean up
+		if ov.ValueFrom != nil && ov.ValueFrom.Ref != nil {
 			hasRefs = true
 			break
 		}
@@ -118,13 +118,13 @@ func (r *PluginPresetReconciler) resolveReferencesForPreset(
 	result := make([]greenhousev1alpha1.PluginOptionValue, 0, len(optionValues))
 
 	for _, optionValue := range optionValues {
-		if optionValue.ValueFrom != nil && optionValue.ValueFrom.Ref != nil { //nolint:staticcheck // SA1019: deprecated field kept for later clean up
+		if optionValue.ValueFrom != nil && optionValue.ValueFrom.Ref != nil {
 			log.Info("Resolving valueFrom.ref",
 				"option", optionValue.Name,
-				"refKind", optionValue.ValueFrom.Ref.Kind, //nolint:staticcheck // SA1019: deprecated field kept for later clean up
-				"refName", optionValue.ValueFrom.Ref.Name) //nolint:staticcheck // SA1019: deprecated field kept for later clean up
+				"refKind", optionValue.ValueFrom.Ref.Kind,
+				"refName", optionValue.ValueFrom.Ref.Name)
 
-			resolvedValue, err := r.resolveRef(ctx, optionValue.ValueFrom.Ref, cluster, namespace) //nolint:staticcheck // SA1019: deprecated field kept for later clean up
+			resolvedValue, err := r.resolveRef(ctx, optionValue.ValueFrom.Ref, cluster, namespace)
 			if err != nil {
 				return nil, fmt.Errorf("failed to resolve reference for %s: %w", optionValue.Name, err)
 			}
