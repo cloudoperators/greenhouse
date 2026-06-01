@@ -10,6 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -53,6 +54,8 @@ type TeamController struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get
 //+kubebuilder:rbac:groups="events.k8s.io",resources=events,verbs=get;list;watch;update;patch
 //+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=roles,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;update;patch;delete
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *TeamController) SetupWithManager(name string, mgr ctrl.Manager) error {
@@ -168,9 +171,15 @@ func (r *TeamController) EnsureCreated(ctx context.Context, object lifecycle.Run
 		if err := r.reconcileSupportGroupServiceAccount(ctx, team); err != nil {
 			return ctrl.Result{}, lifecycle.Failed, err
 		}
+		if err := r.reconcileSupportGroupRole(ctx, team); err != nil {
+			return ctrl.Result{}, lifecycle.Failed, err
+		}
+		if err := r.reconcileSupportGroupRoleBinding(ctx, team); err != nil {
+			return ctrl.Result{}, lifecycle.Failed, err
+		}
 	} else {
-		// If the support-group label was removed, delete the SA if it still exists.
-		if err := r.deleteSupportGroupServiceAccountIfExists(ctx, team); err != nil {
+		// If the support-group label was removed, delete the SA, Role, and RoleBinding if they still exist.
+		if err := r.deleteSupportGroupResourcesIfExist(ctx, team); err != nil {
 			return ctrl.Result{}, lifecycle.Failed, err
 		}
 	}
@@ -282,20 +291,124 @@ func (r *TeamController) reconcileSupportGroupServiceAccount(ctx context.Context
 	return nil
 }
 
-func (r *TeamController) deleteSupportGroupServiceAccountIfExists(ctx context.Context, team *greenhousev1alpha1.Team) error {
-	serviceAccount := &corev1.ServiceAccount{}
-	err := r.Get(ctx, types.NamespacedName{
-		Name:      team.Name + "-sa",
-		Namespace: team.Namespace,
-	}, serviceAccount)
+func (r *TeamController) reconcileSupportGroupRole(ctx context.Context, team *greenhousev1alpha1.Team) error {
+	saName := team.Name + "-sa"
+	role := &rbacv1.Role{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      team.Name + "-sa-token-request",
+			Namespace: team.Namespace,
+		},
+	}
+
+	result, err := clientutil.CreateOrPatch(ctx, r.Client, role, func() error {
+		role.Rules = []rbacv1.PolicyRule{
+			{
+				APIGroups:     []string{""},
+				Resources:     []string{"serviceaccounts/token"},
+				Verbs:         []string{"create"},
+				ResourceNames: []string{saName},
+			},
+		}
+		return controllerutil.SetControllerReference(team, role, r.Scheme())
+	})
 	if err != nil {
-		return client.IgnoreNotFound(err)
+		return err
 	}
-	if err := r.Delete(ctx, serviceAccount); err != nil {
-		return client.IgnoreNotFound(err)
+
+	switch result {
+	case clientutil.OperationResultCreated:
+		log.FromContext(ctx).Info("created support group role", "name", role.Name, "namespace", role.Namespace)
+		r.recorder.Eventf(team, role, corev1.EventTypeNormal, "CreatedRole", "reconciling support group role", "Created Role %s/%s", role.Namespace, role.Name)
+	case clientutil.OperationResultUpdated:
+		log.FromContext(ctx).Info("updated support group role", "name", role.Name, "namespace", role.Namespace)
+		r.recorder.Eventf(team, role, corev1.EventTypeNormal, "UpdatedRole", "reconciling support group role", "Updated Role %s/%s", role.Namespace, role.Name)
 	}
-	log.FromContext(ctx).Info("deleted support group service account", "name", serviceAccount.Name, "namespace", serviceAccount.Namespace)
-	r.recorder.Eventf(team, serviceAccount, corev1.EventTypeNormal, "DeletedServiceAccount", "support-group label removed", "Deleted ServiceAccount %s/%s", serviceAccount.Namespace, serviceAccount.Name)
+
+	return nil
+}
+
+func (r *TeamController) reconcileSupportGroupRoleBinding(ctx context.Context, team *greenhousev1alpha1.Team) error {
+	saName := team.Name + "-sa"
+	roleName := team.Name + "-sa-token-request"
+	roleBinding := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      roleName,
+			Namespace: team.Namespace,
+		},
+	}
+
+	result, err := clientutil.CreateOrPatch(ctx, r.Client, roleBinding, func() error {
+		roleBinding.RoleRef = rbacv1.RoleRef{
+			APIGroup: rbacv1.GroupName,
+			Kind:     "Role",
+			Name:     roleName,
+		}
+		roleBinding.Subjects = []rbacv1.Subject{
+			{
+				APIGroup: rbacv1.GroupName,
+				Kind:     rbacv1.GroupKind,
+				Name:     "support-group:" + team.Name,
+			},
+			{
+				Kind:      rbacv1.ServiceAccountKind,
+				Name:      saName,
+				Namespace: team.Namespace,
+			},
+		}
+		return controllerutil.SetControllerReference(team, roleBinding, r.Scheme())
+	})
+	if err != nil {
+		return err
+	}
+
+	switch result {
+	case clientutil.OperationResultCreated:
+		log.FromContext(ctx).Info("created support group role binding", "name", roleBinding.Name, "namespace", roleBinding.Namespace)
+		r.recorder.Eventf(team, roleBinding, corev1.EventTypeNormal, "CreatedRoleBinding", "reconciling support group role binding", "Created RoleBinding %s/%s", roleBinding.Namespace, roleBinding.Name)
+	case clientutil.OperationResultUpdated:
+		log.FromContext(ctx).Info("updated support group role binding", "name", roleBinding.Name, "namespace", roleBinding.Namespace)
+		r.recorder.Eventf(team, roleBinding, corev1.EventTypeNormal, "UpdatedRoleBinding", "reconciling support group role binding", "Updated RoleBinding %s/%s", roleBinding.Namespace, roleBinding.Name)
+	}
+
+	return nil
+}
+
+func (r *TeamController) deleteSupportGroupResourcesIfExist(ctx context.Context, team *greenhousev1alpha1.Team) error {
+	resourceName := team.Name + "-sa-token-request"
+
+	roleBinding := &rbacv1.RoleBinding{}
+	if err := r.Get(ctx, types.NamespacedName{Name: resourceName, Namespace: team.Namespace}, roleBinding); err == nil {
+		if err := r.Delete(ctx, roleBinding); client.IgnoreNotFound(err) != nil {
+			return err
+		}
+		log.FromContext(ctx).Info("deleted support group role binding", "name", roleBinding.Name, "namespace", roleBinding.Namespace)
+		r.recorder.Eventf(team, roleBinding, corev1.EventTypeNormal, "DeletedRoleBinding", "support-group label removed", "Deleted RoleBinding %s/%s", roleBinding.Namespace, roleBinding.Name)
+	} else if client.IgnoreNotFound(err) != nil {
+		return err
+	}
+
+	role := &rbacv1.Role{}
+	if err := r.Get(ctx, types.NamespacedName{Name: resourceName, Namespace: team.Namespace}, role); err == nil {
+		if err := r.Delete(ctx, role); client.IgnoreNotFound(err) != nil {
+			return err
+		}
+		log.FromContext(ctx).Info("deleted support group role", "name", role.Name, "namespace", role.Namespace)
+		r.recorder.Eventf(team, role, corev1.EventTypeNormal, "DeletedRole", "support-group label removed", "Deleted Role %s/%s", role.Namespace, role.Name)
+	} else if client.IgnoreNotFound(err) != nil {
+		return err
+	}
+
+	serviceAccount := &corev1.ServiceAccount{}
+	if err := r.Get(ctx, types.NamespacedName{Name: team.Name + "-sa", Namespace: team.Namespace}, serviceAccount); err == nil {
+		if err := r.Delete(ctx, serviceAccount); client.IgnoreNotFound(err) != nil {
+			return err
+		}
+		log.FromContext(ctx).Info("deleted support group service account", "name", serviceAccount.Name, "namespace", serviceAccount.Namespace)
+		r.recorder.Eventf(team, serviceAccount, corev1.EventTypeNormal, "DeletedServiceAccount", "support-group label removed", "Deleted ServiceAccount %s/%s", serviceAccount.Namespace, serviceAccount.Name)
+	} else if client.IgnoreNotFound(err) != nil {
+		return err
+	}
+
 	return nil
 }
 
