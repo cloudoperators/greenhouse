@@ -120,6 +120,13 @@ func (r *TeamController) EnsureCreated(ctx context.Context, object lifecycle.Run
 
 	initTeamStatus(team)
 
+	// Clean up support-group resources immediately if the label is not set, regardless of SCIM readiness.
+	if team.Labels[greenhouseapis.LabelKeySupportGroup] != "true" {
+		if err := r.deleteSupportGroupResourcesIfExist(ctx, team); err != nil {
+			return ctrl.Result{}, lifecycle.Failed, err
+		}
+	}
+
 	var organization = new(greenhousev1alpha1.Organization)
 	if err := r.Get(ctx, types.NamespacedName{Name: object.GetNamespace()}, organization); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, client.IgnoreNotFound(err)
@@ -166,7 +173,7 @@ func (r *TeamController) EnsureCreated(ctx context.Context, object lifecycle.Run
 
 	updateTeamMembersCountMetric(team, len(users))
 
-	// Reconcile ServiceAccount for support group teams
+	// Reconcile ServiceAccount, Role, and RoleBinding for support-group teams.
 	if team.Labels[greenhouseapis.LabelKeySupportGroup] == "true" {
 		if err := r.reconcileSupportGroupServiceAccount(ctx, team); err != nil {
 			return ctrl.Result{}, lifecycle.Failed, err
@@ -175,11 +182,6 @@ func (r *TeamController) EnsureCreated(ctx context.Context, object lifecycle.Run
 			return ctrl.Result{}, lifecycle.Failed, err
 		}
 		if err := r.reconcileSupportGroupRoleBinding(ctx, team); err != nil {
-			return ctrl.Result{}, lifecycle.Failed, err
-		}
-	} else {
-		// If the support-group label was removed, delete the SA, Role, and RoleBinding if they still exist.
-		if err := r.deleteSupportGroupResourcesIfExist(ctx, team); err != nil {
 			return ctrl.Result{}, lifecycle.Failed, err
 		}
 	}
@@ -378,33 +380,42 @@ func (r *TeamController) deleteSupportGroupResourcesIfExist(ctx context.Context,
 
 	roleBinding := &rbacv1.RoleBinding{}
 	if err := r.Get(ctx, types.NamespacedName{Name: resourceName, Namespace: team.Namespace}, roleBinding); err == nil {
-		if err := r.Delete(ctx, roleBinding); client.IgnoreNotFound(err) != nil {
-			return err
+		if err := r.Delete(ctx, roleBinding); err != nil {
+			if client.IgnoreNotFound(err) != nil {
+				return err
+			}
+		} else {
+			log.FromContext(ctx).Info("deleted support group role binding", "name", roleBinding.Name, "namespace", roleBinding.Namespace)
+			r.recorder.Eventf(team, roleBinding, corev1.EventTypeNormal, "DeletedRoleBinding", "support-group label removed", "Deleted RoleBinding %s/%s", roleBinding.Namespace, roleBinding.Name)
 		}
-		log.FromContext(ctx).Info("deleted support group role binding", "name", roleBinding.Name, "namespace", roleBinding.Namespace)
-		r.recorder.Eventf(team, roleBinding, corev1.EventTypeNormal, "DeletedRoleBinding", "support-group label removed", "Deleted RoleBinding %s/%s", roleBinding.Namespace, roleBinding.Name)
 	} else if client.IgnoreNotFound(err) != nil {
 		return err
 	}
 
 	role := &rbacv1.Role{}
 	if err := r.Get(ctx, types.NamespacedName{Name: resourceName, Namespace: team.Namespace}, role); err == nil {
-		if err := r.Delete(ctx, role); client.IgnoreNotFound(err) != nil {
-			return err
+		if err := r.Delete(ctx, role); err != nil {
+			if client.IgnoreNotFound(err) != nil {
+				return err
+			}
+		} else {
+			log.FromContext(ctx).Info("deleted support group role", "name", role.Name, "namespace", role.Namespace)
+			r.recorder.Eventf(team, role, corev1.EventTypeNormal, "DeletedRole", "support-group label removed", "Deleted Role %s/%s", role.Namespace, role.Name)
 		}
-		log.FromContext(ctx).Info("deleted support group role", "name", role.Name, "namespace", role.Namespace)
-		r.recorder.Eventf(team, role, corev1.EventTypeNormal, "DeletedRole", "support-group label removed", "Deleted Role %s/%s", role.Namespace, role.Name)
 	} else if client.IgnoreNotFound(err) != nil {
 		return err
 	}
 
 	serviceAccount := &corev1.ServiceAccount{}
 	if err := r.Get(ctx, types.NamespacedName{Name: team.Name + "-sa", Namespace: team.Namespace}, serviceAccount); err == nil {
-		if err := r.Delete(ctx, serviceAccount); client.IgnoreNotFound(err) != nil {
-			return err
+		if err := r.Delete(ctx, serviceAccount); err != nil {
+			if client.IgnoreNotFound(err) != nil {
+				return err
+			}
+		} else {
+			log.FromContext(ctx).Info("deleted support group service account", "name", serviceAccount.Name, "namespace", serviceAccount.Namespace)
+			r.recorder.Eventf(team, serviceAccount, corev1.EventTypeNormal, "DeletedServiceAccount", "support-group label removed", "Deleted ServiceAccount %s/%s", serviceAccount.Namespace, serviceAccount.Name)
 		}
-		log.FromContext(ctx).Info("deleted support group service account", "name", serviceAccount.Name, "namespace", serviceAccount.Namespace)
-		r.recorder.Eventf(team, serviceAccount, corev1.EventTypeNormal, "DeletedServiceAccount", "support-group label removed", "Deleted ServiceAccount %s/%s", serviceAccount.Namespace, serviceAccount.Name)
 	} else if client.IgnoreNotFound(err) != nil {
 		return err
 	}
