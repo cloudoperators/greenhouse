@@ -9,18 +9,18 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/scim"
 )
 
-func GreenhouseSCIMConfigToSCIMConfig(ctx context.Context, k8sClient client.Client, config *greenhouseapisv1alpha1.SCIMConfig, namespace string) (*scim.Config, error) {
+func GreenhouseSCIMConfigToSCIMConfig(ctx context.Context, k8sClient client.Client, config *greenhousev1alpha1.SCIMConfig, namespace string) (*scim.Config, error) {
 	cfg := &scim.Config{
 		URL:      config.BaseURL,
 		AuthType: config.AuthType,
 	}
 	switch cfg.AuthType {
-	case scim.Basic:
+	case greenhousev1alpha1.AuthTypeBasic:
 		var err error
 		username, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, k8sClient, namespace, *config.BasicAuthUser.Secret)
 		if err != nil {
@@ -34,7 +34,7 @@ func GreenhouseSCIMConfigToSCIMConfig(ctx context.Context, k8sClient client.Clie
 			Username: username,
 			Password: password,
 		}
-	case scim.BearerToken:
+	case greenhousev1alpha1.AuthTypeBearerToken:
 		var err error
 		token, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, k8sClient, namespace, *config.BearerToken.Secret)
 		if err != nil {
