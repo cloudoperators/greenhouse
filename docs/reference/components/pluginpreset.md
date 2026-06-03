@@ -91,7 +91,9 @@ spec:
 
 ## CEL Expressions in OptionValues
 
-PluginPresets support CEL (Common Expression Language) expressions in `optionValues`. Expressions are evaluated during PluginPreset reconciliation, and the resulting Plugin contains only the resolved values with no expression fields remaining.
+PluginPresets support CEL (Common Expression Language) expressions in `optionValues`.
+When `pluginPreset.expressionEvaluationEnabled` is enabled, expressions are evaluated during PluginPreset reconciliation and the resulting Plugin contains only the resolved values
+with no expression fields remaining.
 
 Expressions use the `${...}` syntax to reference dynamic values:
 
@@ -183,7 +185,7 @@ spec:
 
 CEL expression evaluation in PluginPresets requires the feature flag `pluginPreset.expressionEvaluationEnabled` to be set to `true` in the Greenhouse feature flags ConfigMap.
 
-When disabled (default: `true`), expressions are passed through as literal values without evaluation.
+When disabled (default: `false`), expressions are passed through as literal values without evaluation.
 
 ```yaml
 # greenhouse-feature-flags ConfigMap
