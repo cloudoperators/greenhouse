@@ -176,16 +176,15 @@ spec:
           "special.${global.greenhouse.metadata.region}.example.com"
 ```
 
-> :information_source: Expressions are only evaluated in PluginPresets.
-
-> :warning: CEL expressions on standalone Plugins are deprecated and will be removed in a future release. Use PluginPresets for expression evaluation.
+> :information_source: Expressions are evaluated in PluginPresets when `pluginPreset.expressionEvaluationEnabled` is enabled.
+Standalone Plugin expressions are still supported (deprecated) and may be evaluated by the Plugin controller depending on feature flags.
 
 
 ## Feature Flag
 
 CEL expression evaluation in PluginPresets requires the feature flag `pluginPreset.expressionEvaluationEnabled` to be set to `true` in the Greenhouse feature flags ConfigMap.
 
-When disabled (default: `false`), expressions are passed through as literal values without evaluation.
+When disabled (default: `false`), expressions are not evaluated by the PluginPreset controller and are copied to the created Plugin as `expression` fields.
 
 ```yaml
 # greenhouse-feature-flags ConfigMap
