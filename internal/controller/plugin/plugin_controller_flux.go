@@ -469,9 +469,9 @@ func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhou
 			continue
 
 		case v.Expression != nil:
-			// TODO(#1775): Expressions should no longer be evaluated by Plugin controller.
-			// Once PluginPreset controller handles all expression evaluation,
-			// this branch should return an error instead of evaluating.
+			// This PR adds CEL expression evaluation to the PluginPreset controller (#1774).
+			// The Plugin controller's expression evaluation remains active (gated by feature flag)
+			// and will be disabled in a follow-up PR TODO(#1775).
 			if !expressionEvaluation {
 				continue
 			}
