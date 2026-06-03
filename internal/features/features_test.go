@@ -340,7 +340,7 @@ func Test_PluginAndPluginPresetFeaturesIndependent(t *testing.T) {
 	configMap := &corev1.ConfigMap{
 		Data: map[string]string{
 			PluginFeatureKey:       "expressionEvaluationEnabled: false\nintegrationEnabled: false\n",
-			PluginPresetFeatureKey: "expressionEvaluationEnabled: true\nintegrationEnabled: true\n",
+			PluginPresetFeatureKey: "expressionEvaluationEnabled: true\n",
 		},
 	}
 
