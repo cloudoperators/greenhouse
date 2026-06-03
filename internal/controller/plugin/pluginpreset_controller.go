@@ -55,6 +55,7 @@ type PluginPresetReconciler struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=clusters,verbs=get;list;watch;
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch;
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=clusterplugindefinitions,verbs=get;list;watch;
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=teams,verbs=get;list;watch
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *PluginPresetReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
