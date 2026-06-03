@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -26,6 +27,7 @@ type artifactory struct {
 	log             logr.Logger
 	client          *retry.Client
 	storageBasePath string
+	mu              sync.Mutex
 }
 
 type IArtifactory interface {
@@ -112,6 +114,9 @@ func (a *artifactory) Save(artifactID, digest string, content []byte) error {
 // Use this when the caller wants the original archive on disk (e.g. a Helm chart .tgz
 // to hand to the chart loader). Local cache is checked first.
 func (a *artifactory) GetRaw(ctx context.Context, artifactID, srcURL, digest string) ([]byte, error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
 	data, err := a.fetchFromFileSystem(artifactID, digest)
 	if err == nil {
 		a.log.V(1).Info("artifact found in local cache", "artifactID", artifactID, "digest", digest)
@@ -149,7 +154,21 @@ func (a *artifactory) saveToFileSystem(artifactID, digest string, content []byte
 		return errors.New("content must not be empty")
 	}
 
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
 	filePath := filepath.Join(a.storageBasePath, artifactID, digest)
+
+	// digest is content-addressed, so an existing file at this path is identical content
+	_, err := os.Stat(filePath)
+	if err == nil {
+		a.log.V(1).Info("artifact already on disk, skipping save", "path", filePath, "digest", digest, "artifactID", artifactID)
+		return nil
+	}
+
+	if !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("failed to check if artifact %s exists: %w", filePath, err)
+	}
 
 	// Ensure parent directory exists
 	if err := os.MkdirAll(filepath.Dir(filePath), 0o755); err != nil {
@@ -170,6 +189,9 @@ func (a *artifactory) saveToFileSystem(artifactID, digest string, content []byte
 }
 
 func (a *artifactory) deleteAllExceptFromFileSystem(artifactID, keepDigest string) error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
 	dir := filepath.Join(a.storageBasePath, artifactID)
 
 	entries, err := os.ReadDir(dir)
@@ -253,6 +275,9 @@ func (a *artifactory) download(ctx context.Context, srcURL string) ([]byte, erro
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+	if resp.ContentLength >= 0 && int64(len(body)) != resp.ContentLength {
+		return nil, fmt.Errorf("short read from %s: got %d bytes, expected %d", srcURL, len(body), resp.ContentLength)
 	}
 	return body, nil
 }
