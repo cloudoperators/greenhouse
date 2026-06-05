@@ -78,3 +78,7 @@ Support Groups in Greenhouse are a subset of Teams in an Organization. These Tea
 Since a user can be part of many Teams the expectation is that they are only part of one Support Group.
 
 To identify a Team as a Support Group in Greenhouse it needs to be labeled with `greenhouse.sap/support-group: "true"`.
+
+Support Groups are also used by the [Authorization Webhook](./../../operations/authorization-webhook) to add support-group-scoped access checks. When the webhook is consulted, it verifies access to Greenhouse resources based on the `greenhouse.sap/owned-by` label on resources, but RBAC may still allow cross-team access.
+
+For a step-by-step guide on labelling resources and using the team ServiceAccount for automation, see [Managing resources as a Team](./../../../user-guides/team/create#managing-resources-as-a-team).

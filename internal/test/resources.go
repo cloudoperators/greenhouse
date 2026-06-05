@@ -497,7 +497,13 @@ func WithPluginPresetClusterSelector(clusterSelector metav1.LabelSelector) func(
 // WithPluginPresetPluginSpec sets the PluginSpec on a PluginPreset.
 func WithPluginPresetPluginSpec(pluginSpec greenhousev1alpha1.PluginSpec) func(*greenhousev1alpha1.PluginPreset) {
 	return func(pp *greenhousev1alpha1.PluginPreset) {
-		pp.Spec.Plugin = pluginSpec
+		pp.Spec.Plugin.PluginDefinitionRef = pluginSpec.PluginDefinitionRef
+		pp.Spec.Plugin.DisplayName = pluginSpec.DisplayName
+		pp.Spec.Plugin.OptionValues = pluginSpec.OptionValues
+		pp.Spec.Plugin.ReleaseNamespace = pluginSpec.ReleaseNamespace
+		pp.Spec.Plugin.ReleaseName = pluginSpec.ReleaseName
+		pp.Spec.Plugin.DeletionPolicy = pluginSpec.DeletionPolicy
+		pp.Spec.Plugin.IgnoreDifferences = pluginSpec.IgnoreDifferences
 	}
 }
 

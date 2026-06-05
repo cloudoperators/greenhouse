@@ -16,7 +16,7 @@ spec:
         - plugindefinitions/pd-disco.yaml
         - plugindefinitions/pd-ingress-nginx.yaml
       ref:
-        branch: dev
+        sha: 6b1397a85411c73f226e780ccd2a3d217001030a
       secretName: github-com-app
       overrides:
         - name: cert-manager
@@ -35,7 +35,7 @@ spec:
         - plugindefinitions/pd-disco.yaml
         - plugindefinitions/pd-ingress-nginx.yaml
       ref:
-        sha: ba6a0445d4dd6a1b435ee6925853155f3ba214bf
+        sha: f9ca701c358167647377271bd54b6c7426e1b57b
       secretName: github-com-app
       overrides:
         - name: cert-manager

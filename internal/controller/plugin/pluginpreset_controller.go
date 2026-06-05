@@ -96,7 +96,7 @@ func (r *PluginPresetReconciler) setConditions() lifecycle.Conditioner {
 		ownerLabelCondition := util.ComputeOwnerLabelCondition(ctx, r.Client, pluginPreset)
 		util.UpdateOwnedByLabelMissingMetric(pluginPreset, ownerLabelCondition.IsFalse())
 		pluginPreset.Status.SetConditions(readyCondition, ownerLabelCondition)
-		updatePluginPresetReadyMetric(pluginPreset)
+		updatePluginPresetMetrics(pluginPreset)
 	}
 }
 
@@ -185,7 +185,7 @@ func (r *PluginPresetReconciler) EnsureDeleted(ctx context.Context, resource lif
 			return ctrl.Result{}, lifecycle.Pending, nil
 		}
 	}
-	deletePluginPresetReadyMetric(pluginPreset)
+	deletePluginPresetMetrics(pluginPreset)
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 
@@ -238,12 +238,8 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 
 			releaseName := getReleaseName(plugin, preset)
 
-			plugin.Spec = preset.Spec.Plugin
+			plugin.Spec = pluginSpecFromPluginPreset(preset, cluster.GetName())
 			plugin.Spec.ReleaseName = releaseName
-			// Set the cluster name to the name of the cluster. The PluginSpec contained in the PluginPreset does not have a cluster name.
-			plugin.Spec.ClusterName = cluster.GetName()
-			// Copy over the plugin dependencies
-			plugin.Spec.WaitFor = preset.Spec.WaitFor
 			// transport plugin preset labels to plugin
 			plugin = (lifecycle.NewPropagator(preset, plugin).Apply()).(*greenhousev1alpha1.Plugin)
 			// overrides options based on preset definition
@@ -511,4 +507,21 @@ func isPluginDefinitionNotFoundError(err error) bool {
 		return true
 	}
 	return false
+}
+
+// pluginSpecFromPluginPreset returns a PluginSpec based on the given PluginPreset.Spec.Plugin.
+// This maps all fields that can be copied 1:1 from the PluginPreset's PluginSpec, the given cluster name and the PluginPreset's WaitFor
+func pluginSpecFromPluginPreset(preset *greenhousev1alpha1.PluginPreset, cluster string) greenhousev1alpha1.PluginSpec {
+	return greenhousev1alpha1.PluginSpec{
+		PluginDefinitionRef: preset.Spec.Plugin.PluginDefinitionRef,
+		DisplayName:         preset.Spec.Plugin.DisplayName,
+		OptionValues:        preset.Spec.Plugin.OptionValues,
+		ReleaseNamespace:    preset.Spec.Plugin.ReleaseNamespace,
+		DeletionPolicy:      preset.Spec.Plugin.DeletionPolicy,
+		IgnoreDifferences:   preset.Spec.Plugin.IgnoreDifferences,
+		// Set the cluster name to the name of the cluster. The PluginSpec contained in the PluginPreset does not have a cluster name.
+		ClusterName: cluster,
+		// Copy over the plugin dependencies
+		WaitFor: preset.Spec.WaitFor,
+	}
 }

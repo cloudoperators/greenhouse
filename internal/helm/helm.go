@@ -96,26 +96,27 @@ func TemplateHelmChartFromPlugin(ctx context.Context, local client.Client, restC
 }
 
 // TemplateHelmChartFromPluginOptionValues returns the rendered manifest or an error.
-// This function
-func TemplateHelmChartFromPluginOptionValues(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinitionSpec *greenhousev1alpha1.PluginDefinitionSpec, plugin *greenhousev1alpha1.Plugin, optionValues []greenhousev1alpha1.PluginOptionValue) (*release.Release, error) {
+// The chart is loaded from chartPath (typically a .tgz fetched from a Flux HelmChart
+// artifact and persisted on disk by flux.IArtifactory) — no upstream registry pull.
+func TemplateHelmChartFromPluginOptionValues(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinitionSpec *greenhousev1alpha1.PluginDefinitionSpec, plugin *greenhousev1alpha1.Plugin, optionValues []greenhousev1alpha1.PluginOptionValue, chartPath string) (*release.Release, error) {
 	installAction, _, err := newHelmInstallAction(restClientGetter, plugin.Spec.ReleaseName, plugin.Spec.ReleaseNamespace, pluginDefinitionSpec.Version, true)
 	if err != nil {
 		return nil, err
 	}
 
-	helmChart, err := loadHelmChart(&installAction.ChartPathOptions, pluginDefinitionSpec.HelmChart, settings)
+	helmChart, err := ChartLoader(chartPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load chart: %w", err)
 	}
 
 	resolvedValues, err := resolvePluginOptionValueFrom(ctx, local, plugin.Namespace, optionValues)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to resolve plugin option values: %w", err)
 	}
 
 	helmValues, err := mergeChartAndPluginOptionValues(helmChart.Values, resolvedValues)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to merge chart and plugin option values: %w", err)
 	}
 
 	return installAction.RunWithContext(ctx, helmChart, helmValues)

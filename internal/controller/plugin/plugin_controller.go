@@ -28,6 +28,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/common"
+	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/util"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
@@ -41,6 +42,9 @@ type PluginReconciler struct {
 	ExpressionEvaluationEnabled bool
 	IntegrationEnabled          bool
 	OCIMirroringEnabled         bool
+	StoragePath                 string
+	HTTPRetry                   int
+	artifactory                 flux.IArtifactory
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch;create;update;patch;delete
@@ -80,6 +84,8 @@ func (r *PluginReconciler) SetupWithManager(name string, mgr ctrl.Manager) error
 	}); err != nil {
 		return err
 	}
+
+	r.artifactory = flux.NewArtifactory(ctrl.Log.WithName("artifactory"), r.StoragePath, r.HTTPRetry)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
@@ -126,7 +132,7 @@ func (r *PluginReconciler) setConditions() lifecycle.Conditioner {
 		}
 
 		readyCondition := r.computeReadyConditionFlux(ctx, plugin)
-		UpdatePluginReadyMetric(plugin, readyCondition.Status == metav1.ConditionTrue)
+		updatePluginReadyMetric(plugin, readyCondition.Status == metav1.ConditionTrue)
 
 		ownerLabelCondition := util.ComputeOwnerLabelCondition(ctx, r.Client, plugin)
 		util.UpdateOwnedByLabelMissingMetric(plugin, ownerLabelCondition.IsFalse())
@@ -165,7 +171,11 @@ func (r *PluginReconciler) reconcileTechnicalLabels(ctx context.Context, plugin 
 
 func (r *PluginReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	plugin := resource.(*greenhousev1alpha1.Plugin)
-	return r.EnsureFluxDeleted(ctx, plugin)
+	result, lifecycleResult, err := r.EnsureFluxDeleted(ctx, plugin)
+	if lifecycleResult == lifecycle.Success && err == nil {
+		deletePluginReadyMetric(plugin)
+	}
+	return result, lifecycleResult, err
 }
 
 func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {

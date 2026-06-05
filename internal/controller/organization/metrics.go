@@ -33,7 +33,7 @@ func init() {
 	crmetrics.Registry.MustRegister(scimAccessReadyGauge)
 }
 
-func UpdateOrganizationMetrics(organization *greenhousev1alpha1.Organization) {
+func updateOrganizationMetrics(organization *greenhousev1alpha1.Organization) {
 	organizationLabels := prometheus.Labels{
 		"organization": organization.Name,
 	}
@@ -49,4 +49,12 @@ func UpdateOrganizationMetrics(organization *greenhousev1alpha1.Organization) {
 	} else {
 		scimAccessReadyGauge.With(organizationLabels).Set(float64(0))
 	}
+}
+
+func deleteOrganizationMetrics(organization *greenhousev1alpha1.Organization) {
+	organizationLabels := prometheus.Labels{
+		"organization": organization.Name,
+	}
+	organizationReadyGauge.Delete(organizationLabels)
+	scimAccessReadyGauge.Delete(organizationLabels)
 }

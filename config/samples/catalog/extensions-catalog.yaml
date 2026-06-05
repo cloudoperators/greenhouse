@@ -23,13 +23,14 @@ spec:
             - name: cert-manager.webhook.timeoutSeconds
               value: 15
     - ref:
-        sha: ed3ff23bca21eef6cffc0956df338d8185340fc5
+        tag: perses/0.13.0
       repository: https://github.com/cloudoperators/greenhouse-extensions
       resources:
         - perses/plugindefinition.yaml
       overrides:
         - name: perses
           alias: perses-overridden
+          repository: oci://registry:5000/greenhouse-ghcr-io-mirror/cloudoperators/greenhouse-extensions/charts
           optionsOverride:
             - name: "perses.serviceMonitor.selector.matchLabels"
               value:

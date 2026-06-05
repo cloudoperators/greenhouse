@@ -57,4 +57,37 @@ var _ = Describe("Cluster Metrics", Ordered, func() {
 		readyGauge := prometheusTest.ToFloat64(cluster.ClusterReadyGauge.WithLabelValues(c.Name, c.Namespace, "test-owner"))
 		Expect(readyGauge).To(BeEquivalentTo(float64(0)), "clusterReady metric should be present and the cluster should not be ready")
 	})
+
+	It("Should remove the previous kubernetes version time series when the version changes", func() {
+		const clusterName = "test-cluster-version-change"
+		setup := test.NewTestSetup(test.Ctx, test.K8sClient, "clustermetrics")
+		c := &greenhousev1alpha1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      clusterName,
+				Namespace: setup.Namespace(),
+				Labels: map[string]string{
+					greenhouseapis.LabelKeyOwnedBy: "test-owner",
+				},
+			},
+			Status: greenhousev1alpha1.ClusterStatus{
+				KubernetesVersion:              "1.31.1",
+				BearerTokenExpirationTimestamp: metav1.Time{Time: time.Now().Add(600 * time.Second)},
+			},
+		}
+
+		cluster.UpdateClusterMetrics(c)
+		Expect(prometheusTest.ToFloat64(cluster.KubernetesVersionsGauge.WithLabelValues(c.Name, c.Namespace, "1.31.1", "test-owner"))).
+			To(BeEquivalentTo(1), "the initial kubernetes version time series should be present")
+
+		c.Status.KubernetesVersion = "1.32.0"
+		cluster.UpdateClusterMetrics(c)
+
+		Expect(prometheusTest.ToFloat64(cluster.KubernetesVersionsGauge.WithLabelValues(c.Name, c.Namespace, "1.32.0", "test-owner"))).
+			To(BeEquivalentTo(1), "the new kubernetes version time series should be present")
+		// If the previous version's time series had survived, .Set(1) from the first
+		// UpdateClusterMetrics call would still be observable. A value of 0 means the
+		// series was dropped (and only re-created here as a side effect of querying it).
+		Expect(prometheusTest.ToFloat64(cluster.KubernetesVersionsGauge.WithLabelValues(c.Name, c.Namespace, "1.31.1", "test-owner"))).
+			To(BeEquivalentTo(0), "the previous kubernetes version time series should have been removed")
+	})
 })

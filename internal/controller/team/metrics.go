@@ -24,14 +24,14 @@ func init() {
 	crmetrics.Registry.MustRegister(membersCountMetric)
 }
 
-func UpdateTeamMembersCountMetric(team *greenhousev1alpha1.Team, membersCount int) {
+func updateTeamMembersCountMetric(team *greenhousev1alpha1.Team, membersCount int) {
 	membersCountMetric.With(prometheus.Labels{
 		"organization": team.Namespace,
 		"team":         team.Name,
 	}).Set(float64(membersCount))
 }
 
-func DeleteTeamMembersCountMetric(team *greenhousev1alpha1.Team) {
+func deleteTeamMembersCountMetric(team *greenhousev1alpha1.Team) {
 	membersCountMetric.Delete(prometheus.Labels{
 		"organization": team.Namespace,
 		"team":         team.Name,

@@ -8,4 +8,4 @@ on: [pull_request]
 
 jobs:
   reuse:
-    uses: cloudoperators/common/.github/workflows/shared-reuse.yaml@d138f9922c75ed1e1ad3ae3bfb68dd8ae3284dc6 # main
+    uses: cloudoperators/common/.github/workflows/shared-reuse.yaml@f87e1e6b7889707a9c10d1a8a9f9f481eb311c06 # main
