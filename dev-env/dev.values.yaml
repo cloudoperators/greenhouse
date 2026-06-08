@@ -27,6 +27,9 @@ controllerManager:
   replicas: 1
   serviceAccount:
     annotations: {}
+  artifactStorage:
+    path: /tmp/data
+    sizeLimit: 128Mi
   env:
     - name: LOCAL_REGISTRY
       value: "registry:5000"

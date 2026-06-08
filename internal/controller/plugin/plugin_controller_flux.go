@@ -153,7 +153,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 		return fmt.Errorf("failed to generate HelmRelease values for Plugin %s: %w", plugin.Name, err)
 	}
 
-	postRenderer, err := r.createRegistryMirrorPostRenderer(ctx, plugin, pluginDefinitionSpec, optionValues)
+	postRenderer, err := r.createRegistryMirrorPostRenderer(ctx, plugin, pluginDefinitionSpec, helmChart, optionValues)
 	if err != nil {
 		return err
 	}

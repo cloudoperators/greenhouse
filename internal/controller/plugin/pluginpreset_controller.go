@@ -96,7 +96,7 @@ func (r *PluginPresetReconciler) setConditions() lifecycle.Conditioner {
 		ownerLabelCondition := util.ComputeOwnerLabelCondition(ctx, r.Client, pluginPreset)
 		util.UpdateOwnedByLabelMissingMetric(pluginPreset, ownerLabelCondition.IsFalse())
 		pluginPreset.Status.SetConditions(readyCondition, ownerLabelCondition)
-		updatePluginPresetReadyMetric(pluginPreset)
+		updatePluginPresetMetrics(pluginPreset)
 	}
 }
 
@@ -185,7 +185,7 @@ func (r *PluginPresetReconciler) EnsureDeleted(ctx context.Context, resource lif
 			return ctrl.Result{}, lifecycle.Pending, nil
 		}
 	}
-	deletePluginPresetReadyMetric(pluginPreset)
+	deletePluginPresetMetrics(pluginPreset)
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 
