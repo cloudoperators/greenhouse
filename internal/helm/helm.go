@@ -106,17 +106,17 @@ func TemplateHelmChartFromPluginOptionValues(ctx context.Context, local client.C
 
 	helmChart, err := ChartLoader(chartPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load chart: %w", err)
 	}
 
 	resolvedValues, err := resolvePluginOptionValueFrom(ctx, local, plugin.Namespace, optionValues)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to resolve plugin option values: %w", err)
 	}
 
 	helmValues, err := mergeChartAndPluginOptionValues(helmChart.Values, resolvedValues)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to merge chart and plugin option values: %w", err)
 	}
 
 	return installAction.RunWithContext(ctx, helmChart, helmValues)
