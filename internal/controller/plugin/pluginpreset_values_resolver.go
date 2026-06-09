@@ -5,10 +5,8 @@ package plugin
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"slices"
-	"strings"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -57,7 +55,22 @@ func (r *PluginPresetReconciler) resolveExpressionsForPreset(
 		return preset.Spec.Plugin.OptionValues, nil
 	}
 
-	templateData, err := r.buildTemplateData(ctx, preset, cluster)
+	tempPlugin := greenhousev1alpha1.Plugin{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      preset.Name,
+			Namespace: preset.Namespace,
+			Labels:    preset.Labels,
+		},
+		Spec: greenhousev1alpha1.PluginSpec{
+			ClusterName: cluster.Name,
+		},
+	}
+	greenhouseValuesList, err := helm.GetGreenhouseValues(ctx, r.Client, tempPlugin)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get greenhouse values: %w", err)
+	}
+
+	templateData, err := helm.BuildTemplateData(greenhouseValuesList)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build template data: %w", err)
 	}
@@ -79,61 +92,6 @@ func (r *PluginPresetReconciler) resolveExpressionsForPreset(
 	}
 
 	return result, nil
-}
-
-// buildTemplateData creates the template data map for CEL expression evaluation.
-func (r *PluginPresetReconciler) buildTemplateData(
-	ctx context.Context,
-	preset *greenhousev1alpha1.PluginPreset,
-	cluster *greenhousev1alpha1.Cluster,
-) (map[string]any, error) {
-
-	tempPlugin := greenhousev1alpha1.Plugin{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      preset.Name,
-			Namespace: preset.Namespace,
-			Labels:    preset.Labels,
-		},
-		Spec: greenhousev1alpha1.PluginSpec{
-			ClusterName: cluster.Name,
-		},
-	}
-
-	greenhouseValuesList, err := helm.GetGreenhouseValues(ctx, r.Client, tempPlugin)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get greenhouse values: %w", err)
-	}
-
-	templateData := make(map[string]any)
-	for _, gv := range greenhouseValuesList {
-		if gv.Value != nil {
-			var value any
-			if err := json.Unmarshal(gv.Value.Raw, &value); err != nil {
-				return nil, fmt.Errorf("failed to unmarshal greenhouse value %s: %w", gv.Name, err)
-			}
-			parts := strings.Split(gv.Name, ".")
-			setNestedValue(templateData, parts, value)
-		}
-	}
-
-	return templateData, nil
-}
-
-// setNestedValue sets a value in a nested map using a slice of keys.
-func setNestedValue(m map[string]any, keys []string, value any) {
-	if len(keys) == 0 {
-		return
-	}
-	if len(keys) == 1 {
-		m[keys[0]] = value
-		return
-	}
-	if _, ok := m[keys[0]]; !ok {
-		m[keys[0]] = make(map[string]any)
-	}
-	if nested, ok := m[keys[0]].(map[string]any); ok {
-		setNestedValue(nested, keys[1:], value)
-	}
 }
 
 // applyOverridesToPreset returns a copy of the preset with cluster-specific overrides merged.
