@@ -62,7 +62,6 @@ func (r *PluginReconciler) EnsureFluxDeleted(ctx context.Context, plugin *greenh
 	}
 	if err != nil {
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseDeployedCondition, greenhousev1alpha1.HelmUninstallFailedReason, err.Error()))
-		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonClusterAccessFailed)
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
@@ -71,7 +70,6 @@ func (r *PluginReconciler) EnsureFluxDeleted(ctx context.Context, plugin *greenh
 	if releaseStatus != nil && releaseStatus.Reason == helmv2.UninstallFailedReason {
 		msg := releaseStatus.Message
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseDeployedCondition, greenhousev1alpha1.HelmUninstallFailedReason, msg))
-		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonUninstallHelmFailed)
 		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("helm uninstall failed: %s", msg)
 	}
 
