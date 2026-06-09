@@ -22,6 +22,7 @@ import (
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/ocimirror"
@@ -174,6 +175,42 @@ func (h *helmer) createUpdateHelmChart(ctx context.Context, helmRepo *sourcev1.H
 		log.FromContext(ctx).Info("No changes to helmChart", "namespace", h.namespaceName, "name", helmChart.Name)
 	}
 	return helmChart, nil
+}
+
+// deleteOrphanedHelmCharts lists all HelmChart resources owned by the given PluginDefinition
+// (or ClusterPluginDefinition) and deletes every one whose name differs from the currently
+// desired FluxHelmChartResourceName.  This cleans up stale HelmChart resources that are left
+// behind whenever the helm-chart version in a PluginDefinition spec is bumped.
+func (h *helmer) deleteOrphanedHelmCharts(ctx context.Context) error {
+	currentName := h.pluginDef.FluxHelmChartResourceName()
+	logger := log.FromContext(ctx)
+
+	helmChartList := &sourcev1.HelmChartList{}
+	if err := h.k8sClient.List(ctx, helmChartList, client.InNamespace(h.namespaceName)); err != nil {
+		return fmt.Errorf("failed to list HelmCharts in namespace %s: %w", h.namespaceName, err)
+	}
+
+	for i := range helmChartList.Items {
+		chart := &helmChartList.Items[i]
+		// Only touch charts that are controller-owned by this PluginDefinition.
+		ownerRef := clientutil.GetOwnerReference(chart, h.pluginDef.GetObjectKind().GroupVersionKind().Kind)
+		if ownerRef == nil || ownerRef.Controller == nil || !*ownerRef.Controller {
+			continue
+		}
+		if string(ownerRef.UID) != string(h.pluginDef.GetUID()) {
+			continue
+		}
+		// Keep the current (desired) HelmChart; delete everything else.
+		if chart.Name == currentName {
+			continue
+		}
+		logger.Info("Deleting orphaned HelmChart", "namespace", chart.Namespace, "name", chart.Name)
+		if err := h.k8sClient.Delete(ctx, chart); err != nil {
+			return fmt.Errorf("failed to delete orphaned HelmChart %s/%s: %w", chart.Namespace, chart.Name, err)
+		}
+		h.recorder.Eventf(h.pluginDef, chart, corev1.EventTypeNormal, "Deleted", "reconciling (Cluster-)PluginDefinition", "Deleted orphaned HelmChart %s", chart.Name)
+	}
+	return nil
 }
 
 // ensureChartReplication triggers replication for the Helm chart OCI artifact to the configured mirror registry.
