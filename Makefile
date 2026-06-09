@@ -77,6 +77,10 @@ generate-open-api-spec:
 generate-types: generate-open-api-spec## Generate typescript types from CRDs.
 	hack/typescript/create-types $(CURDIR)/docs/reference/api/openapi.yaml $(CURDIR)/hack/typescript/metadata.yaml $(CURDIR)/types/typescript/
 
+.PHONY: generate-alerts-doc
+generate-alerts-doc: ## Regenerate docs/operations/playbooks/_index.md from charts/manager/alerts.
+	go run ./hack/docs-generator/alerts
+
 .PHONY: actiongenerate
 actiongenerate: action-controllergen
 	$(CONTROLLER_GEN_ACTION) object:headerFile="hack/boilerplate.go.txt" paths="./api/..."
@@ -102,7 +106,7 @@ check-gen-crd-api-reference-docs:
 
 GEN_DOCS ?= $(LOCALBIN)/gen-crd-api-reference-docs
 .PHONY: generate-documentation
-generate-documentation: check-gen-crd-api-reference-docs
+generate-documentation: check-gen-crd-api-reference-docs generate-alerts-doc
 	$(GEN_DOCS) -api-dir=$(GEN_DOCS_API_DIR) -config=$(GEN_DOCS_CONFIG) -template-dir=$(GEN_DOCS_TEMPLATE_DIR) -out-file=$(GEN_DOCS_OUT_FILE)
 
 .PHONY: test
