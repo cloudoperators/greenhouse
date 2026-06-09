@@ -8,6 +8,7 @@ import (
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 )
@@ -193,5 +194,8 @@ type PluginPresetList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&PluginPreset{}, &PluginPresetList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &PluginPreset{}, &PluginPresetList{})
+		return nil
+	})
 }
