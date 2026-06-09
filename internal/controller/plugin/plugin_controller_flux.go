@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
 	fluxstatus "github.com/fluxcd/cli-utils/pkg/kstatus/status"
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
@@ -73,8 +72,8 @@ func (r *PluginReconciler) EnsureFluxDeleted(ctx context.Context, plugin *greenh
 		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("helm uninstall failed: %s", msg)
 	}
 
-	// Flux is still running the uninstall; return Pending to keep the finalizer and requeue.
-	return ctrl.Result{RequeueAfter: 10 * time.Second}, lifecycle.Pending, nil
+	// The watch on the owned HelmRelease will trigger the next reconcile when Flux updates its status or removes it.
+	return ctrl.Result{}, lifecycle.Pending, nil
 }
 
 func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, plugin *greenhousev1alpha1.Plugin) (ctrl.Result, lifecycle.ReconcileResult, error) {
