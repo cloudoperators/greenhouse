@@ -14,6 +14,7 @@ import (
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/events"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -197,7 +198,7 @@ func (h *helmer) deleteOrphanedHelmCharts(ctx context.Context) error {
 		if ownerRef == nil || ownerRef.Controller == nil || !*ownerRef.Controller {
 			continue
 		}
-		if string(ownerRef.UID) != string(h.pluginDef.GetUID()) {
+		if ownerRef.UID != h.pluginDef.GetUID() {
 			continue
 		}
 		// Keep the current (desired) HelmChart; delete everything else.
@@ -206,6 +207,10 @@ func (h *helmer) deleteOrphanedHelmCharts(ctx context.Context) error {
 		}
 		logger.Info("Deleting orphaned HelmChart", "namespace", chart.Namespace, "name", chart.Name)
 		if err := h.k8sClient.Delete(ctx, chart); err != nil {
+			// Ignore NotFound — the chart may have been deleted concurrently.
+			if apierrors.IsNotFound(err) {
+				continue
+			}
 			return fmt.Errorf("failed to delete orphaned HelmChart %s/%s: %w", chart.Namespace, chart.Name, err)
 		}
 		h.recorder.Eventf(h.pluginDef, chart, corev1.EventTypeNormal, "Deleted", "reconciling (Cluster-)PluginDefinition", "Deleted orphaned HelmChart %s", chart.Name)
