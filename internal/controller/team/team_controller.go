@@ -65,6 +65,9 @@ func (r *TeamController) SetupWithManager(name string, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&greenhousev1alpha1.Team{}).
+		Owns(&rbacv1.Role{}).
+		Owns(&rbacv1.RoleBinding{}).
+		Owns(&corev1.ServiceAccount{}).
 		// If an Organization's .Spec was changed, reconcile relevant Teams.
 		Watches(&greenhousev1alpha1.Organization{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllTeamsForOrganization),
 			builder.WithPredicates(
@@ -122,7 +125,7 @@ func (r *TeamController) EnsureCreated(ctx context.Context, object lifecycle.Run
 
 	// Clean up support-group resources immediately if the label is not set, regardless of SCIM readiness.
 	if team.Labels[greenhouseapis.LabelKeySupportGroup] != "true" {
-		if err := r.deleteSupportGroupResourcesIfExists(ctx, team); err != nil {
+		if err := r.ensureSupportGroupResourcesDeleted(ctx, team); err != nil {
 			return ctrl.Result{}, lifecycle.Failed, err
 		}
 	}
@@ -375,7 +378,7 @@ func (r *TeamController) reconcileSupportGroupRoleBinding(ctx context.Context, t
 	return nil
 }
 
-func (r *TeamController) deleteSupportGroupResourcesIfExists(ctx context.Context, team *greenhousev1alpha1.Team) error {
+func (r *TeamController) ensureSupportGroupResourcesDeleted(ctx context.Context, team *greenhousev1alpha1.Team) error {
 	resourceName := team.Name + "-sa-token-request"
 
 	roleBinding := &rbacv1.RoleBinding{}
