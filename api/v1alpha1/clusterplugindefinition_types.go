@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 )
@@ -90,5 +91,8 @@ func (c *ClusterPluginDefinition) CanBeSuspended() bool {
 }
 
 func init() {
-	SchemeBuilder.Register(&ClusterPluginDefinition{}, &ClusterPluginDefinitionList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &ClusterPluginDefinition{}, &ClusterPluginDefinitionList{})
+		return nil
+	})
 }

@@ -5,7 +5,6 @@ metadata:
   name: {{ include "manager.fullname" . }}-controller-manager
   namespace: greenhouse
   labels:
-    app: greenhouse
   {{- include "manager.labels" . | nindent 4 }}
 spec:
   resourcePolicy:

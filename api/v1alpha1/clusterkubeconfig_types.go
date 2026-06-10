@@ -5,6 +5,7 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
@@ -103,5 +104,8 @@ type ClusterKubeconfigList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&ClusterKubeconfig{}, &ClusterKubeconfigList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &ClusterKubeconfig{}, &ClusterKubeconfigList{})
+		return nil
+	})
 }

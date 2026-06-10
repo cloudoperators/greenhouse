@@ -30,7 +30,6 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/helm"
-	"github.com/cloudoperators/greenhouse/internal/util"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
@@ -44,14 +43,12 @@ func (r *PluginReconciler) EnsureFluxDeleted(ctx context.Context, plugin *greenh
 	if plugin.Spec.DeletionPolicy == greenhouseapis.DeletionPolicyRetain {
 		if _, err := r.EnsureFluxSuspended(ctx, plugin); err != nil {
 			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseDeployedCondition, greenhousev1alpha1.HelmUninstallFailedReason, err.Error()))
-			util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonSuspendFailed)
 			return ctrl.Result{}, lifecycle.Failed, err
 		}
 	}
 
 	if err := r.Delete(ctx, &helmv2.HelmRelease{ObjectMeta: metav1.ObjectMeta{Name: plugin.Name, Namespace: plugin.Namespace}}); client.IgnoreNotFound(err) != nil {
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseDeployedCondition, greenhousev1alpha1.HelmUninstallFailedReason, err.Error()))
-		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonClusterAccessFailed)
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
@@ -64,7 +61,6 @@ func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, plugin *greenh
 	if err != nil {
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.PluginDefinitionNotAvailableReason, err.Error()))
-		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonPluginDefinitionNotFound)
 		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("%s not found: %s", plugin.Spec.PluginDefinitionRef.Kind, err.Error())
 	}
 	pluginDefinitionSpec := pluginDefinition.GetPluginDefinitionSpec()
@@ -232,7 +228,6 @@ func (r *PluginReconciler) computeReadyConditionFlux(ctx context.Context, plugin
 
 	restClientGetter, cluster, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, plugin)
 	if err != nil {
-		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonClusterAccessFailed)
 		readyCondition.Status = metav1.ConditionFalse
 		readyCondition.Message = "cluster access not ready"
 		return readyCondition
@@ -242,7 +237,6 @@ func (r *PluginReconciler) computeReadyConditionFlux(ctx context.Context, plugin
 	if err != nil {
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.PluginDefinitionNotAvailableReason, err.Error()))
-		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonPluginDefinitionNotFound)
 		readyCondition.Status = metav1.ConditionFalse
 		readyCondition.Reason = greenhousev1alpha1.PluginDefinitionNotAvailableReason
 		readyCondition.Message = "PluginDefinition not available"
