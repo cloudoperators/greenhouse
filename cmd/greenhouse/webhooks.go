@@ -22,4 +22,5 @@ var knownWebhooks = map[string]func(mgr ctrl.Manager) error{
 	"team":                     webhookv1alpha1.SetupTeamWebhookWithManager,
 	"clusterPluginDefinition":  webhookv1alpha1.SetupClusterPluginDefinitionWebhookWithManager,
 	"serviceaccounts":          webhookv1alpha1.SetupServiceAccountWebhookWithManager,
+	"tokenrequest":             webhookv1alpha1.SetupTokenRequestWebhookWithManager,
 }
