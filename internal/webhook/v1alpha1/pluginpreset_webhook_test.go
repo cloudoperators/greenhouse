@@ -268,7 +268,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 })
 
 var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
-	DescribeTable("Validate OptionValues in .Spec.Plugin contain either Value or ValueFrom", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.PluginPresetPluginValueFromSource, expErr bool) {
+	DescribeTable("Validate OptionValues in .Spec.Plugin contain exactly one of Value, ValueFrom, or Expression", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.PluginPresetPluginValueFromSource, expErr bool) {
 		pluginPreset := &greenhousev1alpha1.PluginPreset{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "PluginPreset",
@@ -336,7 +336,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 		Entry("ValueFrom not nil", nil, &greenhousev1alpha1.PluginPresetPluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, false),
 	)
 
-	DescribeTable("Validate OptionValues in .Spec.ClusterOptionOverrides contain either Value or ValueFrom", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.PluginPresetPluginValueFromSource, expErr bool) {
+	DescribeTable("Validate OptionValues in .Spec.ClusterOptionOverrides contain exactly one of Value, ValueFrom, or Expression", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.PluginPresetPluginValueFromSource, expErr bool) {
 		pluginPreset := &greenhousev1alpha1.PluginPreset{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "PluginPreset",
