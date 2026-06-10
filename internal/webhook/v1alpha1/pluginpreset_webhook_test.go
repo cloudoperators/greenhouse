@@ -268,7 +268,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 })
 
 var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
-	DescribeTable("Validate OptionValues in .Spec.Plugin contain either Value or ValueFrom", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.PluginValueFromSource, expErr bool) {
+	DescribeTable("Validate OptionValues in .Spec.Plugin contain either Value or ValueFrom", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.PluginPresetPluginValueFromSource, expErr bool) {
 		pluginPreset := &greenhousev1alpha1.PluginPreset{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "PluginPreset",
@@ -284,7 +284,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 						Name: "test",
 						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 					},
-					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+					OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 						{
 							Name:      "test",
 							Value:     value,
@@ -331,12 +331,12 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 		}
 	},
 		Entry("Value and ValueFrom nil", nil, nil, true),
-		Entry("Value and ValueFrom not nil", test.MustReturnJSONFor("test"), &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret"}}, true),
+		Entry("Value and ValueFrom not nil", test.MustReturnJSONFor("test"), &greenhousev1alpha1.PluginPresetPluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret"}}, true),
 		Entry("Value not nil", test.MustReturnJSONFor("test"), nil, false),
-		Entry("ValueFrom not nil", nil, &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, false),
+		Entry("ValueFrom not nil", nil, &greenhousev1alpha1.PluginPresetPluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, false),
 	)
 
-	DescribeTable("Validate OptionValues in .Spec.ClusterOptionOverrides contain either Value or ValueFrom", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.PluginValueFromSource, expErr bool) {
+	DescribeTable("Validate OptionValues in .Spec.ClusterOptionOverrides contain either Value or ValueFrom", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.PluginPresetPluginValueFromSource, expErr bool) {
 		pluginPreset := &greenhousev1alpha1.PluginPreset{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "PluginPreset",
@@ -352,12 +352,12 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 						Name: "test",
 						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 					},
-					OptionValues: []greenhousev1alpha1.PluginOptionValue{},
+					OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{},
 				},
 				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
 					{
 						ClusterName: "test-cluster",
-						Overrides: []greenhousev1alpha1.PluginOptionValue{
+						Overrides: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 							{
 								Name:      "test",
 								Value:     value,
@@ -405,9 +405,9 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 		}
 	},
 		Entry("Value and ValueFrom nil", nil, nil, true),
-		Entry("Value and ValueFrom not nil", test.MustReturnJSONFor("test"), &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret"}}, true),
+		Entry("Value and ValueFrom not nil", test.MustReturnJSONFor("test"), &greenhousev1alpha1.PluginPresetPluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret"}}, true),
 		Entry("Value not nil", test.MustReturnJSONFor("test"), nil, false),
-		Entry("ValueFrom not nil", nil, &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, false),
+		Entry("ValueFrom not nil", nil, &greenhousev1alpha1.PluginPresetPluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, false),
 	)
 
 	DescribeTable("Validate WaitFor PluginRefs", func(waitForItems []greenhousev1alpha1.WaitForItem, expErr bool) {

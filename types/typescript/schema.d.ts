@@ -944,8 +944,6 @@ export interface components {
                 deletionPolicy: "Delete" | "Retain";
                 /** @description PluginSpec is the spec of the plugin to be deployed by the PluginPreset. */
                 plugin: {
-                    /** @description ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster. */
-                    clusterName?: string;
                     /**
                      * @description DeletionPolicy defines how Helm Releases created by a Plugin are handled upon deletion of the Plugin.
                      *     Supported values are "Delete" and "Retain". If not set, defaults to "Delete".
@@ -1059,16 +1057,6 @@ export interface components {
                      *     Defaults to the Greenhouse managed namespace if not set.
                      */
                     releaseNamespace?: string;
-                    /** @description WaitFor defines other Plugins to wait for before installing this Plugin. */
-                    waitFor?: {
-                        /** @description PluginRef defines a reference to the Plugin. */
-                        pluginRef: {
-                            /** @description Name of the Plugin. */
-                            name?: string;
-                            /** @description PluginPreset is the name of the PluginPreset which creates the Plugin. */
-                            pluginPreset?: string;
-                        };
-                    }[];
                 };
                 /** @description WaitFor defines other Plugins to wait for before creating the Plugin. */
                 waitFor?: {
@@ -1198,7 +1186,12 @@ export interface components {
                 }[];
                 /** @description Values are the values for a PluginDefinition instance. */
                 optionValues?: {
-                    /** @description Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions. */
+                    /**
+                     * @description Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions.
+                     *
+                     *     Deprecated: Expression is deprecated on standalone Plugins and will be removed in a future release.
+                     *     Consider using a PluginPreset to deploy Plugins utilizing the Expression field.
+                     */
                     expression?: string;
                     /** @description Name of the values. */
                     name: string;
@@ -1206,7 +1199,12 @@ export interface components {
                     value?: unknown;
                     /** @description ValueFrom references value in another source. */
                     valueFrom?: {
-                        /** @description Ref references values defined in another resource (Plugin, PluginPreset) */
+                        /**
+                         * @description Ref references values defined in another resource (Plugin, PluginPreset)
+                         *
+                         *     Deprecated: Ref is deprecated on standalone Plugins and will be removed in a future release.
+                         *     Consider using a PluginPreset to deploy Plugins utilizing the Ref field.
+                         */
                         ref?: {
                             /** @description Expression is a CEL expression to extract the value from the referenced resource */
                             expression: string;

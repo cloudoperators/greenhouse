@@ -190,7 +190,7 @@ func (o *PluginTemplatePresetOptions) prepareValues() error {
 	)
 
 	// Merge PluginPreset values.
-	values = helminternal.MergePluginOptionValues(values, o.pluginPreset.Spec.Plugin.OptionValues)
+	values = helminternal.MergePluginOptionValues(values, convertToPluginOptionValues(o.pluginPreset.Spec.Plugin.OptionValues))
 
 	// Merge cluster overrides.
 	values = helminternal.MergePluginOptionValues(values, o.getClusterSpecificOverrides())
@@ -203,6 +203,17 @@ func (o *PluginTemplatePresetOptions) prepareValues() error {
 
 	o.values = values
 	return nil
+}
+
+func convertToPluginOptionValues(presetValues []greenhousev1alpha1.PluginPresetPluginOptionValue) []greenhousev1alpha1.PluginOptionValue {
+	result := make([]greenhousev1alpha1.PluginOptionValue, 0, len(presetValues))
+	for _, pv := range presetValues {
+		result = append(result, greenhousev1alpha1.PluginOptionValue{
+			Name:  pv.Name,
+			Value: pv.Value,
+		})
+	}
+	return result
 }
 
 func (o *PluginTemplatePresetOptions) runHelmTemplate(valuesFile string) error {
@@ -289,7 +300,7 @@ func createPluginOptionValue(name, value string) (*greenhousev1alpha1.PluginOpti
 func (o *PluginTemplatePresetOptions) getClusterSpecificOverrides() []greenhousev1alpha1.PluginOptionValue {
 	for _, override := range o.pluginPreset.Spec.ClusterOptionOverrides {
 		if override.ClusterName == o.clusterName {
-			return override.Overrides
+			return convertToPluginOptionValues(override.Overrides)
 		}
 	}
 	return []greenhousev1alpha1.PluginOptionValue{}

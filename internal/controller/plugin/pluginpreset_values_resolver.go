@@ -24,17 +24,10 @@ func (r *PluginPresetReconciler) resolvePluginOptionValuesForPreset(
 	cluster *greenhousev1alpha1.Cluster,
 ) ([]greenhousev1alpha1.PluginOptionValue, error) {
 
-	optionValues := preset.Spec.Plugin.OptionValues
-
 	if r.ExpressionEvaluationEnabled {
-		var err error
-		optionValues, err = r.resolveExpressionsForPreset(ctx, preset, cluster)
-		if err != nil {
-			return nil, fmt.Errorf("failed to resolve expressions: %w", err)
-		}
+		return r.resolveExpressionsForPreset(ctx, preset, cluster)
 	}
-
-	return optionValues, nil
+	return convertToPluginOptionValues(preset.Spec.Plugin.OptionValues), nil
 }
 
 // resolveExpressionsForPreset evaluates all expression fields in PluginPreset option values.
@@ -52,7 +45,7 @@ func (r *PluginPresetReconciler) resolveExpressionsForPreset(
 		}
 	}
 	if !hasExpressions {
-		return preset.Spec.Plugin.OptionValues, nil
+		return convertToPluginOptionValues(preset.Spec.Plugin.OptionValues), nil
 	}
 
 	tempPlugin := greenhousev1alpha1.Plugin{
@@ -69,12 +62,10 @@ func (r *PluginPresetReconciler) resolveExpressionsForPreset(
 	if err != nil {
 		return nil, fmt.Errorf("failed to get greenhouse values: %w", err)
 	}
-
 	templateData, err := helm.BuildTemplateData(greenhouseValuesList)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build template data: %w", err)
 	}
-
 	result := make([]greenhousev1alpha1.PluginOptionValue, 0, len(preset.Spec.Plugin.OptionValues))
 	for _, optionValue := range preset.Spec.Plugin.OptionValues {
 		if optionValue.Expression != nil {
@@ -87,10 +78,12 @@ func (r *PluginPresetReconciler) resolveExpressionsForPreset(
 				Value: &apiextensionsv1.JSON{Raw: evaluatedValue},
 			})
 		} else {
-			result = append(result, optionValue)
+			result = append(result, greenhousev1alpha1.PluginOptionValue{
+				Name:  optionValue.Name,
+				Value: optionValue.Value,
+			})
 		}
 	}
-
 	return result, nil
 }
 
@@ -107,7 +100,7 @@ func applyOverridesToPreset(preset *greenhousev1alpha1.PluginPreset, clusterName
 	}
 
 	for _, overrideValue := range presetCopy.Spec.ClusterOptionOverrides[index].Overrides {
-		valueIndex := slices.IndexFunc(presetCopy.Spec.Plugin.OptionValues, func(value greenhousev1alpha1.PluginOptionValue) bool {
+		valueIndex := slices.IndexFunc(presetCopy.Spec.Plugin.OptionValues, func(value greenhousev1alpha1.PluginPresetPluginOptionValue) bool {
 			return value.Name == overrideValue.Name
 		})
 

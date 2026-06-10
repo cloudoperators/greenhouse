@@ -264,7 +264,11 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed(), "the Plugin should be created")
 
 		By("checking plugin options with plugin definition defaults and plugin preset values")
-		Expect(expPlugin.Spec.OptionValues).To(ContainElement(pluginPreset.Spec.Plugin.OptionValues[0]))
+		Expect(expPlugin.Spec.OptionValues).To(ContainElement(greenhousev1alpha1.PluginOptionValue{
+			Name:  pluginPreset.Spec.Plugin.OptionValues[0].Name,
+			Value: pluginPreset.Spec.Plugin.OptionValues[0].Value,
+		}))
+
 		Expect(expPlugin.Spec.OptionValues).To(ContainElement(greenhousev1alpha1.PluginOptionValue{
 			Name:  defaultPluginDefinition.Spec.Options[0].Name,
 			Value: defaultPluginDefinition.Spec.Options[0].Default,
@@ -550,7 +554,10 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		Eventually(func(g Gomega) {
 			plugin = verifyPluginCreatedWithHelmRelease(g, pluginObjectKey)
 		}).Should(Succeed(), "the Plugin should be created successfully with HelmRelease")
-		Expect(plugin.Spec.OptionValues).To(ContainElement(pluginPreset.Spec.ClusterOptionOverrides[0].Overrides[0]),
+		Expect(plugin.Spec.OptionValues).To(ContainElement(greenhousev1alpha1.PluginOptionValue{
+			Name:  pluginPreset.Spec.ClusterOptionOverrides[0].Overrides[0].Name,
+			Value: pluginPreset.Spec.ClusterOptionOverrides[0].Overrides[0].Value,
+		}),
 			"ClusterOptionOverrides should be applied to the Plugin OptionValues")
 
 		By("removing plugin preset")
@@ -1132,7 +1139,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 var _ = Describe("applyOverridesToPreset", func() {
 	DescribeTable("test cases",
-		func(preset *greenhousev1alpha1.PluginPreset, clusterName string, expectedOptionValues []greenhousev1alpha1.PluginOptionValue) {
+		func(preset *greenhousev1alpha1.PluginPreset, clusterName string, expectedOptionValues []greenhousev1alpha1.PluginPresetPluginOptionValue) {
 			result := applyOverridesToPreset(preset, clusterName)
 			Expect(result.Spec.Plugin.OptionValues).To(Equal(expectedOptionValues))
 		},
@@ -1141,14 +1148,14 @@ var _ = Describe("applyOverridesToPreset", func() {
 			&greenhousev1alpha1.PluginPreset{
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginPresetPluginSpec{
-						OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 							{Name: "option-1", Value: test.MustReturnJSONFor("value-1")},
 						},
 					},
 				},
 			},
 			clusterA,
-			[]greenhousev1alpha1.PluginOptionValue{
+			[]greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{Name: "option-1", Value: test.MustReturnJSONFor("value-1")},
 			},
 		),
@@ -1157,14 +1164,14 @@ var _ = Describe("applyOverridesToPreset", func() {
 			&greenhousev1alpha1.PluginPreset{
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginPresetPluginSpec{
-						OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 							{Name: "option-1", Value: test.MustReturnJSONFor("value-1")},
 						},
 					},
 					ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
 						{
 							ClusterName: clusterB,
-							Overrides: []greenhousev1alpha1.PluginOptionValue{
+							Overrides: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 								{Name: "option-1", Value: test.MustReturnJSONFor("overridden")},
 							},
 						},
@@ -1172,7 +1179,7 @@ var _ = Describe("applyOverridesToPreset", func() {
 				},
 			},
 			clusterA,
-			[]greenhousev1alpha1.PluginOptionValue{
+			[]greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{Name: "option-1", Value: test.MustReturnJSONFor("value-1")},
 			},
 		),
@@ -1181,7 +1188,7 @@ var _ = Describe("applyOverridesToPreset", func() {
 			&greenhousev1alpha1.PluginPreset{
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginPresetPluginSpec{
-						OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 							{Name: "option-1", Value: test.MustReturnJSONFor("original")},
 							{Name: "option-2", Value: test.MustReturnJSONFor("unchanged")},
 						},
@@ -1189,7 +1196,7 @@ var _ = Describe("applyOverridesToPreset", func() {
 					ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
 						{
 							ClusterName: clusterA,
-							Overrides: []greenhousev1alpha1.PluginOptionValue{
+							Overrides: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 								{Name: "option-1", Value: test.MustReturnJSONFor("overridden")},
 							},
 						},
@@ -1197,7 +1204,7 @@ var _ = Describe("applyOverridesToPreset", func() {
 				},
 			},
 			clusterA,
-			[]greenhousev1alpha1.PluginOptionValue{
+			[]greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{Name: "option-1", Value: test.MustReturnJSONFor("overridden")},
 				{Name: "option-2", Value: test.MustReturnJSONFor("unchanged")},
 			},
@@ -1207,14 +1214,14 @@ var _ = Describe("applyOverridesToPreset", func() {
 			&greenhousev1alpha1.PluginPreset{
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginPresetPluginSpec{
-						OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 							{Name: "option-1", Value: test.MustReturnJSONFor("value-1")},
 						},
 					},
 					ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
 						{
 							ClusterName: clusterA,
-							Overrides: []greenhousev1alpha1.PluginOptionValue{
+							Overrides: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 								{Name: "option-new", Value: test.MustReturnJSONFor("new-value")},
 							},
 						},
@@ -1222,7 +1229,7 @@ var _ = Describe("applyOverridesToPreset", func() {
 				},
 			},
 			clusterA,
-			[]greenhousev1alpha1.PluginOptionValue{
+			[]greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{Name: "option-1", Value: test.MustReturnJSONFor("value-1")},
 				{Name: "option-new", Value: test.MustReturnJSONFor("new-value")},
 			},
@@ -1232,7 +1239,7 @@ var _ = Describe("applyOverridesToPreset", func() {
 			&greenhousev1alpha1.PluginPreset{
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginPresetPluginSpec{
-						OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 							{Name: "option-1", Value: test.MustReturnJSONFor(1)},
 							{Name: "option-2", Value: test.MustReturnJSONFor(2)},
 							{Name: "option-3", Value: test.MustReturnJSONFor(3)},
@@ -1241,7 +1248,7 @@ var _ = Describe("applyOverridesToPreset", func() {
 					ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
 						{
 							ClusterName: clusterA,
-							Overrides: []greenhousev1alpha1.PluginOptionValue{
+							Overrides: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 								{Name: "option-2", Value: test.MustReturnJSONFor(22)},
 								{Name: "option-3", Value: test.MustReturnJSONFor(33)},
 								{Name: "option-4", Value: test.MustReturnJSONFor(44)},
@@ -1251,7 +1258,7 @@ var _ = Describe("applyOverridesToPreset", func() {
 				},
 			},
 			clusterA,
-			[]greenhousev1alpha1.PluginOptionValue{
+			[]greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{Name: "option-1", Value: test.MustReturnJSONFor(1)},
 				{Name: "option-2", Value: test.MustReturnJSONFor(22)},
 				{Name: "option-3", Value: test.MustReturnJSONFor(33)},
@@ -1263,12 +1270,12 @@ var _ = Describe("applyOverridesToPreset", func() {
 			&greenhousev1alpha1.PluginPreset{
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginPresetPluginSpec{
-						OptionValues: []greenhousev1alpha1.PluginOptionValue{},
+						OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{},
 					},
 					ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
 						{
 							ClusterName: clusterA,
-							Overrides: []greenhousev1alpha1.PluginOptionValue{
+							Overrides: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 								{Name: "option-1", Value: test.MustReturnJSONFor("added")},
 							},
 						},
@@ -1276,7 +1283,7 @@ var _ = Describe("applyOverridesToPreset", func() {
 				},
 			},
 			clusterA,
-			[]greenhousev1alpha1.PluginOptionValue{
+			[]greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{Name: "option-1", Value: test.MustReturnJSONFor("added")},
 			},
 		),
@@ -1287,14 +1294,14 @@ var _ = Describe("applyOverridesToPreset", func() {
 		preset := &greenhousev1alpha1.PluginPreset{
 			Spec: greenhousev1alpha1.PluginPresetSpec{
 				Plugin: greenhousev1alpha1.PluginPresetPluginSpec{
-					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+					OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 						{Name: "option-1", Value: originalValue},
 					},
 				},
 				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
 					{
 						ClusterName: clusterA,
-						Overrides: []greenhousev1alpha1.PluginOptionValue{
+						Overrides: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 							{Name: "option-1", Value: test.MustReturnJSONFor("overridden")},
 						},
 					},
