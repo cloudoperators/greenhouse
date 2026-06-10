@@ -116,18 +116,8 @@ func (h *helmer) createUpdateHelmRepository(ctx context.Context) (*sourcev1.Helm
 	helmRepository := &sourcev1.HelmRepository{}
 	helmRepository.SetName(flux.ChartURLToName(pluginDefSpec.HelmChart.Repository))
 	helmRepository.SetNamespace(h.namespaceName)
-	ownedBy, owned := h.pluginDef.GetLabels()[greenhouseapis.LabelKeyOwnedBy]
 
 	result, err := controllerutil.CreateOrUpdate(ctx, h.k8sClient, helmRepository, func() error {
-		labels := helmRepository.GetLabels()
-		if labels == nil {
-			labels = make(map[string]string)
-		}
-		if owned {
-			labels[greenhouseapis.LabelKeyOwnedBy] = ownedBy
-		}
-		labels[greenhouseapis.LabelKeyPluginDefinition] = h.pluginDef.GetName()
-		helmRepository.SetLabels(labels)
 		helmRepository.Spec.Type = flux.GetSourceRepositoryType(repositoryURL)
 		helmRepository.Spec.Interval = metav1.Duration{Duration: 24 * time.Hour}
 		helmRepository.Spec.URL = repositoryURL
