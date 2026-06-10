@@ -515,10 +515,25 @@ func pluginSpecFromPluginPreset(preset *greenhousev1alpha1.PluginPreset, cluster
 func convertToPluginOptionValues(presetValues []greenhousev1alpha1.PluginPresetPluginOptionValue) []greenhousev1alpha1.PluginOptionValue {
 	result := make([]greenhousev1alpha1.PluginOptionValue, 0, len(presetValues))
 	for _, pv := range presetValues {
-		result = append(result, greenhousev1alpha1.PluginOptionValue{
+		ov := greenhousev1alpha1.PluginOptionValue{
 			Name:  pv.Name,
 			Value: pv.Value,
-		})
+		}
+
+		if pv.Expression != nil {
+			ov.Expression = pv.Expression
+		}
+
+		if pv.ValueFrom != nil {
+			ov.ValueFrom = &greenhousev1alpha1.PluginValueFromSource{
+				Secret: pv.ValueFrom.Secret,
+			}
+
+			if pv.ValueFrom.Ref != nil {
+				ov.ValueFrom.Ref = pv.ValueFrom.Ref
+			}
+		}
+		result = append(result, ov)
 	}
 	return result
 }

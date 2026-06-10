@@ -78,10 +78,17 @@ func (r *PluginPresetReconciler) resolveExpressionsForPreset(
 				Value: &apiextensionsv1.JSON{Raw: evaluatedValue},
 			})
 		} else {
-			result = append(result, greenhousev1alpha1.PluginOptionValue{
+			ov := greenhousev1alpha1.PluginOptionValue{
 				Name:  optionValue.Name,
 				Value: optionValue.Value,
-			})
+			}
+			if optionValue.ValueFrom != nil {
+				ov.ValueFrom = &greenhousev1alpha1.PluginValueFromSource{
+					Secret: optionValue.ValueFrom.Secret,
+					Ref:    optionValue.ValueFrom.Ref,
+				}
+			}
+			result = append(result, ov)
 		}
 	}
 	return result, nil

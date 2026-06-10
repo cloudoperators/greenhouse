@@ -157,12 +157,16 @@ func convertPresetToPluginOptionValues(presetValues []greenhousev1alpha1.PluginP
 	result := make([]greenhousev1alpha1.PluginOptionValue, 0, len(presetValues))
 	for _, pv := range presetValues {
 		ov := greenhousev1alpha1.PluginOptionValue{
-			Name:  pv.Name,
-			Value: pv.Value,
+			Name:       pv.Name,
+			Value:      pv.Value,
+			Expression: pv.Expression,
 		}
 		if pv.ValueFrom != nil {
 			ov.ValueFrom = &greenhousev1alpha1.PluginValueFromSource{
 				Secret: pv.ValueFrom.Secret,
+			}
+			if pv.ValueFrom.Ref != nil {
+				ov.ValueFrom.Ref = pv.ValueFrom.Ref
 			}
 		}
 		result = append(result, ov)
