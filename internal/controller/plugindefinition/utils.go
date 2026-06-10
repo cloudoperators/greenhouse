@@ -20,6 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/common"
@@ -147,7 +148,18 @@ func (h *helmer) createUpdateHelmChart(ctx context.Context, helmRepo *sourcev1.H
 	helmChart := &sourcev1.HelmChart{}
 	helmChart.SetName(h.pluginDef.FluxHelmChartResourceName())
 	helmChart.SetNamespace(h.namespaceName)
+	ownedBy, owned := h.pluginDef.GetLabels()[greenhouseapis.LabelKeyOwnedBy]
+
 	result, err := controllerutil.CreateOrUpdate(ctx, h.k8sClient, helmChart, func() error {
+		labels := helmChart.GetLabels()
+		if labels == nil {
+			labels = make(map[string]string)
+		}
+		if owned {
+			labels[greenhouseapis.LabelKeyOwnedBy] = ownedBy
+		}
+		labels[greenhouseapis.LabelKeyPluginDefinition] = h.pluginDef.GetName()
+		helmChart.SetLabels(labels)
 		helmChart.Spec = sourcev1.HelmChartSpec{
 			Chart:             pluginDefSpec.HelmChart.Name,
 			Interval:          metav1.Duration{Duration: 24 * time.Hour},
