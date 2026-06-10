@@ -56,9 +56,13 @@ func defaultTokenRequest(ctx context.Context, c client.Client, tokenRequest *aut
 	}
 
 	if tokenRequest.Spec.ExpirationSeconds == nil || *tokenRequest.Spec.ExpirationSeconds > maxTokenExpirationSeconds {
-		ctrl.LoggerFrom(ctx).Info("requested expiration shortened", "from", tokenRequest.Spec.ExpirationSeconds, "to", maxTokenExpirationSeconds)
-		tokenRequest.Spec.ExpirationSeconds = new(int64)
-		*tokenRequest.Spec.ExpirationSeconds = maxTokenExpirationSeconds
+		var from any
+		if tokenRequest.Spec.ExpirationSeconds != nil {
+			from = *tokenRequest.Spec.ExpirationSeconds
+		}
+		ctrl.LoggerFrom(ctx).Info("requested expiration shortened", "from", from, "to", maxTokenExpirationSeconds)
+		exp := maxTokenExpirationSeconds
+		tokenRequest.Spec.ExpirationSeconds = &exp
 	}
 
 	return nil
