@@ -52,8 +52,28 @@ func (r *PluginReconciler) EnsureFluxDeleted(ctx context.Context, plugin *greenh
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseDeployedCondition, greenhousev1alpha1.HelmReleaseUninstalledReason, ""))
-	return ctrl.Result{}, lifecycle.Success, nil
+	// Observe the HelmRelease deletion: hold the finalizer until Flux completes the uninstall.
+	hr := &helmv2.HelmRelease{}
+	err := r.Get(ctx, types.NamespacedName{Name: plugin.Name, Namespace: plugin.Namespace}, hr)
+	if apierrors.IsNotFound(err) {
+		// HelmRelease is fully gone — uninstall complete.
+		return ctrl.Result{}, lifecycle.Success, nil
+	}
+	if err != nil {
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseDeployedCondition, greenhousev1alpha1.HelmUninstallFailedReason, err.Error()))
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+
+	// HelmRelease still exists; check whether Flux reported an explicit uninstall failure.
+	releaseStatus := meta.FindStatusCondition(hr.Status.Conditions, helmv2.ReleasedCondition)
+	if releaseStatus != nil && releaseStatus.Reason == helmv2.UninstallFailedReason {
+		msg := releaseStatus.Message
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseDeployedCondition, greenhousev1alpha1.HelmUninstallFailedReason, msg))
+		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("helm uninstall failed: %s", msg)
+	}
+
+	// The watch on the owned HelmRelease will trigger the next reconcile when Flux updates its status or removes it.
+	return ctrl.Result{}, lifecycle.Pending, nil
 }
 
 func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, plugin *greenhousev1alpha1.Plugin) (ctrl.Result, lifecycle.ReconcileResult, error) {
