@@ -149,16 +149,18 @@ func (h *helmer) createUpdateHelmChart(ctx context.Context, helmRepo *sourcev1.H
 	helmChart := &sourcev1.HelmChart{}
 	helmChart.SetName(h.pluginDef.FluxHelmChartResourceName())
 	helmChart.SetNamespace(h.namespaceName)
+	ownedBy, owned := h.pluginDef.GetLabels()[greenhouseapis.LabelKeyOwnedBy]
+
 	result, err := controllerutil.CreateOrUpdate(ctx, h.k8sClient, helmChart, func() error {
-		// Label the HelmChart with the owner PluginDefinition name so it can be
-		// efficiently filtered by client.MatchingLabels in deleteOrphanedHelmCharts.
 		labels := helmChart.GetLabels()
 		if labels == nil {
 			labels = make(map[string]string)
 		}
+		if owned {
+			labels[greenhouseapis.LabelKeyOwnedBy] = ownedBy
+		}
 		labels[greenhouseapis.LabelKeyPluginDefinition] = h.pluginDef.GetName()
 		helmChart.SetLabels(labels)
-
 		helmChart.Spec = sourcev1.HelmChartSpec{
 			Chart:             pluginDefSpec.HelmChart.Name,
 			Interval:          metav1.Duration{Duration: 24 * time.Hour},
@@ -216,7 +218,7 @@ func (h *helmer) deleteOrphanedHelmCharts(ctx context.Context) error {
 		if chart.Name == currentName {
 			continue
 		}
-		logger.Info("Deleting orphaned HelmChart", "namespace", chart.Namespace, "name", chart.Name)
+		logger.Info("deleting orphaned HelmChart", "namespace", chart.Namespace, "name", chart.Name)
 		if err := h.k8sClient.Delete(ctx, chart); err != nil {
 			// Ignore NotFound — the chart may have been deleted concurrently.
 			if apierrors.IsNotFound(err) {
