@@ -49,7 +49,7 @@ func defaultTokenRequest(ctx context.Context, c client.Client, tokenRequest *aut
 	// Only cap tokens for greenhouse team SAs (identified by the owned-by label).
 	sa := &corev1.ServiceAccount{}
 	if err := c.Get(ctx, types.NamespacedName{Name: req.Name, Namespace: req.Namespace}, sa); err != nil {
-		return apierrors.NewInternalError(err)
+		return err
 	}
 	if sa.Labels[greenhouseapis.LabelKeyOwnedBy] == "" {
 		return nil
