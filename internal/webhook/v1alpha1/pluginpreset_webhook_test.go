@@ -12,6 +12,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/internal/local/utils"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
@@ -268,7 +269,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 })
 
 var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
-	DescribeTable("Validate OptionValues in .Spec.Plugin contain exactly one of Value, ValueFrom, or Expression", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.PluginPresetPluginValueFromSource, expErr bool) {
+	DescribeTable("Validate OptionValues in .Spec.Plugin contain exactly one of Value, ValueFrom, or Expression", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.PluginPresetPluginValueFromSource, expression *string, expErr bool) {
 		pluginPreset := &greenhousev1alpha1.PluginPreset{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "PluginPreset",
@@ -286,9 +287,10 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 					},
 					OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 						{
-							Name:      "test",
-							Value:     value,
-							ValueFrom: valueFrom,
+							Name:       "test",
+							Value:      value,
+							ValueFrom:  valueFrom,
+							Expression: expression,
 						},
 					},
 				},
@@ -304,6 +306,9 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 		case valueFrom != nil:
 			defaultVal = test.MustReturnJSONFor(valueFrom.Secret.Name)
 			optionType = greenhousev1alpha1.PluginOptionTypeSecret
+		case expression != nil:
+			defaultVal = test.MustReturnJSONFor("expression-default")
+			optionType = greenhousev1alpha1.PluginOptionTypeString
 		}
 
 		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
@@ -330,13 +335,17 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			Expect(errList).To(BeEmpty(), "expected no error, got %v", errList)
 		}
 	},
-		Entry("Value and ValueFrom nil", nil, nil, true),
-		Entry("Value and ValueFrom not nil", test.MustReturnJSONFor("test"), &greenhousev1alpha1.PluginPresetPluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret"}}, true),
-		Entry("Value not nil", test.MustReturnJSONFor("test"), nil, false),
-		Entry("ValueFrom not nil", nil, &greenhousev1alpha1.PluginPresetPluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, false),
+		Entry("Value and ValueFrom nil", nil, nil, nil, true),
+		Entry("Value and ValueFrom not nil", test.MustReturnJSONFor("test"), &greenhousev1alpha1.PluginPresetPluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret"}}, nil, true),
+		Entry("Value not nil", test.MustReturnJSONFor("test"), nil, nil, false),
+		Entry("ValueFrom not nil", nil, &greenhousev1alpha1.PluginPresetPluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, nil, false),
+		Entry("Expression only (valid)", nil, nil, utils.StringP(`"test-${global.greenhouse.clusterName}"`), false),
+		Entry("Expression and Value both set (invalid)", test.MustReturnJSONFor("test"), nil, utils.StringP(`"test-expression"`), true),
+		Entry("Expression and ValueFrom both set (invalid)", nil, &greenhousev1alpha1.PluginPresetPluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret"}}, utils.StringP(`"test-expression"`), true),
+		Entry("All three set (invalid)", test.MustReturnJSONFor("test"), &greenhousev1alpha1.PluginPresetPluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret"}}, utils.StringP(`"test-expression"`), true),
 	)
 
-	DescribeTable("Validate OptionValues in .Spec.ClusterOptionOverrides contain exactly one of Value, ValueFrom, or Expression", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.PluginPresetPluginValueFromSource, expErr bool) {
+	DescribeTable("Validate OptionValues in .Spec.ClusterOptionOverrides contain exactly one of Value, ValueFrom, or Expression", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.PluginPresetPluginValueFromSource, expression *string, expErr bool) {
 		pluginPreset := &greenhousev1alpha1.PluginPreset{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "PluginPreset",
@@ -359,9 +368,10 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 						ClusterName: "test-cluster",
 						Overrides: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 							{
-								Name:      "test",
-								Value:     value,
-								ValueFrom: valueFrom,
+								Name:       "test",
+								Value:      value,
+								ValueFrom:  valueFrom,
+								Expression: expression,
 							},
 						},
 					},
@@ -378,6 +388,9 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 		case valueFrom != nil:
 			defaultVal = test.MustReturnJSONFor(valueFrom.Secret.Name)
 			optionType = greenhousev1alpha1.PluginOptionTypeSecret
+		case expression != nil:
+			defaultVal = test.MustReturnJSONFor("expression-default")
+			optionType = greenhousev1alpha1.PluginOptionTypeString
 		}
 
 		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
@@ -404,10 +417,14 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			Expect(errList).To(BeEmpty(), "expected no error, got %v", errList)
 		}
 	},
-		Entry("Value and ValueFrom nil", nil, nil, true),
-		Entry("Value and ValueFrom not nil", test.MustReturnJSONFor("test"), &greenhousev1alpha1.PluginPresetPluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret"}}, true),
-		Entry("Value not nil", test.MustReturnJSONFor("test"), nil, false),
-		Entry("ValueFrom not nil", nil, &greenhousev1alpha1.PluginPresetPluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, false),
+		Entry("Value and ValueFrom nil", nil, nil, nil, true),
+		Entry("Value and ValueFrom not nil", test.MustReturnJSONFor("test"), &greenhousev1alpha1.PluginPresetPluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret"}}, nil, true),
+		Entry("Value not nil", test.MustReturnJSONFor("test"), nil, nil, false),
+		Entry("ValueFrom not nil", nil, &greenhousev1alpha1.PluginPresetPluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, nil, false),
+		Entry("Expression only (valid)", nil, nil, utils.StringP(`"test-${global.greenhouse.clusterName}"`), false),
+		Entry("Expression and Value both set (invalid)", test.MustReturnJSONFor("test"), nil, utils.StringP(`"test-expression"`), true),
+		Entry("Expression and ValueFrom both set (invalid)", nil, &greenhousev1alpha1.PluginPresetPluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret"}}, utils.StringP(`"test-expression"`), true),
+		Entry("All three set (invalid)", test.MustReturnJSONFor("test"), &greenhousev1alpha1.PluginPresetPluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret"}}, utils.StringP(`"test-expression"`), true),
 	)
 
 	DescribeTable("Validate WaitFor PluginRefs", func(waitForItems []greenhousev1alpha1.WaitForItem, expErr bool) {
