@@ -33,11 +33,6 @@ func SetupPluginPresetWebhookWithManager(mgr ctrl.Manager) error {
 //+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-pluginpreset,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=pluginpresets,verbs=create;update,versions=v1alpha1,name=mpluginpreset.kb.io,admissionReviewVersions=v1
 
 func DefaultPluginPreset(ctx context.Context, c client.Client, pluginPreset *greenhousev1alpha1.PluginPreset) error {
-	// prevent deletion on plugin preset creation
-	if pluginPreset.Annotations == nil {
-		pluginPreset.Annotations = map[string]string{}
-	}
-
 	if pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind == "" {
 		pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind = greenhousev1alpha1.PluginDefinitionKind
 	}
