@@ -469,6 +469,9 @@ func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhou
 			continue
 
 		case v.Expression != nil:
+			if celResolver == nil {
+				continue
+			}
 			// This PR adds CEL expression evaluation to the PluginPreset controller (#1774).
 			// The Plugin controller's expression evaluation remains active (gated by feature flag)
 			resolvedOptionValue, err := celResolver.ResolveExpression(v, expressionEvaluation)
