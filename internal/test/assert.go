@@ -27,10 +27,6 @@ func EventuallyDeleted(ctx context.Context, c client.Client, obj client.Object) 
 	if ok {
 		UpdateClusterWithDeletionAnnotation(ctx, c, cluster)
 	}
-	pluginPreset, ok := obj.(*greenhousev1alpha1.PluginPreset)
-	if ok {
-		MustRemoveAnnotation(ctx, c, pluginPreset, greenhousev1alpha1.PreventDeletionAnnotation)
-	}
 
 	// Retry delete on conflict - the object may have been modified by controllers
 	Eventually(func(g Gomega) {
