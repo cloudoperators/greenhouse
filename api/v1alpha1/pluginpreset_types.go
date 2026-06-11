@@ -22,10 +22,6 @@ const (
 
 	// PluginDefinitionNotFound is set when the PluginDefinition referenced by the PluginPreset does not exist.
 	PluginDefinitionNotFound greenhousemetav1alpha1.ConditionReason = "PluginDefinitionNotFound"
-
-	// PreventDeletionAnnotation is the annotation used to prevent deletion of a PluginPreset.
-	// If the annotation is set the PluginPreset cannot be deleted.
-	PreventDeletionAnnotation = "greenhouse.sap/prevent-deletion"
 )
 
 // PluginPresetSpec defines the desired state of PluginPreset
