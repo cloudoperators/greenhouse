@@ -505,8 +505,6 @@ func FluxControllerPluginDependencies(ctx context.Context, adminClient client.Cl
 	}).Should(Succeed())
 
 	By("Deleting both plugin presets")
-	test.MustRemoveAnnotation(ctx, adminClient, midPluginPreset, greenhousev1alpha1.PreventDeletionAnnotation)
-	test.MustRemoveAnnotation(ctx, adminClient, leafPluginPreset, greenhousev1alpha1.PreventDeletionAnnotation)
 	Expect(adminClient.Delete(ctx, midPluginPreset)).To(Succeed())
 	Expect(adminClient.Delete(ctx, leafPluginPreset)).To(Succeed())
 
@@ -604,7 +602,6 @@ func FluxControllerPluginDeletionLifecycle(ctx context.Context, adminClient clie
 	}).Should(Succeed(), "should be able to add test finalizer to HelmRelease")
 
 	By("Deleting the PluginPreset to trigger Plugin deletion")
-	test.MustRemoveAnnotation(ctx, adminClient, pluginPreset, greenhousev1alpha1.PreventDeletionAnnotation)
 	Expect(adminClient.Delete(ctx, pluginPreset)).To(Succeed())
 
 	By("Waiting for the Plugin to enter the deletion phase and the controller to hold its finalizer")
