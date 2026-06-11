@@ -69,9 +69,9 @@ var _ = Describe("Common Metrics", Ordered, func() {
 })
 
 var _ = Describe("Shared Plugin metrics", Ordered, func() {
-	DescribeTable("update metrics", func(plugin *greenhousev1alpha1.Plugin, expectedCounter string, result util.MetricResult, reason util.MetricReason) {
+	DescribeTable("update metrics", func(plugin *greenhousev1alpha1.Plugin, expectedCounter string, result util.MetricResult) {
 		registerPluginMetrics()
-		util.UpdatePluginReconcileTotalMetric(plugin, result, reason)
+		util.UpdatePluginReconcileTotalMetric(plugin, result)
 
 		err := prometheusTest.CollectAndCompare(util.PluginReconcileTotal, strings.NewReader(expectedCounter))
 		Expect(err).ShouldNot(HaveOccurred())
@@ -81,10 +81,9 @@ var _ = Describe("Shared Plugin metrics", Ordered, func() {
 			`
         	# HELP greenhouse_plugin_reconcile_total 
       		# TYPE greenhouse_plugin_reconcile_total counter
-      		greenhouse_plugin_reconcile_total{clusterName="",organization="",owned_by="",plugin="",pluginDefinition="",reason="",result="success"} 1
+      		greenhouse_plugin_reconcile_total{clusterName="",organization="",owned_by="",plugin="",pluginDefinition="",result="success"} 1
     		`,
-			util.MetricResultSuccess,
-			util.MetricReasonEmpty),
+			util.MetricResultSuccess),
 		Entry("success plugin with data",
 			&greenhousev1alpha1.Plugin{
 				ObjectMeta: metav1.ObjectMeta{
@@ -105,10 +104,9 @@ var _ = Describe("Shared Plugin metrics", Ordered, func() {
 			`
         	# HELP greenhouse_plugin_reconcile_total 
       		# TYPE greenhouse_plugin_reconcile_total counter
-      		greenhouse_plugin_reconcile_total{clusterName="cluster-a",organization="test_organization",owned_by="test_owner",plugin="test_success_plugin",pluginDefinition="test-plugin-definition",reason="",result="success"} 1
+      		greenhouse_plugin_reconcile_total{clusterName="cluster-a",organization="test_organization",owned_by="test_owner",plugin="test_success_plugin",pluginDefinition="test-plugin-definition",result="success"} 1
     		`,
-			util.MetricResultSuccess,
-			util.MetricReasonEmpty),
+			util.MetricResultSuccess),
 		Entry("error plugin with reconcile conditions",
 			&greenhousev1alpha1.Plugin{
 				ObjectMeta: metav1.ObjectMeta{
@@ -122,10 +120,9 @@ var _ = Describe("Shared Plugin metrics", Ordered, func() {
 			`
         	# HELP greenhouse_plugin_reconcile_total 
       		# TYPE greenhouse_plugin_reconcile_total counter
-      		greenhouse_plugin_reconcile_total{clusterName="cluster-a",organization="test_organization",owned_by="",plugin="test_error_plugin",pluginDefinition="",reason="template_failed",result="error"} 1
+      		greenhouse_plugin_reconcile_total{clusterName="cluster-a",organization="test_organization",owned_by="",plugin="test_error_plugin",pluginDefinition="",result="error"} 1
     		`,
-			util.MetricResultError,
-			util.MetricReasonTemplateFailed),
+			util.MetricResultError),
 		Entry("error plugin with drift conditions",
 			&greenhousev1alpha1.Plugin{
 				ObjectMeta: metav1.ObjectMeta{
@@ -139,11 +136,9 @@ var _ = Describe("Shared Plugin metrics", Ordered, func() {
 			`
         	# HELP greenhouse_plugin_reconcile_total 
       		# TYPE greenhouse_plugin_reconcile_total counter
-      		greenhouse_plugin_reconcile_total{clusterName="cluster-a",organization="test_organization",owned_by="",plugin="test_error_plugin",pluginDefinition="",reason="diff_failed",result="error"} 1
+      		greenhouse_plugin_reconcile_total{clusterName="cluster-a",organization="test_organization",owned_by="",plugin="test_error_plugin",pluginDefinition="",result="error"} 1
     		`,
-			util.MetricResultError,
-			util.MetricReasonDiffFailed,
-		),
+			util.MetricResultError),
 	)
 })
 
@@ -153,6 +148,6 @@ func registerPluginMetrics() {
 		prometheus.CounterOpts{
 			Name: "greenhouse_plugin_reconcile_total",
 		},
-		[]string{"pluginDefinition", "clusterName", "plugin", "organization", "result", "reason", "owned_by"})
+		[]string{"pluginDefinition", "clusterName", "plugin", "organization", "result", "owned_by"})
 	crmetrics.Registry.MustRegister(util.PluginReconcileTotal)
 }

@@ -5,7 +5,6 @@ package v1alpha1
 
 import (
 	"context"
-	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -27,7 +26,6 @@ func SetupPluginPresetWebhookWithManager(mgr ctrl.Manager) error {
 			DefaultFunc:        DefaultPluginPreset,
 			ValidateCreateFunc: ValidateCreatePluginPreset,
 			ValidateUpdateFunc: ValidateUpdatePluginPreset,
-			ValidateDeleteFunc: ValidateDeletePluginPreset,
 		},
 	)
 }
@@ -35,14 +33,6 @@ func SetupPluginPresetWebhookWithManager(mgr ctrl.Manager) error {
 //+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-pluginpreset,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=pluginpresets,verbs=create;update,versions=v1alpha1,name=mpluginpreset.kb.io,admissionReviewVersions=v1
 
 func DefaultPluginPreset(ctx context.Context, c client.Client, pluginPreset *greenhousev1alpha1.PluginPreset) error {
-	// prevent deletion on plugin preset creation
-	if pluginPreset.Annotations == nil {
-		pluginPreset.Annotations = map[string]string{}
-	}
-	if pluginPreset.CreationTimestamp.IsZero() {
-		pluginPreset.Annotations[greenhousev1alpha1.PreventDeletionAnnotation] = "true"
-	}
-
 	if pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind == "" {
 		pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind = greenhousev1alpha1.PluginDefinitionKind
 	}
@@ -121,19 +111,6 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldPluginP
 		return allWarns, apierrors.NewInvalid(pluginPreset.GroupVersionKind().GroupKind(), pluginPreset.Name, allErrs)
 	}
 	return allWarns, nil
-}
-
-func ValidateDeletePluginPreset(_ context.Context, _ client.Client, pluginPreset *greenhousev1alpha1.PluginPreset) (admission.Warnings, error) {
-	var allErrs field.ErrorList
-	if _, ok := pluginPreset.Annotations[greenhousev1alpha1.PreventDeletionAnnotation]; ok {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("metadata").Child("annotation").Child(greenhousev1alpha1.PreventDeletionAnnotation),
-			pluginPreset.Annotations, fmt.Sprintf("PluginPreset with annotation '%s' set may not be deleted.", greenhousev1alpha1.PreventDeletionAnnotation)))
-	}
-
-	if len(allErrs) > 0 {
-		return nil, apierrors.NewInvalid(pluginPreset.GroupVersionKind().GroupKind(), pluginPreset.Name, allErrs)
-	}
-	return nil, nil
 }
 
 // validatePluginOptionValuesForPreset validates plugin options and their values, but skips the check for required options.
