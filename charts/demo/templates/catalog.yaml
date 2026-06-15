@@ -1,0 +1,13 @@
+apiVersion: greenhouse.sap/v1alpha1
+kind: Catalog
+metadata:
+  name: greenhouse-extensions-latest
+spec:
+  sources:
+    - ref:
+        branch: main
+      repository: https://github.com/cloudoperators/greenhouse-extensions
+      resources:
+        - doop/plugindefinition.yaml
+        - heureka/plugindefinition.yaml
+        - supernova/plugindefinition.yaml
