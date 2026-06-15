@@ -13,12 +13,12 @@ dependencies:
   version: 0.3.0
 - name: demo
   repository: file://../demo
-  version: 0.1.3
+  version: 0.1.4
 - name: postgresql-ng
   repository: oci://ghcr.io/sapcc/helm-charts
   version: 2.2.17
 - name: authz
   repository: file://../authz
   version: 0.5.1
-digest: sha256:849b5ce34a60ed432bf9a68dd9a8249991b6511a252eabf70bfb793866a78a59
-generated: "2026-06-04T12:09:02.450358+02:00"
+digest: sha256:b921fef9ab041e67bf01fdb3224cbf21dd2a80a28ec74160bc4d339153cf3cea
+generated: "2026-06-15T14:16:06.961335+02:00"
