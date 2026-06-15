@@ -2,6 +2,7 @@ apiVersion: greenhouse.sap/v1alpha1
 kind: Catalog
 metadata:
   name: greenhouse-extensions-latest
+  namespace: {{ .Chart.Name }}
 spec:
   sources:
     - ref:
