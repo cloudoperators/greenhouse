@@ -102,7 +102,7 @@ var _ = BeforeSuite(func() {
 	org.Spec.Authentication = &greenhousev1alpha1.Authentication{
 		SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 			BaseURL:  scimBaseURL,
-			AuthType: scim.Basic,
+			AuthType: greenhousev1alpha1.AuthTypeBasic,
 			BasicAuthUser: &greenhousev1alpha1.ValueFromSource{
 				Secret: &greenhousev1alpha1.SecretKeyReference{
 					Name: "mock-scim-secret",
