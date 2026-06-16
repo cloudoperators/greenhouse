@@ -204,6 +204,109 @@ var _ = Describe("PluginDefinition controller", func() {
 		})
 	})
 
+	Context("When updating a PluginDefinition's HelmChart version", Ordered, func() {
+		It("should delete orphaned HelmChart resources when the chart version is bumped", func() {
+			By("creating a PluginDefinition with chart version 1.0.0")
+			pluginDef := test.NewPluginDefinition(test.Ctx, "orphan-test-plugin", test.TestNamespace,
+				test.WithPluginDefinitionVersion(PluginDefinitionVersion),
+				test.WithPluginDefinitionHelmChart(&greenhousev1alpha1.HelmChartReference{
+					Name:       HelmChart,
+					Repository: HelmRepo,
+					Version:    "1.0.0",
+				}),
+			)
+			err := test.K8sClient.Create(test.Ctx, pluginDef)
+			Expect(err).ToNot(HaveOccurred(), "there should be no error creating the PluginDefinition")
+
+			By("waiting for the initial HelmChart (v1.0.0) to be created")
+			// Use FluxHelmChartResourceName() rather than hard-coding the name+version
+			// convention so that the test stays aligned with the production logic.
+			initialHelmChart := &sourcev1.HelmChart{}
+			initialHelmChart.SetName(pluginDef.FluxHelmChartResourceName())
+			initialHelmChart.SetNamespace(pluginDef.GetNamespace())
+			Eventually(func(g Gomega) {
+				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(initialHelmChart), initialHelmChart)
+				g.Expect(err).ToNot(HaveOccurred(), "initial HelmChart v1.0.0 should be created")
+			}).Should(Succeed(), "the initial HelmChart should be created")
+
+			By("updating the PluginDefinition to chart version 2.0.0")
+			Eventually(func(g Gomega) {
+				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(pluginDef), pluginDef)
+				g.Expect(err).ToNot(HaveOccurred())
+				pluginDef.Spec.HelmChart.Version = "2.0.0"
+				err = test.K8sClient.Update(test.Ctx, pluginDef)
+				g.Expect(err).ToNot(HaveOccurred(), "should be able to update the PluginDefinition version")
+			}).Should(Succeed())
+
+			By("verifying the new HelmChart (v2.0.0) is created")
+			// Derive the new expected name via FluxHelmChartResourceName() after the version was bumped.
+			newHelmChart := &sourcev1.HelmChart{}
+			newHelmChart.SetName(pluginDef.FluxHelmChartResourceName())
+			newHelmChart.SetNamespace(pluginDef.GetNamespace())
+			Eventually(func(g Gomega) {
+				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(newHelmChart), newHelmChart)
+				g.Expect(err).ToNot(HaveOccurred(), "new HelmChart v2.0.0 should be created")
+			}).Should(Succeed(), "the new HelmChart v2.0.0 should be created")
+
+			By("verifying the orphaned HelmChart (v1.0.0) is deleted")
+			Eventually(func(g Gomega) {
+				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(initialHelmChart), initialHelmChart)
+				g.Expect(err).To(HaveOccurred(), "orphaned HelmChart v1.0.0 should be deleted")
+				g.Expect(cl.IgnoreNotFound(err)).To(Succeed(), "the error should be a NotFound error")
+			}).Should(Succeed(), "the orphaned HelmChart v1.0.0 should be deleted after the version bump")
+		})
+	})
+
+	Context("When updating a ClusterPluginDefinition's HelmChart version", Ordered, func() {
+		It("should delete orphaned HelmChart resources when the chart version is bumped", func() {
+			By("creating a ClusterPluginDefinition with chart version 1.0.0")
+			clusterDef := test.NewClusterPluginDefinition(test.Ctx, "orphan-cluster-test-plugin",
+				test.WithVersion(PluginDefinitionVersion),
+				test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
+					Name:       HelmChart,
+					Repository: HelmRepo,
+					Version:    "1.0.0",
+				}),
+			)
+			err := test.K8sClient.Create(test.Ctx, clusterDef)
+			Expect(err).ToNot(HaveOccurred(), "there should be no error creating the ClusterPluginDefinition")
+
+			By("waiting for the initial HelmChart (v1.0.0) to be created")
+			initialHelmChart := &sourcev1.HelmChart{}
+			initialHelmChart.SetName(clusterDef.FluxHelmChartResourceName())
+			initialHelmChart.SetNamespace(flux.HelmRepositoryDefaultNamespace)
+			Eventually(func(g Gomega) {
+				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(initialHelmChart), initialHelmChart)
+				g.Expect(err).ToNot(HaveOccurred(), "initial HelmChart v1.0.0 should be created")
+			}).Should(Succeed(), "the initial ClusterPluginDefinition HelmChart should be created")
+
+			By("updating the ClusterPluginDefinition to chart version 2.0.0")
+			Eventually(func(g Gomega) {
+				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(clusterDef), clusterDef)
+				g.Expect(err).ToNot(HaveOccurred())
+				clusterDef.Spec.HelmChart.Version = "2.0.0"
+				err = test.K8sClient.Update(test.Ctx, clusterDef)
+				g.Expect(err).ToNot(HaveOccurred(), "should be able to update the ClusterPluginDefinition version")
+			}).Should(Succeed())
+
+			By("verifying the new HelmChart (v2.0.0) is created")
+			newHelmChart := &sourcev1.HelmChart{}
+			newHelmChart.SetName(clusterDef.FluxHelmChartResourceName())
+			newHelmChart.SetNamespace(flux.HelmRepositoryDefaultNamespace)
+			Eventually(func(g Gomega) {
+				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(newHelmChart), newHelmChart)
+				g.Expect(err).ToNot(HaveOccurred(), "new HelmChart v2.0.0 should be created")
+			}).Should(Succeed(), "the new ClusterPluginDefinition HelmChart v2.0.0 should be created")
+
+			By("verifying the orphaned HelmChart (v1.0.0) is deleted")
+			Eventually(func(g Gomega) {
+				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(initialHelmChart), initialHelmChart)
+				g.Expect(err).To(HaveOccurred(), "orphaned HelmChart v1.0.0 should be deleted")
+				g.Expect(cl.IgnoreNotFound(err)).To(Succeed(), "the error should be a NotFound error")
+			}).Should(Succeed(), "the orphaned ClusterPluginDefinition HelmChart v1.0.0 should be deleted after the version bump")
+		})
+	})
+
 	Context("When creating a ClusterPluginDefinition", Ordered, func() {
 		It("should successfully create a HelmRepository from ClusterPluginDefinition", func() {
 			By("creating a ClusterPluginDefinition")
