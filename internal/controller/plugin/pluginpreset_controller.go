@@ -336,7 +336,8 @@ func (r *PluginPresetReconciler) reconcilePluginStatuses(
 func (r *PluginPresetReconciler) reconcilePluginDefinitionVersion(ctx context.Context, preset *greenhousev1alpha1.PluginPreset) {
 	pluginDefinitionSpec, err := common.GetPluginDefinitionSpec(ctx, r.Client, preset.Spec.Plugin.PluginDefinitionRef, preset.GetNamespace())
 	if err != nil {
-		// Version is best-effort; errors are already surfaced via conditions.
+		// Best-effort: clear the field to avoid reporting a stale version when the referenced definition can't be resolved.
+		preset.Status.PluginDefinitionVersion = ""
 		return
 	}
 	preset.Status.PluginDefinitionVersion = pluginDefinitionSpec.Version
