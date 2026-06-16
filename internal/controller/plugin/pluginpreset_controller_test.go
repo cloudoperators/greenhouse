@@ -435,6 +435,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			g.Expect(managedPluginStatus.PluginName).To(Equal(expectedPluginName), "managed plugin status should have the correct PluginName set")
 			// Note: ReadyCondition may not be true since Flux is not running, but Plugin should exist
 			g.Expect(testPluginPreset.Status.TotalPlugins).To(Equal(1), "PluginPreset Status should show exactly one plugin in total")
+			g.Expect(testPluginPreset.Status.PluginDefinitionVersion).To(Equal(pluginPresetDefinition.Spec.Version), "PluginPreset status should expose the version of the referenced PluginDefinition")
 		}).Should(Succeed())
 
 		By("verifying HelmRelease exists for the managed Plugin")

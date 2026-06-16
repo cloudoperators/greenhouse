@@ -23,6 +23,9 @@ spec:
     - jsonPath: .spec.plugin.pluginDefinitionRef.name
       name: Plugin Definition
       type: string
+    - jsonPath: .status.pluginDefinitionVersion
+      name: Version
+      type: string
     - jsonPath: .spec.plugin.releaseNamespace
       name: Release Namespace
       type: string
@@ -498,6 +501,10 @@ spec:
                 description: FailedPlugins is the number of failed Plugins managed
                   by the PluginPreset.
                 type: integer
+              pluginDefinitionVersion:
+                description: PluginDefinitionVersion is the version of the PluginDefinition
+                  referenced by this PluginPreset.
+                type: string
               pluginStatuses:
                 description: PluginStatuses contains statuses of Plugins managed by
                   the PluginPreset.

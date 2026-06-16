@@ -27,6 +27,7 @@ import (
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/util"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
@@ -125,6 +126,8 @@ func (r *PluginPresetReconciler) EnsureCreated(ctx context.Context, resource lif
 	}
 
 	clusters = clientutil.FilterClustersBeingDeleted(clusters)
+
+	r.reconcilePluginDefinitionVersion(ctx, pluginPreset)
 
 	err = r.reconcilePluginPreset(ctx, pluginPreset, clusters)
 	if err != nil {
@@ -327,6 +330,16 @@ func (r *PluginPresetReconciler) reconcilePluginStatuses(
 	}
 
 	return nil
+}
+
+// reconcilePluginDefinitionVersion fetches the referenced PluginDefinition and updates the version in the preset's status.
+func (r *PluginPresetReconciler) reconcilePluginDefinitionVersion(ctx context.Context, preset *greenhousev1alpha1.PluginPreset) {
+	pluginDefinitionSpec, err := common.GetPluginDefinitionSpec(ctx, r.Client, preset.Spec.Plugin.PluginDefinitionRef, preset.GetNamespace())
+	if err != nil {
+		// Version is best-effort; errors are already surfaced via conditions.
+		return
+	}
+	preset.Status.PluginDefinitionVersion = pluginDefinitionSpec.Version
 }
 
 func isPluginManagedByPreset(plugin *greenhousev1alpha1.Plugin, presetName string) bool {
