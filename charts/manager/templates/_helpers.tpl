@@ -121,3 +121,7 @@ Define postgresql helpers
 {{- define "pluginPreset.expressionEvaluationEnabled" -}}
   {{- printf "%t" (required "global.pluginPreset.expressionEvaluationEnabled missing" .Values.global.pluginPreset.expressionEvaluationEnabled) }}
 {{- end }}
+{{/* Render the pluginPreset integration enabled flag */}}
+{{- define "pluginPreset.integrationEnabled" -}}
+  {{- printf "%t" (required "global.pluginPreset.integrationEnabled missing" .Values.global.pluginPreset.integrationEnabled) }}
+{{- end }}
