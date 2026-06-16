@@ -63,10 +63,10 @@ kubectl get serviceaccount my-team-sa -n my-organization
 Greenhouse creates a Role and RoleBinding that allow both support-group members and the ServiceAccount itself to request tokens. Use `kubectl create token` to obtain a credential for CI/CD use:
 
 ```bash
-kubectl create token my-team-sa -n my-organization
+kubectl create token my-team-sa -n my-organization --duration 2160h
 ```
 
-Token lifetimes are capped at 90 days by Greenhouse. The token can be used as a `Bearer` token when authenticating against the Greenhouse API server.
+The token can be used as a `Bearer` token when authenticating against the Greenhouse API server.
 
 > **Note**: The ServiceAccount is created during Team reconciliation, which requires `spec.mappedIdPGroup` to be set and the Organization's SCIM integration to be configured. See [Setting up Team members synchronization](../../organization/creation#setting-up-team-members-synchronization-with-greenhouse) for SCIM configuration details.
 
