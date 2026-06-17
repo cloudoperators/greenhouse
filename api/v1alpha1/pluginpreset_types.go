@@ -122,6 +122,8 @@ const (
 	PluginFailedCondition greenhousemetav1alpha1.ConditionType = "PluginFailed"
 	// AllPluginsReadyCondition is set when all Plugins managed by the PluginPreset are created and ready.
 	AllPluginsReadyCondition greenhousemetav1alpha1.ConditionType = "AllPluginsReady"
+	// PluginDefinitionNotFoundCondition is set when the referenced PluginDefinition or ClusterPluginDefinition cannot be resolved.
+	PluginDefinitionNotFoundCondition greenhousemetav1alpha1.ConditionType = "PluginDefinitionNotFound"
 )
 
 // PluginPresetStatus defines the observed state of PluginPreset

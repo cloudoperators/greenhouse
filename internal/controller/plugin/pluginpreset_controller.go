@@ -38,6 +38,7 @@ var presetExposedConditions = []greenhousemetav1alpha1.ConditionType{
 	greenhousev1alpha1.PluginSkippedCondition,
 	greenhousev1alpha1.PluginFailedCondition,
 	greenhousev1alpha1.AllPluginsReadyCondition,
+	greenhousev1alpha1.PluginDefinitionNotFoundCondition,
 	greenhousemetav1alpha1.ClusterListEmpty,
 	greenhousemetav1alpha1.OwnerLabelSetCondition,
 }
@@ -93,6 +94,7 @@ func (r *PluginPresetReconciler) setConditions() lifecycle.Conditioner {
 			return
 		}
 
+		r.reconcilePluginDefinitionVersion(ctx, pluginPreset)
 		readyCondition := r.computeReadyCondition(pluginPreset.Status.StatusConditions)
 		ownerLabelCondition := util.ComputeOwnerLabelCondition(ctx, r.Client, pluginPreset)
 		util.UpdateOwnedByLabelMissingMetric(pluginPreset, ownerLabelCondition.IsFalse())
@@ -126,8 +128,6 @@ func (r *PluginPresetReconciler) EnsureCreated(ctx context.Context, resource lif
 	}
 
 	clusters = clientutil.FilterClustersBeingDeleted(clusters)
-
-	r.reconcilePluginDefinitionVersion(ctx, pluginPreset)
 
 	err = r.reconcilePluginPreset(ctx, pluginPreset, clusters)
 	if err != nil {
@@ -336,11 +336,18 @@ func (r *PluginPresetReconciler) reconcilePluginStatuses(
 func (r *PluginPresetReconciler) reconcilePluginDefinitionVersion(ctx context.Context, preset *greenhousev1alpha1.PluginPreset) {
 	pluginDefinitionSpec, err := common.GetPluginDefinitionSpec(ctx, r.Client, preset.Spec.Plugin.PluginDefinitionRef, preset.GetNamespace())
 	if err != nil {
-		// Best-effort: clear the field to avoid reporting a stale version when the referenced definition can't be resolved.
 		preset.Status.PluginDefinitionVersion = ""
+		preset.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.PluginDefinitionNotFoundCondition,
+			greenhousev1alpha1.PluginDefinitionNotFound,
+			err.Error(),
+		))
 		return
 	}
 	preset.Status.PluginDefinitionVersion = pluginDefinitionSpec.Version
+	preset.SetCondition(greenhousemetav1alpha1.FalseCondition(
+		greenhousev1alpha1.PluginDefinitionNotFoundCondition, "", "",
+	))
 }
 
 func isPluginManagedByPreset(plugin *greenhousev1alpha1.Plugin, presetName string) bool {
@@ -403,6 +410,12 @@ func (r *PluginPresetReconciler) computeReadyCondition(
 		} else {
 			readyCondition.Message = "Plugin reconciliation failed"
 		}
+		return readyCondition
+	}
+
+	if conditions.GetConditionByType(greenhousev1alpha1.PluginDefinitionNotFoundCondition).IsTrue() {
+		readyCondition.Status = metav1.ConditionFalse
+		readyCondition.Message = conditions.GetConditionByType(greenhousev1alpha1.PluginDefinitionNotFoundCondition).Message
 		return readyCondition
 	}
 
