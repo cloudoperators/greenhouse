@@ -14,6 +14,8 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/pkg/cel"
+
+	"github.com/cloudoperators/greenhouse/internal/util"
 )
 
 // resolvePluginOptionValuesForPreset resolves expressions in a PluginPreset's
@@ -27,7 +29,7 @@ func (r *PluginPresetReconciler) resolvePluginOptionValuesForPreset(
 	if r.ExpressionEvaluationEnabled {
 		return r.resolveExpressionsForPreset(ctx, preset, cluster)
 	}
-	return convertToPluginOptionValues(preset.Spec.Plugin.OptionValues), nil
+	return util.ConvertToPluginOptionValues(preset.Spec.Plugin.OptionValues), nil
 }
 
 // resolveExpressionsForPreset evaluates all expression fields in PluginPreset option values.
@@ -45,7 +47,7 @@ func (r *PluginPresetReconciler) resolveExpressionsForPreset(
 		}
 	}
 	if !hasExpressions {
-		return convertToPluginOptionValues(preset.Spec.Plugin.OptionValues), nil
+		return util.ConvertToPluginOptionValues(preset.Spec.Plugin.OptionValues), nil
 	}
 
 	tempPlugin := greenhousev1alpha1.Plugin{

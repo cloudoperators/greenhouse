@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 
 	helminternal "github.com/cloudoperators/greenhouse/internal/helm"
+	"github.com/cloudoperators/greenhouse/internal/util"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
@@ -190,7 +191,7 @@ func (o *PluginTemplatePresetOptions) prepareValues() error {
 	)
 
 	// Merge PluginPreset values.
-	values = helminternal.MergePluginOptionValues(values, convertToPluginOptionValues(o.pluginPreset.Spec.Plugin.OptionValues))
+	values = helminternal.MergePluginOptionValues(values, util.ConvertToPluginOptionValues(o.pluginPreset.Spec.Plugin.OptionValues))
 
 	// Merge cluster overrides.
 	values = helminternal.MergePluginOptionValues(values, o.getClusterSpecificOverrides())
@@ -203,29 +204,6 @@ func (o *PluginTemplatePresetOptions) prepareValues() error {
 
 	o.values = values
 	return nil
-}
-
-func convertToPluginOptionValues(presetValues []greenhousev1alpha1.PluginPresetPluginOptionValue) []greenhousev1alpha1.PluginOptionValue {
-	result := make([]greenhousev1alpha1.PluginOptionValue, 0, len(presetValues))
-	for _, pv := range presetValues {
-		ov := greenhousev1alpha1.PluginOptionValue{
-			Name:  pv.Name,
-			Value: pv.Value,
-		}
-		if pv.Expression != nil {
-			ov.Expression = pv.Expression
-		}
-		if pv.ValueFrom != nil {
-			ov.ValueFrom = &greenhousev1alpha1.PluginValueFromSource{
-				Secret: pv.ValueFrom.Secret,
-			}
-			if pv.ValueFrom.Ref != nil {
-				ov.ValueFrom.Ref = pv.ValueFrom.Ref
-			}
-		}
-		result = append(result, ov)
-	}
-	return result
 }
 
 func (o *PluginTemplatePresetOptions) runHelmTemplate(valuesFile string) error {
@@ -312,7 +290,7 @@ func createPluginOptionValue(name, value string) (*greenhousev1alpha1.PluginOpti
 func (o *PluginTemplatePresetOptions) getClusterSpecificOverrides() []greenhousev1alpha1.PluginOptionValue {
 	for _, override := range o.pluginPreset.Spec.ClusterOptionOverrides {
 		if override.ClusterName == o.clusterName {
-			return convertToPluginOptionValues(override.Overrides)
+			return util.ConvertToPluginOptionValues(override.Overrides)
 		}
 	}
 	return []greenhousev1alpha1.PluginOptionValue{}

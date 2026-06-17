@@ -500,7 +500,7 @@ func pluginSpecFromPluginPreset(preset *greenhousev1alpha1.PluginPreset, cluster
 	return greenhousev1alpha1.PluginSpec{
 		PluginDefinitionRef: preset.Spec.Plugin.PluginDefinitionRef,
 		DisplayName:         preset.Spec.Plugin.DisplayName,
-		OptionValues:        convertToPluginOptionValues(preset.Spec.Plugin.OptionValues),
+		OptionValues:        util.ConvertToPluginOptionValues(preset.Spec.Plugin.OptionValues),
 		ReleaseNamespace:    preset.Spec.Plugin.ReleaseNamespace,
 		DeletionPolicy:      preset.Spec.Plugin.DeletionPolicy,
 		IgnoreDifferences:   preset.Spec.Plugin.IgnoreDifferences,
@@ -509,31 +509,4 @@ func pluginSpecFromPluginPreset(preset *greenhousev1alpha1.PluginPreset, cluster
 		// Copy over the plugin dependencies
 		WaitFor: preset.Spec.WaitFor,
 	}
-}
-
-// Convert PluginPresetPluginOptionValue → PluginOptionValue for the Plugin
-func convertToPluginOptionValues(presetValues []greenhousev1alpha1.PluginPresetPluginOptionValue) []greenhousev1alpha1.PluginOptionValue {
-	result := make([]greenhousev1alpha1.PluginOptionValue, 0, len(presetValues))
-	for _, pv := range presetValues {
-		ov := greenhousev1alpha1.PluginOptionValue{
-			Name:  pv.Name,
-			Value: pv.Value,
-		}
-
-		if pv.Expression != nil {
-			ov.Expression = pv.Expression
-		}
-
-		if pv.ValueFrom != nil {
-			ov.ValueFrom = &greenhousev1alpha1.PluginValueFromSource{
-				Secret: pv.ValueFrom.Secret,
-			}
-
-			if pv.ValueFrom.Ref != nil {
-				ov.ValueFrom.Ref = pv.ValueFrom.Ref
-			}
-		}
-		result = append(result, ov)
-	}
-	return result
 }
