@@ -137,6 +137,8 @@ type PluginPresetStatus struct {
 	ReadyPlugins int `json:"readyPlugins,omitempty"`
 	// FailedPlugins is the number of failed Plugins managed by the PluginPreset.
 	FailedPlugins int `json:"failedPlugins,omitempty"`
+	// PluginDefinitionVersion is the version of the PluginDefinition referenced by this PluginPreset.
+	PluginDefinitionVersion string `json:"pluginDefinitionVersion,omitempty"`
 }
 
 // ManagedPluginStatus defines the Ready condition of a managed Plugin identified by its name.
@@ -149,6 +151,7 @@ type ManagedPluginStatus struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:shortName=pp
 //+kubebuilder:printcolumn:name="Plugin Definition",type=string,JSONPath=`.spec.plugin.pluginDefinitionRef.name`
+//+kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.status.pluginDefinitionVersion`
 //+kubebuilder:printcolumn:name="Release Namespace",type=string,JSONPath=`.spec.plugin.releaseNamespace`
 //+kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
