@@ -24,3 +24,20 @@ func ConvertToPluginOptionValues(presetValues []greenhousev1alpha1.PluginPresetP
 	}
 	return result
 }
+
+func ConvertToPresetOptionValues(values []greenhousev1alpha1.PluginOptionValue) []greenhousev1alpha1.PluginPresetPluginOptionValue {
+	result := make([]greenhousev1alpha1.PluginPresetPluginOptionValue, 0, len(values))
+	for _, v := range values {
+		pv := greenhousev1alpha1.PluginPresetPluginOptionValue{
+			Name:  v.Name,
+			Value: v.Value,
+		}
+		if v.ValueFrom != nil {
+			pv.ValueFrom = &greenhousev1alpha1.PluginPresetPluginValueFromSource{
+				Secret: v.ValueFrom.Secret,
+			}
+		}
+		result = append(result, pv)
+	}
+	return result
+}
