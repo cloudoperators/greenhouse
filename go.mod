@@ -3,16 +3,18 @@ module github.com/cloudoperators/greenhouse
 go 1.26.0
 
 replace (
+	github.com/cloudoperators/greenhouse/api => ./api //nolint:gomoddirectives
+
 	// DEX import matches version v2.45.1.
 	github.com/dexidp/dex => github.com/dexidp/dex v0.0.0-20260303133905-11d2eeb52b42
 	github.com/dexidp/dex/api/v2 => github.com/dexidp/dex/api/v2 v2.4.0
 
 	// Keep Flux dependencies in sync with v2.6.1.
-	github.com/fluxcd/helm-controller/api => github.com/fluxcd/helm-controller/api v1.5.4
+	github.com/fluxcd/helm-controller/api => github.com/fluxcd/helm-controller/api v1.5.5
 	github.com/fluxcd/kustomize-controller/api => github.com/fluxcd/kustomize-controller/api v1.8.5
 	github.com/fluxcd/pkg/apis/kustomize => github.com/fluxcd/pkg/apis/kustomize v1.18.0
-	github.com/fluxcd/pkg/apis/meta => github.com/fluxcd/pkg/apis/meta v1.27.0
-	github.com/fluxcd/source-controller/api => github.com/fluxcd/source-controller/api v1.8.4
+	github.com/fluxcd/pkg/apis/meta => github.com/fluxcd/pkg/apis/meta v1.28.0
+	github.com/fluxcd/source-controller/api => github.com/fluxcd/source-controller/api v1.8.5
 	github.com/fluxcd/source-watcher/api/v2 => github.com/fluxcd/source-watcher/api/v2 v2.1.1
 
 	// Keep k8s dependencies in sync.
@@ -27,14 +29,15 @@ replace (
 )
 
 require (
-	github.com/cenkalti/backoff/v5 v5.0.3
+	github.com/cenkalti/backoff/v6 v6.0.1
+	github.com/cloudoperators/greenhouse/api v0.0.0-00010101000000-000000000000
 	github.com/dexidp/dex v0.0.0-20260303133905-11d2eeb52b42
-	github.com/fluxcd/cli-utils v1.2.0
-	github.com/fluxcd/helm-controller/api v1.5.4
+	github.com/fluxcd/cli-utils v1.2.1
+	github.com/fluxcd/helm-controller/api v1.5.5
 	github.com/fluxcd/kustomize-controller/api v1.8.5
 	github.com/fluxcd/pkg/apis/kustomize v1.21.0
-	github.com/fluxcd/pkg/apis/meta v1.27.0
-	github.com/fluxcd/source-controller/api v1.8.4
+	github.com/fluxcd/pkg/apis/meta v1.28.0
+	github.com/fluxcd/source-controller/api v1.8.5
 	github.com/fluxcd/source-watcher/api/v2 v2.1.1
 	github.com/go-jose/go-jose/v4 v4.1.4
 	github.com/go-logr/logr v1.4.3
@@ -65,8 +68,8 @@ require (
 	k8s.io/client-go v0.36.0
 	k8s.io/klog/v2 v2.140.0
 	k8s.io/utils v0.0.0-20260507154919-ff6756f316d2
-	sigs.k8s.io/controller-runtime v0.24.0
-	sigs.k8s.io/kind v0.31.0
+	sigs.k8s.io/controller-runtime v0.24.1
+	sigs.k8s.io/kind v0.32.0
 	sigs.k8s.io/yaml v1.6.0
 )
 

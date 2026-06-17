@@ -18,7 +18,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/cenkalti/backoff/v5"
+	"github.com/cenkalti/backoff/v6"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/google/go-github/v88/github"

@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 )
@@ -75,7 +76,10 @@ type TeamList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&Team{}, &TeamList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &Team{}, &TeamList{})
+		return nil
+	})
 }
 
 func (o *Team) GetConditions() greenhousemetav1alpha1.StatusConditions {

@@ -8,6 +8,7 @@ import (
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 )
@@ -21,10 +22,6 @@ const (
 
 	// PluginDefinitionNotFound is set when the PluginDefinition referenced by the PluginPreset does not exist.
 	PluginDefinitionNotFound greenhousemetav1alpha1.ConditionReason = "PluginDefinitionNotFound"
-
-	// PreventDeletionAnnotation is the annotation used to prevent deletion of a PluginPreset.
-	// If the annotation is set the PluginPreset cannot be deleted.
-	PreventDeletionAnnotation = "greenhouse.sap/prevent-deletion"
 )
 
 // PluginPresetSpec defines the desired state of PluginPreset
@@ -193,5 +190,8 @@ type PluginPresetList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&PluginPreset{}, &PluginPresetList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &PluginPreset{}, &PluginPresetList{})
+		return nil
+	})
 }

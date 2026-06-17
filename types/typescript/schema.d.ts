@@ -842,7 +842,12 @@ export interface components {
                 clusterOptionOverrides?: {
                     clusterName: string;
                     overrides: {
-                        /** @description Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions. */
+                        /**
+                         * @description Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions.
+                         *
+                         *     Deprecated: Expression is deprecated on standalone Plugins and will be removed in a future release.
+                         *     Consider using a PluginPreset to deploy Plugins utilizing the Expression field.
+                         */
                         expression?: string;
                         /** @description Name of the values. */
                         name: string;
@@ -850,7 +855,12 @@ export interface components {
                         value?: unknown;
                         /** @description ValueFrom references value in another source. */
                         valueFrom?: {
-                            /** @description Ref references values defined in another resource (Plugin, PluginPreset) */
+                            /**
+                             * @description Ref references values defined in another resource (Plugin, PluginPreset)
+                             *
+                             *     Deprecated: Ref is deprecated on standalone Plugins and will be removed in a future release.
+                             *     Consider using a PluginPreset to deploy Plugins utilizing the Ref field.
+                             */
                             ref?: {
                                 /** @description Expression is a CEL expression to extract the value from the referenced resource */
                                 expression: string;
@@ -972,7 +982,12 @@ export interface components {
                     }[];
                     /** @description Values are the values for a PluginDefinition instance. */
                     optionValues?: {
-                        /** @description Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions. */
+                        /**
+                         * @description Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions.
+                         *
+                         *     Deprecated: Expression is deprecated on standalone Plugins and will be removed in a future release.
+                         *     Consider using a PluginPreset to deploy Plugins utilizing the Expression field.
+                         */
                         expression?: string;
                         /** @description Name of the values. */
                         name: string;
@@ -980,7 +995,12 @@ export interface components {
                         value?: unknown;
                         /** @description ValueFrom references value in another source. */
                         valueFrom?: {
-                            /** @description Ref references values defined in another resource (Plugin, PluginPreset) */
+                            /**
+                             * @description Ref references values defined in another resource (Plugin, PluginPreset)
+                             *
+                             *     Deprecated: Ref is deprecated on standalone Plugins and will be removed in a future release.
+                             *     Consider using a PluginPreset to deploy Plugins utilizing the Ref field.
+                             */
                             ref?: {
                                 /** @description Expression is a CEL expression to extract the value from the referenced resource */
                                 expression: string;

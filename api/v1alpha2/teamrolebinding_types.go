@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
@@ -79,7 +80,10 @@ type TeamRoleBindingList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&TeamRoleBinding{}, &TeamRoleBindingList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &TeamRoleBinding{}, &TeamRoleBindingList{})
+		return nil
+	})
 }
 
 func (trb *TeamRoleBinding) GetConditions() greenhousemetav1alpha1.StatusConditions {

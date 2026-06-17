@@ -7,9 +7,9 @@ import (
 	"slices"
 	"time"
 
-	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 )
@@ -183,25 +183,6 @@ func (s *CatalogSource) GetRefValue() (gitRef string) {
 	return
 }
 
-func (s *CatalogSource) GetGitRepositoryReference() *sourcev1.GitRepositoryRef {
-	gitReference := &sourcev1.GitRepositoryRef{}
-	if s.Ref != nil {
-		// flux precedence 1
-		if s.Ref.SHA != nil {
-			gitReference.Commit = *s.Ref.SHA
-		}
-		// flux precedence 2
-		if s.Ref.Tag != nil {
-			gitReference.Tag = *s.Ref.Tag
-		}
-		// flux precedence 3
-		if s.Ref.Branch != nil {
-			gitReference.Branch = *s.Ref.Branch
-		}
-	}
-	return gitReference
-}
-
 func (c *Catalog) SetInventory(hash, kind, name, msg string, ready metav1.ConditionStatus) {
 	if c.Status.Inventory == nil {
 		c.Status.Inventory = make(map[string][]SourceStatus)
@@ -270,5 +251,8 @@ func (c *Catalog) CanBeSuspended() bool {
 }
 
 func init() {
-	SchemeBuilder.Register(&Catalog{}, &CatalogList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &Catalog{}, &CatalogList{})
+		return nil
+	})
 }

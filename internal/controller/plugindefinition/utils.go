@@ -13,6 +13,7 @@ import (
 	fluxmeta "github.com/fluxcd/pkg/apis/meta"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/events"
@@ -20,6 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/common"
@@ -147,7 +149,18 @@ func (h *helmer) createUpdateHelmChart(ctx context.Context, helmRepo *sourcev1.H
 	helmChart := &sourcev1.HelmChart{}
 	helmChart.SetName(h.pluginDef.FluxHelmChartResourceName())
 	helmChart.SetNamespace(h.namespaceName)
+	ownedBy, owned := h.pluginDef.GetLabels()[greenhouseapis.LabelKeyOwnedBy]
+
 	result, err := controllerutil.CreateOrUpdate(ctx, h.k8sClient, helmChart, func() error {
+		labels := helmChart.GetLabels()
+		if labels == nil {
+			labels = make(map[string]string)
+		}
+		if owned {
+			labels[greenhouseapis.LabelKeyOwnedBy] = ownedBy
+		}
+		labels[greenhouseapis.LabelKeyPluginDefinition] = h.pluginDef.GetName()
+		helmChart.SetLabels(labels)
 		helmChart.Spec = sourcev1.HelmChartSpec{
 			Chart:             pluginDefSpec.HelmChart.Name,
 			Interval:          metav1.Duration{Duration: 24 * time.Hour},
@@ -174,6 +187,48 @@ func (h *helmer) createUpdateHelmChart(ctx context.Context, helmRepo *sourcev1.H
 		log.FromContext(ctx).Info("No changes to helmChart", "namespace", h.namespaceName, "name", helmChart.Name)
 	}
 	return helmChart, nil
+}
+
+// deleteOrphanedHelmCharts lists HelmChart resources labelled with the owner PluginDefinition
+// name and deletes every one whose name differs from the currently desired FluxHelmChartResourceName.
+// Using a label selector avoids scanning all HelmCharts in the namespace on every reconcile.
+// The controller-reference UID check provides a secondary guard to prevent touching charts that
+// were labelled identically by an unrelated controller.
+func (h *helmer) deleteOrphanedHelmCharts(ctx context.Context) error {
+	currentName := h.pluginDef.FluxHelmChartResourceName()
+	logger := log.FromContext(ctx)
+
+	helmChartList := &sourcev1.HelmChartList{}
+	if err := h.k8sClient.List(ctx, helmChartList,
+		client.InNamespace(h.namespaceName),
+		client.MatchingLabels{greenhouseapis.LabelKeyPluginDefinition: h.pluginDef.GetName()},
+	); err != nil {
+		return fmt.Errorf("failed to list HelmCharts in namespace %s: %w", h.namespaceName, err)
+	}
+
+	for i := range helmChartList.Items {
+		chart := &helmChartList.Items[i]
+		// Use metav1.GetControllerOf to reliably retrieve the controller owner reference
+		// (avoids relying on GetObjectKind().GroupVersionKind().Kind which can be empty).
+		controllerRef := metav1.GetControllerOf(chart)
+		if controllerRef == nil || controllerRef.UID != h.pluginDef.GetUID() {
+			continue
+		}
+		// Keep the current (desired) HelmChart; delete everything else.
+		if chart.Name == currentName {
+			continue
+		}
+		logger.Info("deleting orphaned HelmChart", "namespace", chart.Namespace, "name", chart.Name)
+		if err := h.k8sClient.Delete(ctx, chart); err != nil {
+			// Ignore NotFound — the chart may have been deleted concurrently.
+			if apierrors.IsNotFound(err) {
+				continue
+			}
+			return fmt.Errorf("failed to delete orphaned HelmChart %s/%s: %w", chart.Namespace, chart.Name, err)
+		}
+		h.recorder.Eventf(h.pluginDef, chart, corev1.EventTypeNormal, "Deleted", "reconciling (Cluster-)PluginDefinition", "Deleted orphaned HelmChart %s", chart.Name)
+	}
+	return nil
 }
 
 // ensureChartReplication triggers replication for the Helm chart OCI artifact to the configured mirror registry.
