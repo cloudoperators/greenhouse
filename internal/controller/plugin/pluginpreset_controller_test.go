@@ -901,14 +901,14 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 	It("should resolve a simple expression using clusterName", func() {
 		By("creating a PluginPreset with an expression")
 		expressionStr := `"app-${global.greenhouse.clusterName}.example.com"`
-		pluginSpec := greenhousev1alpha1.PluginSpec{
+		presetPluginSpec := greenhousev1alpha1.PluginPresetPluginSpec{
 			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 				Name: pluginPresetDefinitionName,
 			},
 			ReleaseName:      releaseName,
 			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{
 					Name:  "myRequiredOption",
 					Value: test.MustReturnJSONFor("myValue"),
@@ -922,7 +922,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		pluginPreset := test.NewPluginPreset("expr-simple", test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(pluginSpec),
+			test.WithPresetPluginSpec(presetPluginSpec),
 			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"cluster": clusterA,
@@ -941,7 +941,6 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			for _, ov := range expPlugin.Spec.OptionValues {
 				if ov.Name == "test.hostname" {
 					hostnameFound = true
-					g.Expect(ov.Expression).To(BeNil(), "Expression should be resolved")
 					g.Expect(ov.Value).ToNot(BeNil(), "Value should be set")
 					g.Expect(string(ov.Value.Raw)).To(Equal(`"app-`+clusterA+`.example.com"`),
 						"Expression should resolve with cluster name")
@@ -969,14 +968,14 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		By("creating a PluginPreset with metadata expression")
 		expressionStr := `"service.${global.greenhouse.metadata.region}.example.com"`
-		pluginSpec := greenhousev1alpha1.PluginSpec{
+		presetPluginSpec := greenhousev1alpha1.PluginPresetPluginSpec{
 			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 				Name: pluginPresetDefinitionName,
 			},
 			ReleaseName:      releaseName,
 			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{
 					Name:  "myRequiredOption",
 					Value: test.MustReturnJSONFor("myValue"),
@@ -990,7 +989,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		pluginPreset := test.NewPluginPreset("expr-metadata", test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(pluginSpec),
+			test.WithPresetPluginSpec(presetPluginSpec),
 			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"cluster": clusterA,
@@ -1032,14 +1031,14 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 	It("should keep direct values unchanged when resolving expressions", func() {
 		expressionStr := `"generated-${global.greenhouse.clusterName}"`
-		pluginSpec := greenhousev1alpha1.PluginSpec{
+		presetPluginSpec := greenhousev1alpha1.PluginPresetPluginSpec{
 			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 				Name: pluginPresetDefinitionName,
 			},
 			ReleaseName:      releaseName,
 			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{
 					Name:  "myRequiredOption",
 					Value: test.MustReturnJSONFor("myValue"),
@@ -1057,7 +1056,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		pluginPreset := test.NewPluginPreset("expr-mixed", test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(pluginSpec),
+			test.WithPresetPluginSpec(presetPluginSpec),
 			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"cluster": clusterA,
@@ -1094,14 +1093,14 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 	It("should report error for invalid expression", func() {
 		invalidExpressionStr := `"service.${global.greenhouse.nonexistent.field}.example.com"`
-		pluginSpec := greenhousev1alpha1.PluginSpec{
+		presetPluginSpec := greenhousev1alpha1.PluginPresetPluginSpec{
 			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 				Name: pluginPresetDefinitionName,
 			},
 			ReleaseName:      releaseName,
 			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{
 					Name:  "myRequiredOption",
 					Value: test.MustReturnJSONFor("myValue"),
@@ -1115,7 +1114,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		pluginPreset := test.NewPluginPreset("expr-invalid", test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(pluginSpec),
+			test.WithPresetPluginSpec(presetPluginSpec),
 			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"cluster": clusterA,

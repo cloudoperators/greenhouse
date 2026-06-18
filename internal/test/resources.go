@@ -490,6 +490,12 @@ func WithPluginPresetPluginSpec(pluginSpec greenhousev1alpha1.PluginSpec) func(*
 	}
 }
 
+func WithPresetPluginSpec(spec greenhousev1alpha1.PluginPresetPluginSpec) func(*greenhousev1alpha1.PluginPreset) {
+	return func(pp *greenhousev1alpha1.PluginPreset) {
+		pp.Spec.Plugin = spec
+	}
+}
+
 // WithPluginPresetLabel sets the label on a PluginPreset
 func WithPluginPresetLabel(key, value string) func(*greenhousev1alpha1.PluginPreset) {
 	return func(pp *greenhousev1alpha1.PluginPreset) {

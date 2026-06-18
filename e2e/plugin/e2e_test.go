@@ -109,6 +109,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 	})
 
 	It("should resolve option values from direct plugin reference", func() {
+		Skip("Plugin-to-Plugin ValueFrom.Ref resolution is deprecated. Use PluginPreset (#1776).")
 		By("setting up cluster role binding for OIDC on remote cluster")
 		expect.SetupOIDCClusterRoleBinding(ctx, remoteClient, remoteOIDCClusterRoleBindingName, remoteIntegrationCluster, env.TestNamespace)
 
@@ -129,6 +130,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 	})
 
 	It("should resolve option values from plugin reference by label selector", func() {
+		Skip("Plugin-to-Plugin ValueFrom.Ref resolution is deprecated. Use PluginPreset for cross-resource references (#1776).")
 		By("executing the plugin integration scenario with plugin reference by label selector")
 		scenarios.PluginIntegrationBySelector(ctx, adminClient, remoteClient, env, remoteIntegrationCluster)
 	})

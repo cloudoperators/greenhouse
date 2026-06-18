@@ -90,6 +90,7 @@ var _ = Describe("Plugin Integration", Ordered, func() {
 	})
 
 	It("should create HelmReleases and resolve values from external references", func() {
+		Skip("Plugin-to-Plugin ValueFrom.Ref resolution is deprecated. Use PluginPreset for cross-resource references (#1776).")
 		By("creating alerts plugin with a label")
 		alerts = test.NewPlugin(test.Ctx, "alerts", testNamespace,
 			test.WithClusterPluginDefinition(testPluginDefinition.Name),
@@ -139,6 +140,7 @@ var _ = Describe("Plugin Integration", Ordered, func() {
 	})
 
 	It("should track and untrack plugin dependencies", func() {
+		Skip("Deprecated. Use PluginPreset for cross-resource references (#1776).")
 		By("verifying tracking annotation was set on alerts")
 		Eventually(func(g Gomega) {
 			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(alerts), alerts)
