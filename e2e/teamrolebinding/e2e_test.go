@@ -102,7 +102,7 @@ var _ = AfterSuite(func() {
 	test.EventuallyDeleted(ctx, adminClient, teamBeta)
 
 	By("off-boarding the remote cluster")
-	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterName, env.TestNamespace)
+	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, remoteClusterName, env.TestNamespace)
 
 	env.GenerateGreenhouseControllerLogs(ctx, testStartTime)
 })

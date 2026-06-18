@@ -77,20 +77,6 @@ func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource li
 	if cluster.Spec.AccessMode != greenhousev1alpha1.ClusterAccessModeDirect {
 		return ctrl.Result{}, lifecycle.Failed, nil
 	}
-	// Deletion Schedule mechanism
-	isScheduled, schedule, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
-	if err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-	if isScheduled && cluster.DeletionTimestamp == nil {
-		if ok, err := clientutil.ShouldProceedDeletion(time.Now(), schedule); ok && err == nil {
-			err = r.Delete(ctx, cluster)
-			if err != nil {
-				return ctrl.Result{}, lifecycle.Failed, err
-			}
-			return ctrl.Result{}, lifecycle.Success, nil
-		}
-	}
 	defer UpdateClusterMetrics(cluster)
 	clusterSecret := &corev1.Secret{}
 	if err := r.Get(ctx, types.NamespacedName{Name: cluster.GetSecretName(), Namespace: cluster.GetNamespace()}, clusterSecret); err != nil {

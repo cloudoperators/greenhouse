@@ -9,7 +9,6 @@ import (
 	"errors"
 	"maps"
 	"os"
-	"time"
 
 	fluxmeta "github.com/fluxcd/pkg/apis/meta"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
@@ -24,22 +23,11 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/common"
 )
-
-func UpdateClusterWithDeletionAnnotation(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster) *greenhousev1alpha1.Cluster {
-	GinkgoHelper()
-	schedule, err := clientutil.ParseDateTime(time.Now().Add(-1 * time.Minute))
-	Expect(err).ToNot(HaveOccurred(), "there should be no error parsing the time")
-	MustSetAnnotations(ctx, c, cluster, map[string]string{
-		greenhouseapis.MarkClusterDeletionAnnotation:     "true",
-		greenhouseapis.ScheduleClusterDeletionAnnotation: schedule.Format(time.DateTime)})
-	return cluster
-}
 
 func MustSetAnnotation(ctx context.Context, c client.Client, o client.Object, key, value string) {
 	GinkgoHelper()
@@ -81,7 +69,6 @@ func MustRemoveLabel(ctx context.Context, c client.Client, o client.Object, key 
 // MustDeleteCluster is used in the test context only and removes a cluster by namespaced name.
 func MustDeleteCluster(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster) {
 	GinkgoHelper()
-	UpdateClusterWithDeletionAnnotation(ctx, c, cluster)
 
 	// Retry delete until the cluster is gone - handles conflicts and waits for deletion to complete
 	Eventually(func() bool {
