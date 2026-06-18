@@ -436,6 +436,8 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			// Note: ReadyCondition may not be true since Flux is not running, but Plugin should exist
 			g.Expect(testPluginPreset.Status.TotalPlugins).To(Equal(1), "PluginPreset Status should show exactly one plugin in total")
 			g.Expect(testPluginPreset.Status.PluginDefinitionVersion).To(Equal(pluginPresetDefinition.Spec.Version), "PluginPreset status should expose the version of the referenced PluginDefinition")
+			g.Expect(testPluginPreset.Status.GetConditionByType(greenhousev1alpha1.PluginDefinitionNotFoundCondition)).ToNot(BeNil(), "PluginDefinitionNotFoundCondition should be present")
+			g.Expect(testPluginPreset.Status.GetConditionByType(greenhousev1alpha1.PluginDefinitionNotFoundCondition).IsFalse()).To(BeTrue(), "PluginDefinitionNotFoundCondition should be false when the PluginDefinition exists")
 		}).Should(Succeed())
 
 		By("verifying HelmRelease exists for the managed Plugin")
@@ -878,6 +880,20 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			g.Expect(pluginFailedCondition.Message).To(ContainSubstring(nonExistingDefinitionName),
 				"PluginFailedCondition message should reference the non-existing PluginDefinition")
 		}).Should(Succeed(), "PluginPreset should reflect the missing PluginDefinition in its status")
+
+		By("ensuring PluginDefinitionNotFoundCondition is set due to missing PluginDefinition")
+		Eventually(func(g Gomega) {
+			presetKey := types.NamespacedName{Name: pluginPresetName + "-missing-def", Namespace: test.TestNamespace}
+			g.Expect(test.K8sClient.Get(test.Ctx, presetKey, pluginPreset)).To(Succeed())
+			pdNotFoundCondition := pluginPreset.Status.GetConditionByType(greenhousev1alpha1.PluginDefinitionNotFoundCondition)
+			g.Expect(pdNotFoundCondition).ToNot(BeNil(), "PluginDefinitionNotFoundCondition should be set")
+			g.Expect(pdNotFoundCondition.IsTrue()).To(BeTrue(), "PluginDefinitionNotFoundCondition should be true")
+			g.Expect(string(pdNotFoundCondition.Reason)).To(Equal(string(greenhousev1alpha1.PluginDefinitionNotFound)),
+				"PluginDefinitionNotFoundCondition reason should be PluginDefinitionNotFound")
+			g.Expect(pdNotFoundCondition.Message).To(ContainSubstring(nonExistingDefinitionName),
+				"PluginDefinitionNotFoundCondition message should reference the non-existing PluginDefinition")
+			g.Expect(pluginPreset.Status.PluginDefinitionVersion).To(BeEmpty(), "PluginDefinitionVersion should be empty when the PluginDefinition does not exist")
+		}).Should(Succeed(), "PluginPreset should reflect the missing PluginDefinition via PluginDefinitionNotFoundCondition")
 
 		By("ensuring ReadyCondition is False")
 		Eventually(func(g Gomega) {
