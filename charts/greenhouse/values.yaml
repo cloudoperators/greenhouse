@@ -25,7 +25,7 @@ global:
     ociMirroringEnabled: false
   # PluginPreset configuration for Greenhouse.
   pluginPreset:
-    expressionEvaluationEnabled: false
+    expressionEvaluationEnabled: true
 
 postgresqlng:
   enabled: true
