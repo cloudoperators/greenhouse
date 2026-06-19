@@ -19,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -281,6 +282,43 @@ func addTrackingAnnotation(uObject *unstructured.Unstructured, tracker string) {
 	}
 }
 
+// removeUntrackedObjectAnnotations removes tracking annotations from resources that are no longer being tracked.
+// This ensures that when a Plugin A changes its value references (e.g., from Plugin B to Plugin C),
+// the tracking annotation is removed from the old resource (Plugin B).
+// It compares the current tracked objects with the previous ones and removes the tracker ID
+// from resources that are no longer in the tracked list.
+func removeUntrackedObjectAnnotations(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, currentTrackedObjects []string) error {
+	// previously tracked objects from plugin status
+	previousTrackedObjects := plugin.Status.TrackedObjects
+	if len(previousTrackedObjects) == 0 {
+		// No previous tracking, nothing to clean up
+		return nil
+	}
+
+	// find objects previously tracked objects
+	untrackedObjects := findUntrackedObjects(previousTrackedObjects, currentTrackedObjects)
+	if len(untrackedObjects) == 0 {
+		// No untracked objects to clean up
+		return nil
+	}
+
+	// tracker ID for reconciling plugin
+	tracker := trackingID(plugin.GroupVersionKind().Kind, plugin.GetName())
+
+	// remove tracking-id from each untracked object
+	allErrors := make([]error, 0)
+	for _, untrackedObjectID := range untrackedObjects {
+		if err := removeTrackingAnnotation(ctx, c, plugin.GetNamespace(), untrackedObjectID, tracker); err != nil {
+			log.FromContext(ctx).Error(err, "failed to remove tracking annotation from untracked object",
+				"plugin", plugin.GetName(),
+				"untrackedObject", untrackedObjectID)
+			// continue on error the failed attempt can be retried on next reconciliation
+			allErrors = append(allErrors, err)
+		}
+	}
+	return utilerrors.NewAggregate(allErrors)
+}
+
 // findUntrackedObjects returns objects that were previously tracked but are not in the current tracked list.
 func findUntrackedObjects(previousTracked, currentTracked []string) []string {
 	// create a map of current tracked objects for quick lookup
@@ -298,6 +336,86 @@ func findUntrackedObjects(previousTracked, currentTracked []string) []string {
 	}
 
 	return untrackedObjects
+}
+
+// removeTrackingAnnotation removes a specific tracker ID from a resource's tracking annotation.
+func removeTrackingAnnotation(ctx context.Context, c client.Client, namespace, objectID, tracker string) error {
+	kind, name, err := parseTrackingID(objectID)
+	if err != nil {
+		return err
+	}
+	gvk := buildGVK(kind)
+	key := types.NamespacedName{
+		Name:      name,
+		Namespace: namespace,
+	}
+
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		uObject := &unstructured.Unstructured{}
+		uObject.SetGroupVersionKind(gvk)
+
+		if err := c.Get(ctx, key, uObject); err != nil {
+			if apierrors.IsNotFound(err) {
+				// Resource no longer exists, nothing to clean up
+				log.FromContext(ctx).Info("untracked object not found, skipping cleanup",
+					"kind", kind,
+					"namespace", namespace,
+					"name", name)
+				return nil
+			}
+			return err
+		}
+
+		// current annotations
+		annotations := uObject.GetAnnotations()
+		if annotations == nil {
+			// No annotations, nothing to remove
+			return nil
+		}
+
+		// current tracking annotation value
+		trackingValue, ok := annotations[greenhouseapis.AnnotationKeyPluginTackingID]
+		if !ok || trackingValue == "" {
+			// No tracking annotation, nothing to remove
+			return nil
+		}
+
+		// spread trackers and remove specified one
+		trackers := strings.Split(trackingValue, trackingSeparator)
+		updatedTrackers := make([]string, 0, len(trackers))
+		for _, t := range trackers {
+			if t != tracker {
+				updatedTrackers = append(updatedTrackers, t)
+			}
+		}
+
+		switch {
+		case len(updatedTrackers) == 0:
+			// no trackers, remove the annotation entirely
+			delete(annotations, greenhouseapis.AnnotationKeyPluginTackingID)
+			log.FromContext(ctx).Info("removed tracking annotation from resource",
+				"kind", kind,
+				"namespace", namespace,
+				"name", name,
+				"tracker", tracker)
+
+		case len(updatedTrackers) < len(trackers):
+			// trackers remaining, update the annotation
+			annotations[greenhouseapis.AnnotationKeyPluginTackingID] = strings.Join(updatedTrackers, trackingSeparator)
+			log.FromContext(ctx).Info("removed tracker from resource",
+				"kind", kind,
+				"namespace", namespace,
+				"name", name,
+				"tracker", tracker)
+
+		default:
+			// no tracker found
+			return nil
+		}
+
+		uObject.SetAnnotations(annotations)
+		return c.Update(ctx, uObject)
+	})
 }
 
 // buildGVK constructs a GroupVersionKind for Greenhouse resources.

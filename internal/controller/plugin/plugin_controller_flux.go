@@ -460,27 +460,72 @@ func (r *PluginReconciler) fetchReleaseStatus(ctx context.Context,
 	}
 }
 
-// computeReleaseValues validates the Plugin's option values and inserts the Greenhouse values.
-// Expressions and ValueFromRefs are no longer resolved here - they must be resolved by the
-// PluginPreset controller before creating the Plugin.
-// This function only validates that all option values have either a direct value or a secret reference.
-func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, _expressionEvaluation, _integrationEnabled bool) ([]greenhousev1alpha1.PluginOptionValue, error) {
+// computeReleaseValues resolves Expressions and ValueFromRefs in the Plugin's option values
+// and inserts the Greenhouse values
+func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, expressionEvaluation, integrationEnabled bool) ([]greenhousev1alpha1.PluginOptionValue, error) {
 	optionValues, err := helm.GetPluginOptionValuesForPlugin(ctx, c, plugin)
 	if err != nil {
 		return nil, err
 	}
-
-	for _, v := range optionValues {
+	trackedObjects := make([]string, 0)
+	// initialize CEL resolver
+	var celResolver *helm.CELResolver
+	if expressionEvaluation {
+		celResolver, err = helm.NewCELResolver(optionValues)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize CEL resolver: %w", err)
+		}
+	}
+	for i, v := range optionValues {
 		switch {
 		case v.Value != nil:
 			// noop, direct values are already set
 			continue
+
+		case v.Expression != nil:
+			if !expressionEvaluation {
+				// skip expression evaluation if not enabled
+				continue
+			}
+			resolvedOptionValue, err := celResolver.ResolveExpression(v, expressionEvaluation)
+			if err != nil {
+				return nil, err
+			}
+			optionValues[i] = *resolvedOptionValue
+
+		case v.ValueFrom != nil && v.ValueFrom.Ref != nil:
+			// skip if integration flag is not enabled
+			if !integrationEnabled {
+				continue
+			}
+			//TODO: handle external references
+			resolvedOptionValue, objectTrackers, err := ResolveValueFromRef(ctx, c, plugin, v)
+			if err != nil {
+				return nil, err
+			}
+			trackedObjects = append(trackedObjects, objectTrackers...)
+			optionValues[i] = *resolvedOptionValue
 
 		case v.ValueFrom != nil && v.ValueFrom.Secret != nil:
 			// noop, secret refs are not resolved here
 			continue
 		default:
 			return nil, fmt.Errorf("option value %s has no value or valueFrom set", v.Name)
+		}
+	}
+
+	// update tracking information for plugin integrations
+	if integrationEnabled {
+		// remove tracking annotations from resources that are no longer being tracked
+		if err := removeUntrackedObjectAnnotations(ctx, c, plugin, trackedObjects); err != nil {
+			// log err, will retry on next reconciliation
+			log.FromContext(ctx).Error(err, "failed to remove untracked object annotations", "namespace", plugin.Namespace, "plugin", plugin.Name)
+		}
+		if len(trackedObjects) > 0 {
+			plugin.Status.TrackedObjects = trackedObjects
+		} else {
+			// clear tracked objects if there are none
+			plugin.Status.TrackedObjects = nil
 		}
 	}
 
