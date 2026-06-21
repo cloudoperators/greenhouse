@@ -119,15 +119,33 @@ func validatePluginOptionValuesForPreset(pluginPreset *greenhousev1alpha1.Plugin
 	var allErrs field.ErrorList
 
 	optionValuesPath := field.NewPath("spec").Child("plugin").Child("optionValues")
-	errors := validatePluginOptionValues(pluginPreset.Spec.Plugin.OptionValues, pluginDefinitionName, pluginDefinitionSpec, false, optionValuesPath)
+	errors := validatePluginOptionValues(convertPresetToPluginOptionValues(pluginPreset.Spec.Plugin.OptionValues), pluginDefinitionName, pluginDefinitionSpec, false, optionValuesPath)
 	allErrs = append(allErrs, errors...)
 
 	for idx, overridesForSingleCluster := range pluginPreset.Spec.ClusterOptionOverrides {
 		optionOverridesPath := field.NewPath("spec").Child("clusterOptionOverrides").Index(idx).Child("overrides")
-		errors = validatePluginOptionValues(overridesForSingleCluster.Overrides, pluginDefinitionName, pluginDefinitionSpec, false, optionOverridesPath)
+		errors = validatePluginOptionValues(convertPresetToPluginOptionValues(overridesForSingleCluster.Overrides), pluginDefinitionName, pluginDefinitionSpec, false, optionOverridesPath)
 		allErrs = append(allErrs, errors...)
 	}
 	return allErrs
+}
+
+func convertPresetToPluginOptionValues(presetValues []greenhousev1alpha1.PluginPresetPluginOptionValue) []greenhousev1alpha1.PluginOptionValue {
+	result := make([]greenhousev1alpha1.PluginOptionValue, 0, len(presetValues))
+	for _, pv := range presetValues {
+		ov := greenhousev1alpha1.PluginOptionValue{
+			Name:       pv.Name,
+			Value:      pv.Value,
+			Expression: pv.Expression,
+		}
+		if pv.ValueFrom != nil {
+			ov.ValueFrom = &greenhousev1alpha1.PluginValueFromSource{
+				Secret: pv.ValueFrom.Secret,
+			}
+		}
+		result = append(result, ov)
+	}
+	return result
 }
 
 // validateWaitForPluginRefs validates that the WaitFor list is unique and that each PluginRef has exactly one field set.
