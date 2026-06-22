@@ -87,31 +87,6 @@ type PluginValueFromSource struct {
 	Ref *ExternalValueSource `json:"ref,omitempty"`
 }
 
-// ExternalValueSource defines how to extract values from external resources
-// +kubebuilder:validation:ExactlyOneOf=name;selector
-type ExternalValueSource struct {
-	// Kind is the resource kind to target
-	// if not set, defaults to the same kind as the referencing resource (Plugin or PluginPreset)
-	// +Optional
-	// +kubebuilder:validation:Enum=Plugin;PluginPreset
-	Kind string `json:"kind,omitempty"`
-
-	// Name is the name of the resource to target
-	// this field is mutually exclusive with LabelSelector
-	// +Optional
-	// +kubebuilder:validation:MinLength=1
-	Name string `json:"name,omitempty"`
-
-	// Selector selects the resources to target based on labels
-	// this field is mutually exclusive with Name
-	// +Optional
-	Selector *metav1.LabelSelector `json:"selector,omitempty"`
-
-	// Expression is a CEL expression to extract the value from the referenced resource
-	// +kubebuilder:validation:Required
-	Expression string `json:"expression"`
-}
-
 // IgnoreDifference defines a set of paths to ignore for matching resources.
 type IgnoreDifference struct {
 	// Group matches the APIVersion group of the resources to ignore.
