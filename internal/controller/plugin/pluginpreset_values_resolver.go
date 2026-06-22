@@ -13,6 +13,7 @@ import (
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/helm"
+	"github.com/cloudoperators/greenhouse/internal/util"
 	"github.com/cloudoperators/greenhouse/pkg/cel"
 )
 
@@ -27,7 +28,7 @@ func (r *PluginPresetReconciler) resolvePluginOptionValuesForPreset(
 	if r.ExpressionEvaluationEnabled {
 		return r.resolveExpressionsForPreset(ctx, preset, cluster)
 	}
-	return ConvertToPluginOptionValues(preset.Spec.Plugin.OptionValues), nil
+	return util.ConvertToPluginOptionValues(preset.Spec.Plugin.OptionValues), nil
 }
 
 // resolveExpressionsForPreset evaluates all expression fields in PluginPreset option values.
@@ -45,7 +46,7 @@ func (r *PluginPresetReconciler) resolveExpressionsForPreset(
 		}
 	}
 	if !hasExpressions {
-		return ConvertToPluginOptionValues(preset.Spec.Plugin.OptionValues), nil
+		return util.ConvertToPluginOptionValues(preset.Spec.Plugin.OptionValues), nil
 	}
 
 	tempPlugin := greenhousev1alpha1.Plugin{
@@ -118,22 +119,4 @@ func applyOverridesToPreset(preset *greenhousev1alpha1.PluginPreset, clusterName
 	}
 
 	return presetCopy
-}
-
-func ConvertToPluginOptionValues(presetValues []greenhousev1alpha1.PluginPresetPluginOptionValue) []greenhousev1alpha1.PluginOptionValue {
-	result := make([]greenhousev1alpha1.PluginOptionValue, 0, len(presetValues))
-	for _, pv := range presetValues {
-		ov := greenhousev1alpha1.PluginOptionValue{
-			Name:  pv.Name,
-			Value: pv.Value,
-		}
-
-		if pv.ValueFrom != nil {
-			ov.ValueFrom = &greenhousev1alpha1.PluginValueFromSource{
-				Secret: pv.ValueFrom.Secret,
-			}
-		}
-		result = append(result, ov)
-	}
-	return result
 }
