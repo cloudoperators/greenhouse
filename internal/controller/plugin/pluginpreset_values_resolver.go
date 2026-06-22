@@ -85,7 +85,6 @@ func (r *PluginPresetReconciler) resolveExpressionsForPreset(
 			if optionValue.ValueFrom != nil {
 				ov.ValueFrom = &greenhousev1alpha1.PluginValueFromSource{
 					Secret: optionValue.ValueFrom.Secret,
-					Ref:    optionValue.ValueFrom.Ref,
 				}
 			}
 			result = append(result, ov)
