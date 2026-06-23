@@ -108,6 +108,8 @@ generate-documentation: check-gen-crd-api-reference-docs
 .PHONY: test
 test: manifests generate envtest flux-crds ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out -v
+	cd api; go test ./...
+
 
 .PHONY: flux-crds
 flux-crds: kustomize
@@ -118,10 +120,12 @@ flux-crds: kustomize
 fmt: goimports
 	GOBIN=$(LOCALBIN) go fmt ./...
 	$(GOIMPORTS) -w -local github.com/cloudoperators/greenhouse .
+	cd api; GOBIN=$(LOCALBIN) go fmt ./...
 
 .PHONY: lint
 lint: golint
-	$(GOLINT) run -v --timeout 5m	
+	$(GOLINT) run -v --timeout 5m
+	cd api; $(GOLINT) run -v --timeout 5m
 
 .PHONY: check
 check: fmt lint test

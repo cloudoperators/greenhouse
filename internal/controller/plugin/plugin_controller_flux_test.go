@@ -17,6 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
@@ -360,5 +361,154 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 			g.Expect(uiPlugin.GetLabels()).ToNot(HaveKey(greenhouseapis.LabelKeyPluginExposedServices),
 				"Plugin without ExposedServices should not have plugin-exposed-services label")
 		}).Should(Succeed())
+	})
+
+	It("should hold the finalizer while Flux is uninstalling the HelmRelease", func() {
+		deletionPlugin := test.NewPlugin(test.Ctx, "test-deletion-lifecycle", test.TestNamespace,
+			test.WithCluster("test-flux-cluster"),
+			test.WithClusterPluginDefinition("test-flux-plugindefinition"),
+			test.WithReleaseName("release-deletion-lifecycle"),
+			test.WithReleaseNamespace(test.TestNamespace),
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testPluginTeam.Name),
+		)
+
+		By("creating the Plugin")
+		Expect(test.K8sClient.Create(test.Ctx, deletionPlugin)).To(Succeed())
+
+		By("waiting for the HelmRelease to be created")
+		helmRelease := &helmv2.HelmRelease{}
+		releaseKey := types.NamespacedName{Name: deletionPlugin.Name, Namespace: deletionPlugin.Namespace}
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, releaseKey, helmRelease)
+			g.Expect(err).ToNot(HaveOccurred(), "HelmRelease should be created")
+		}).Should(Succeed())
+
+		By("adding the Flux finalizer to simulate a real Flux-managed HelmRelease")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, releaseKey, helmRelease)
+			g.Expect(err).ToNot(HaveOccurred())
+			controllerutil.AddFinalizer(helmRelease, helmv2.HelmReleaseFinalizer)
+			err = test.K8sClient.Update(test.Ctx, helmRelease)
+			g.Expect(err).ToNot(HaveOccurred())
+		}).Should(Succeed())
+
+		By("deleting the Plugin")
+		Expect(test.K8sClient.Delete(test.Ctx, deletionPlugin)).To(Succeed())
+
+		By("verifying the Plugin has the deletion-pending condition while HelmRelease exists")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(deletionPlugin), deletionPlugin)
+			g.Expect(err).ToNot(HaveOccurred(), "Plugin should still exist with finalizer")
+			cond := deletionPlugin.Status.GetConditionByType(greenhousemetav1alpha1.DeleteCondition)
+			g.Expect(cond).ToNot(BeNil())
+			g.Expect(cond.Reason).To(Equal(lifecycle.PendingDeletionReason),
+				"Delete condition should show deletion is pending")
+		}).Should(Succeed())
+
+		By("verifying the Plugin finalizer is still present")
+		err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(deletionPlugin), deletionPlugin)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(deletionPlugin.Finalizers).To(ContainElement("greenhouse.sap/cleanup"), "finalizer must be retained while HelmRelease exists")
+
+		By("simulating Flux completing the uninstall by removing the HelmRelease finalizer and deleting it")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, releaseKey, helmRelease)
+			g.Expect(err).ToNot(HaveOccurred())
+			helmRelease.Finalizers = nil
+			err = test.K8sClient.Update(test.Ctx, helmRelease)
+			g.Expect(err).ToNot(HaveOccurred())
+		}).Should(Succeed())
+		Expect(test.K8sClient.Delete(test.Ctx, helmRelease)).To(Or(Succeed(), MatchError(ContainSubstring("not found"))))
+
+		By("verifying the Plugin is eventually garbage-collected after the HelmRelease is gone")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(deletionPlugin), deletionPlugin)
+			g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "Plugin should be deleted once HelmRelease is gone")
+		}).Should(Succeed())
+	})
+
+	It("should surface HelmRelease uninstall failure as a status condition", func() {
+		failPlugin := test.NewPlugin(test.Ctx, "test-uninstall-failure", test.TestNamespace,
+			test.WithCluster("test-flux-cluster"),
+			test.WithClusterPluginDefinition("test-flux-plugindefinition"),
+			test.WithReleaseName("release-uninstall-failure"),
+			test.WithReleaseNamespace(test.TestNamespace),
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testPluginTeam.Name),
+		)
+
+		By("creating the Plugin")
+		Expect(test.K8sClient.Create(test.Ctx, failPlugin)).To(Succeed())
+
+		By("waiting for the HelmRelease to be created")
+		helmRelease := &helmv2.HelmRelease{}
+		releaseKey := types.NamespacedName{Name: failPlugin.Name, Namespace: failPlugin.Namespace}
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, releaseKey, helmRelease)
+			g.Expect(err).ToNot(HaveOccurred(), "HelmRelease should be created")
+		}).Should(Succeed())
+
+		By("adding the Flux finalizer to simulate a real Flux-managed HelmRelease")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, releaseKey, helmRelease)
+			g.Expect(err).ToNot(HaveOccurred())
+			controllerutil.AddFinalizer(helmRelease, helmv2.HelmReleaseFinalizer)
+			err = test.K8sClient.Update(test.Ctx, helmRelease)
+			g.Expect(err).ToNot(HaveOccurred())
+		}).Should(Succeed())
+
+		By("deleting the Plugin")
+		Expect(test.K8sClient.Delete(test.Ctx, failPlugin)).To(Succeed())
+
+		By("waiting for the Plugin to enter deletion-pending state")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(failPlugin), failPlugin)
+			g.Expect(err).ToNot(HaveOccurred())
+			cond := failPlugin.Status.GetConditionByType(greenhousemetav1alpha1.DeleteCondition)
+			g.Expect(cond).ToNot(BeNil())
+			g.Expect(cond.Reason).To(Equal(lifecycle.PendingDeletionReason))
+		}).Should(Succeed())
+
+		By("simulating Flux reporting an uninstall failure on the HelmRelease")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, releaseKey, helmRelease)
+			g.Expect(err).ToNot(HaveOccurred())
+			helmRelease.Status.Conditions = []metav1.Condition{
+				{
+					Type:               helmv2.ReleasedCondition,
+					Status:             metav1.ConditionFalse,
+					Reason:             helmv2.UninstallFailedReason,
+					Message:            "helm uninstall: resource deletion timeout",
+					LastTransitionTime: metav1.Now(),
+				},
+			}
+			err = test.K8sClient.Status().Update(test.Ctx, helmRelease)
+			g.Expect(err).ToNot(HaveOccurred())
+		}).Should(Succeed())
+
+		By("verifying the Plugin surfaces the uninstall failure as a condition")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(failPlugin), failPlugin)
+			g.Expect(err).ToNot(HaveOccurred(), "Plugin should still exist since uninstall failed")
+			cond := failPlugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseDeployedCondition)
+			g.Expect(cond).ToNot(BeNil())
+			g.Expect(cond.IsFalse()).To(BeTrue())
+			g.Expect(cond.Reason).To(Equal(greenhousev1alpha1.HelmUninstallFailedReason),
+				"condition reason should reflect uninstall failure")
+		}).Should(Succeed())
+
+		By("verifying the Plugin finalizer is retained after uninstall failure")
+		err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(failPlugin), failPlugin)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(failPlugin.Finalizers).To(ContainElement("greenhouse.sap/cleanup"), "finalizer must be retained after uninstall failure")
+
+		By("cleaning up: force-remove the HelmRelease so the Plugin can be collected")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, releaseKey, helmRelease)
+			g.Expect(err).ToNot(HaveOccurred())
+			helmRelease.Finalizers = nil
+			err = test.K8sClient.Update(test.Ctx, helmRelease)
+			g.Expect(err).ToNot(HaveOccurred())
+		}).Should(Succeed())
+		Expect(test.K8sClient.Delete(test.Ctx, helmRelease)).To(Or(Succeed(), MatchError(ContainSubstring("not found"))))
 	})
 })

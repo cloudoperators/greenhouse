@@ -22,10 +22,6 @@ const (
 
 	// PluginDefinitionNotFound is set when the PluginDefinition referenced by the PluginPreset does not exist.
 	PluginDefinitionNotFound greenhousemetav1alpha1.ConditionReason = "PluginDefinitionNotFound"
-
-	// PreventDeletionAnnotation is the annotation used to prevent deletion of a PluginPreset.
-	// If the annotation is set the PluginPreset cannot be deleted.
-	PreventDeletionAnnotation = "greenhouse.sap/prevent-deletion"
 )
 
 // PluginPresetSpec defines the desired state of PluginPreset
@@ -126,6 +122,8 @@ const (
 	PluginFailedCondition greenhousemetav1alpha1.ConditionType = "PluginFailed"
 	// AllPluginsReadyCondition is set when all Plugins managed by the PluginPreset are created and ready.
 	AllPluginsReadyCondition greenhousemetav1alpha1.ConditionType = "AllPluginsReady"
+	// PluginDefinitionNotFoundCondition is set when the referenced PluginDefinition or ClusterPluginDefinition cannot be resolved.
+	PluginDefinitionNotFoundCondition greenhousemetav1alpha1.ConditionType = "PluginDefinitionNotFound"
 )
 
 // PluginPresetStatus defines the observed state of PluginPreset
@@ -141,6 +139,8 @@ type PluginPresetStatus struct {
 	ReadyPlugins int `json:"readyPlugins,omitempty"`
 	// FailedPlugins is the number of failed Plugins managed by the PluginPreset.
 	FailedPlugins int `json:"failedPlugins,omitempty"`
+	// PluginDefinitionVersion is the version of the PluginDefinition referenced by this PluginPreset.
+	PluginDefinitionVersion string `json:"pluginDefinitionVersion,omitempty"`
 }
 
 // ManagedPluginStatus defines the Ready condition of a managed Plugin identified by its name.
@@ -153,6 +153,7 @@ type ManagedPluginStatus struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:shortName=pp
 //+kubebuilder:printcolumn:name="Plugin Definition",type=string,JSONPath=`.spec.plugin.pluginDefinitionRef.name`
+//+kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.status.pluginDefinitionVersion`
 //+kubebuilder:printcolumn:name="Release Namespace",type=string,JSONPath=`.spec.plugin.releaseNamespace`
 //+kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"

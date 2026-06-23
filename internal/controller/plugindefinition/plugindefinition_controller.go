@@ -104,6 +104,10 @@ func (r *PluginDefinitionReconciler) EnsureCreated(ctx context.Context, obj life
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
+	if err := h.deleteOrphanedHelmCharts(ctx); err != nil {
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+
 	h.setHelmChartReadyCondition(ctx, helmChart)
 
 	return ctrl.Result{}, lifecycle.Success, nil

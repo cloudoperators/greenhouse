@@ -3,16 +3,18 @@ module github.com/cloudoperators/greenhouse
 go 1.26.0
 
 replace (
+	github.com/cloudoperators/greenhouse/api => ./api //nolint:gomoddirectives
+
 	// DEX import matches version v2.45.1.
 	github.com/dexidp/dex => github.com/dexidp/dex v0.0.0-20260303133905-11d2eeb52b42
 	github.com/dexidp/dex/api/v2 => github.com/dexidp/dex/api/v2 v2.4.0
 
 	// Keep Flux dependencies in sync with v2.6.1.
-	github.com/fluxcd/helm-controller/api => github.com/fluxcd/helm-controller/api v1.5.4
+	github.com/fluxcd/helm-controller/api => github.com/fluxcd/helm-controller/api v1.5.5
 	github.com/fluxcd/kustomize-controller/api => github.com/fluxcd/kustomize-controller/api v1.8.5
 	github.com/fluxcd/pkg/apis/kustomize => github.com/fluxcd/pkg/apis/kustomize v1.18.0
-	github.com/fluxcd/pkg/apis/meta => github.com/fluxcd/pkg/apis/meta v1.27.0
-	github.com/fluxcd/source-controller/api => github.com/fluxcd/source-controller/api v1.8.4
+	github.com/fluxcd/pkg/apis/meta => github.com/fluxcd/pkg/apis/meta v1.29.0
+	github.com/fluxcd/source-controller/api => github.com/fluxcd/source-controller/api v1.8.5
 	github.com/fluxcd/source-watcher/api/v2 => github.com/fluxcd/source-watcher/api/v2 v2.1.1
 
 	// Keep k8s dependencies in sync.
@@ -27,20 +29,21 @@ replace (
 )
 
 require (
-	github.com/cenkalti/backoff/v5 v5.0.3
+	github.com/cenkalti/backoff/v6 v6.0.1
+	github.com/cloudoperators/greenhouse/api v0.0.0-00010101000000-000000000000
 	github.com/dexidp/dex v0.0.0-20260303133905-11d2eeb52b42
-	github.com/fluxcd/cli-utils v1.2.0
-	github.com/fluxcd/helm-controller/api v1.5.4
+	github.com/fluxcd/cli-utils v1.2.1
+	github.com/fluxcd/helm-controller/api v1.5.5
 	github.com/fluxcd/kustomize-controller/api v1.8.5
 	github.com/fluxcd/pkg/apis/kustomize v1.21.0
-	github.com/fluxcd/pkg/apis/meta v1.27.0
-	github.com/fluxcd/source-controller/api v1.8.4
+	github.com/fluxcd/pkg/apis/meta v1.29.0
+	github.com/fluxcd/source-controller/api v1.8.5
 	github.com/fluxcd/source-watcher/api/v2 v2.1.1
 	github.com/go-jose/go-jose/v4 v4.1.4
 	github.com/go-logr/logr v1.4.3
 	github.com/google/cel-go v0.28.1
 	github.com/google/go-cmp v0.7.0
-	github.com/google/go-containerregistry v0.21.6
+	github.com/google/go-containerregistry v0.21.7
 	github.com/google/go-github/v88 v88.0.0
 	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/jeremywohl/flatten/v2 v2.0.0-20211013061545-07e4a09fb8e4
@@ -55,7 +58,7 @@ require (
 	github.com/vladimirvivien/gexe v0.5.0
 	go.uber.org/zap v1.28.0
 	golang.org/x/oauth2 v0.36.0
-	golang.org/x/text v0.37.0
+	golang.org/x/text v0.38.0
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.21.0
 	k8s.io/api v0.36.0
@@ -65,8 +68,8 @@ require (
 	k8s.io/client-go v0.36.0
 	k8s.io/klog/v2 v2.140.0
 	k8s.io/utils v0.0.0-20260507154919-ff6756f316d2
-	sigs.k8s.io/controller-runtime v0.24.0
-	sigs.k8s.io/kind v0.31.0
+	sigs.k8s.io/controller-runtime v0.24.1
+	sigs.k8s.io/kind v0.32.0
 	sigs.k8s.io/yaml v1.6.0
 )
 
@@ -105,7 +108,7 @@ require (
 	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dexidp/dex/api/v2 v2.4.0 // indirect
-	github.com/docker/cli v29.4.3+incompatible // indirect
+	github.com/docker/cli v29.5.3+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.9.3 // indirect
 	github.com/emicklei/go-restful/v3 v3.13.0 // indirect
 	github.com/evanphx/json-patch v5.9.11+incompatible // indirect
@@ -204,15 +207,15 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/crypto v0.51.0 // indirect
+	golang.org/x/crypto v0.53.0 // indirect
 	golang.org/x/exp v0.0.0-20260112195511-716be5621a96 // indirect
-	golang.org/x/mod v0.36.0 // indirect
-	golang.org/x/net v0.54.0 // indirect
-	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.44.0 // indirect
-	golang.org/x/term v0.43.0 // indirect
+	golang.org/x/mod v0.37.0 // indirect
+	golang.org/x/net v0.56.0 // indirect
+	golang.org/x/sync v0.21.0 // indirect
+	golang.org/x/sys v0.46.0 // indirect
+	golang.org/x/term v0.44.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
-	golang.org/x/tools v0.45.0 // indirect
+	golang.org/x/tools v0.46.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
 	google.golang.org/api v0.267.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260401024825-9d38bb4040a9 // indirect
