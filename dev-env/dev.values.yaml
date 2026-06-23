@@ -6,8 +6,8 @@ global:
   dex:
     backend: kubernetes
   plugin:
-    expressionEvaluationEnabled: false
-    integrationEnabled: false
+    expressionEvaluationEnabled: true
+    integrationEnabled: true
     ociMirroringEnabled: true
   pluginPreset:
     expressionEvaluationEnabled: true
