@@ -4,7 +4,7 @@
     "name": "organization",
     "createdAt": "2026-04-13T15:17:26.151943837Z",
     "updatedAt": "2026-05-06T14:23:33.264169617Z",
-    "version": 11022,
+    "version": 1,
     "project": "greenhouse"
   },
   "spec": {
@@ -17,8 +17,7 @@
         "spec": {
           "display": {
             "name": "TeamRoleBinding(s) by Organization/Team",
-            "description": "Overall ready status of TeamRoleBindinding(s)"
-          },
+            "description": "Overall ready status of TeamRoleBinding(s)"
           "plugin": {
             "kind": "Table",
             "spec": {
@@ -384,8 +383,7 @@
                 "$ref": "#/spec/panels/d4665ba7cc4048cdb46c65643ca83919"
               }
             }
-          ],
-          "repeatVariable": ""
+          ]
         }
       }
     ],
