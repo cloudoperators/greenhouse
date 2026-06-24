@@ -182,9 +182,7 @@ Standalone Plugin expressions are still supported (deprecated) and may be evalua
 
 ## Feature Flag
 
-CEL expression evaluation in PluginPresets requires the feature flag `pluginPreset.expressionEvaluationEnabled` to be set to `true` in the Greenhouse feature flags ConfigMap.
-
-When disabled (default: `true`), expressions are not evaluated by the PluginPreset controller and are copied to the created Plugin as `expression` fields.
+CEL expression evaluation is disabled by default. To enable it, set `pluginPreset.expressionEvaluationEnabled: true` in the Greenhouse feature flags ConfigMap.
 
 ```yaml
 # greenhouse-feature-flags ConfigMap
