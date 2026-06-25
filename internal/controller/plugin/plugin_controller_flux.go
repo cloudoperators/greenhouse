@@ -483,10 +483,14 @@ func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhou
 			continue
 
 		case v.Expression != nil:
-			if !expressionEvaluation {
-				// skip expression evaluation if not enabled
-				continue
+			if celResolver == nil {
+				celResolver, err = helm.NewCELResolver(optionValues)
+				if err != nil {
+					return nil, fmt.Errorf("failed to initialize CEL resolver: %w", err)
+				}
 			}
+			// This PR adds CEL expression evaluation to the PluginPreset controller (#1774).
+			// The Plugin controller's expression evaluation remains active (gated by feature flag)
 			resolvedOptionValue, err := celResolver.ResolveExpression(v, expressionEvaluation)
 			if err != nil {
 				return nil, err
@@ -494,7 +498,9 @@ func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhou
 			optionValues[i] = *resolvedOptionValue
 
 		case v.ValueFrom != nil && v.ValueFrom.Ref != nil:
-			// skip if integration flag is not enabled
+			// TODO(#1776): References should no longer be resolved by Plugin controller.
+			// Once PluginPreset controller handles all reference resolution,
+			// this branch should return an error instead of resolving.
 			if !integrationEnabled {
 				continue
 			}

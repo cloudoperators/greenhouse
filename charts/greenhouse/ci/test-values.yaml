@@ -15,6 +15,10 @@ global:
     expressionEvaluationEnabled: false
     integrationEnabled: false
     ociMirroringEnabled: false
+  # PluginPreset configuration for Greenhouse.
+  pluginPreset:
+    expressionEvaluationEnabled: true
+    integrationEnabled: true
   linkerd_enabled: false
   region: greenhouse
   registry: ghcr.io/cloudoperators/greenhouse

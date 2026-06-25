@@ -9,6 +9,9 @@ global:
     expressionEvaluationEnabled: true
     integrationEnabled: true
     ociMirroringEnabled: true
+  pluginPreset:
+    expressionEvaluationEnabled: true
+    integrationEnabled: true
 alerts:
   enabled: false
 certManager:

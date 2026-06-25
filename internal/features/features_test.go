@@ -242,3 +242,126 @@ func Test_PluginFeatures(t *testing.T) {
 		})
 	}
 }
+
+func Test_PluginPresetFeatures(t *testing.T) {
+	type testCase struct {
+		name                         string
+		configMapData                map[string]string
+		getError                     error
+		expectedExpressionEvaluation bool
+		expectedIntegrationEnabled   bool
+	}
+	testCases := []testCase{
+		{
+			name:                         "it should return true when pluginPreset expression evaluation is enabled",
+			configMapData:                map[string]string{PluginPresetFeatureKey: "expressionEvaluationEnabled: true\n"},
+			expectedExpressionEvaluation: true,
+			expectedIntegrationEnabled:   false,
+		},
+		{
+			name:                         "it should return true when pluginPreset integration is enabled",
+			configMapData:                map[string]string{PluginPresetFeatureKey: "integrationEnabled: true\n"},
+			expectedExpressionEvaluation: false,
+			expectedIntegrationEnabled:   true,
+		},
+		{
+			name:                         "it should return both values when both are set",
+			configMapData:                map[string]string{PluginPresetFeatureKey: "expressionEvaluationEnabled: true\nintegrationEnabled: true\n"},
+			expectedExpressionEvaluation: true,
+			expectedIntegrationEnabled:   true,
+		},
+		{
+			name:                         "it should return false when pluginPreset key is not found",
+			configMapData:                map[string]string{"someOtherKey": "value\n"},
+			expectedExpressionEvaluation: false,
+			expectedIntegrationEnabled:   false,
+		},
+		{
+			name:                         "it should return false when feature-flags cm is not found",
+			getError:                     apierrors.NewNotFound(schema.GroupResource{}, "configmap not found"),
+			expectedExpressionEvaluation: false,
+			expectedIntegrationEnabled:   false,
+		},
+		{
+			name:                         "it should return false when flag is malformed",
+			configMapData:                map[string]string{PluginPresetFeatureKey: "integrationEnabled:: invalid_yaml"},
+			expectedExpressionEvaluation: false,
+			expectedIntegrationEnabled:   false,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			ctx = log.IntoContext(ctx, log.Log)
+
+			mockK8sClient := &mocks.MockClient{}
+			configMap := &corev1.ConfigMap{}
+
+			if tc.getError != nil {
+				mockK8sClient.On("Get", ctx, types.NamespacedName{
+					Name: clientutil.GetEnvOrDefault("FEATURE_FLAGS", "greenhouse-feature-flags"), Namespace: clientutil.GetEnvOrDefault("POD_NAMESPACE", "greenhouse"),
+				}, mock.Anything).Return(tc.getError)
+			} else {
+				configMap.Data = tc.configMapData
+				mockK8sClient.On("Get", ctx, types.NamespacedName{
+					Name: clientutil.GetEnvOrDefault("FEATURE_FLAGS", "greenhouse-feature-flags"), Namespace: clientutil.GetEnvOrDefault("POD_NAMESPACE", "greenhouse"),
+				}, mock.Anything).Run(func(args mock.Arguments) {
+					arg := args.Get(2).(*corev1.ConfigMap)
+					*arg = *configMap
+				}).Return(nil)
+			}
+
+			featuresInstance, err := NewFeatures(ctx, mockK8sClient, clientutil.GetEnvOrDefault("FEATURE_FLAGS", "greenhouse-feature-flags"), clientutil.GetEnvOrDefault("POD_NAMESPACE", "greenhouse"))
+
+			if tc.getError != nil && client.IgnoreNotFound(tc.getError) == nil {
+				assert.NoError(t, client.IgnoreNotFound(err))
+				assert.Nil(t, featuresInstance)
+				presetExprValue := featuresInstance.IsPresetExpressionEvaluationEnabled()
+				presetIntValue := featuresInstance.IsPresetIntegrationEnabled()
+				assert.Equal(t, tc.expectedExpressionEvaluation, presetExprValue)
+				assert.Equal(t, tc.expectedIntegrationEnabled, presetIntValue)
+				mockK8sClient.AssertExpectations(t)
+				return
+			}
+
+			assert.NoError(t, err)
+			presetExprValue := featuresInstance.IsPresetExpressionEvaluationEnabled()
+			presetIntValue := featuresInstance.IsPresetIntegrationEnabled()
+			assert.Equal(t, tc.expectedExpressionEvaluation, presetExprValue)
+			assert.Equal(t, tc.expectedIntegrationEnabled, presetIntValue)
+			mockK8sClient.AssertExpectations(t)
+		})
+	}
+}
+
+func Test_PluginAndPluginPresetFeaturesIndependent(t *testing.T) {
+	ctx := context.Background()
+	ctx = log.IntoContext(ctx, log.Log)
+
+	mockK8sClient := &mocks.MockClient{}
+	configMap := &corev1.ConfigMap{
+		Data: map[string]string{
+			PluginFeatureKey:       "expressionEvaluationEnabled: false\nintegrationEnabled: false\n",
+			PluginPresetFeatureKey: "expressionEvaluationEnabled: true\nintegrationEnabled: true\n",
+		},
+	}
+
+	mockK8sClient.On("Get", ctx, types.NamespacedName{
+		Name: clientutil.GetEnvOrDefault("FEATURE_FLAGS", "greenhouse-feature-flags"), Namespace: clientutil.GetEnvOrDefault("POD_NAMESPACE", "greenhouse"),
+	}, mock.Anything).Run(func(args mock.Arguments) {
+		arg := args.Get(2).(*corev1.ConfigMap)
+		*arg = *configMap
+	}).Return(nil)
+
+	featuresInstance, err := NewFeatures(ctx, mockK8sClient, clientutil.GetEnvOrDefault("FEATURE_FLAGS", "greenhouse-feature-flags"), clientutil.GetEnvOrDefault("POD_NAMESPACE", "greenhouse"))
+	assert.NoError(t, err)
+
+	// Plugin flags should be false
+	assert.Equal(t, false, featuresInstance.IsExpressionEvaluationEnabled(), "plugin expression should be disabled")
+	assert.Equal(t, false, featuresInstance.IsIntegrationEnabled(), "plugin integration should be disabled")
+
+	// PluginPreset flags should be true
+	assert.Equal(t, true, featuresInstance.IsPresetExpressionEvaluationEnabled(), "preset expression should be enabled")
+
+	mockK8sClient.AssertExpectations(t)
+}
