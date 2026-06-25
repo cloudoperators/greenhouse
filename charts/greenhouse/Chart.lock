@@ -7,7 +7,7 @@ dependencies:
   version: 0.10.0
 - name: manager
   repository: file://../manager
-  version: 0.13.0
+  version: 0.13.1
 - name: dashboard
   repository: file://../dashboard
   version: 0.3.0
@@ -20,5 +20,5 @@ dependencies:
 - name: authz
   repository: file://../authz
   version: 0.6.0
-digest: sha256:d467714cc9a8023fdd5a4eda0385e8c531e1add19653f0253402bf2e99861b71
-generated: "2026-06-18T11:50:52.396806+02:00"
+digest: sha256:3718f352ead9abb62f041f88935af5e64dc2817bde9c9b223c762d918f166ee4
+generated: "2026-06-24T10:26:47.658916+02:00"

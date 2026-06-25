@@ -2,6 +2,9 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "controller-runtime-metrics",
+    "createdAt": "2026-06-09T13:36:29.950911405Z",
+    "updatedAt": "2026-06-23T08:45:35.067613948Z",
+    "version": 6623,
     "project": "greenhouse"
   },
   "spec": {
@@ -46,7 +49,8 @@
                 "plugin": {
                   "kind": "PrometheusTimeSeriesQuery",
                   "spec": {
-                    "query": "sum(rate(controller_runtime_reconcile_total{job=\"$job\", namespace=\"$namespace\"}[5m])) by (controller)"
+                    "query": "sum(rate(controller_runtime_reconcile_total{job=\"$job\", namespace=\"$namespace\", controller=~\"$controller\"}[5m])) by (controller)",
+                    "seriesNameFormat": "{{controller}}"
                   }
                 }
               }
@@ -91,7 +95,8 @@
                 "plugin": {
                   "kind": "PrometheusTimeSeriesQuery",
                   "spec": {
-                    "query": "sum(rate(controller_runtime_reconcile_errors_total{job=\"$job\", namespace=\"$namespace\"}[5m])) by (controller)"
+                    "query": "sum(rate(controller_runtime_reconcile_errors_total{job=\"$job\", namespace=\"$namespace\",controller=~\"$controller\"}[5m])) by (controller)",
+                    "seriesNameFormat": "{{controller}}"
                   }
                 }
               }
@@ -112,7 +117,10 @@
               "legend": {
                 "mode": "list",
                 "position": "right",
-                "values": ["max", "mean"]
+                "values": [
+                  "max",
+                  "mean"
+                ]
               },
               "visual": {
                 "areaOpacity": 0.2,
@@ -135,7 +143,8 @@
                 "plugin": {
                   "kind": "PrometheusTimeSeriesQuery",
                   "spec": {
-                    "query": "histogram_quantile(0.50, sum(rate(workqueue_queue_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\"}[5m])) by (name, le))"
+                    "query": "histogram_quantile(0.50, sum(rate(workqueue_queue_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\",controller=~\"$controller\"}[5m])) by (name, le))",
+                    "seriesNameFormat": "{{name}}-P50"
                   }
                 }
               }
@@ -146,7 +155,8 @@
                 "plugin": {
                   "kind": "PrometheusTimeSeriesQuery",
                   "spec": {
-                    "query": "histogram_quantile(0.90, sum(rate(workqueue_queue_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\"}[5m])) by (name, le))"
+                    "query": "histogram_quantile(0.90, sum(rate(workqueue_queue_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\",controller=~\"$controller\"}[5m])) by (name, le))",
+                    "seriesNameFormat": "{{name}}-P90"
                   }
                 }
               }
@@ -157,7 +167,8 @@
                 "plugin": {
                   "kind": "PrometheusTimeSeriesQuery",
                   "spec": {
-                    "query": "histogram_quantile(0.99, sum(rate(workqueue_queue_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\"}[5m])) by (name, le))"
+                    "query": "histogram_quantile(0.99, sum(rate(workqueue_queue_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\",controller=~\"$controller\"}[5m])) by (name, le))",
+                    "seriesNameFormat": "{{name}}-P99"
                   }
                 }
               }
@@ -201,7 +212,8 @@
                 "plugin": {
                   "kind": "PrometheusTimeSeriesQuery",
                   "spec": {
-                    "query": "sum(rate(workqueue_adds_total{job=\"$job\", namespace=\"$namespace\"}[5m])) by (name)"
+                    "query": "sum(rate(workqueue_adds_total{job=\"$job\", namespace=\"$namespace\",controller=~\"$controller\"}[5m])) by (name)",
+                    "seriesNameFormat": "{{name}}"
                   }
                 }
               }
@@ -222,7 +234,10 @@
               "legend": {
                 "mode": "table",
                 "position": "right",
-                "values": ["max", "mean"]
+                "values": [
+                  "max",
+                  "mean"
+                ]
               },
               "visual": {
                 "areaOpacity": 0.4,
@@ -244,7 +259,8 @@
                 "plugin": {
                   "kind": "PrometheusTimeSeriesQuery",
                   "spec": {
-                    "query": "histogram_quantile(0.50, sum(rate(workqueue_work_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\"}[5m])) by (name, le))"
+                    "query": "histogram_quantile(0.50, sum(rate(workqueue_work_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\",controller=~\"$controller\"}[5m])) by (name, le))",
+                    "seriesNameFormat": "{{name}}-P50"
                   }
                 }
               }
@@ -255,7 +271,8 @@
                 "plugin": {
                   "kind": "PrometheusTimeSeriesQuery",
                   "spec": {
-                    "query": "histogram_quantile(0.90, sum(rate(workqueue_work_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\"}[5m])) by (name, le))"
+                    "query": "histogram_quantile(0.90, sum(rate(workqueue_work_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\",controller=~\"$controller\"}[5m])) by (name, le))",
+                    "seriesNameFormat": "{{name}}-P90"
                   }
                 }
               }
@@ -266,7 +283,8 @@
                 "plugin": {
                   "kind": "PrometheusTimeSeriesQuery",
                   "spec": {
-                    "query": "histogram_quantile(0.99, sum(rate(workqueue_work_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\"}[5m])) by (name, le))"
+                    "query": "histogram_quantile(0.99, sum(rate(workqueue_work_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\",controller=~\"$controller\"}[5m])) by (name, le))",
+                    "seriesNameFormat": "{{name}}-P99"
                   }
                 }
               }
@@ -304,7 +322,8 @@
                 "plugin": {
                   "kind": "PrometheusTimeSeriesQuery",
                   "spec": {
-                    "query": "sum(rate(workqueue_retries_total{job=\"$job\", namespace=\"$namespace\"}[5m])) by (name)"
+                    "query": "sum(rate(workqueue_retries_total{job=\"$job\", namespace=\"$namespace\",controller=~\"$controller\"}[5m])) by (name)",
+                    "seriesNameFormat": "{{name}}"
                   }
                 }
               }
@@ -461,7 +480,7 @@
                   "kind": "PrometheusTimeSeriesQuery",
                   "spec": {
                     "minStep": "",
-                    "query": "sum(rate(controller_runtime_webhook_requests_in_flight{job=\"$job\", namespace=\"$namespace\"}[5m])) by (webhook)",
+                    "query": "sum(controller_runtime_webhook_requests_in_flight{job=\"$job\", namespace=\"$namespace\",webhook=\"$webhook\"}) by (webhook)",
                     "seriesNameFormat": "{{webhook}}"
                   }
                 }
@@ -505,7 +524,7 @@
                   "kind": "PrometheusTimeSeriesQuery",
                   "spec": {
                     "minStep": "",
-                    "query": "sum(rate(controller_runtime_webhook_requests_total{job=\"$job\", namespace=\"$namespace\"}[5m])) by (webhook)",
+                    "query": "sum(rate(controller_runtime_webhook_requests_total{job=\"$job\", namespace=\"$namespace\", webhook=\"$webhook\"}[5m])) by (webhook)",
                     "seriesNameFormat": "{{webhook}}"
                   }
                 }
@@ -531,7 +550,8 @@
                 "plugin": {
                   "kind": "PrometheusTimeSeriesQuery",
                   "spec": {
-                    "query": "sum by (webhook, le) (controller_runtime_webhook_latency_seconds_bucket{webhook=\"$webhook\"})"
+                    "query": "sum by (webhook, le) (controller_runtime_webhook_latency_seconds_bucket{webhook=\"$webhook\"})",
+                    "seriesNameFormat": "{{webhook}}-{{le}}"
                   }
                 }
               }
@@ -625,7 +645,7 @@
         "kind": "Grid",
         "spec": {
           "display": {
-            "title": "Webhook Metrics",
+            "title": "Webhook Metrics $webhook",
             "collapse": {
               "open": true
             }
@@ -658,7 +678,8 @@
                 "$ref": "#/spec/panels/asdadasdasd"
               }
             }
-          ]
+          ],
+          "repeatVariable": "webhook"
         }
       }
     ],
@@ -667,26 +688,7 @@
         "kind": "ListVariable",
         "spec": {
           "display": {
-            "hidden": false
-          },
-          "defaultValue": "kube-monitoring-prometheus",
-          "allowAllValue": false,
-          "allowMultiple": false,
-          "plugin": {
-            "kind": "PrometheusLabelValuesVariable",
-            "spec": {
-              "labelName": "job",
-              "matchers": ["prometheus_build_info"]
-            }
-          },
-          "name": "prometheus"
-        }
-      },
-      {
-        "kind": "ListVariable",
-        "spec": {
-          "display": {
-            "hidden": false
+            "hidden": true
           },
           "defaultValue": "greenhouse-controller-manager-metrics-service",
           "allowAllValue": false,
@@ -708,7 +710,7 @@
         "kind": "ListVariable",
         "spec": {
           "display": {
-            "hidden": false
+            "hidden": true
           },
           "defaultValue": "greenhouse",
           "allowAllValue": false,
@@ -729,13 +731,35 @@
       {
         "kind": "ListVariable",
         "spec": {
+          "name": "controller",
           "display": {
             "hidden": false
           },
           "defaultValue": "/mutate--v1-secret",
           "allowAllValue": true,
           "allowMultiple": false,
-          "customAllValue": "null",
+          "sort": "alphabetical-asc",
+          "plugin": {
+            "kind": "PrometheusLabelValuesVariable",
+            "spec": {
+              "labelName": "controller",
+              "matchers": [
+                "controller_runtime_reconcile_total{job=\"${job}\"}"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "name": "webhook",
+          "display": {
+            "hidden": false
+          },
+          "defaultValue": "/mutate--v1-secret",
+          "allowAllValue": true,
+          "allowMultiple": true,
           "sort": "alphabetical-asc",
           "plugin": {
             "kind": "PrometheusLabelValuesVariable",
@@ -745,12 +769,12 @@
                 "controller_runtime_webhook_latency_seconds_bucket{job=\"${job}\"}"
               ]
             }
-          },
-          "name": "webhook"
+          }
         }
       }
     ],
     "duration": "1h",
-    "refreshInterval": "0s"
+    "refreshInterval": "0s",
+    "datasources": {}
   }
 }
