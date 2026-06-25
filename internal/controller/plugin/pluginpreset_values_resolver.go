@@ -28,6 +28,13 @@ func (r *PluginPresetReconciler) resolvePluginOptionValuesForPreset(
 	if r.ExpressionEvaluationEnabled {
 		return r.resolveExpressionsForPreset(ctx, preset, cluster)
 	}
+
+	for _, ov := range preset.Spec.Plugin.OptionValues {
+		if ov.Expression != nil {
+			return nil, fmt.Errorf("option %s has expression but expressionEvaluationEnabled is disabled for PluginPreset controller", ov.Name)
+		}
+	}
+
 	return util.ConvertToPluginOptionValues(preset.Spec.Plugin.OptionValues), nil
 }
 

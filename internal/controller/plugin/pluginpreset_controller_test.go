@@ -1151,6 +1151,93 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
 	})
+
+	It("should return error when expression is set but ExpressionEvaluationEnabled is false", func() {
+		reconciler := &PluginPresetReconciler{
+			Client:                      test.K8sClient,
+			ExpressionEvaluationEnabled: false,
+		}
+
+		expressionStr := `"app-${global.greenhouse.clusterName}.example.com"`
+		preset := &greenhousev1alpha1.PluginPreset{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "flag-off-test",
+				Namespace: test.TestNamespace,
+			},
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				Plugin: greenhousev1alpha1.PluginPresetPluginSpec{
+					OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+						{
+							Name:  "direct.value",
+							Value: test.MustReturnJSONFor("works"),
+						},
+						{
+							Name:       "test.hostname",
+							Expression: &expressionStr,
+						},
+					},
+				},
+			},
+		}
+
+		cluster := &greenhousev1alpha1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-cluster",
+				Namespace: test.TestNamespace,
+			},
+		}
+
+		_, err := reconciler.resolvePluginOptionValuesForPreset(test.Ctx, preset, cluster)
+		Expect(err).To(HaveOccurred(), "should return error when expression exists but flag is disabled")
+		Expect(err.Error()).To(ContainSubstring("expressionEvaluationEnabled"),
+			"error should mention the flag")
+		Expect(err.Error()).To(ContainSubstring("test.hostname"),
+			"error should mention the option name")
+	})
+
+	It("should succeed when no expressions and flag is disabled", func() {
+		reconciler := &PluginPresetReconciler{
+			Client:                      test.K8sClient,
+			ExpressionEvaluationEnabled: false,
+		}
+
+		preset := &greenhousev1alpha1.PluginPreset{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "flag-off-no-expr",
+				Namespace: test.TestNamespace,
+			},
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				Plugin: greenhousev1alpha1.PluginPresetPluginSpec{
+					OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+						{
+							Name:  "direct.value",
+							Value: test.MustReturnJSONFor("works"),
+						},
+						{
+							Name:  "another.value",
+							Value: test.MustReturnJSONFor(42),
+						},
+					},
+				},
+			},
+		}
+
+		cluster := &greenhousev1alpha1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-cluster",
+				Namespace: test.TestNamespace,
+			},
+		}
+
+		result, err := reconciler.resolvePluginOptionValuesForPreset(test.Ctx, preset, cluster)
+		Expect(err).ToNot(HaveOccurred(), "should succeed without expressions")
+		Expect(result).To(HaveLen(2))
+		Expect(result[0].Name).To(Equal("direct.value"))
+		Expect(result[0].Value).To(Equal(test.MustReturnJSONFor("works")))
+		Expect(result[1].Name).To(Equal("another.value"))
+		Expect(result[1].Value).To(Equal(test.MustReturnJSONFor(42)))
+	})
+
 })
 
 var _ = Describe("applyOverridesToPreset", func() {
