@@ -16,6 +16,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
+	"github.com/cloudoperators/greenhouse/internal/util"
 )
 
 const (
@@ -481,7 +482,7 @@ func WithPluginPresetPluginSpec(pluginSpec greenhousev1alpha1.PluginSpec) func(*
 	return func(pp *greenhousev1alpha1.PluginPreset) {
 		pp.Spec.Plugin.PluginDefinitionRef = pluginSpec.PluginDefinitionRef
 		pp.Spec.Plugin.DisplayName = pluginSpec.DisplayName
-		pp.Spec.Plugin.OptionValues = ConvertToPresetOptionValues(pluginSpec.OptionValues)
+		pp.Spec.Plugin.OptionValues = util.ConvertToPresetOptionValues(pluginSpec.OptionValues)
 		pp.Spec.Plugin.ReleaseNamespace = pluginSpec.ReleaseNamespace
 		pp.Spec.Plugin.ReleaseName = pluginSpec.ReleaseName
 		pp.Spec.Plugin.DeletionPolicy = pluginSpec.DeletionPolicy
@@ -516,18 +517,17 @@ func WithPluginPresetAnnotation(key, value string) func(*greenhousev1alpha1.Plug
 }
 
 // WithClusterOverrides sets the ClusterOverrides for a Cluster
-func WithClusterOverride(clusterName string, optionValues []greenhousev1alpha1.PluginOptionValue) func(*greenhousev1alpha1.PluginPreset) {
+func WithClusterOverride(clusterName string, optionValues []greenhousev1alpha1.PluginPresetPluginOptionValue) func(*greenhousev1alpha1.PluginPreset) {
 	return func(pp *greenhousev1alpha1.PluginPreset) {
-		presetOverrides := ConvertToPresetOptionValues(optionValues)
 		for co := range pp.Spec.ClusterOptionOverrides {
 			if pp.Spec.ClusterOptionOverrides[co].ClusterName == clusterName {
-				pp.Spec.ClusterOptionOverrides[co].Overrides = presetOverrides
+				pp.Spec.ClusterOptionOverrides[co].Overrides = optionValues
 				return
 			}
 		}
 		pp.Spec.ClusterOptionOverrides = append(pp.Spec.ClusterOptionOverrides, greenhousev1alpha1.ClusterOptionOverride{
 			ClusterName: clusterName,
-			Overrides:   presetOverrides,
+			Overrides:   optionValues,
 		})
 	}
 }
@@ -883,21 +883,4 @@ func NewCatalog(name, namespace string, sources ...greenhousev1alpha1.CatalogSou
 	}
 	catalog.Spec.Sources = append(catalog.Spec.Sources, sources...)
 	return catalog
-}
-
-func ConvertToPresetOptionValues(values []greenhousev1alpha1.PluginOptionValue) []greenhousev1alpha1.PluginPresetPluginOptionValue {
-	result := make([]greenhousev1alpha1.PluginPresetPluginOptionValue, 0, len(values))
-	for _, v := range values {
-		pv := greenhousev1alpha1.PluginPresetPluginOptionValue{
-			Name:  v.Name,
-			Value: v.Value,
-		}
-		if v.ValueFrom != nil {
-			pv.ValueFrom = &greenhousev1alpha1.PluginPresetPluginValueFromSource{
-				Secret: v.ValueFrom.Secret,
-			}
-		}
-		result = append(result, pv)
-	}
-	return result
 }

@@ -540,7 +540,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 				},
 			},
 			),
-			test.WithClusterOverride(clusterA, []greenhousev1alpha1.PluginOptionValue{
+			test.WithClusterOverride(clusterA, []greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{Name: "test-required-option-1", Value: test.MustReturnJSONFor(5)},
 			}),
 		)
