@@ -75,6 +75,12 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
+	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterHName, env.TestNamespace)
+	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterFName, env.TestNamespace)
+	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterNodeName, env.TestNamespace)
+	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterHName, env.TestNamespace)
+	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterFName, env.TestNamespace)
+	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterCName, env.TestNamespace)
 	test.EventuallyDeleted(ctx, adminClient, team)
 	env.GenerateGreenhouseControllerLogs(ctx, testStartTime)
 })
@@ -191,7 +197,7 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 		})
 
 		It("should successfully off-board remote oidc cluster", func() {
-			shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, remoteOIDCClusterHName, env.TestNamespace)
+			shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterHName, env.TestNamespace)
 			sa := &corev1.ServiceAccount{}
 			err := adminClient.Get(ctx, client.ObjectKey{Name: remoteOIDCClusterHName, Namespace: env.TestNamespace}, sa)
 			Expect(apierrors.IsNotFound(err)).To(BeTrue(), "the service account should not exist")
@@ -272,20 +278,6 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 
 			By("verifying the cluster payload is schedulable again")
 			expect.ReconcileAndWaitForPayloadSchedulable(ctx, adminClient, remoteClusterNodeName, env.TestNamespace, true)
-		})
-	})
-
-	// the context executes the test for Clusters removal
-	// scenario: Happy Path
-	Context("Cluster Happy Path 🤖 - clusters removal", Ordered, func() {
-		It("should off-board remote clusters", func() {
-			By("removing remote clusters")
-			shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, remoteClusterHName, env.TestNamespace)
-			shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, remoteClusterFName, env.TestNamespace)
-			shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, remoteClusterNodeName, env.TestNamespace)
-			shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, remoteOIDCClusterHName, env.TestNamespace)
-			shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, remoteOIDCClusterFName, env.TestNamespace)
-			shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, remoteOIDCClusterCName, env.TestNamespace)
 		})
 	})
 })

@@ -37,10 +37,8 @@ Off-board a `Cluster` in Greenhouse is initiated by calling the command:
 kubectl --namespace=<greenhouse-organization-name> delete cluster <cluster-name>
 ```
 
-### Warning
-
-If there were deployed any plugins on the cluster selected for deletion, they will be uninstalled during cluster deletion.
-
+| :exclamation: Deleting the `Cluster` resource automatically uninstalls any deployed plugins as part of the cleanup process. |
+|-----------------------------------------------------------------------------------------------------------------------------|
 
 ## Troubleshooting
 

@@ -5,6 +5,7 @@ package shared
 
 import (
 	"context"
+	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -55,7 +56,7 @@ func OnboardRemoteOIDCCluster(ctx context.Context, k8sClient client.Client, caCe
 	Expect(err).NotTo(HaveOccurred())
 }
 
-func OffBoardRemoteCluster(ctx context.Context, adminClient, remoteClient client.Client, name, namespace string) {
+func OffBoardRemoteCluster(ctx context.Context, adminClient, remoteClient client.Client, testStartTime time.Time, name, namespace string) {
 	cluster := &greenhousev1alpha1.Cluster{}
 	err := adminClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, cluster)
 	if apierrors.IsNotFound(err) {

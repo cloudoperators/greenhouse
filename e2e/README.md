@@ -97,7 +97,7 @@ Example:
 
 ```go
 var _ = AfterSuite(func () {
-shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, remoteClusterName, env.TestNamespace)
+shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterName, env.TestNamespace)
 env.GenerateGreenhouseControllerLogs(ctx, testStartTime)
 })
 ```
@@ -239,7 +239,7 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	expect.OffBoardRemoteCluster(ctx, adminClient, remoteClient, expect.RemoteClusterName, env.TestNamespace)
+	expect.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, expect.RemoteClusterName, env.TestNamespace)
 	env.GenerateControllerLogs(ctx, testStartTime) // use env.GenerateControllerLogs to extract logs from the controller manager since the test start time
 })
 ```

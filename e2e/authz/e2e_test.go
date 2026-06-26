@@ -182,7 +182,7 @@ var _ = AfterSuite(func() {
 	test.EventuallyDeleted(ctx, adminClient, pluginForbidden)
 	test.EventuallyDeleted(ctx, adminClient, pluginDefPodInfo)
 
-	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, remoteClusterName, env.TestNamespace)
+	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterName, env.TestNamespace)
 
 	test.EventuallyDeleted(ctx, adminClient, teamDemo)
 	test.EventuallyDeleted(ctx, adminClient, teamForbidden)
