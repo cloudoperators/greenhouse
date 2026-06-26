@@ -842,12 +842,7 @@ export interface components {
                 clusterOptionOverrides?: {
                     clusterName: string;
                     overrides: {
-                        /**
-                         * @description Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions.
-                         *
-                         *     Deprecated: Expression is deprecated on standalone Plugins and will be removed in a future release.
-                         *     Consider using a PluginPreset to deploy Plugins utilizing the Expression field.
-                         */
+                        /** @description Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions. */
                         expression?: string;
                         /** @description Name of the values. */
                         name: string;
@@ -855,12 +850,7 @@ export interface components {
                         value?: unknown;
                         /** @description ValueFrom references value in another source. */
                         valueFrom?: {
-                            /**
-                             * @description Ref references values defined in another resource (Plugin, PluginPreset)
-                             *
-                             *     Deprecated: Ref is deprecated on standalone Plugins and will be removed in a future release.
-                             *     Consider using a PluginPreset to deploy Plugins utilizing the Ref field.
-                             */
+                            /** @description Ref references values defined in another resource (Plugin, PluginPreset) */
                             ref?: {
                                 /** @description Expression is a CEL expression to extract the value from the referenced resource */
                                 expression: string;
@@ -982,12 +972,7 @@ export interface components {
                     }[];
                     /** @description Values are the values for a PluginDefinition instance. */
                     optionValues?: {
-                        /**
-                         * @description Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions.
-                         *
-                         *     Deprecated: Expression is deprecated on standalone Plugins and will be removed in a future release.
-                         *     Consider using a PluginPreset to deploy Plugins utilizing the Expression field.
-                         */
+                        /** @description Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions. */
                         expression?: string;
                         /** @description Name of the values. */
                         name: string;
@@ -995,12 +980,7 @@ export interface components {
                         value?: unknown;
                         /** @description ValueFrom references value in another source. */
                         valueFrom?: {
-                            /**
-                             * @description Ref references values defined in another resource (Plugin, PluginPreset)
-                             *
-                             *     Deprecated: Ref is deprecated on standalone Plugins and will be removed in a future release.
-                             *     Consider using a PluginPreset to deploy Plugins utilizing the Ref field.
-                             */
+                            /** @description Ref references values defined in another resource (Plugin, PluginPreset) */
                             ref?: {
                                 /** @description Expression is a CEL expression to extract the value from the referenced resource */
                                 expression: string;
@@ -1093,6 +1073,8 @@ export interface components {
             status?: {
                 /** @description FailedPlugins is the number of failed Plugins managed by the PluginPreset. */
                 failedPlugins?: number;
+                /** @description PluginDefinitionVersion is the version of the PluginDefinition referenced by this PluginPreset. */
+                pluginDefinitionVersion?: string;
                 /** @description PluginStatuses contains statuses of Plugins managed by the PluginPreset. */
                 pluginStatuses?: {
                     pluginName?: string;

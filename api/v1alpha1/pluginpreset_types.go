@@ -59,7 +59,7 @@ type PluginPresetPluginSpec struct {
 	DisplayName string `json:"displayName,omitempty"`
 
 	// Values are the values for a PluginDefinition instance.
-	OptionValues []PluginOptionValue `json:"optionValues,omitempty"`
+	OptionValues []PluginPresetPluginOptionValue `json:"optionValues,omitempty"`
 
 	// ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.
 	// Defaults to the Greenhouse managed namespace if not set.
@@ -111,8 +111,8 @@ type PluginPresetPluginValueFromSource struct {
 // ClusterOptionOverride defines which plugin option should be override in which cluster
 // +Optional
 type ClusterOptionOverride struct {
-	ClusterName string              `json:"clusterName"`
-	Overrides   []PluginOptionValue `json:"overrides"`
+	ClusterName string                          `json:"clusterName"`
+	Overrides   []PluginPresetPluginOptionValue `json:"overrides"`
 }
 
 const (
