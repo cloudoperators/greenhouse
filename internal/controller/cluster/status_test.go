@@ -18,7 +18,6 @@ import (
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/test"
-	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 var _ = Describe("Cluster status", Ordered, func() {
@@ -261,25 +260,6 @@ var _ = Describe("Cluster status", Ordered, func() {
 			readyCondition := invalidCluster.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 			g.Expect(readyCondition).ToNot(BeNil(), "The ClusterReady condition should be present")
 			g.Expect(readyCondition.Status).To(Equal(metav1.ConditionFalse))
-		}).Should(Succeed())
-	})
-
-	It("should set the deletion condition when the cluster is marked for deletion", func() {
-		By("marking the cluster for deletion")
-		Eventually(func(g Gomega) {
-			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).
-				ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
-			validCluster.SetAnnotations(map[string]string{
-				greenhouseapis.MarkClusterDeletionAnnotation: "true",
-			})
-			g.Expect(test.K8sClient.Update(test.Ctx, &validCluster)).To(Succeed(), "there must be no error updating the object")
-		}).Should(Succeed(), "marking cluster for deletion should eventually succeed")
-
-		By("checking the deletion condition")
-		Eventually(func(g Gomega) {
-			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
-			g.Expect(validCluster.Status.GetConditionByType(greenhousemetav1alpha1.DeleteCondition)).ToNot(BeNil(), "The Delete condition should be present")
-			g.Expect(validCluster.Status.GetConditionByType(greenhousemetav1alpha1.DeleteCondition).Reason).To(Equal(lifecycle.ScheduledDeletionReason))
 		}).Should(Succeed())
 	})
 })

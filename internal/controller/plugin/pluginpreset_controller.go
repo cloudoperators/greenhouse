@@ -130,7 +130,6 @@ func (r *PluginPresetReconciler) EnsureCreated(ctx context.Context, resource lif
 	}
 
 	clusters = clientutil.FilterClustersBeingDeleted(clusters)
-
 	err = r.reconcilePluginPreset(ctx, pluginPreset, clusters)
 	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err

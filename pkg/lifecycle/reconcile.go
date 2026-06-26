@@ -20,15 +20,13 @@ import (
 type ReconcileResult string
 
 const (
-	CreatedReason         greenhousemetav1alpha1.ConditionReason = "Created"
-	PendingCreationReason greenhousemetav1alpha1.ConditionReason = "PendingCreation"
-	FailingCreationReason greenhousemetav1alpha1.ConditionReason = "FailingCreation"
-	// ScheduledDeletionReason is used to indicate that the resource is scheduled for deletion
-	ScheduledDeletionReason greenhousemetav1alpha1.ConditionReason = "ScheduledDeletion"
-	PendingDeletionReason   greenhousemetav1alpha1.ConditionReason = "PendingDeletion"
-	FailingDeletionReason   greenhousemetav1alpha1.ConditionReason = "FailingDeletion"
-	DeletedReason           greenhousemetav1alpha1.ConditionReason = "Deleted"
-	CommonCleanupFinalizer                                         = "greenhouse.sap/cleanup"
+	CreatedReason          greenhousemetav1alpha1.ConditionReason = "Created"
+	PendingCreationReason  greenhousemetav1alpha1.ConditionReason = "PendingCreation"
+	FailingCreationReason  greenhousemetav1alpha1.ConditionReason = "FailingCreation"
+	PendingDeletionReason  greenhousemetav1alpha1.ConditionReason = "PendingDeletion"
+	FailingDeletionReason  greenhousemetav1alpha1.ConditionReason = "FailingDeletion"
+	DeletedReason          greenhousemetav1alpha1.ConditionReason = "Deleted"
+	CommonCleanupFinalizer                                        = "greenhouse.sap/cleanup"
 
 	// Success should be returned in case the operator reached its target state
 	Success ReconcileResult = "Success"
