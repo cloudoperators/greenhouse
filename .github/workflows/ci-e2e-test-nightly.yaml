@@ -46,7 +46,7 @@ jobs:
           GH_APP_PRIVATE_KEY: ${{ secrets.CLOUDOPERATOR_APP_PRIVATE_KEY }}
           GH_APP_INSTALLATION_ID: ${{ secrets.CLOUDOPERATOR_APP_INSTALLATION_ID }}
         with:
-          admin-k8s-version: "v1.33.7"
+          admin-k8s-version: "v1.34.3"
           remote-k8s-version: ${{ matrix.k8s-version }}
           scenario: ${{ matrix.e2es }}
           admin-config: ${{ github.workspace }}/e2e/greenhouse-admin-cluster.yaml

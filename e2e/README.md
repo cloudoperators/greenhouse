@@ -272,3 +272,29 @@ ready or not ready.
 be ready or not ready.
 
 > Note: You can only use `WaitUntilResourceReadyOrNotReady` for resources that use the `lifecycle.Reconcile` interface.
+
+### Comment-driven E2E flow
+
+```mermaid
+flowchart TD
+    PR([PR opened / synchronized]) --> Author{Author?}
+    Author -->|renovate| AutoAll[Auto-post /e2e all]
+    Author -->|contributor| Detect[ci-e2e-info: detect changed paths]
+    Detect -->|matches paths-filters-e2e.yaml| Info["Post E2E Info comment<br/>lists detected suites as /e2e suite lines"]
+    Detect -->|no match| AutoSkip[Auto-post /e2e skip]
+
+    Info -.copy & paste.-> Comment
+    AutoSkip --> Comment
+    AutoAll --> Comment
+
+    Comment(["/e2e tokens comment created"]) --> Parse[ci-e2e-test: parse comment body]
+    Parse -->|/e2e skip| Skip[run=false]
+    Parse -->|/e2e all| All["run=true<br/>checkout PR head<br/>find e2e -name e2e_test.go"]
+    Parse -->|/e2e suiteA /e2e suiteB| Run["run=true<br/>use explicit suites"]
+
+    Skip --> OK[Aggregate e2eOK status]
+    All --> Matrix
+    Run --> Matrix["Matrix job per suite<br/>cloudoperators/common/workflows/e2e<br/>fail-fast: cancels siblings on first failure"]
+    Matrix --> OK
+    OK --> Required([e2eOK = required check on PR])
+```

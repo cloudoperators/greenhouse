@@ -19,10 +19,13 @@ jobs:
       suites: ${{ steps.suites.outputs.suites }}
       run: ${{ steps.cmd.outputs.run }}
     steps:
-      - name: Check commenter is a collaborator
+      - name: Check Collaborator Permission
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
+            if (context.actor === 'cloud-operator-bot[bot]') {
+              return;
+            }
             try {
               const { data } = await github.rest.repos.getCollaboratorPermissionLevel({
                 owner: context.repo.owner,
@@ -37,7 +40,7 @@ jobs:
               core.setFailed(`e2e trigger denied — @${context.actor} is not a maintainer.`);
             }
 
-      - name: Resolve PR head SHA
+      - name: Resolve PR SHA
         id: pr
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
@@ -46,7 +49,7 @@ jobs:
             const pr = await github.rest.pulls.get({ owner, repo, pull_number: number });
             core.setOutput('sha', pr.data.head.sha);
 
-      - name: Parse comment body
+      - name: Parse Command
         id: cmd
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
@@ -85,13 +88,13 @@ jobs:
             core.setOutput('discover', 'false');
             core.setOutput('explicit', JSON.stringify([...new Set(tokens)]));
 
-      - name: Checkout PR head (for suite discovery)
+      - name: Checkout PR
         if: steps.cmd.outputs.discover == 'true'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ steps.pr.outputs.sha }}
 
-      - name: Resolve suite list
+      - name: Resolve Suites
         id: suites
         env:
           DISCOVER: ${{ steps.cmd.outputs.discover }}
@@ -115,9 +118,23 @@ jobs:
       matrix:
         suite: ${{ fromJson(needs.parse.outputs.suites) }}
     steps:
+      - name: "Set e2e/${{ matrix.suite }} Pending"
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: '${{ needs.parse.outputs.sha }}',
+              state: 'pending',
+              context: 'e2e / ${{ matrix.suite }}',
+              description: 'running',
+              target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
+
       - name: Run ${{ matrix.suite }} e2e
         id: e2e
-        uses: cloudoperators/common/workflows/e2e@f87e1e6b7889707a9c10d1a8a9f9f481eb311c06
+        uses: cloudoperators/common/workflows/e2e@f87e1e6b7889707a9c10d1a8a9f9f481eb311c06 # main
         env:
           RUNTIME_ENV: "CI"
           GH_APP_ID: ${{ secrets.CLOUDOPERATOR_APP_ID }}
@@ -138,6 +155,24 @@ jobs:
           SCENARIO: ${{ matrix.suite }}
           E2E_RESULT_DIR: ${{ github.workspace }}/bin
         run: make show-e2e-logs
+
+      - name: "Set e2e/${{ matrix.suite }} Status"
+        if: always()
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          E2E_RESULT: ${{ steps.e2e.conclusion }}
+        with:
+          script: |
+            const ok = process.env.E2E_RESULT === 'success';
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: '${{ needs.parse.outputs.sha }}',
+              state: ok ? 'success' : 'failure',
+              context: 'e2e / ${{ matrix.suite }}',
+              description: ok ? 'passed' : 'failed',
+              target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
 
   e2eOK:
     name: e2eOK
