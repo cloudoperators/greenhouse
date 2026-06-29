@@ -9,7 +9,7 @@ groups:
       service: '{{ $labels.catalog }}'
       organization: '{{ $labels.organization }}'
       support_group: '{{ $labels.owned_by }}'
+      playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/catalog/catalog-not-ready/
     annotations:
       summary: "Catalog not ready for over 15 minutes"
       description: "The catalog {{ $labels.catalog }} in organization {{ $labels.organization }} has not been ready for more than 15 minutes. Reason: {{ $labels.reason }}."
-      playbook: "docs/operations/playbooks/catalog/catalog-not-ready.md"
