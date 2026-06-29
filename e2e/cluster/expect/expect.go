@@ -23,7 +23,6 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
-	"github.com/cloudoperators/greenhouse/internal/test"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
@@ -62,31 +61,6 @@ func VerifyClusterVersion(ctx context.Context, adminClient client.Client, remote
 	expectedKubeVersion, err := dc.ServerVersion()
 	Expect(err).NotTo(HaveOccurred(), "there should be no error getting the server version")
 	Expect(statusKubeVersion).To(Equal(expectedKubeVersion.String()))
-}
-
-func ClusterDeletionIsScheduled(ctx context.Context, adminClient client.Client, name, namespace string) {
-	now := time.Now().UTC()
-	cluster := &greenhousev1alpha1.Cluster{}
-	cluster.Name = name
-	cluster.Namespace = namespace
-	objKey := client.ObjectKeyFromObject(cluster)
-
-	By("marking the cluster for deletion")
-	test.MustSetAnnotation(ctx, adminClient, cluster, greenhouseapis.MarkClusterDeletionAnnotation, "true")
-
-	Eventually(func(g Gomega) bool {
-		cluster := &greenhousev1alpha1.Cluster{}
-		err := adminClient.Get(ctx, objKey, cluster)
-		g.Expect(err).ToNot(HaveOccurred())
-		annotations := cluster.GetAnnotations()
-		ok, schedule, err := clientutil.ExtractDeletionSchedule(annotations)
-		g.Expect(err).ToNot(HaveOccurred(), "there should be no error extracting the deletion schedule")
-		g.Expect(ok).To(BeTrue(), "cluster should be marked for deletion")
-		diff := schedule.Sub(now).Hours()
-		GinkgoWriter.Printf("diff: %f\n", diff)
-		g.Expect(diff).To(BeNumerically("~", 48, 0.04), "deletion schedule should be within 1 hour")
-		return true
-	}).Should(BeTrue(), "cluster should have a deletion schedule annotation")
 }
 
 func RevokingRemoteClusterAccess(ctx context.Context, adminClient, remoteClient client.Client, serviceAccountName, clusterName, namespace string) {

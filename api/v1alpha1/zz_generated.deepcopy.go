@@ -545,7 +545,7 @@ func (in *ClusterOptionOverride) DeepCopyInto(out *ClusterOptionOverride) {
 	*out = *in
 	if in.Overrides != nil {
 		in, out := &in.Overrides, &out.Overrides
-		*out = make([]PluginOptionValue, len(*in))
+		*out = make([]PluginPresetPluginOptionValue, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -1324,7 +1324,7 @@ func (in *PluginPresetPluginSpec) DeepCopyInto(out *PluginPresetPluginSpec) {
 	out.PluginDefinitionRef = in.PluginDefinitionRef
 	if in.OptionValues != nil {
 		in, out := &in.OptionValues, &out.OptionValues
-		*out = make([]PluginOptionValue, len(*in))
+		*out = make([]PluginPresetPluginOptionValue, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}

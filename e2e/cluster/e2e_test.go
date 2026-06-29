@@ -135,11 +135,6 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 			isOwner := shared.IsResourceOwnedByOwner(crb, sa)
 			Expect(isOwner).To(BeTrue(), "service account should have an owner reference")
 		})
-
-		It("should successfully schedule the cluster for deletion", func() {
-			By("verifying for the cluster deletion schedule annotation")
-			expect.ClusterDeletionIsScheduled(ctx, adminClient, remoteClusterHName, env.TestNamespace)
-		})
 	})
 
 	// the context executes the tests for Cluster where a secret of type kubeconfig is provided

@@ -191,7 +191,7 @@ var _ = Describe("prepareValues", func() {
 
 	Context("with PluginPreset overrides", func() {
 		BeforeEach(func() {
-			pluginPreset.Spec.Plugin.OptionValues = []greenhousev1alpha1.PluginOptionValue{
+			pluginPreset.Spec.Plugin.OptionValues = []greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{
 					Name:  "replicas",
 					Value: &apiextensionsv1.JSON{Raw: []byte("3")},
@@ -221,7 +221,7 @@ var _ = Describe("prepareValues", func() {
 			pluginPreset.Spec.ClusterOptionOverrides = []greenhousev1alpha1.ClusterOptionOverride{
 				{
 					ClusterName: "test-cluster",
-					Overrides: []greenhousev1alpha1.PluginOptionValue{
+					Overrides: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 						{
 							Name:  "replicas",
 							Value: &apiextensionsv1.JSON{Raw: []byte("5")},
