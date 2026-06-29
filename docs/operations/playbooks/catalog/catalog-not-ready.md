@@ -51,8 +51,7 @@ Look at the `status.statusConditions` section in the catalog resource. Pay speci
 Review the Greenhouse controller logs for more detailed error messages:
 
 ```bash
-kubectl logs -n greenhouse -l app=greenhouse
- --tail=100 | grep -i catalog # requires permissions on the greenhouse namespace
+kubectl logs -n greenhouse -l app=greenhouse --tail=100 | grep -i catalog # requires permissions on the greenhouse namespace
 ```
 
 Or access your logs sink for Greenhouse logs.
