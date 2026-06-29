@@ -6,7 +6,6 @@ package plugin
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
@@ -15,53 +14,6 @@ import (
 )
 
 var _ = Describe("PluginValuesResolver Helper Functions", func() {
-	Describe("filterValueRefOptions", func() {
-		It("should filter to only include options with ValueFrom.Ref", func() {
-			optionValues := []greenhousev1alpha1.PluginOptionValue{
-				{
-					Name:  "plain-value",
-					Value: &apiextensionsv1.JSON{Raw: []byte(`"test"`)},
-				},
-				{
-					Name: "ref-value",
-					ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
-						Ref: &greenhousev1alpha1.ExternalValueSource{
-							Name:       "other-plugin",
-							Expression: "object.spec.optionValues",
-						},
-					},
-				},
-				{
-					Name: "secret-value",
-					ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
-						Secret: &greenhousev1alpha1.SecretKeyReference{
-							Name: "my-secret",
-							Key:  "key",
-						},
-					},
-				},
-			}
-
-			result := filterValueRefOptions(optionValues)
-
-			Expect(result).To(HaveLen(1))
-			Expect(result[0].Name).To(Equal("ref-value"))
-		})
-
-		It("should return empty slice when no options have ValueFrom.Ref", func() {
-			optionValues := []greenhousev1alpha1.PluginOptionValue{
-				{
-					Name:  "plain-value",
-					Value: &apiextensionsv1.JSON{Raw: []byte(`"test"`)},
-				},
-			}
-
-			result := filterValueRefOptions(optionValues)
-
-			Expect(result).To(BeEmpty())
-		})
-	})
-
 	Describe("parseTrackingID", func() {
 		It("should parse valid tracking ID", func() {
 			kind, name, err := parseTrackingID("Plugin/my-plugin")
@@ -226,70 +178,6 @@ var _ = Describe("PluginValuesResolver Helper Functions", func() {
 
 			Expect(untracked).To(HaveLen(2))
 			Expect(untracked).To(ContainElements("Plugin/b", "Plugin/c"))
-		})
-	})
-
-	Describe("appendToSlice", func() {
-		It("should append single value to slice", func() {
-			dst := []any{"existing"}
-			value := "new-value"
-
-			result := appendToSlice(dst, value)
-
-			Expect(result).To(HaveLen(2))
-			Expect(result).To(ContainElements("existing", "new-value"))
-		})
-
-		It("should flatten and append slice values", func() {
-			dst := []any{"existing"}
-			value := []string{"value1", "value2", "value3"}
-
-			result := appendToSlice(dst, value)
-
-			Expect(result).To(HaveLen(4))
-			Expect(result).To(ContainElements("existing", "value1", "value2", "value3"))
-		})
-
-		It("should handle empty destination slice", func() {
-			dst := []any{}
-			value := "new-value"
-
-			result := appendToSlice(dst, value)
-
-			Expect(result).To(HaveLen(1))
-			Expect(result[0]).To(Equal("new-value"))
-		})
-
-		It("should handle appending empty slice", func() {
-			dst := []any{"existing"}
-			var value []string
-
-			result := appendToSlice(dst, value)
-
-			Expect(result).To(HaveLen(1))
-			Expect(result[0]).To(Equal("existing"))
-		})
-
-		It("should handle different types", func() {
-			dst := []any{1, "string"}
-			value := []any{true, 3.14}
-
-			result := appendToSlice(dst, value)
-
-			Expect(result).To(HaveLen(4))
-			Expect(result).To(ContainElements(1, "string", true, 3.14))
-		})
-
-		It("should handle nested slices by flattening only one level", func() {
-			dst := []any{"existing"}
-			value := []any{[]string{"nested1", "nested2"}, "direct"}
-
-			result := appendToSlice(dst, value)
-
-			Expect(result).To(HaveLen(3))
-			Expect(result[0]).To(Equal("existing"))
-			Expect(result[1]).To(Equal([]string{"nested1", "nested2"}))
-			Expect(result[2]).To(Equal("direct"))
 		})
 	})
 

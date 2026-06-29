@@ -462,49 +462,17 @@ func (r *PluginReconciler) fetchReleaseStatus(ctx context.Context,
 
 // computeReleaseValues resolves Expressions and ValueFromRefs in the Plugin's option values
 // and inserts the Greenhouse values
-func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, expressionEvaluation, integrationEnabled bool) ([]greenhousev1alpha1.PluginOptionValue, error) {
+func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, _expressionEvaluation, integrationEnabled bool) ([]greenhousev1alpha1.PluginOptionValue, error) {
 	optionValues, err := helm.GetPluginOptionValuesForPlugin(ctx, c, plugin)
 	if err != nil {
 		return nil, err
 	}
 	trackedObjects := make([]string, 0)
-	// initialize CEL resolver
-	var celResolver *helm.CELResolver
-	if expressionEvaluation {
-		celResolver, err = helm.NewCELResolver(optionValues)
-		if err != nil {
-			return nil, fmt.Errorf("failed to initialize CEL resolver: %w", err)
-		}
-	}
-	for i, v := range optionValues {
+	for _, v := range optionValues {
 		switch {
 		case v.Value != nil:
 			// noop, direct values are already set
 			continue
-
-		case v.Expression != nil:
-			if !expressionEvaluation {
-				// skip expression evaluation if not enabled
-				continue
-			}
-			resolvedOptionValue, err := celResolver.ResolveExpression(v, expressionEvaluation)
-			if err != nil {
-				return nil, err
-			}
-			optionValues[i] = *resolvedOptionValue
-
-		case v.ValueFrom != nil && v.ValueFrom.Ref != nil:
-			// skip if integration flag is not enabled
-			if !integrationEnabled {
-				continue
-			}
-			//TODO: handle external references
-			resolvedOptionValue, objectTrackers, err := ResolveValueFromRef(ctx, c, plugin, v)
-			if err != nil {
-				return nil, err
-			}
-			trackedObjects = append(trackedObjects, objectTrackers...)
-			optionValues[i] = *resolvedOptionValue
 
 		case v.ValueFrom != nil && v.ValueFrom.Secret != nil:
 			// noop, secret refs are not resolved here
