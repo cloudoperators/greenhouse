@@ -32,9 +32,6 @@ controllerManager:
     path: /tmp/data
     sizeLimit: 1Gi
 
-certManager:
-  enabled: true
-
 webhook:
   replicas: 2
   service:
