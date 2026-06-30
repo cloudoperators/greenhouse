@@ -462,7 +462,7 @@ func (r *PluginReconciler) fetchReleaseStatus(ctx context.Context,
 
 // computeReleaseValues resolves Expressions and ValueFromRefs in the Plugin's option values
 // and inserts the Greenhouse values
-func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, _expressionEvaluation, integrationEnabled bool) ([]greenhousev1alpha1.PluginOptionValue, error) {
+func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, _expressionEvaluation, _integrationEnabled bool) ([]greenhousev1alpha1.PluginOptionValue, error) {
 	optionValues, err := helm.GetPluginOptionValuesForPlugin(ctx, c, plugin)
 	if err != nil {
 		return nil, err
