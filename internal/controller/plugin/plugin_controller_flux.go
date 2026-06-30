@@ -467,7 +467,7 @@ func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhou
 	if err != nil {
 		return nil, err
 	}
-	trackedObjects := make([]string, 0)
+
 	for _, v := range optionValues {
 		switch {
 		case v.Value != nil:
@@ -479,21 +479,6 @@ func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhou
 			continue
 		default:
 			return nil, fmt.Errorf("option value %s has no value or valueFrom set", v.Name)
-		}
-	}
-
-	// update tracking information for plugin integrations
-	if integrationEnabled {
-		// remove tracking annotations from resources that are no longer being tracked
-		if err := removeUntrackedObjectAnnotations(ctx, c, plugin, trackedObjects); err != nil {
-			// log err, will retry on next reconciliation
-			log.FromContext(ctx).Error(err, "failed to remove untracked object annotations", "namespace", plugin.Namespace, "plugin", plugin.Name)
-		}
-		if len(trackedObjects) > 0 {
-			plugin.Status.TrackedObjects = trackedObjects
-		} else {
-			// clear tracked objects if there are none
-			plugin.Status.TrackedObjects = nil
 		}
 	}
 
