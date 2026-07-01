@@ -26,6 +26,7 @@ global:
   # PluginPreset configuration for Greenhouse.
   pluginPreset:
     expressionEvaluationEnabled: false
+    integrationEnabled: false
 
 postgresqlng:
   enabled: true

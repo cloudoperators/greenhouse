@@ -11,6 +11,7 @@ global:
     ociMirroringEnabled: true
   pluginPreset:
     expressionEvaluationEnabled: true
+    integrationEnabled: true
 alerts:
   enabled: false
 certManager:
