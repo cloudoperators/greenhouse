@@ -13,8 +13,6 @@ global:
     expressionEvaluationEnabled: true
 alerts:
   enabled: false
-certManager:
-  enabled: false
 controllerManager:
   containerSecurityContext:
     allowPrivilegeEscalation: false
