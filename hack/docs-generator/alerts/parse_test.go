@@ -18,9 +18,9 @@ func TestParseFile_PluginAlerts(t *testing.T) {
 		t.Fatalf("expected 3 rules in plugin.alerts, got %d", len(rules))
 	}
 	want := map[string]bool{
-		"GreenhousePluginNotReady":             false,
-		"GreenhousePluginPresetNotReconciled":  false,
-		"GreenhousePluginConstantlyFailing":    false,
+		"GreenhousePluginNotReady":            false,
+		"GreenhousePluginPresetNotReconciled": false,
+		"GreenhousePluginConstantlyFailing":   false,
 	}
 	for _, r := range rules {
 		if _, ok := want[r.Alert]; !ok {

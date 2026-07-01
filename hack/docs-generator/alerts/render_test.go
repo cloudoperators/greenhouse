@@ -111,7 +111,7 @@ func TestRender_BasicShape(t *testing.T) {
 	ghIdx := strings.Index(s, "## Greenhouse admin team")
 	orgIdx := strings.Index(s, "## Organization admin team")
 	supIdx := strings.Index(s, "## Support groups")
-	if !(ghIdx < orgIdx && orgIdx < supIdx) {
+	if ghIdx >= orgIdx || orgIdx >= supIdx {
 		t.Errorf("section ordering broken: gh=%d org=%d sup=%d", ghIdx, orgIdx, supIdx)
 	}
 
