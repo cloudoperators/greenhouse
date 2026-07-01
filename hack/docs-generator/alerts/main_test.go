@@ -32,7 +32,7 @@ func TestRunAgainstRealSource(t *testing.T) {
 		t.Fatalf("read output: %v", err)
 	}
 	out := string(data)
-	if len(strings.TrimSpace(out)) == 0 {
+	if strings.TrimSpace(out) == "" {
 		t.Fatal("output is empty")
 	}
 
@@ -63,7 +63,7 @@ func TestRunAgainstRealSource(t *testing.T) {
 	ghIdx := strings.Index(out, "## Greenhouse admin team")
 	orgIdx := strings.Index(out, "## Organization admin team")
 	supIdx := strings.Index(out, "## Support groups")
-	if ghIdx < 0 || orgIdx < 0 || supIdx < 0 || !(ghIdx < orgIdx && orgIdx < supIdx) {
+	if ghIdx < 0 || orgIdx < 0 || supIdx < 0 || ghIdx >= orgIdx || orgIdx >= supIdx {
 		t.Fatalf("section ordering broken: gh=%d org=%d sup=%d", ghIdx, orgIdx, supIdx)
 	}
 	ghSection := out[ghIdx:orgIdx]
@@ -107,8 +107,8 @@ func TestRunAgainstRealSource(t *testing.T) {
 
 	// team.alerts contributes one rule to org-admin and one to support-groups
 	// — the file split itself does not determine bucketing.
-	if !(strings.Contains(orgSection, "GreenhouseTeamMembershipCountDrop") &&
-		strings.Contains(supSection, "GreenhouseTeamRoleBindingNotReady")) {
+	if !strings.Contains(orgSection, "GreenhouseTeamMembershipCountDrop") ||
+		!strings.Contains(supSection, "GreenhouseTeamRoleBindingNotReady") {
 		t.Error("team.alerts must contribute rules to both org-admin and support-groups buckets")
 	}
 
@@ -137,7 +137,7 @@ func collectAlertNamesFromSource(t *testing.T, alertsDir string) []string {
 		if err != nil {
 			t.Fatalf("read %s: %v", e.Name(), err)
 		}
-		for _, line := range strings.Split(string(data), "\n") {
+		for line := range strings.SplitSeq(string(data), "\n") {
 			line = strings.TrimSpace(line)
 			const prefix = "- alert:"
 			if !strings.HasPrefix(line, prefix) {
