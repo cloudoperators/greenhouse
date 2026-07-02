@@ -25,9 +25,8 @@ import (
 )
 
 const (
-	remoteClusterName                = "remote-plugin-cluster"
-	remoteIntegrationCluster         = "remote-integration-cluster"
-	remoteOIDCClusterRoleBindingName = "oidc-plugin-cluster-role-binding"
+	remoteClusterName        = "remote-plugin-cluster"
+	remoteIntegrationCluster = "remote-integration-cluster"
 )
 
 var (
