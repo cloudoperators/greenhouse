@@ -138,7 +138,7 @@ func Test_PluginFeatures(t *testing.T) {
 		},
 		{
 			name:                        "it should return false when ociMirroringEnabled key is missing",
-			configMapData:               map[string]string{PluginFeatureKey: "expressionEvaluationEnabled: false\n"},
+			configMapData:               map[string]string{PluginFeatureKey: "xxx: false\n"},
 			expectedOCIMirroringEnabled: false,
 		},
 	}
@@ -202,6 +202,11 @@ func Test_PluginPresetFeatures(t *testing.T) {
 			name:                         "it should return true when expressionEvaluationEnabled is true",
 			configMapData:                map[string]string{PluginPresetFeatureKey: "expressionEvaluationEnabled: true\n"},
 			expectedExpressionEvaluation: true,
+		},
+		{
+			name:                         "it should return false when expressionEvaluationEnabled is false",
+			configMapData:                map[string]string{PluginPresetFeatureKey: "expressionEvaluationEnabled: false\n"},
+			expectedExpressionEvaluation: false,
 		},
 		{
 			name:                         "it should return false when feature-flags cm is not found",
