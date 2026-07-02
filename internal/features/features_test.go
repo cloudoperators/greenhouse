@@ -106,7 +106,7 @@ func Test_DexFeatures(t *testing.T) {
 	}
 }
 
-// Test_PluginFeatures - test plugin expression evaluation feature gate
+// Test_PluginFeatures tests plugin OCI mirroring feature gate.
 func Test_PluginFeatures(t *testing.T) {
 	type testCase struct {
 		name                        string
@@ -177,6 +177,7 @@ func Test_PluginFeatures(t *testing.T) {
 				mockK8sClient.AssertExpectations(t)
 				return
 			}
+
 			assert.NoError(t, err)
 
 			ociMirroringValue := featuresInstance.IsOCIMirroringEnabled()
@@ -188,6 +189,7 @@ func Test_PluginFeatures(t *testing.T) {
 	}
 }
 
+// Test_PluginPresetFeatures tests pluginPreset expression evaluation feature gate.
 func Test_PluginPresetFeatures(t *testing.T) {
 	type testCase struct {
 		name                         string
@@ -196,6 +198,11 @@ func Test_PluginPresetFeatures(t *testing.T) {
 		expectedExpressionEvaluation bool
 	}
 	testCases := []testCase{
+		{
+			name:                         "it should return true when expressionEvaluationEnabled is true",
+			configMapData:                map[string]string{PluginPresetFeatureKey: "expressionEvaluationEnabled: true\n"},
+			expectedExpressionEvaluation: true,
+		},
 		{
 			name:                         "it should return false when feature-flags cm is not found",
 			getError:                     apierrors.NewNotFound(schema.GroupResource{}, "configmap not found"),
@@ -235,11 +242,8 @@ func Test_PluginPresetFeatures(t *testing.T) {
 			if tc.getError != nil && client.IgnoreNotFound(tc.getError) == nil {
 				assert.NoError(t, client.IgnoreNotFound(err))
 				assert.Nil(t, featuresInstance, "Expected nil when ConfigMap is missing")
-
 				presetExpressionValue := featuresInstance.IsPresetExpressionEvaluationEnabled()
-
 				assert.Equal(t, tc.expectedExpressionEvaluation, presetExpressionValue)
-
 				mockK8sClient.AssertExpectations(t)
 				return
 			}
@@ -254,31 +258,4 @@ func Test_PluginPresetFeatures(t *testing.T) {
 			mockK8sClient.AssertExpectations(t)
 		})
 	}
-}
-
-func Test_PluginPresetFeatures2(t *testing.T) {
-	ctx := context.Background()
-	ctx = log.IntoContext(ctx, log.Log)
-
-	mockK8sClient := &mocks.MockClient{}
-	configMap := &corev1.ConfigMap{
-		Data: map[string]string{
-			PluginPresetFeatureKey: "expressionEvaluationEnabled: true\n",
-		},
-	}
-
-	mockK8sClient.On("Get", ctx, types.NamespacedName{
-		Name: clientutil.GetEnvOrDefault("FEATURE_FLAGS", "greenhouse-feature-flags"), Namespace: clientutil.GetEnvOrDefault("POD_NAMESPACE", "greenhouse"),
-	}, mock.Anything).Run(func(args mock.Arguments) {
-		arg := args.Get(2).(*corev1.ConfigMap)
-		*arg = *configMap
-	}).Return(nil)
-
-	featuresInstance, err := NewFeatures(ctx, mockK8sClient, clientutil.GetEnvOrDefault("FEATURE_FLAGS", "greenhouse-feature-flags"), clientutil.GetEnvOrDefault("POD_NAMESPACE", "greenhouse"))
-	assert.NoError(t, err)
-
-	// PluginPreset flags should be true
-	assert.Equal(t, true, featuresInstance.IsPresetExpressionEvaluationEnabled(), "preset expression should be enabled")
-
-	mockK8sClient.AssertExpectations(t)
 }
