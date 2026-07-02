@@ -477,8 +477,7 @@ func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhou
 			// noop, secret refs are not resolved here
 			continue
 		default:
-			return nil, fmt.Errorf("plugin %s/%s: option value %s must have a direct value or secret reference. "+
-				"Expressions and external references should be resolved by the PluginPreset controller before creating the Plugin",
+			return nil, fmt.Errorf("plugin %s/%s: option value %s must have a direct value or secret reference",
 				plugin.Namespace, plugin.Name, v.Name)
 		}
 	}
