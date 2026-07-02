@@ -33,9 +33,7 @@ type dexFeatures struct {
 }
 
 type pluginFeatures struct {
-	ExpressionEvaluationEnabled bool `yaml:"expressionEvaluationEnabled"`
-	IntegrationEnabled          bool `yaml:"integrationEnabled"`
-	OCIMirroringEnabled         bool `yaml:"ociMirroringEnabled"`
+	OCIMirroringEnabled bool `yaml:"ociMirroringEnabled"`
 }
 
 type pluginPresetFeatures struct {
@@ -126,40 +124,6 @@ func (f *Features) IsPresetExpressionEvaluationEnabled() bool {
 		return false
 	}
 	return f.pluginPreset.ExpressionEvaluationEnabled
-}
-
-// IsExpressionEvaluationEnabled returns whether plugin option expression evaluation is enabled.
-// Returns false as default.
-func (f *Features) IsExpressionEvaluationEnabled() bool {
-	if f == nil {
-		return false
-	}
-
-	if f.plugin != nil {
-		return f.plugin.ExpressionEvaluationEnabled
-	}
-	if err := f.resolvePluginFeatures(); err != nil {
-		ctrl.LoggerFrom(context.Background()).Error(err, "failed to resolve plugin features")
-		return false
-	}
-	return f.plugin.ExpressionEvaluationEnabled
-}
-
-// IsIntegrationEnabled returns whether plugin integration is enabled.
-// Returns false as default.
-func (f *Features) IsIntegrationEnabled() bool {
-	if f == nil {
-		return false
-	}
-
-	if f.plugin != nil {
-		return f.plugin.IntegrationEnabled
-	}
-	if err := f.resolvePluginFeatures(); err != nil {
-		ctrl.LoggerFrom(context.Background()).Error(err, "failed to resolve plugin features")
-		return false
-	}
-	return f.plugin.IntegrationEnabled
 }
 
 // IsOCIMirroringEnabled returns whether OCI mirroring is enabled.
