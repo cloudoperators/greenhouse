@@ -106,7 +106,7 @@ func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, plugin *greenh
 		return ctrl.Result{}, lifecycle.Failed, errors.New("helm chart not found for " + plugin.Spec.PluginDefinitionRef.Kind + "/" + plugin.Spec.PluginDefinitionRef.Name)
 	}
 
-	optionValues, err := computeReleaseValues(ctx, r.Client, plugin, r.ExpressionEvaluationEnabled, r.IntegrationEnabled)
+	optionValues, err := computeReleaseValues(ctx, r.Client, plugin)
 	if err != nil {
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.OptionValueResolutionFailedReason, err.Error()))
@@ -460,9 +460,8 @@ func (r *PluginReconciler) fetchReleaseStatus(ctx context.Context,
 	}
 }
 
-// computeReleaseValues resolves Expressions and ValueFromRefs in the Plugin's option values
-// and inserts the Greenhouse values
-func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, _expressionEvaluation, _integrationEnabled bool) ([]greenhousev1alpha1.PluginOptionValue, error) {
+// computeReleaseValues returns the Plugin's option values after validation.
+func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
 	optionValues, err := helm.GetPluginOptionValuesForPlugin(ctx, c, plugin)
 	if err != nil {
 		return nil, err

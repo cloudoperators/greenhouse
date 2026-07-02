@@ -119,74 +119,29 @@ func Test_PluginFeatures(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name:                         "it should return true when plugin expression evaluation is enabled",
-			configMapData:                map[string]string{PluginFeatureKey: "expressionEvaluationEnabled: true\n"},
-			expectedExpressionEvaluation: true,
-			expectedIntegrationEnabled:   false,
-			expectedOCIMirroringEnabled:  false,
+			name:                        "it should return false when plugin key is not found in feature-flags cm",
+			configMapData:               map[string]string{"someOtherKey": "value\n"},
+			expectedOCIMirroringEnabled: false,
 		},
 		{
-			name:                         "it should return false when plugin expression evaluation is disabled",
-			configMapData:                map[string]string{PluginFeatureKey: "expressionEvaluationEnabled: false\n"},
-			expectedExpressionEvaluation: false,
-			expectedIntegrationEnabled:   false,
-			expectedOCIMirroringEnabled:  false,
+			name:                        "it should return false when feature-flags cm is not found",
+			getError:                    apierrors.NewNotFound(schema.GroupResource{}, "configmap not found"),
+			expectedOCIMirroringEnabled: false,
 		},
 		{
-			name:                         "it should return true when plugin integration is enabled",
-			configMapData:                map[string]string{PluginFeatureKey: "integrationEnabled: true\n"},
-			expectedExpressionEvaluation: false,
-			expectedIntegrationEnabled:   true,
-			expectedOCIMirroringEnabled:  false,
+			name:                        "it should return true when ociMirroringEnabled is explicitly true",
+			configMapData:               map[string]string{PluginFeatureKey: "ociMirroringEnabled: true\n"},
+			expectedOCIMirroringEnabled: true,
 		},
 		{
-			name:                         "it should return both values when both are set",
-			configMapData:                map[string]string{PluginFeatureKey: "expressionEvaluationEnabled: true\nintegrationEnabled: true\n"},
-			expectedExpressionEvaluation: true,
-			expectedIntegrationEnabled:   true,
-			expectedOCIMirroringEnabled:  false,
+			name:                        "it should return false when ociMirroringEnabled is explicitly false",
+			configMapData:               map[string]string{PluginFeatureKey: "ociMirroringEnabled: false\n"},
+			expectedOCIMirroringEnabled: false,
 		},
 		{
-			name:                         "it should return false when plugin key is not found in feature-flags cm",
-			configMapData:                map[string]string{"someOtherKey": "value\n"},
-			expectedExpressionEvaluation: false,
-			expectedIntegrationEnabled:   false,
-			expectedOCIMirroringEnabled:  false,
-		},
-		{
-			name:                         "it should return false when feature-flags cm is not found",
-			getError:                     apierrors.NewNotFound(schema.GroupResource{}, "configmap not found"),
-			expectedExpressionEvaluation: false,
-			expectedIntegrationEnabled:   false,
-			expectedOCIMirroringEnabled:  false,
-		},
-		{
-			name:                         "it should return false when flag is malformed in feature-flags cm",
-			configMapData:                map[string]string{PluginFeatureKey: "expressionEvaluationEnabled:: invalid_yaml"},
-			expectedExpressionEvaluation: false,
-			expectedIntegrationEnabled:   false,
-			expectedOCIMirroringEnabled:  false,
-		},
-		{
-			name:                         "it should return true when ociMirroringEnabled is explicitly true",
-			configMapData:                map[string]string{PluginFeatureKey: "ociMirroringEnabled: true\n"},
-			expectedExpressionEvaluation: false,
-			expectedIntegrationEnabled:   false,
-			expectedOCIMirroringEnabled:  true,
-		},
-		{
-			name:                         "it should return false when ociMirroringEnabled is explicitly false",
-			configMapData:                map[string]string{PluginFeatureKey: "ociMirroringEnabled: false\n"},
-			expectedExpressionEvaluation: false,
-			expectedIntegrationEnabled:   false,
-			expectedOCIMirroringEnabled:  false,
-		},
-		{
-			name:                         "it should return false when ociMirroringEnabled key is missing",
-			configMapData:                map[string]string{PluginFeatureKey: "expressionEvaluationEnabled: false\n"},
-			expectedExpressionEvaluation: false,
-			expectedIntegrationEnabled:   false,
-			expectedOCIMirroringEnabled:  false,
+			name:                        "it should return false when ociMirroringEnabled key is missing",
+			configMapData:               map[string]string{PluginFeatureKey: "expressionEvaluationEnabled: false\n"},
+			expectedOCIMirroringEnabled: false,
 		},
 	}
 
@@ -218,25 +173,17 @@ func Test_PluginFeatures(t *testing.T) {
 				assert.NoError(t, client.IgnoreNotFound(err))
 				assert.Nil(t, featuresInstance, "Expected nil when ConfigMap is missing")
 
-				expressionEvaluationValue := featuresInstance.IsExpressionEvaluationEnabled()
-				integrationEnabledValue := featuresInstance.IsIntegrationEnabled()
 				ociMirroringValue := featuresInstance.IsOCIMirroringEnabled()
 
-				assert.Equal(t, tc.expectedExpressionEvaluation, expressionEvaluationValue)
-				assert.Equal(t, tc.expectedIntegrationEnabled, integrationEnabledValue)
 				assert.Equal(t, tc.expectedOCIMirroringEnabled, ociMirroringValue)
 				mockK8sClient.AssertExpectations(t)
 				return
 			}
 			assert.NoError(t, err)
 
-			expressionEvaluationValue := featuresInstance.IsExpressionEvaluationEnabled()
-			integrationEnabledValue := featuresInstance.IsIntegrationEnabled()
 			ociMirroringValue := featuresInstance.IsOCIMirroringEnabled()
 
 			// Assert expected values
-			assert.Equal(t, tc.expectedExpressionEvaluation, expressionEvaluationValue)
-			assert.Equal(t, tc.expectedIntegrationEnabled, integrationEnabledValue)
 			assert.Equal(t, tc.expectedOCIMirroringEnabled, ociMirroringValue)
 			mockK8sClient.AssertExpectations(t)
 		})
@@ -251,21 +198,6 @@ func Test_PluginPresetFeatures(t *testing.T) {
 		expectedExpressionEvaluation bool
 	}
 	testCases := []testCase{
-		{
-			name:                         "it should return true when pluginPreset expression evaluation is enabled",
-			configMapData:                map[string]string{PluginPresetFeatureKey: "expressionEvaluationEnabled: true\n"},
-			expectedExpressionEvaluation: true,
-		},
-		{
-			name:                         "it should return false when pluginPreset expression evaluation is disabled",
-			configMapData:                map[string]string{PluginPresetFeatureKey: "expressionEvaluationEnabled: false\n"},
-			expectedExpressionEvaluation: false,
-		},
-		{
-			name:                         "it should return false when pluginPreset key is not found in feature-flags cm",
-			configMapData:                map[string]string{"someOtherKey": "value\n"},
-			expectedExpressionEvaluation: false,
-		},
 		{
 			name:                         "it should return false when feature-flags cm is not found",
 			getError:                     apierrors.NewNotFound(schema.GroupResource{}, "configmap not found"),
@@ -321,25 +253,18 @@ func Test_PluginPresetFeatures(t *testing.T) {
 			// Assert expected values
 			assert.Equal(t, tc.expectedExpressionEvaluation, presetExpressionValue)
 
-			// Verify plugin flags are NOT affected by pluginPreset flags
-			pluginExpressionValue := featuresInstance.IsExpressionEvaluationEnabled()
-			pluginIntegrationValue := featuresInstance.IsIntegrationEnabled()
-			assert.Equal(t, false, pluginExpressionValue, "plugin expression flag should be false when only pluginPreset is configured")
-			assert.Equal(t, false, pluginIntegrationValue, "plugin integration flag should be false when only pluginPreset is configured")
-
 			mockK8sClient.AssertExpectations(t)
 		})
 	}
 }
 
-func Test_PluginAndPluginPresetFeaturesIndependent(t *testing.T) {
+func Test_PluginPresetFeatures2(t *testing.T) {
 	ctx := context.Background()
 	ctx = log.IntoContext(ctx, log.Log)
 
 	mockK8sClient := &mocks.MockClient{}
 	configMap := &corev1.ConfigMap{
 		Data: map[string]string{
-			PluginFeatureKey:       "expressionEvaluationEnabled: false\nintegrationEnabled: false\n",
 			PluginPresetFeatureKey: "expressionEvaluationEnabled: true\n",
 		},
 	}
@@ -353,10 +278,6 @@ func Test_PluginAndPluginPresetFeaturesIndependent(t *testing.T) {
 
 	featuresInstance, err := NewFeatures(ctx, mockK8sClient, clientutil.GetEnvOrDefault("FEATURE_FLAGS", "greenhouse-feature-flags"), clientutil.GetEnvOrDefault("POD_NAMESPACE", "greenhouse"))
 	assert.NoError(t, err)
-
-	// Plugin flags should be false
-	assert.Equal(t, false, featuresInstance.IsExpressionEvaluationEnabled(), "plugin expression should be disabled")
-	assert.Equal(t, false, featuresInstance.IsIntegrationEnabled(), "plugin integration should be disabled")
 
 	// PluginPreset flags should be true
 	assert.Equal(t, true, featuresInstance.IsPresetExpressionEvaluationEnabled(), "preset expression should be enabled")

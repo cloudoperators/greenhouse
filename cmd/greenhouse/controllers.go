@@ -84,12 +84,10 @@ func startOrganizationReconciler(name string, mgr ctrl.Manager) error {
 // Resolves expression evaluation feature flag from greenhouse-feature-flags.
 func startPluginReconciler(name string, mgr ctrl.Manager) error {
 	return (&plugincontrollers.PluginReconciler{
-		KubeRuntimeOpts:             kubeClientOpts,
-		ExpressionEvaluationEnabled: featureFlags.IsExpressionEvaluationEnabled(),
-		IntegrationEnabled:          featureFlags.IsIntegrationEnabled(),
-		OCIMirroringEnabled:         featureFlags.IsOCIMirroringEnabled(),
-		StoragePath:                 artifactStoragePath,
-		HTTPRetry:                   artifactRetries,
+		KubeRuntimeOpts:     kubeClientOpts,
+		OCIMirroringEnabled: featureFlags.IsOCIMirroringEnabled(),
+		StoragePath:         artifactStoragePath,
+		HTTPRetry:           artifactRetries,
 	}).SetupWithManager(name, mgr)
 }
 
