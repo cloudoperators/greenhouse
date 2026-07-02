@@ -81,7 +81,6 @@ func startOrganizationReconciler(name string, mgr ctrl.Manager) error {
 }
 
 // startPluginReconciler initializes the plugin reconciler.
-// Resolves expression evaluation feature flag from greenhouse-feature-flags.
 func startPluginReconciler(name string, mgr ctrl.Manager) error {
 	return (&plugincontrollers.PluginReconciler{
 		KubeRuntimeOpts:     kubeClientOpts,
