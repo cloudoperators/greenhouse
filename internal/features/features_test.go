@@ -109,12 +109,10 @@ func Test_DexFeatures(t *testing.T) {
 // Test_PluginFeatures - test plugin expression evaluation feature gate
 func Test_PluginFeatures(t *testing.T) {
 	type testCase struct {
-		name                         string
-		configMapData                map[string]string
-		getError                     error
-		expectedExpressionEvaluation bool
-		expectedIntegrationEnabled   bool
-		expectedOCIMirroringEnabled  bool
+		name                        string
+		configMapData               map[string]string
+		getError                    error
+		expectedOCIMirroringEnabled bool
 	}
 
 	testCases := []testCase{
