@@ -1188,71 +1188,12 @@ export interface components {
                 }[];
                 /** @description Values are the values for a PluginDefinition instance. */
                 optionValues?: {
-                    /**
-                     * @description Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions.
-                     *
-                     *     Deprecated: Expression is deprecated on standalone Plugins and will be removed in a future release.
-                     *     Consider using a PluginPreset to deploy Plugins utilizing the Expression field.
-                     */
-                    expression?: string;
                     /** @description Name of the values. */
                     name: string;
                     /** @description Value is the actual value in plain text. */
                     value?: unknown;
                     /** @description ValueFrom references value in another source. */
                     valueFrom?: {
-                        /**
-                         * @description Ref references values defined in another resource (Plugin, PluginPreset)
-                         *
-                         *     Deprecated: Ref is deprecated on standalone Plugins and will be removed in a future release.
-                         *     Consider using a PluginPreset to deploy Plugins utilizing the Ref field.
-                         */
-                        ref?: {
-                            /** @description Expression is a CEL expression to extract the value from the referenced resource */
-                            expression: string;
-                            /**
-                             * @description Kind is the resource kind to target
-                             *     if not set, defaults to the same kind as the referencing resource (Plugin or PluginPreset)
-                             * @enum {string}
-                             */
-                            kind?: "Plugin" | "PluginPreset";
-                            /**
-                             * @description Name is the name of the resource to target
-                             *     this field is mutually exclusive with LabelSelector
-                             */
-                            name?: string;
-                            /**
-                             * @description Selector selects the resources to target based on labels
-                             *     this field is mutually exclusive with Name
-                             */
-                            selector?: {
-                                /** @description matchExpressions is a list of label selector requirements. The requirements are ANDed. */
-                                matchExpressions?: {
-                                    /** @description key is the label key that the selector applies to. */
-                                    key: string;
-                                    /**
-                                     * @description operator represents a key's relationship to a set of values.
-                                     *     Valid operators are In, NotIn, Exists and DoesNotExist.
-                                     */
-                                    operator: string;
-                                    /**
-                                     * @description values is an array of string values. If the operator is In or NotIn,
-                                     *     the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                     *     the values array must be empty. This array is replaced during a strategic
-                                     *     merge patch.
-                                     */
-                                    values?: string[];
-                                }[];
-                                /**
-                                 * @description matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
-                                 *     map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                 *     operator is "In", and the values array contains only "value". The requirements are ANDed.
-                                 */
-                                matchLabels?: {
-                                    [key: string]: string;
-                                };
-                            };
-                        };
                         /** @description Secret references the v1.Secret containing the value that needs to be extracted */
                         secret?: {
                             /** @description Key in the secret to select the value from. */

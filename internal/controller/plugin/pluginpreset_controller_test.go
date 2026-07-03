@@ -1025,7 +1025,6 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			for _, ov := range expPlugin.Spec.OptionValues {
 				if ov.Name == "test.serviceHost" {
 					found = true
-					g.Expect(ov.Expression).To(BeNil())
 					g.Expect(ov.Value).ToNot(BeNil())
 					g.Expect(string(ov.Value.Raw)).To(Equal(`"service.eu-de-1.example.com"`))
 				}
@@ -1097,7 +1096,6 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			for _, ov := range expPlugin.Spec.OptionValues {
 				if ov.Name == "expression.value" {
 					exprResolved = true
-					g.Expect(ov.Expression).To(BeNil())
 					g.Expect(ov.Value).ToNot(BeNil())
 					g.Expect(string(ov.Value.Raw)).To(Equal(`"generated-` + clusterA + `"`))
 				}

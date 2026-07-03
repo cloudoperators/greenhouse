@@ -1452,8 +1452,7 @@ Nodes
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.PluginPresetPluginValueFromSource">PluginPresetPluginValueFromSource</a>, 
-<a href="#greenhouse.sap/v1alpha1.PluginValueFromSource">PluginValueFromSource</a>)
+<a href="#greenhouse.sap/v1alpha1.PluginPresetPluginValueFromSource">PluginPresetPluginValueFromSource</a>)
 </p>
 <p>ExternalValueSource defines how to extract values from external resources</p>
 <div class="md-typeset__scrollwrap">
@@ -3123,19 +3122,6 @@ PluginValueFromSource
 <p>ValueFrom references value in another source.</p>
 </td>
 </tr>
-<tr>
-<td>
-<code>expression</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Expression is a YAML string with ${&hellip;} placeholders that will be evaluated as CEL expressions.</p>
-<p>Deprecated: Expression is deprecated on standalone Plugins and will be removed in a future release.
-Consider using a PluginPreset to deploy Plugins utilizing the Expression field.</p>
-</td>
-</tr>
 </tbody>
 </table>
 </div>
@@ -4007,8 +3993,7 @@ Used to skip redundant replication on subsequent reconciliations.</p>
 (<em>Appears on:</em>
 <a href="#greenhouse.sap/v1alpha1.PluginOptionValue">PluginOptionValue</a>)
 </p>
-<p>PluginValueFromSource defines how to extract dynamic values
-only one of secret or ref can be set</p>
+<p>PluginValueFromSource defines how to extract dynamic values</p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
 <table>
@@ -4030,21 +4015,6 @@ SecretKeyReference
 </td>
 <td>
 <p>Secret references the v1.Secret containing the value that needs to be extracted</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>ref</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.ExternalValueSource">
-ExternalValueSource
-</a>
-</em>
-</td>
-<td>
-<p>Ref references values defined in another resource (Plugin, PluginPreset)</p>
-<p>Deprecated: Ref is deprecated on standalone Plugins and will be removed in a future release.
-Consider using a PluginPreset to deploy Plugins utilizing the Ref field.</p>
 </td>
 </tr>
 </tbody>
