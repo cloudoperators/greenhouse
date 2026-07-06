@@ -396,7 +396,7 @@ func validatePluginForCluster(ctx context.Context, c client.Client, plugin *gree
 	return nil
 }
 
-// hasExactlyOneValueSource checks if exactly one of Value, ValueFrom, or Expression is set.
+// hasExactlyOneValueSource checks if exactly one of Value or ValueFrom is set.
 func hasExactlyOneValueSource(val greenhousev1alpha1.PluginOptionValue) bool {
 	sources := []bool{
 		val.Value != nil,
