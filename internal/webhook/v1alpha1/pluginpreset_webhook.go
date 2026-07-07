@@ -175,6 +175,14 @@ func validatePresetPluginOptionValues(
 				continue
 			}
 
+			if val.ValueFrom != nil && val.ValueFrom.Ref != nil {
+				allErrs = append(allErrs, field.Forbidden(
+					fieldPathWithIndex.Child("valueFrom").Child("ref"),
+					"valueFrom.ref is not supported; use valueFrom.secret or expression",
+				))
+				continue
+			}
+
 			if pluginOption.Type == greenhousev1alpha1.PluginOptionTypeSecret {
 				switch {
 				case val.Value != nil:
@@ -182,19 +190,19 @@ func validatePresetPluginOptionValues(
 					if err := json.Unmarshal(val.Value.Raw, &valStr); err != nil {
 						allErrs = append(allErrs, field.TypeInvalid(fieldPathWithIndex.Child("value"), "*****", err.Error()))
 					}
-					if !strings.Contains(valStr, VaultPrefix) {
+					if !strings.HasPrefix(valStr, VaultPrefix) {
 						allErrs = append(allErrs, field.TypeInvalid(fieldPathWithIndex.Child("value"), "*****",
 							fmt.Sprintf("optionValue %s of type secret without secret reference must use value with vault reference prefixed by schema %q", val.Name, VaultPrefix)))
 					}
 					continue
 				case val.ValueFrom != nil && val.ValueFrom.Secret != nil:
 					if val.ValueFrom.Secret.Name == "" {
-						allErrs = append(allErrs, field.Required(fieldPathWithIndex.Child("valueFrom").Child("name"),
+						allErrs = append(allErrs, field.Required(fieldPathWithIndex.Child("valueFrom").Child("secret").Child("name"),
 							fmt.Sprintf("optionValue %s of type secret must reference a secret by name", val.Name)))
 						continue
 					}
 					if val.ValueFrom.Secret.Key == "" {
-						allErrs = append(allErrs, field.Required(fieldPathWithIndex.Child("valueFrom").Child("key"),
+						allErrs = append(allErrs, field.Required(fieldPathWithIndex.Child("valueFrom").Child("secret").Child("key"),
 							fmt.Sprintf("optionValue %s of type secret must reference a key in a secret", val.Name)))
 						continue
 					}
