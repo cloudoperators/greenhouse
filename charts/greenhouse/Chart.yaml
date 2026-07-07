@@ -3,7 +3,7 @@
 
 apiVersion: v2
 name: greenhouse
-description: A Helm chart for deploying greenhouse
+description: A Helm chart for deploying greenhouse operations platform
 type: application
 version: 0.21.0
 appVersion: "v0.15.0"
