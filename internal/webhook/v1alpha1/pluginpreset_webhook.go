@@ -5,6 +5,9 @@ package v1alpha1
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"strings"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -119,32 +122,108 @@ func validatePluginOptionValuesForPreset(pluginPreset *greenhousev1alpha1.Plugin
 	var allErrs field.ErrorList
 
 	optionValuesPath := field.NewPath("spec").Child("plugin").Child("optionValues")
-	errors := validatePluginOptionValues(convertPresetToPluginOptionValues(pluginPreset.Spec.Plugin.OptionValues), pluginDefinitionName, pluginDefinitionSpec, false, optionValuesPath)
+	errors := validatePresetPluginOptionValues(pluginPreset.Spec.Plugin.OptionValues, pluginDefinitionName, pluginDefinitionSpec, false, optionValuesPath)
 	allErrs = append(allErrs, errors...)
 
 	for idx, overridesForSingleCluster := range pluginPreset.Spec.ClusterOptionOverrides {
 		optionOverridesPath := field.NewPath("spec").Child("clusterOptionOverrides").Index(idx).Child("overrides")
-		errors = validatePluginOptionValues(convertPresetToPluginOptionValues(overridesForSingleCluster.Overrides), pluginDefinitionName, pluginDefinitionSpec, false, optionOverridesPath)
+		errors = validatePresetPluginOptionValues(overridesForSingleCluster.Overrides, pluginDefinitionName, pluginDefinitionSpec, false, optionOverridesPath)
 		allErrs = append(allErrs, errors...)
 	}
 	return allErrs
 }
 
-func convertPresetToPluginOptionValues(presetValues []greenhousev1alpha1.PluginPresetPluginOptionValue) []greenhousev1alpha1.PluginOptionValue {
-	result := make([]greenhousev1alpha1.PluginOptionValue, 0, len(presetValues))
-	for _, pv := range presetValues {
-		ov := greenhousev1alpha1.PluginOptionValue{
-			Name:  pv.Name,
-			Value: pv.Value,
-		}
-		if pv.ValueFrom != nil {
-			ov.ValueFrom = &greenhousev1alpha1.PluginValueFromSource{
-				Secret: pv.ValueFrom.Secret,
+func validatePresetPluginOptionValues(
+	optionValues []greenhousev1alpha1.PluginPresetPluginOptionValue,
+	pluginDefinitionName string,
+	pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec,
+	checkRequiredOptions bool,
+	optionsFieldPath *field.Path,
+) field.ErrorList {
+
+	var allErrs field.ErrorList
+	var isOptionValueSet bool
+
+	for _, pluginOption := range pluginDefinitionSpec.Options {
+		isOptionValueSet = false
+		for idx, val := range optionValues {
+			if pluginOption.Name != val.Name {
+				continue
+			}
+			isOptionValueSet = true
+			fieldPathWithIndex := optionsFieldPath.Index(idx)
+
+			sources := 0
+			if val.Value != nil {
+				sources++
+			}
+			if val.ValueFrom != nil {
+				sources++
+			}
+			if val.Expression != nil {
+				sources++
+			}
+			if sources != 1 {
+				allErrs = append(allErrs, field.Required(
+					fieldPathWithIndex,
+					"must provide exactly one of value, valueFrom, or expression for value "+val.Name,
+				))
+				continue
+			}
+
+			if val.Expression != nil {
+				continue
+			}
+
+			if pluginOption.Type == greenhousev1alpha1.PluginOptionTypeSecret {
+				switch {
+				case val.Value != nil:
+					var valStr string
+					if err := json.Unmarshal(val.Value.Raw, &valStr); err != nil {
+						allErrs = append(allErrs, field.TypeInvalid(fieldPathWithIndex.Child("value"), "*****", err.Error()))
+					}
+					if !strings.Contains(valStr, VaultPrefix) {
+						allErrs = append(allErrs, field.TypeInvalid(fieldPathWithIndex.Child("value"), "*****",
+							fmt.Sprintf("optionValue %s of type secret without secret reference must use value with vault reference prefixed by schema %q", val.Name, VaultPrefix)))
+					}
+					continue
+				case val.ValueFrom != nil && val.ValueFrom.Secret != nil:
+					if val.ValueFrom.Secret.Name == "" {
+						allErrs = append(allErrs, field.Required(fieldPathWithIndex.Child("valueFrom").Child("name"),
+							fmt.Sprintf("optionValue %s of type secret must reference a secret by name", val.Name)))
+						continue
+					}
+					if val.ValueFrom.Secret.Key == "" {
+						allErrs = append(allErrs, field.Required(fieldPathWithIndex.Child("valueFrom").Child("key"),
+							fmt.Sprintf("optionValue %s of type secret must reference a key in a secret", val.Name)))
+						continue
+					}
+				}
+				continue
+			}
+
+			if val.Value != nil {
+				if err := pluginOption.IsValidValue(val.Value); err != nil {
+					var v any
+					if err := json.Unmarshal(val.Value.Raw, &v); err != nil {
+						v = err
+					}
+					allErrs = append(allErrs, field.Invalid(
+						fieldPathWithIndex.Child("value"), v, err.Error(),
+					))
+				}
 			}
 		}
-		result = append(result, ov)
+		if checkRequiredOptions && pluginOption.Required && !isOptionValueSet {
+			allErrs = append(allErrs, field.Required(optionsFieldPath,
+				fmt.Sprintf("Option '%s' is required by PluginDefinition '%s'", pluginOption.Name, pluginDefinitionName)))
+		}
 	}
-	return result
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+	return allErrs
 }
 
 // validateWaitForPluginRefs validates that the WaitFor list is unique and that each PluginRef has exactly one field set.
