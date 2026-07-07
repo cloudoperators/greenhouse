@@ -276,6 +276,7 @@ func validateOwnerReference(plugin *greenhousev1alpha1.Plugin) admission.Warning
 	return nil
 }
 
+//nolint:unparam
 func validatePluginOptionValues(
 	optionValues []greenhousev1alpha1.PluginOptionValue,
 	pluginDefinitionName string,
