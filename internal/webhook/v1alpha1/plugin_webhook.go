@@ -297,11 +297,11 @@ func validatePluginOptionValues(
 			isOptionValueSet = true
 			fieldPathWithIndex := optionsFieldPath.Index(idx)
 
-			// Value, ValueFrom, and Expression are mutually exclusive, but exactly one must be provided.
+			// Value, ValueFrom are mutually exclusive, but exactly one must be provided.
 			if !hasExactlyOneValueSource(val) {
 				allErrs = append(allErrs, field.Required(
 					fieldPathWithIndex,
-					"must provide exactly one of value, valueFrom, or expression for value "+val.Name,
+					"must provide exactly one of value or valueFrom for value "+val.Name,
 				))
 				continue
 			}
