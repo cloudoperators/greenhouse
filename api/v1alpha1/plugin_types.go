@@ -69,6 +69,7 @@ type PluginOptionValue struct {
 }
 
 // PluginValueFromSource defines how to extract dynamic values
+// +kubebuilder:validation:XValidation:rule="has(self.secret)",message="secret must be set"
 type PluginValueFromSource struct {
 	// Secret references the v1.Secret containing the value that needs to be extracted
 	Secret *SecretKeyReference `json:"secret,omitempty"`

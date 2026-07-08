@@ -147,6 +147,9 @@ spec:
                           - name
                           type: object
                       type: object
+                      x-kubernetes-validations:
+                      - message: secret must be set
+                        rule: has(self.secret)
                   required:
                   - name
                   type: object
