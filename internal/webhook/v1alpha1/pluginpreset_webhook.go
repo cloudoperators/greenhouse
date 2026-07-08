@@ -198,6 +198,7 @@ func validatePresetPluginOptionValues(
 					var valStr string
 					if err := json.Unmarshal(val.Value.Raw, &valStr); err != nil {
 						allErrs = append(allErrs, field.TypeInvalid(fieldPathWithIndex.Child("value"), "*****", err.Error()))
+						continue
 					}
 					if !strings.Contains(valStr, VaultPrefix) {
 						allErrs = append(allErrs, field.TypeInvalid(fieldPathWithIndex.Child("value"), "*****",
