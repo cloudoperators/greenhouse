@@ -163,9 +163,18 @@ func validatePresetPluginOptionValues(
 			if val.Expression != nil {
 				sources++
 			}
-			if sources != 1 {
+			if sources == 0 {
 				allErrs = append(allErrs, field.Required(
 					fieldPathWithIndex,
+					"must provide exactly one of value, valueFrom, or expression for value "+val.Name,
+				))
+				continue
+			}
+
+			if sources > 1 {
+				allErrs = append(allErrs, field.Invalid(
+					fieldPathWithIndex,
+					"multiple value sources set",
 					"must provide exactly one of value, valueFrom, or expression for value "+val.Name,
 				))
 				continue
