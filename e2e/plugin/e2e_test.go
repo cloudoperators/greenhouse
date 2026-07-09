@@ -25,8 +25,7 @@ import (
 )
 
 const (
-	remoteClusterName        = "remote-plugin-cluster"
-	remoteIntegrationCluster = "remote-integration-cluster"
+	remoteClusterName = "remote-plugin-cluster"
 )
 
 var (
@@ -63,7 +62,6 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterName, env.TestNamespace)
-	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteIntegrationCluster, env.TestNamespace)
 	test.EventuallyDeleted(ctx, adminClient, team)
 	env.GenerateGreenhouseControllerLogs(ctx, testStartTime)
 	env.GenerateFluxControllerLogs(ctx, "helm-controller", testStartTime)
