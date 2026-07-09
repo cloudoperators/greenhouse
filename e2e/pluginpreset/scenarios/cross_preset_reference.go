@@ -19,7 +19,6 @@ import (
 )
 
 func PluginPresetCrossPresetReference(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName, teamName string) {
-
 	By("creating plugin definition")
 	testPluginDefinition := fixtures.PreparePodInfoClusterPluginDefinition(env.TestNamespace, "6.9.0")
 	err := adminClient.Create(ctx, testPluginDefinition)

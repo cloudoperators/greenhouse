@@ -23,7 +23,6 @@ import (
 // before evaluating expressions. This ensures the consumer gets the per-cluster
 // overridden value, not the default.
 func PluginPresetCrossPresetReferenceWithOverrides(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName, teamName string) {
-
 	By("creating plugin definition")
 	testPluginDefinition := fixtures.PreparePodInfoClusterPluginDefinition(env.TestNamespace, "6.9.0")
 	err := adminClient.Create(ctx, testPluginDefinition)
