@@ -1501,11 +1501,6 @@ func (in *PluginStatus) DeepCopyInto(out *PluginStatus) {
 		}
 	}
 	in.StatusConditions.DeepCopyInto(&out.StatusConditions)
-	if in.TrackedObjects != nil {
-		in, out := &in.TrackedObjects, &out.TrackedObjects
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	}
 	if in.ImageReplication != nil {
 		in, out := &in.ImageReplication, &out.ImageReplication
 		*out = make([]string, len(*in))
