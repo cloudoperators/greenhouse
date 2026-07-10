@@ -1321,11 +1321,6 @@ export interface components {
                         type: string;
                     }[];
                 };
-                /**
-                 * @description TrackedObjects contains a list of objects being tracked via the greenhouse.sap/tracking-id annotation.
-                 *     Each entry is in the format "kind/name" (e.g., "Plugin/my-plugin").
-                 */
-                trackedObjects?: string[];
                 /** @description UIApplication contains a reference to the frontend that is used for the deployed pluginDefinition version. */
                 uiApplication?: {
                     /** @description Name of the UI application. */

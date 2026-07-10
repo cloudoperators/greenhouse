@@ -347,13 +347,6 @@ spec:
                     - type
                     x-kubernetes-list-type: map
                 type: object
-              trackedObjects:
-                description: |-
-                  TrackedObjects contains a list of objects being tracked via the greenhouse.sap/tracking-id annotation.
-                  Each entry is in the format "kind/name" (e.g., "Plugin/my-plugin").
-                items:
-                  type: string
-                type: array
               uiApplication:
                 description: UIApplication contains a reference to the frontend that
                   is used for the deployed pluginDefinition version.
