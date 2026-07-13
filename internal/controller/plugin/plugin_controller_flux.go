@@ -441,7 +441,6 @@ func (r *PluginReconciler) fetchReleaseStatus(ctx context.Context,
 	}
 	pluginStatus.Version = pluginVersion
 	pluginStatus.HelmReleaseStatus = releaseStatus
-
 }
 
 // computeReleaseValues returns the Plugin's option values after validation.
