@@ -442,22 +442,6 @@ func (r *PluginReconciler) fetchReleaseStatus(ctx context.Context,
 	pluginStatus.Version = pluginVersion
 	pluginStatus.HelmReleaseStatus = releaseStatus
 
-	oldChecksum := ""
-	newChecksum := ""
-	if plugin.Status.HelmReleaseStatus != nil && plugin.Status.HelmReleaseStatus.PluginOptionChecksum != "" {
-		oldChecksum = plugin.Status.HelmReleaseStatus.PluginOptionChecksum
-	}
-	if plugin.Spec.OptionValues != nil {
-		newChecksum, err = helm.CalculatePluginOptionChecksum(ctx, r.Client, plugin)
-		if err != nil {
-			releaseStatus.PluginOptionChecksum = ""
-		} else {
-			releaseStatus.PluginOptionChecksum = newChecksum
-		}
-	}
-	if oldChecksum != "" {
-		r.reconcileTrackingResources(ctx, plugin, oldChecksum, newChecksum)
-	}
 }
 
 // computeReleaseValues returns the Plugin's option values after validation.
@@ -542,64 +526,6 @@ func addValueReferences(plugin *greenhousev1alpha1.Plugin) []helmv2.ValuesRefere
 		}
 	}
 	return valuesFrom
-}
-
-// reconcileTrackingResources triggers reconciliation on resources that are tracking this plugin.
-// When a plugin's option values change (detected by checksum change), this function annotates
-// all resources that reference this plugin to trigger their reconciliation.
-func (r *PluginReconciler) reconcileTrackingResources(ctx context.Context, plugin *greenhousev1alpha1.Plugin, oldChecksum, newChecksum string) {
-	if oldChecksum == newChecksum {
-		// No changes, skip reconciliation
-		return
-	}
-
-	// Get the list of trackers from plugin annotations
-	trackerIDs := getTrackerIDsFromAnnotations(plugin)
-	if len(trackerIDs) == 0 {
-		return
-	}
-
-	// Trigger reconciliation for each tracking resource
-	for _, trackerID := range trackerIDs {
-		if err := r.triggerReconcileForTracker(ctx, plugin, trackerID); err != nil {
-			log.FromContext(ctx).Error(err, "failed to trigger reconciliation for tracking resource", "trackerID", trackerID)
-		}
-	}
-}
-
-// triggerReconcileForTracker triggers reconciliation for a single tracking resource.
-func (r *PluginReconciler) triggerReconcileForTracker(ctx context.Context, plugin *greenhousev1alpha1.Plugin, trackerID string) error {
-	// Parse the tracker ID
-	kind, name, err := parseTrackingID(trackerID)
-	if err != nil {
-		log.FromContext(ctx).Error(err, "invalid tracker ID format", "trackerID", trackerID)
-		return err
-	}
-
-	// Skip self-references
-	if name == plugin.GetName() {
-		return nil
-	}
-
-	// Build GVK and key for the tracking resource
-	gvk := buildGVK(kind)
-	key := types.NamespacedName{
-		Name:      name,
-		Namespace: plugin.GetNamespace(),
-	}
-
-	// Update the resource with reconcile annotation
-	err = updateResourceWithAnnotation(ctx, r.Client, gvk, key)
-
-	if err != nil {
-		log.FromContext(ctx).Error(err, "failed to annotate tracking object with reconcile request",
-			"kind", kind,
-			"namespace", plugin.GetNamespace(),
-			"name", name)
-		return err
-	}
-
-	return nil
 }
 
 func getPluginHelmChart(ctx context.Context, c client.Client, pluginDef common.GenericPluginDefinition, namespace string) (*sourcev1.HelmChart, error) {
