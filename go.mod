@@ -15,7 +15,7 @@ replace (
 	github.com/fluxcd/pkg/apis/kustomize => github.com/fluxcd/pkg/apis/kustomize v1.19.0
 	github.com/fluxcd/pkg/apis/meta => github.com/fluxcd/pkg/apis/meta v1.30.0
 	github.com/fluxcd/source-controller/api => github.com/fluxcd/source-controller/api v1.9.0
-	github.com/fluxcd/source-watcher/api/v2 => github.com/fluxcd/source-watcher/api/v2 v2.1.1
+	github.com/fluxcd/source-watcher/api/v2 => github.com/fluxcd/source-watcher/api/v2 v2.2.0
 
 	// Keep k8s dependencies in sync.
 	k8s.io/api => k8s.io/api v0.36.0
@@ -38,7 +38,7 @@ require (
 	github.com/fluxcd/pkg/apis/kustomize v1.21.0
 	github.com/fluxcd/pkg/apis/meta v1.30.0
 	github.com/fluxcd/source-controller/api v1.9.0
-	github.com/fluxcd/source-watcher/api/v2 v2.1.1
+	github.com/fluxcd/source-watcher/api/v2 v2.2.0
 	github.com/go-jose/go-jose/v4 v4.1.4
 	github.com/go-logr/logr v1.4.3
 	github.com/google/cel-go v0.28.1
