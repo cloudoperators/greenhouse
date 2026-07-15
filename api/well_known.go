@@ -77,8 +77,6 @@ const (
 	LabelKeyPluginExposedServices = "greenhouse.sap/plugin-exposed-services"
 	// LabelValuePluginIntegration will be used as list selector value to identify resources that are part of plugin-plugin integration scenarios.
 	LabelValuePluginIntegration = "true"
-	// AnnotationKeyPluginTackingID is used to identify the resources that are resolving values from the tracked plugin.
-	AnnotationKeyPluginTackingID = "greenhouse.sap/tracking-id"
 
 	FluxReconcileRequestAnnotation = "reconcile.fluxcd.io/requestedAt"
 )
