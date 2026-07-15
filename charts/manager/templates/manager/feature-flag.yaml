@@ -3,7 +3,7 @@ kind: ConfigMap
 metadata:
   name: {{ include "manager.fullname" . }}-feature-flags
 data:
-  _example: >
+  _example: |
     ################################
     #                              #
     #    EXAMPLE CONFIGURATION     #
