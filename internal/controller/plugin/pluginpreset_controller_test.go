@@ -1237,17 +1237,17 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		Expect(result[1].Value).To(Equal(test.MustReturnJSONFor(42)))
 	})
 
-	It("should resolve valueFrom.ref pointing to another PluginPreset with expression", func() {
+	It("`should resolve valueFrom.ref pointing to another PluginPreset with expression`", func() {
 		By("creating source PluginPreset with expression")
 		sourceExpressionStr := `"generated-${global.greenhouse.clusterName}"`
-		sourcePluginSpec := greenhousev1alpha1.PluginSpec{
+		srcPluginPresetSpec := greenhousev1alpha1.PluginPresetPluginSpec{
 			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 				Name: pluginPresetDefinitionName,
 			},
 			ReleaseName:      releaseName + "-ref-src",
 			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{
 					Name:  "myRequiredOption",
 					Value: test.MustReturnJSONFor("myValue"),
@@ -1261,7 +1261,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		sourcePreset := test.NewPluginPreset("ref-source", test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(sourcePluginSpec),
+			test.WithPresetPluginSpec(srcPluginPresetSpec),
 			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"cluster": clusterA,
@@ -1289,21 +1289,21 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed(), "Source Plugin should have resolved expression")
 
 		By("creating consumer PluginPreset that references source")
-		consumerPluginSpec := greenhousev1alpha1.PluginSpec{
+		consumerPluginPresetSpec := greenhousev1alpha1.PluginPresetPluginSpec{
 			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 				Name: pluginPresetDefinitionName,
 			},
 			ReleaseName:      releaseName + "-ref-consumer",
 			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{
 					Name:  "myRequiredOption",
 					Value: test.MustReturnJSONFor("myValue"),
 				},
 				{
 					Name: "consumer.value",
-					ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
+					ValueFrom: &greenhousev1alpha1.PluginPresetPluginValueFromSource{
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind:       greenhousev1alpha1.PluginPresetKind,
 							Name:       "ref-source",
@@ -1316,7 +1316,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		consumerPreset := test.NewPluginPreset("ref-consumer", test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(consumerPluginSpec),
+			test.WithPresetPluginSpec(consumerPluginPresetSpec),
 			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"cluster": clusterA,
@@ -1369,14 +1369,14 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 	It("should resolve valueFrom.ref with expression transformation", func() {
 		By("creating source PluginPreset with expression")
 		sourceExpressionStr := `"my-service.${global.greenhouse.clusterName}.example.com"`
-		sourcePluginSpec := greenhousev1alpha1.PluginSpec{
+		sourcePluginPresetSpec := greenhousev1alpha1.PluginPresetPluginSpec{
 			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 				Name: pluginPresetDefinitionName,
 			},
 			ReleaseName:      releaseName + "-transform-src",
 			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{
 					Name:  "myRequiredOption",
 					Value: test.MustReturnJSONFor("myValue"),
@@ -1390,7 +1390,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		sourcePreset := test.NewPluginPreset("ref-transform-source", test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(sourcePluginSpec),
+			test.WithPresetPluginSpec(sourcePluginPresetSpec),
 			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"cluster": clusterA,
@@ -1406,21 +1406,21 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed())
 
 		By("creating consumer that transforms the referenced value")
-		consumerPluginSpec := greenhousev1alpha1.PluginSpec{
+		consumerPluginPresetSpec := greenhousev1alpha1.PluginPresetPluginSpec{
 			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 				Name: pluginPresetDefinitionName,
 			},
 			ReleaseName:      releaseName + "-transform-consumer",
 			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{
 					Name:  "myRequiredOption",
 					Value: test.MustReturnJSONFor("myValue"),
 				},
 				{
 					Name: "consumer.url",
-					ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
+					ValueFrom: &greenhousev1alpha1.PluginPresetPluginValueFromSource{
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind:       greenhousev1alpha1.PluginPresetKind,
 							Name:       "ref-transform-source",
@@ -1433,7 +1433,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		consumerPreset := test.NewPluginPreset("ref-transform-consumer", test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(consumerPluginSpec),
+			test.WithPresetPluginSpec(consumerPluginPresetSpec),
 			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"cluster": clusterA,
@@ -1467,14 +1467,14 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 	It("should resolve valueFrom.ref with selector pointing to multiple PluginPresets", func() {
 		By("creating two source PluginPresets with selector label")
 		sourceAExprStr := `"endpoint-a-${global.greenhouse.clusterName}"`
-		sourceASpec := greenhousev1alpha1.PluginSpec{
+		sourceAPluginPresetSpec := greenhousev1alpha1.PluginPresetPluginSpec{
 			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 				Name: pluginPresetDefinitionName,
 			},
 			ReleaseName:      releaseName + "-sel-a",
 			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
 				{Name: "source.endpoint", Expression: &sourceAExprStr},
 			},
@@ -1483,21 +1483,21 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		sourceAPreset := test.NewPluginPreset("sel-source-a", test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 			test.WithPluginPresetLabel("e2e.greenhouse.sap/selector-test", "true"),
-			test.WithPluginPresetPluginSpec(sourceASpec),
+			test.WithPresetPluginSpec(sourceAPluginPresetSpec),
 			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
 				MatchLabels: map[string]string{"cluster": clusterA},
 			}))
 		Expect(test.K8sClient.Create(test.Ctx, sourceAPreset)).To(Succeed())
 
 		sourceBExprStr := `"endpoint-b-${global.greenhouse.clusterName}"`
-		sourceBSpec := greenhousev1alpha1.PluginSpec{
+		sourceBPluginPresetSpec := greenhousev1alpha1.PluginPresetPluginSpec{
 			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 				Name: pluginPresetDefinitionName,
 			},
 			ReleaseName:      releaseName + "-sel-b",
 			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
 				{Name: "source.endpoint", Expression: &sourceBExprStr},
 			},
@@ -1506,7 +1506,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		sourceBPreset := test.NewPluginPreset("sel-source-b", test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 			test.WithPluginPresetLabel("e2e.greenhouse.sap/selector-test", "true"),
-			test.WithPluginPresetPluginSpec(sourceBSpec),
+			test.WithPresetPluginSpec(sourceBPluginPresetSpec),
 			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
 				MatchLabels: map[string]string{"cluster": clusterA},
 			}))
@@ -1521,18 +1521,18 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed())
 
 		By("creating consumer PluginPreset with selector reference")
-		consumerSpec := greenhousev1alpha1.PluginSpec{
+		consumerSpec := greenhousev1alpha1.PluginPresetPluginSpec{
 			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 				Name: pluginPresetDefinitionName,
 			},
 			ReleaseName:      releaseName + "-sel-consumer",
 			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
 				{
 					Name: "consumer.endpoints",
-					ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
+					ValueFrom: &greenhousev1alpha1.PluginPresetPluginValueFromSource{
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind: greenhousev1alpha1.PluginPresetKind,
 							Selector: &metav1.LabelSelector{
@@ -1549,7 +1549,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		consumerPreset := test.NewPluginPreset("sel-consumer", test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(consumerSpec),
+			test.WithPresetPluginSpec(consumerSpec),
 			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
 				MatchLabels: map[string]string{"cluster": clusterA},
 			}))
@@ -1586,18 +1586,18 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 	It("should return empty array when selector matches no PluginPresets", func() {
 		By("creating consumer PluginPreset with selector that matches nothing")
-		consumerSpec := greenhousev1alpha1.PluginSpec{
+		consumerSpec := greenhousev1alpha1.PluginPresetPluginSpec{
 			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 				Name: pluginPresetDefinitionName,
 			},
 			ReleaseName:      releaseName + "-empty-sel",
 			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
 				{
 					Name: "consumer.value",
-					ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
+					ValueFrom: &greenhousev1alpha1.PluginPresetPluginValueFromSource{
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind: greenhousev1alpha1.PluginPresetKind,
 							Selector: &metav1.LabelSelector{
@@ -1614,7 +1614,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		consumerPreset := test.NewPluginPreset("sel-empty", test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(consumerSpec),
+			test.WithPresetPluginSpec(consumerSpec),
 			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
 				MatchLabels: map[string]string{"cluster": clusterA},
 			}))
@@ -1644,18 +1644,18 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 	It("should report error when referenced PluginPreset does not exist", func() {
 		By("creating consumer PluginPreset referencing non-existent source")
-		consumerSpec := greenhousev1alpha1.PluginSpec{
+		consumerSpec := greenhousev1alpha1.PluginPresetPluginSpec{
 			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 				Name: pluginPresetDefinitionName,
 			},
 			ReleaseName:      releaseName + "-missing-ref",
 			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
 				{
 					Name: "consumer.value",
-					ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
+					ValueFrom: &greenhousev1alpha1.PluginPresetPluginValueFromSource{
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind:       greenhousev1alpha1.PluginPresetKind,
 							Name:       "non-existent-preset",
@@ -1668,7 +1668,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		consumerPreset := test.NewPluginPreset("ref-missing", test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(consumerSpec),
+			test.WithPresetPluginSpec(consumerSpec),
 			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
 				MatchLabels: map[string]string{"cluster": clusterA},
 			}))
@@ -1689,18 +1689,18 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 	})
 
 	It("should reject unsupported reference kind", func() {
-		consumerSpec := greenhousev1alpha1.PluginSpec{
+		consumerSpec := greenhousev1alpha1.PluginPresetPluginSpec{
 			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 				Name: pluginPresetDefinitionName,
 			},
 			ReleaseName:      releaseName + "-bad-kind",
 			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
 				{
 					Name: "consumer.value",
-					ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
+					ValueFrom: &greenhousev1alpha1.PluginPresetPluginValueFromSource{
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind:       "Plugin",
 							Name:       "some-plugin",
@@ -1712,7 +1712,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}
 		consumerPreset := test.NewPluginPreset("ref-bad-kind", test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(consumerSpec),
+			test.WithPresetPluginSpec(consumerSpec),
 			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
 				MatchLabels: map[string]string{"cluster": clusterA},
 			}))
@@ -1734,14 +1734,14 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 	It("should resolve valueFrom.ref returning integer value", func() {
 		By("creating source PluginPreset with integer value")
-		sourcePluginSpec := greenhousev1alpha1.PluginSpec{
+		sourcePluginPresetSpec := greenhousev1alpha1.PluginPresetPluginSpec{
 			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 				Name: pluginPresetDefinitionName,
 			},
 			ReleaseName:      releaseName + "-int-src",
 			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
 				{Name: "source.replicas", Value: test.MustReturnJSONFor(3)},
 			},
@@ -1749,7 +1749,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		sourcePreset := test.NewPluginPreset("ref-int-source", test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(sourcePluginSpec),
+			test.WithPresetPluginSpec(sourcePluginPresetSpec),
 			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
 				MatchLabels: map[string]string{"cluster": clusterA},
 			}))
@@ -1762,18 +1762,18 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed())
 
 		By("creating consumer that references integer value")
-		consumerPluginSpec := greenhousev1alpha1.PluginSpec{
+		consumerPluginPresetSpec := greenhousev1alpha1.PluginPresetPluginSpec{
 			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 				Name: pluginPresetDefinitionName,
 			},
 			ReleaseName:      releaseName + "-int-consumer",
 			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
 				{
 					Name: "consumer.replicas",
-					ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
+					ValueFrom: &greenhousev1alpha1.PluginPresetPluginValueFromSource{
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind:       greenhousev1alpha1.PluginPresetKind,
 							Name:       "ref-int-source",
@@ -1786,7 +1786,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		consumerPreset := test.NewPluginPreset("ref-int-consumer", test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(consumerPluginSpec),
+			test.WithPresetPluginSpec(consumerPluginPresetSpec),
 			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
 				MatchLabels: map[string]string{"cluster": clusterA},
 			}))
@@ -1815,14 +1815,14 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 	It("should resolve valueFrom.ref returning boolean value", func() {
 		By("creating source PluginPreset with boolean value")
-		sourcePluginSpec := greenhousev1alpha1.PluginSpec{
+		sourcePluginPresetSpec := greenhousev1alpha1.PluginPresetPluginSpec{
 			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 				Name: pluginPresetDefinitionName,
 			},
 			ReleaseName:      releaseName + "-bool-src",
 			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
 				{Name: "source.enabled", Value: test.MustReturnJSONFor(true)},
 			},
@@ -1830,7 +1830,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		sourcePreset := test.NewPluginPreset("ref-bool-source", test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(sourcePluginSpec),
+			test.WithPresetPluginSpec(sourcePluginPresetSpec),
 			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
 				MatchLabels: map[string]string{"cluster": clusterA},
 			}))
@@ -1843,18 +1843,18 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed())
 
 		By("creating consumer that references boolean value")
-		consumerPluginSpec := greenhousev1alpha1.PluginSpec{
+		consumerPluginPresetSpec := greenhousev1alpha1.PluginPresetPluginSpec{
 			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 				Name: pluginPresetDefinitionName,
 			},
 			ReleaseName:      releaseName + "-bool-consumer",
 			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
 				{
 					Name: "consumer.enabled",
-					ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
+					ValueFrom: &greenhousev1alpha1.PluginPresetPluginValueFromSource{
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind:       greenhousev1alpha1.PluginPresetKind,
 							Name:       "ref-bool-source",
@@ -1867,7 +1867,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		consumerPreset := test.NewPluginPreset("ref-bool-consumer", test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(consumerPluginSpec),
+			test.WithPresetPluginSpec(consumerPluginPresetSpec),
 			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
 				MatchLabels: map[string]string{"cluster": clusterA},
 			}))
@@ -1896,14 +1896,14 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 	It("should resolve valueFrom.ref returning object/map value", func() {
 		By("creating source PluginPreset with map value")
-		sourcePluginSpec := greenhousev1alpha1.PluginSpec{
+		sourcePluginPresetSpec := greenhousev1alpha1.PluginPresetPluginSpec{
 			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 				Name: pluginPresetDefinitionName,
 			},
 			ReleaseName:      releaseName + "-map-src",
 			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
 				{Name: "source.labels", Value: test.MustReturnJSONFor(map[string]string{
 					"app":  "myapp",
@@ -1914,7 +1914,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		sourcePreset := test.NewPluginPreset("ref-map-source", test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(sourcePluginSpec),
+			test.WithPresetPluginSpec(sourcePluginPresetSpec),
 			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
 				MatchLabels: map[string]string{"cluster": clusterA},
 			}))
@@ -1927,18 +1927,18 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed())
 
 		By("creating consumer that references map value")
-		consumerPluginSpec := greenhousev1alpha1.PluginSpec{
+		consumerPluginPresetSpec := greenhousev1alpha1.PluginPresetPluginSpec{
 			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 				Name: pluginPresetDefinitionName,
 			},
 			ReleaseName:      releaseName + "-map-consumer",
 			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
 				{
 					Name: "consumer.labels",
-					ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
+					ValueFrom: &greenhousev1alpha1.PluginPresetPluginValueFromSource{
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind:       greenhousev1alpha1.PluginPresetKind,
 							Name:       "ref-map-source",
@@ -1951,7 +1951,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		consumerPreset := test.NewPluginPreset("ref-map-consumer", test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(consumerPluginSpec),
+			test.WithPresetPluginSpec(consumerPluginPresetSpec),
 			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
 				MatchLabels: map[string]string{"cluster": clusterA},
 			}))
@@ -1985,14 +1985,14 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 	It("should resolve valueFrom.ref returning array value", func() {
 		By("creating source PluginPreset with array value")
-		sourcePluginSpec := greenhousev1alpha1.PluginSpec{
+		sourcePluginPresetSpec := greenhousev1alpha1.PluginPresetPluginSpec{
 			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 				Name: pluginPresetDefinitionName,
 			},
 			ReleaseName:      releaseName + "-arr-src",
 			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
 				{Name: "source.hosts", Value: test.MustReturnJSONFor([]string{"host-a.example.com", "host-b.example.com"})},
 			},
@@ -2000,7 +2000,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		sourcePreset := test.NewPluginPreset("ref-arr-source", test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(sourcePluginSpec),
+			test.WithPresetPluginSpec(sourcePluginPresetSpec),
 			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
 				MatchLabels: map[string]string{"cluster": clusterA},
 			}))
@@ -2013,18 +2013,18 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed())
 
 		By("creating consumer that references array value")
-		consumerPluginSpec := greenhousev1alpha1.PluginSpec{
+		consumerPluginPresetSpec := greenhousev1alpha1.PluginPresetPluginSpec{
 			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 				Name: pluginPresetDefinitionName,
 			},
 			ReleaseName:      releaseName + "-arr-consumer",
 			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
 				{
 					Name: "consumer.hosts",
-					ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
+					ValueFrom: &greenhousev1alpha1.PluginPresetPluginValueFromSource{
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind:       greenhousev1alpha1.PluginPresetKind,
 							Name:       "ref-arr-source",
@@ -2037,7 +2037,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		consumerPreset := test.NewPluginPreset("ref-arr-consumer", test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetPluginSpec(consumerPluginSpec),
+			test.WithPresetPluginSpec(consumerPluginPresetSpec),
 			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
 				MatchLabels: map[string]string{"cluster": clusterA},
 			}))
