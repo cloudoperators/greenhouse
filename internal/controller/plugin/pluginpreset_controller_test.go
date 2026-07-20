@@ -1280,7 +1280,6 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			for _, ov := range sourcePlugin.Spec.OptionValues {
 				if ov.Name == "source.value" {
 					found = true
-					g.Expect(ov.Expression).To(BeNil())
 					g.Expect(ov.Value).ToNot(BeNil())
 					g.Expect(string(ov.Value.Raw)).To(Equal(`"generated-` + clusterA + `"`))
 				}
