@@ -12,8 +12,8 @@ replace (
 	// Keep Flux dependencies in sync with v2.6.1.
 	github.com/fluxcd/helm-controller/api => github.com/fluxcd/helm-controller/api v1.6.0
 	github.com/fluxcd/kustomize-controller/api => github.com/fluxcd/kustomize-controller/api v1.9.0
-	github.com/fluxcd/pkg/apis/kustomize => github.com/fluxcd/pkg/apis/kustomize v1.19.0
-	github.com/fluxcd/pkg/apis/meta => github.com/fluxcd/pkg/apis/meta v1.30.0
+	github.com/fluxcd/pkg/apis/kustomize => github.com/fluxcd/pkg/apis/kustomize v1.20.0
+	github.com/fluxcd/pkg/apis/meta => github.com/fluxcd/pkg/apis/meta v1.31.0
 	github.com/fluxcd/source-controller/api => github.com/fluxcd/source-controller/api v1.9.0
 	github.com/fluxcd/source-watcher/api/v2 => github.com/fluxcd/source-watcher/api/v2 v2.2.0
 
@@ -36,7 +36,7 @@ require (
 	github.com/fluxcd/helm-controller/api v1.6.0
 	github.com/fluxcd/kustomize-controller/api v1.9.0
 	github.com/fluxcd/pkg/apis/kustomize v1.21.0
-	github.com/fluxcd/pkg/apis/meta v1.30.0
+	github.com/fluxcd/pkg/apis/meta v1.31.0
 	github.com/fluxcd/source-controller/api v1.9.0
 	github.com/fluxcd/source-watcher/api/v2 v2.2.0
 	github.com/go-jose/go-jose/v4 v4.1.4
