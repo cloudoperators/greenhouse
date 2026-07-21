@@ -300,6 +300,9 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 	if kubeConfigSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
 		log.FromContext(ctx).Info("no resources to clean up", "secretType", kubeConfigSecret.Type, "cluster", cluster.Name)
 		deleteClusterMetrics(cluster)
+		if err := r.ensureSecretFinalizerRemoved(ctx, kubeConfigSecret); err != nil {
+			return ctrl.Result{}, lifecycle.Failed, err
+		}
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 	restClientGetter, err := clientutil.NewRestClientGetterFromSecret(kubeConfigSecret, cluster.Namespace)
@@ -317,7 +320,18 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	deleteClusterMetrics(cluster)
+	if err := r.ensureSecretFinalizerRemoved(ctx, kubeConfigSecret); err != nil {
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
 	return ctrl.Result{}, lifecycle.Success, nil
+}
+
+func (r *RemoteClusterReconciler) ensureSecretFinalizerRemoved(ctx context.Context, secret *corev1.Secret) error {
+	if controllerutil.ContainsFinalizer(secret, secretFinalizer) {
+		controllerutil.RemoveFinalizer(secret, secretFinalizer)
+		return r.Update(ctx, secret)
+	}
+	return nil
 }
 
 func (r *RemoteClusterReconciler) EnsureSuspended(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, error) {

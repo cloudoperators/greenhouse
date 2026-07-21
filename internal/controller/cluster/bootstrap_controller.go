@@ -32,6 +32,10 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
+const (
+	secretFinalizer = "greenhouse.sap/finalizer"
+)
+
 type BootstrapReconciler struct {
 	client.Client
 	recorder events.EventRecorder
@@ -41,7 +45,7 @@ type BootstrapReconciler struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=clusters/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=clusters/finalizers,verbs=update
 //+kubebuilder:rbac:groups="events.k8s.io",resources=events,verbs=get;list;watch;update;patch
-//+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update;patch;delete
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *BootstrapReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
@@ -64,6 +68,10 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	var kubeConfigSecret = new(corev1.Secret)
 	if err := r.Get(ctx, req.NamespacedName, kubeConfigSecret); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+	if !kubeConfigSecret.DeletionTimestamp.IsZero() {
+		// the secret is being deleted
+		return ctrl.Result{}, r.requestClusterDeletion(ctx, req.NamespacedName)
 	}
 	if kubeConfigSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
 		// if secret type is oidc we check if a kubeconfig was already generated,
@@ -193,7 +201,7 @@ func (r *BootstrapReconciler) createOrUpdateCluster(
 		logMessage := fmt.Sprintf("%s cluster", result)
 		log.FromContext(ctx).Info(logMessage, "namespace", cluster.Namespace, "name", cluster.Name)
 	}
-	return nil
+	return r.ensureSecretFinalizer(ctx, kubeConfigSecret)
 }
 
 // ensureOwnerReferences adds the ownerReference to the secret containing the kubeconfig, so that it is garbage collected on cluster deletion.
@@ -211,10 +219,28 @@ func (r *BootstrapReconciler) ensureOwnerReferences(ctx context.Context, kubeCon
 	return err
 }
 
+// ensureSecretFinalizer adds the finalizer to the secret containing the kubeconfig, so that it will not be deleted before cluster deletion.
+func (r *BootstrapReconciler) ensureSecretFinalizer(ctx context.Context, secret *corev1.Secret) error {
+	if !controllerutil.ContainsFinalizer(secret, secretFinalizer) {
+		controllerutil.AddFinalizer(secret, secretFinalizer)
+		return r.Update(ctx, secret)
+	}
+	return nil
+}
+
 func (r *BootstrapReconciler) getCluster(ctx context.Context, kubeConfigSecret *corev1.Secret) (cluster *greenhousev1alpha1.Cluster, err error) {
 	cluster = new(greenhousev1alpha1.Cluster)
 	err = r.Get(ctx, client.ObjectKeyFromObject(kubeConfigSecret), cluster)
 	return cluster, client.IgnoreNotFound(err)
+}
+
+func (r *BootstrapReconciler) requestClusterDeletion(ctx context.Context, namespacedName types.NamespacedName) error {
+	cluster := greenhousev1alpha1.Cluster{}
+	if err := r.Get(ctx, namespacedName, &cluster); err != nil {
+		return client.IgnoreNotFound(err)
+	}
+	log.FromContext(ctx).Info("Cluster secret is being deleted, requesting Cluster deletion", "cluster", namespacedName.String())
+	return client.IgnoreNotFound(r.Delete(ctx, &cluster))
 }
 
 func enqueueSecretForCluster(_ context.Context, o client.Object) []ctrl.Request {
