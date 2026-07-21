@@ -8,6 +8,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -138,6 +139,27 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 
 			By("Deleting the kubeconfig secret and checking the cluster is deleted")
 			test.MustDeleteCluster(test.Ctx, test.K8sClient, cluster)
+		})
+		It("Should remove cluster when secret disapears", func() {
+			By("Creating a kubeconfig secret with label")
+			kubeConfigSecret := setup.CreateSecret(test.Ctx, bootstrapTestCase+"-secret-removal",
+				test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
+				test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}),
+			)
+			By("Checking if the cluster is created")
+			cluster := &greenhousev1alpha1.Cluster{}
+			id := types.NamespacedName{Name: kubeConfigSecret.Name, Namespace: setup.Namespace()}
+			Eventually(func(g Gomega) bool {
+				g.Expect(test.K8sClient.Get(test.Ctx, id, cluster)).Should(Succeed(), "the cluster should have been created")
+				return true
+			}).Should(BeTrue(), "getting the cluster should succeed eventually")
+
+			test.MustDeleteSecret(test.Ctx, test.K8sClient, kubeConfigSecret)
+
+			Eventually(func(g Gomega) bool {
+				g.Expect(apierrors.IsNotFound(test.K8sClient.Get(test.Ctx, id, cluster))).Should(BeTrue(), "the cluster should have been created")
+				return true
+			}).Should(BeTrue(), "getting the cluster should succeed eventually")
 		})
 	})
 })
