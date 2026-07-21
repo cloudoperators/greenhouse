@@ -226,7 +226,7 @@ func (r *BootstrapReconciler) requestClusterDeletion(ctx context.Context, namesp
 	if err := r.Get(ctx, namespacedName, &cluster); err != nil {
 		return client.IgnoreNotFound(err)
 	}
-	log.FromContext(ctx).Info("KubeConfig secret for Cluster %s not found, requesting Cluster deletion", namespacedName.String())
+	log.FromContext(ctx).Info("Cluster secret not found, requesting Cluster deletion", "cluster", namespacedName.String())
 	return client.IgnoreNotFound(r.Delete(ctx, &cluster))
 }
 

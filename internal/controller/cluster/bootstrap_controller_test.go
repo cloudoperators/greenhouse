@@ -140,7 +140,7 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 			By("Deleting the kubeconfig secret and checking the cluster is deleted")
 			test.MustDeleteCluster(test.Ctx, test.K8sClient, cluster)
 		})
-		It("Should remove cluster when secret disapears", func() {
+		It("Should remove cluster when secret disappears", func() {
 			By("Creating a kubeconfig secret with label")
 			kubeConfigSecret := setup.CreateSecret(test.Ctx, bootstrapTestCase+"-secret-removal",
 				test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
@@ -157,9 +157,9 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 			test.MustDeleteSecret(test.Ctx, test.K8sClient, kubeConfigSecret)
 
 			Eventually(func(g Gomega) bool {
-				g.Expect(apierrors.IsNotFound(test.K8sClient.Get(test.Ctx, id, cluster))).Should(BeTrue(), "the cluster should have been created")
+				g.Expect(apierrors.IsNotFound(test.K8sClient.Get(test.Ctx, id, cluster))).Should(BeTrue(), "the cluster should be deleted")
 				return true
-			}).Should(BeTrue(), "getting the cluster should succeed eventually")
+			}).Should(BeTrue(), "the cluster should be deleted eventually")
 		})
 	})
 })

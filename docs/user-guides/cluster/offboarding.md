@@ -37,7 +37,7 @@ Off-board a `Cluster` in Greenhouse is initiated by calling the command:
 kubectl --namespace=<greenhouse-organization-name> delete cluster <cluster-name>
 ```
 
-Another option to trigger `Cluster` off-boarding is manual deleting the cluster `Secret`, what can be done by calling the command:
+Another option to trigger `Cluster` off-boarding is manually deleting the cluster `Secret`, which can be done by calling the command:
 ```shell
 kubectl --namespace=<greenhouse-organization-name> delete secret <cluster-name>
 ```

@@ -140,19 +140,16 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 			By("getting cluster secret")
 			secret := &corev1.Secret{}
 			err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterHName, Namespace: env.TestNamespace}, secret)
-			if apierrors.IsNotFound(err) {
-				return
-			}
 			Expect(err).NotTo(HaveOccurred())
 
 			By("removing the secret resource")
 			err = adminClient.Delete(ctx, secret)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred(), "cluster secret should exist")
 
 			By("checking the cluster resource is eventually deleted")
 			cluster := &greenhousev1alpha1.Cluster{}
 			Eventually(func(g Gomega) {
-				err := adminClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, cluster)
+				err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterHName, Namespace: env.TestNamespace}, cluster)
 				g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "cluster resource should be deleted")
 			}).Should(Succeed(), "cluster resource should be deleted")
 		})
