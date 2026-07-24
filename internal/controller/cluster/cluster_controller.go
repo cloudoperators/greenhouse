@@ -294,8 +294,13 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 
 	kubeConfigSecret := &corev1.Secret{}
 	if err := r.Get(ctx, types.NamespacedName{Namespace: cluster.GetNamespace(), Name: cluster.GetSecretName()}, kubeConfigSecret); err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
+		log.FromContext(ctx).Info("cannot fetch secret", "cluster", cluster.Name, "error", err.Error())
+		if client.IgnoreNotFound(err) != nil {
+			return ctrl.Result{}, lifecycle.Failed, err
+		}
+		return ctrl.Result{}, lifecycle.Success, nil
 	}
+
 	// early return if the cluster connectivity is via OIDC
 	if kubeConfigSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
 		log.FromContext(ctx).Info("no resources to clean up", "secretType", kubeConfigSecret.Type, "cluster", cluster.Name)
