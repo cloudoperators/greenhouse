@@ -7,7 +7,7 @@ kind: Kustomization
 namespace: flux-system
 
 resources:
-  - https://github.com/fluxcd/flux2/manifests/install?ref=v2.9.2
+  - https://github.com/fluxcd/flux2/manifests/install?ref=v2.9.3
 
 images:
   - name: fluxcd/source-watcher
