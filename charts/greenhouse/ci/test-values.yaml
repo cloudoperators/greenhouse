@@ -12,8 +12,6 @@ global:
       postgresqlUsername: dex
   # Plugin configuration for Greenhouse.
   plugin:
-    expressionEvaluationEnabled: false
-    integrationEnabled: false
     ociMirroringEnabled: false
   # PluginPreset configuration for Greenhouse.
   pluginPreset:

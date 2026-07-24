@@ -37,14 +37,12 @@ import (
 // PluginReconciler reconciles a Plugin object.
 type PluginReconciler struct {
 	client.Client
-	KubeRuntimeOpts             clientutil.RuntimeOptions
-	kubeClientOpts              []clientutil.KubeClientOption
-	ExpressionEvaluationEnabled bool
-	IntegrationEnabled          bool
-	OCIMirroringEnabled         bool
-	StoragePath                 string
-	HTTPRetry                   int
-	artifactory                 flux.IArtifactory
+	KubeRuntimeOpts     clientutil.RuntimeOptions
+	kubeClientOpts      []clientutil.KubeClientOption
+	OCIMirroringEnabled bool
+	StoragePath         string
+	HTTPRetry           int
+	artifactory         flux.IArtifactory
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch;create;update;patch;delete

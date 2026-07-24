@@ -106,7 +106,7 @@ func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, plugin *greenh
 		return ctrl.Result{}, lifecycle.Failed, errors.New("helm chart not found for " + plugin.Spec.PluginDefinitionRef.Kind + "/" + plugin.Spec.PluginDefinitionRef.Name)
 	}
 
-	optionValues, err := computeReleaseValues(ctx, r.Client, plugin, r.ExpressionEvaluationEnabled, r.IntegrationEnabled)
+	optionValues, err := computeReleaseValues(ctx, r.Client, plugin)
 	if err != nil {
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.OptionValueResolutionFailedReason, err.Error()))
@@ -441,91 +441,27 @@ func (r *PluginReconciler) fetchReleaseStatus(ctx context.Context,
 	}
 	pluginStatus.Version = pluginVersion
 	pluginStatus.HelmReleaseStatus = releaseStatus
-
-	oldChecksum := ""
-	newChecksum := ""
-	if plugin.Status.HelmReleaseStatus != nil && plugin.Status.HelmReleaseStatus.PluginOptionChecksum != "" {
-		oldChecksum = plugin.Status.HelmReleaseStatus.PluginOptionChecksum
-	}
-	if plugin.Spec.OptionValues != nil {
-		newChecksum, err = helm.CalculatePluginOptionChecksum(ctx, r.Client, plugin)
-		if err != nil {
-			releaseStatus.PluginOptionChecksum = ""
-		} else {
-			releaseStatus.PluginOptionChecksum = newChecksum
-		}
-	}
-	if oldChecksum != "" {
-		r.reconcileTrackingResources(ctx, plugin, oldChecksum, newChecksum)
-	}
 }
 
-// computeReleaseValues resolves Expressions and ValueFromRefs in the Plugin's option values
-// and inserts the Greenhouse values
-func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, expressionEvaluation, integrationEnabled bool) ([]greenhousev1alpha1.PluginOptionValue, error) {
+// computeReleaseValues returns the Plugin's option values after validation.
+func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
 	optionValues, err := helm.GetPluginOptionValuesForPlugin(ctx, c, plugin)
 	if err != nil {
 		return nil, err
 	}
-	trackedObjects := make([]string, 0)
-	// initialize CEL resolver
-	var celResolver *helm.CELResolver
-	if expressionEvaluation {
-		celResolver, err = helm.NewCELResolver(optionValues)
-		if err != nil {
-			return nil, fmt.Errorf("failed to initialize CEL resolver: %w", err)
-		}
-	}
-	for i, v := range optionValues {
+
+	for _, v := range optionValues {
 		switch {
 		case v.Value != nil:
 			// noop, direct values are already set
 			continue
 
-		case v.Expression != nil:
-			if !expressionEvaluation {
-				// skip expression evaluation if not enabled
-				continue
-			}
-			resolvedOptionValue, err := celResolver.ResolveExpression(v, expressionEvaluation)
-			if err != nil {
-				return nil, err
-			}
-			optionValues[i] = *resolvedOptionValue
-
-		case v.ValueFrom != nil && v.ValueFrom.Ref != nil:
-			// skip if integration flag is not enabled
-			if !integrationEnabled {
-				continue
-			}
-			//TODO: handle external references
-			resolvedOptionValue, objectTrackers, err := ResolveValueFromRef(ctx, c, plugin, v)
-			if err != nil {
-				return nil, err
-			}
-			trackedObjects = append(trackedObjects, objectTrackers...)
-			optionValues[i] = *resolvedOptionValue
-
 		case v.ValueFrom != nil && v.ValueFrom.Secret != nil:
 			// noop, secret refs are not resolved here
 			continue
 		default:
-			return nil, fmt.Errorf("option value %s has no value or valueFrom set", v.Name)
-		}
-	}
-
-	// update tracking information for plugin integrations
-	if integrationEnabled {
-		// remove tracking annotations from resources that are no longer being tracked
-		if err := removeUntrackedObjectAnnotations(ctx, c, plugin, trackedObjects); err != nil {
-			// log err, will retry on next reconciliation
-			log.FromContext(ctx).Error(err, "failed to remove untracked object annotations", "namespace", plugin.Namespace, "plugin", plugin.Name)
-		}
-		if len(trackedObjects) > 0 {
-			plugin.Status.TrackedObjects = trackedObjects
-		} else {
-			// clear tracked objects if there are none
-			plugin.Status.TrackedObjects = nil
+			return nil, fmt.Errorf("plugin %s/%s: option value %s must have a direct value or secret reference",
+				plugin.Namespace, plugin.Name, v.Name)
 		}
 	}
 
@@ -589,64 +525,6 @@ func addValueReferences(plugin *greenhousev1alpha1.Plugin) []helmv2.ValuesRefere
 		}
 	}
 	return valuesFrom
-}
-
-// reconcileTrackingResources triggers reconciliation on resources that are tracking this plugin.
-// When a plugin's option values change (detected by checksum change), this function annotates
-// all resources that reference this plugin to trigger their reconciliation.
-func (r *PluginReconciler) reconcileTrackingResources(ctx context.Context, plugin *greenhousev1alpha1.Plugin, oldChecksum, newChecksum string) {
-	if oldChecksum == newChecksum {
-		// No changes, skip reconciliation
-		return
-	}
-
-	// Get the list of trackers from plugin annotations
-	trackerIDs := getTrackerIDsFromAnnotations(plugin)
-	if len(trackerIDs) == 0 {
-		return
-	}
-
-	// Trigger reconciliation for each tracking resource
-	for _, trackerID := range trackerIDs {
-		if err := r.triggerReconcileForTracker(ctx, plugin, trackerID); err != nil {
-			log.FromContext(ctx).Error(err, "failed to trigger reconciliation for tracking resource", "trackerID", trackerID)
-		}
-	}
-}
-
-// triggerReconcileForTracker triggers reconciliation for a single tracking resource.
-func (r *PluginReconciler) triggerReconcileForTracker(ctx context.Context, plugin *greenhousev1alpha1.Plugin, trackerID string) error {
-	// Parse the tracker ID
-	kind, name, err := parseTrackingID(trackerID)
-	if err != nil {
-		log.FromContext(ctx).Error(err, "invalid tracker ID format", "trackerID", trackerID)
-		return err
-	}
-
-	// Skip self-references
-	if name == plugin.GetName() {
-		return nil
-	}
-
-	// Build GVK and key for the tracking resource
-	gvk := buildGVK(kind)
-	key := types.NamespacedName{
-		Name:      name,
-		Namespace: plugin.GetNamespace(),
-	}
-
-	// Update the resource with reconcile annotation
-	err = updateResourceWithAnnotation(ctx, r.Client, gvk, key)
-
-	if err != nil {
-		log.FromContext(ctx).Error(err, "failed to annotate tracking object with reconcile request",
-			"kind", kind,
-			"namespace", plugin.GetNamespace(),
-			"name", name)
-		return err
-	}
-
-	return nil
 }
 
 func getPluginHelmChart(ctx context.Context, c client.Client, pluginDef common.GenericPluginDefinition, namespace string) (*sourcev1.HelmChart, error) {

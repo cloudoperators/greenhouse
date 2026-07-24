@@ -4,14 +4,10 @@
 package helm
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	"github.com/cloudoperators/greenhouse/pkg/cel"
 )
 
 type CELResolver struct {
@@ -25,38 +21,6 @@ func NewCELResolver(optionValues []greenhousev1alpha1.PluginOptionValue) (*CELRe
 		return nil, fmt.Errorf("failed to build template data: %w", err)
 	}
 	return &CELResolver{templateData: templateData}, nil
-}
-
-func (c *CELResolver) ResolveExpression(optionValue greenhousev1alpha1.PluginOptionValue, expressionEvaluationEnabled bool) (*greenhousev1alpha1.PluginOptionValue, error) {
-	// early return if there is no expression to resolve
-	if optionValue.Expression == nil {
-		return &optionValue, nil
-	}
-	// copy the expression into the value field if expression evaluation is disabled
-	if !expressionEvaluationEnabled {
-		jsonValue, err := json.Marshal(*optionValue.Expression)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal literal expression for option %s: %w", optionValue.Name, err)
-		}
-		return &greenhousev1alpha1.PluginOptionValue{
-			Name:       optionValue.Name,
-			Value:      &apiextensionsv1.JSON{Raw: jsonValue},
-			ValueFrom:  nil,
-			Expression: nil,
-		}, nil
-	}
-	// evaluate the expression using CEL
-	jsonValue, err := cel.EvaluateExpression(*optionValue.Expression, c.templateData)
-	if err != nil {
-		return nil, fmt.Errorf("failed to evaluate expression for option %s: %w", optionValue.Name, err)
-	}
-
-	return &greenhousev1alpha1.PluginOptionValue{
-		Name:       optionValue.Name,
-		Value:      &apiextensionsv1.JSON{Raw: jsonValue},
-		ValueFrom:  nil,
-		Expression: nil,
-	}, nil
 }
 
 // BuildTemplateData extracts global.greenhouse.* values to build template data for CEL evaluation.

@@ -66,25 +66,13 @@ type PluginOptionValue struct {
 	Value *apiextensionsv1.JSON `json:"value,omitempty"`
 	// ValueFrom references value in another source.
 	ValueFrom *PluginValueFromSource `json:"valueFrom,omitempty"`
-	// Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions.
-	//
-	// Deprecated: Expression is deprecated on standalone Plugins and will be removed in a future release.
-	// Consider using a PluginPreset to deploy Plugins utilizing the Expression field.
-	Expression *string `json:"expression,omitempty"`
 }
 
 // PluginValueFromSource defines how to extract dynamic values
-// only one of secret or ref can be set
-// +kubebuilder:validation:XValidation:rule="!(has(self.secret) && has(self.ref))",message="both secret and ref cannot be set"
-// +kubebuilder:validation:XValidation:rule="has(self.secret) || has(self.ref)",message="one of secret or ref must be set"
+// +kubebuilder:validation:XValidation:rule="has(self.secret)",message="secret must be set"
 type PluginValueFromSource struct {
 	// Secret references the v1.Secret containing the value that needs to be extracted
 	Secret *SecretKeyReference `json:"secret,omitempty"`
-	// Ref references values defined in another resource (Plugin, PluginPreset)
-	//
-	// Deprecated: Ref is deprecated on standalone Plugins and will be removed in a future release.
-	// Consider using a PluginPreset to deploy Plugins utilizing the Ref field.
-	Ref *ExternalValueSource `json:"ref,omitempty"`
 }
 
 // ExternalValueSource defines how to extract values from external resources
@@ -216,11 +204,6 @@ type PluginStatus struct {
 	// LastReconciledAt contains the value when the reconcile was last triggered via annotation.
 	// +Optional
 	LastReconciledAt string `json:"lastReconciledAt,omitempty"`
-
-	// TrackedObjects contains a list of objects being tracked via the greenhouse.sap/tracking-id annotation.
-	// Each entry is in the format "kind/name" (e.g., "Plugin/my-plugin").
-	// +Optional
-	TrackedObjects []string `json:"trackedObjects,omitempty"`
 
 	// ImageReplication contains a list of container image references that have been
 	// successfully replicated to the configured mirror registry.
