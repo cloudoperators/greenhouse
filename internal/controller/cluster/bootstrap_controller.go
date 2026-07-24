@@ -63,6 +63,10 @@ func (r *BootstrapReconciler) SetupWithManager(name string, mgr ctrl.Manager) er
 func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var kubeConfigSecret = new(corev1.Secret)
 	if err := r.Get(ctx, req.NamespacedName, kubeConfigSecret); err != nil {
+		if client.IgnoreNotFound(err) == nil {
+			// missing secret - initiate cluster deletion if it already exists
+			return ctrl.Result{}, r.requestClusterDeletion(ctx, req.NamespacedName)
+		}
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	if kubeConfigSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
@@ -215,6 +219,15 @@ func (r *BootstrapReconciler) getCluster(ctx context.Context, kubeConfigSecret *
 	cluster = new(greenhousev1alpha1.Cluster)
 	err = r.Get(ctx, client.ObjectKeyFromObject(kubeConfigSecret), cluster)
 	return cluster, client.IgnoreNotFound(err)
+}
+
+func (r *BootstrapReconciler) requestClusterDeletion(ctx context.Context, namespacedName types.NamespacedName) error {
+	cluster := greenhousev1alpha1.Cluster{}
+	if err := r.Get(ctx, namespacedName, &cluster); err != nil {
+		return client.IgnoreNotFound(err)
+	}
+	log.FromContext(ctx).Info("Cluster secret not found, requesting Cluster deletion", "cluster", namespacedName.String())
+	return client.IgnoreNotFound(r.Delete(ctx, &cluster))
 }
 
 func enqueueSecretForCluster(_ context.Context, o client.Object) []ctrl.Request {

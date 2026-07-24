@@ -135,6 +135,24 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 			isOwner := shared.IsResourceOwnedByOwner(crb, sa)
 			Expect(isOwner).To(BeTrue(), "service account should have an owner reference")
 		})
+
+		It("should remove cluster on secret deletion", func() {
+			By("getting cluster secret")
+			secret := &corev1.Secret{}
+			err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterHName, Namespace: env.TestNamespace}, secret)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("removing the secret resource")
+			err = adminClient.Delete(ctx, secret)
+			Expect(err).NotTo(HaveOccurred(), "cluster secret should exist")
+
+			By("checking the cluster resource is eventually deleted")
+			cluster := &greenhousev1alpha1.Cluster{}
+			Eventually(func(g Gomega) {
+				err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterHName, Namespace: env.TestNamespace}, cluster)
+				g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "cluster resource should be deleted")
+			}).Should(Succeed(), "cluster resource should be deleted")
+		})
 	})
 
 	// the context executes the tests for Cluster where a secret of type kubeconfig is provided
