@@ -6,6 +6,7 @@ package dex
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"os"
 	"testing"
 
@@ -140,5 +141,57 @@ var _ = Describe("Getting groups for token", func() {
 		groups, err := connectorOIDC.getGroups(test.TestNamespace, groupMock, context.TODO())
 		Expect(err).ToNot(HaveOccurred(), "There should be no error when getting groups")
 		Expect(groups).To(Equal([]string{"organization:" + test.TestNamespace, "team:test-team-1", "test-team-category-1:test-team-1", "role:" + test.TestNamespace + ":admin", "team:test-team-2", "test-team-category-2:test-team-2", "team:test-team-3", "team:test-team-4"}), "The groups should be correct")
+	})
+})
+
+// fakeUpstreamConnector is a minimal connector.Connector used to drive
+// oidcConnector.HandleCallback and Refresh without a real upstream IdP.
+type fakeUpstreamConnector struct {
+	identity connector.Identity
+}
+
+var (
+	_ connector.CallbackConnector = (*fakeUpstreamConnector)(nil)
+	_ connector.RefreshConnector  = (*fakeUpstreamConnector)(nil)
+)
+
+func (f *fakeUpstreamConnector) LoginURL(connector.Scopes, string, string) (loginURL string, connData []byte, err error) {
+	return "", nil, nil
+}
+
+func (f *fakeUpstreamConnector) HandleCallback(connector.Scopes, []byte, *http.Request) (connector.Identity, error) {
+	return f.identity, nil
+}
+
+func (f *fakeUpstreamConnector) Refresh(context.Context, connector.Scopes, connector.Identity) (connector.Identity, error) {
+	return f.identity, nil
+}
+
+var _ = Describe("Overriding email_verified", func() {
+	It("Should force EmailVerified to true on HandleCallback when overrideEmailVerified is set", func() {
+		logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+		upstream := &fakeUpstreamConnector{identity: connector.Identity{Email: "user@example.com", EmailVerified: false}}
+		c := oidcConnector{conn: upstream, logger: logger, client: test.K8sClient, id: test.TestNamespace, overrideEmailVerified: true}
+		identity, err := c.HandleCallback(connector.Scopes{}, nil, &http.Request{})
+		Expect(err).ToNot(HaveOccurred(), "There should be no error handling the callback")
+		Expect(identity.EmailVerified).To(BeTrue(), "EmailVerified should be forced to true even though the upstream reported false")
+	})
+
+	It("Should keep the upstream EmailVerified on HandleCallback when overrideEmailVerified is not set", func() {
+		logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+		upstream := &fakeUpstreamConnector{identity: connector.Identity{Email: "user@example.com", EmailVerified: false}}
+		c := oidcConnector{conn: upstream, logger: logger, client: test.K8sClient, id: test.TestNamespace, overrideEmailVerified: false}
+		identity, err := c.HandleCallback(connector.Scopes{}, nil, &http.Request{})
+		Expect(err).ToNot(HaveOccurred(), "There should be no error handling the callback")
+		Expect(identity.EmailVerified).To(BeFalse(), "EmailVerified should reflect the upstream value")
+	})
+
+	It("Should force EmailVerified to true on Refresh when overrideEmailVerified is set", func() {
+		logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+		upstream := &fakeUpstreamConnector{identity: connector.Identity{Email: "user@example.com", EmailVerified: false}}
+		c := oidcConnector{conn: upstream, logger: logger, client: test.K8sClient, id: test.TestNamespace, overrideEmailVerified: true}
+		identity, err := c.Refresh(context.TODO(), connector.Scopes{}, connector.Identity{})
+		Expect(err).ToNot(HaveOccurred(), "There should be no error refreshing the identity")
+		Expect(identity.EmailVerified).To(BeTrue(), "EmailVerified should be forced to true even though the upstream reported false")
 	})
 })

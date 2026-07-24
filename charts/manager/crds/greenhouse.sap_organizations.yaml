@@ -92,6 +92,26 @@ spec:
                         - key
                         - name
                         type: object
+                      extraConfig:
+                        description: ExtraConfig contains additional OIDC configuration
+                          for claim mapping and token validation behavior.
+                        properties:
+                          insecureSkipEmailVerified:
+                            default: false
+                            description: |-
+                              InsecureSkipEmailVerified, if set to true, forces the email_verified claim to true
+                              regardless of the value reported by the upstream IdP, including overriding an explicit
+                              email_verified=false. Enable only for IdPs where the email address is verified by other
+                              means, e.g. Keycloak with SAML or user federation, or providers that omit the claim
+                              entirely such as some Okta, EntraID or CloudFoundry configurations.
+                            type: boolean
+                          userIDClaim:
+                            default: login_name
+                            description: |-
+                              UserIDClaim is the claim to be used as both user ID and username.
+                              When set, it overrides both UserIDKey and UserNameKey in the dex OIDC connector config.
+                            type: string
+                        type: object
                       issuer:
                         description: Issuer is the URL of the identity service.
                         type: string

@@ -556,6 +556,21 @@ export interface components {
                             /** @description Name of the secret in the same namespace. */
                             name: string;
                         };
+                        /** @description ExtraConfig contains additional OIDC configuration for claim mapping and token validation behavior. */
+                        extraConfig?: {
+                            /**
+                             * @description InsecureSkipEmailVerified if set to true, treats email_verified as true when the claim is absent from the ID token.
+                             *     This does not override an explicit email_verified=false. Only enable for providers that omit the claim entirely (e.g. some Okta, EntraID or CloudFoundry configurations).
+                             * @default false
+                             */
+                            insecureSkipEmailVerified: boolean;
+                            /**
+                             * @description UserIDClaim is the claim to be used as both user ID and username.
+                             *     When set, it overrides both UserIDKey and UserNameKey in the dex OIDC connector config.
+                             * @default login_name
+                             */
+                            userIDClaim: string;
+                        };
                         /** @description Issuer is the URL of the identity service. */
                         issuer: string;
                         /**
