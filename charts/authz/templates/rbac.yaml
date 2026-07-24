@@ -14,7 +14,7 @@ metadata:
     {{- . | nindent 4 }}
   {{- end }}
 rules:
-  - apiGroups: ["greenhouse.sap"]
+  - apiGroups: ["greenhouse.sap", "shoot-grafter.cloudoperators.dev"]
     resources: ["*"]
     verbs: ["get", "list", "watch"]
   - apiGroups: [""]

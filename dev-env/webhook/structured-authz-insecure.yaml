@@ -32,7 +32,7 @@ authorizers:
       matchConditions:
         - expression: has(request.resourceAttributes) # only resource requests
         - expression: request.resourceAttributes.namespace != ""
-        - expression: request.resourceAttributes.group == "greenhouse.sap"
+        - expression: request.resourceAttributes.group in ["greenhouse.sap", "shoot-grafter.cloudoperators.dev"]
         # Note on verbs: get is needed for kubectl edit; watch is still needed for kubectl wait triggered after kubectl delete.
         # List is intentionally not matched here and should be handled via RBAC instead.
         - expression: request.resourceAttributes.verb in ["get","watch","update","patch","delete"]
