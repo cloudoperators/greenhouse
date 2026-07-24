@@ -47,7 +47,7 @@ jobs:
       - name: "E2E"
         id: e2e
         continue-on-error: true
-        uses: cloudoperators/common/workflows/e2e@f87e1e6b7889707a9c10d1a8a9f9f481eb311c06 # main
+        uses: cloudoperators/common/workflows/e2e@ab7fac711675c77ba025bfde04f08175a4476546 # main
         env:
           RUNTIME_ENV: "CI"
           GH_APP_ID: ${{ secrets.CLOUDOPERATOR_APP_ID }}
@@ -81,7 +81,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Go
-        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
           go-version-file: 'go.mod'
           token: ${{ secrets.GITHUB_TOKEN }}

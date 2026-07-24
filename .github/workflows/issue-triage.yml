@@ -10,4 +10,4 @@ jobs:
   triage:
     runs-on: ubuntu-latest
     steps:
-      - uses: cloudoperators/common/workflows/issue-triage@c7ec5c47aac160939836a5444d17f098b786c234 # main
+      - uses: cloudoperators/common/workflows/issue-triage@ab7fac711675c77ba025bfde04f08175a4476546 # main

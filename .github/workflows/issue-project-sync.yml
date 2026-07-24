@@ -11,6 +11,6 @@ jobs:
     if: github.event.label.name == 'backlog'
     runs-on: ubuntu-latest
     steps:
-      - uses: cloudoperators/common/workflows/issue-project-sync@f87e1e6b7889707a9c10d1a8a9f9f481eb311c06 # main
+      - uses: cloudoperators/common/workflows/issue-project-sync@ab7fac711675c77ba025bfde04f08175a4476546 # main
         with:
           GH_TOKEN: ${{ secrets.GH_PROJECT_TOKEN }}
