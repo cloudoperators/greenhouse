@@ -10,12 +10,12 @@ replace (
 	github.com/dexidp/dex/api/v2 => github.com/dexidp/dex/api/v2 v2.4.0
 
 	// Keep Flux dependencies in sync with v2.6.1.
-	github.com/fluxcd/helm-controller/api => github.com/fluxcd/helm-controller/api v1.6.0
-	github.com/fluxcd/kustomize-controller/api => github.com/fluxcd/kustomize-controller/api v1.9.0
+	github.com/fluxcd/helm-controller/api => github.com/fluxcd/helm-controller/api v1.6.2
+	github.com/fluxcd/kustomize-controller/api => github.com/fluxcd/kustomize-controller/api v1.9.2
 	github.com/fluxcd/pkg/apis/kustomize => github.com/fluxcd/pkg/apis/kustomize v1.20.0
 	github.com/fluxcd/pkg/apis/meta => github.com/fluxcd/pkg/apis/meta v1.31.0
-	github.com/fluxcd/source-controller/api => github.com/fluxcd/source-controller/api v1.9.0
-	github.com/fluxcd/source-watcher/api/v2 => github.com/fluxcd/source-watcher/api/v2 v2.2.0
+	github.com/fluxcd/source-controller/api => github.com/fluxcd/source-controller/api v1.9.2
+	github.com/fluxcd/source-watcher/api/v2 => github.com/fluxcd/source-watcher/api/v2 v2.2.2
 
 	// Keep k8s dependencies in sync.
 	k8s.io/api => k8s.io/api v0.36.0
@@ -32,13 +32,13 @@ require (
 	github.com/cenkalti/backoff/v7 v7.0.0
 	github.com/cloudoperators/greenhouse/api v0.0.0-00010101000000-000000000000
 	github.com/dexidp/dex v0.0.0-20260303133905-11d2eeb52b42
-	github.com/fluxcd/cli-utils v1.2.1
-	github.com/fluxcd/helm-controller/api v1.6.0
-	github.com/fluxcd/kustomize-controller/api v1.9.0
+	github.com/fluxcd/cli-utils v1.2.2
+	github.com/fluxcd/helm-controller/api v1.6.2
+	github.com/fluxcd/kustomize-controller/api v1.9.2
 	github.com/fluxcd/pkg/apis/kustomize v1.21.0
 	github.com/fluxcd/pkg/apis/meta v1.31.0
-	github.com/fluxcd/source-controller/api v1.9.0
-	github.com/fluxcd/source-watcher/api/v2 v2.2.0
+	github.com/fluxcd/source-controller/api v1.9.2
+	github.com/fluxcd/source-watcher/api/v2 v2.2.2
 	github.com/go-jose/go-jose/v4 v4.1.4
 	github.com/go-logr/logr v1.4.4
 	github.com/google/cel-go v0.29.2
