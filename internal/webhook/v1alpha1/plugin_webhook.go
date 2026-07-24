@@ -296,11 +296,11 @@ func validatePluginOptionValues(
 			isOptionValueSet = true
 			fieldPathWithIndex := optionsFieldPath.Index(idx)
 
-			// Value, ValueFrom, and Expression are mutually exclusive, but exactly one must be provided.
+			// Value, ValueFrom are mutually exclusive, but exactly one must be provided.
 			if !hasExactlyOneValueSource(val) {
 				allErrs = append(allErrs, field.Required(
 					fieldPathWithIndex,
-					"must provide exactly one of value, valueFrom, or expression for value "+val.Name,
+					"must provide exactly one of value or valueFrom for value "+val.Name,
 				))
 				continue
 			}
@@ -396,12 +396,11 @@ func validatePluginForCluster(ctx context.Context, c client.Client, plugin *gree
 	return nil
 }
 
-// hasExactlyOneValueSource checks if exactly one of Value, ValueFrom, or Expression is set.
+// hasExactlyOneValueSource checks if exactly one of Value or ValueFrom is set.
 func hasExactlyOneValueSource(val greenhousev1alpha1.PluginOptionValue) bool {
 	sources := []bool{
 		val.Value != nil,
 		val.ValueFrom != nil,
-		val.Expression != nil,
 	}
 
 	count := 0

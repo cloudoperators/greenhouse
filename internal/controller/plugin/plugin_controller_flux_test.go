@@ -182,7 +182,7 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 		Expect(err).ToNot(HaveOccurred(), "the expected HelmRelease values should be valid JSON")
 
 		By("computing the Values for a Plugin")
-		actualOptionValues, err := computeReleaseValues(test.Ctx, test.K8sClient, testPlugin, false, false)
+		actualOptionValues, err := computeReleaseValues(test.Ctx, test.K8sClient, testPlugin)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error computing the HelmRelease values for the Plugin")
 
 		actualRaw, err := generateHelmValues(test.Ctx, actualOptionValues)

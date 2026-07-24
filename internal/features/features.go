@@ -33,13 +33,12 @@ type dexFeatures struct {
 }
 
 type pluginFeatures struct {
-	ExpressionEvaluationEnabled bool `yaml:"expressionEvaluationEnabled"`
-	IntegrationEnabled          bool `yaml:"integrationEnabled"`
-	OCIMirroringEnabled         bool `yaml:"ociMirroringEnabled"`
+	OCIMirroringEnabled bool `yaml:"ociMirroringEnabled"`
 }
 
 type pluginPresetFeatures struct {
 	ExpressionEvaluationEnabled bool `yaml:"expressionEvaluationEnabled"`
+	IntegrationEnabled          bool `yaml:"integrationEnabled"`
 }
 
 func NewFeatures(ctx context.Context, k8sClient client.Reader, configMapName, namespace string) (*Features, error) {
@@ -128,38 +127,22 @@ func (f *Features) IsPresetExpressionEvaluationEnabled() bool {
 	return f.pluginPreset.ExpressionEvaluationEnabled
 }
 
-// IsExpressionEvaluationEnabled returns whether plugin option expression evaluation is enabled.
+// IsPresetIntegrationEnabled returns whether ValueFrom.Ref resolution
+// is enabled in the PluginPreset controller.
 // Returns false as default.
-func (f *Features) IsExpressionEvaluationEnabled() bool {
+func (f *Features) IsPresetIntegrationEnabled() bool {
 	if f == nil {
 		return false
 	}
 
-	if f.plugin != nil {
-		return f.plugin.ExpressionEvaluationEnabled
+	if f.pluginPreset != nil {
+		return f.pluginPreset.IntegrationEnabled
 	}
-	if err := f.resolvePluginFeatures(); err != nil {
-		ctrl.LoggerFrom(context.Background()).Error(err, "failed to resolve plugin features")
+	if err := f.resolvePluginPresetFeatures(); err != nil {
+		ctrl.LoggerFrom(context.Background()).Error(err, "failed to resolve pluginPreset features")
 		return false
 	}
-	return f.plugin.ExpressionEvaluationEnabled
-}
-
-// IsIntegrationEnabled returns whether plugin integration is enabled.
-// Returns false as default.
-func (f *Features) IsIntegrationEnabled() bool {
-	if f == nil {
-		return false
-	}
-
-	if f.plugin != nil {
-		return f.plugin.IntegrationEnabled
-	}
-	if err := f.resolvePluginFeatures(); err != nil {
-		ctrl.LoggerFrom(context.Background()).Error(err, "failed to resolve plugin features")
-		return false
-	}
-	return f.plugin.IntegrationEnabled
+	return f.pluginPreset.IntegrationEnabled
 }
 
 // IsOCIMirroringEnabled returns whether OCI mirroring is enabled.

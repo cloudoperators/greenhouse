@@ -7,7 +7,6 @@ package plugin
 
 import (
 	"context"
-	"encoding/base64"
 	"testing"
 	"time"
 
@@ -19,7 +18,6 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	"github.com/cloudoperators/greenhouse/e2e/cluster/expect"
 	"github.com/cloudoperators/greenhouse/e2e/plugin/scenarios"
 	"github.com/cloudoperators/greenhouse/e2e/shared"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
@@ -27,9 +25,7 @@ import (
 )
 
 const (
-	remoteClusterName                = "remote-plugin-cluster"
-	remoteIntegrationCluster         = "remote-integration-cluster"
-	remoteOIDCClusterRoleBindingName = "oidc-plugin-cluster-role-binding"
+	remoteClusterName = "remote-plugin-cluster"
 )
 
 var (
@@ -66,7 +62,6 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterName, env.TestNamespace)
-	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteIntegrationCluster, env.TestNamespace)
 	test.EventuallyDeleted(ctx, adminClient, team)
 	env.GenerateGreenhouseControllerLogs(ctx, testStartTime)
 	env.GenerateFluxControllerLogs(ctx, "helm-controller", testStartTime)
@@ -106,31 +101,6 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 
 	It("should surface HelmRelease uninstall failure as a Plugin condition and retain the finalizer until resolved", func() {
 		scenarios.FluxControllerPluginDeletionLifecycle(ctx, adminClient, env, remoteClusterName, team.Name)
-	})
-
-	It("should resolve option values from direct plugin reference", func() {
-		By("setting up cluster role binding for OIDC on remote cluster")
-		expect.SetupOIDCClusterRoleBinding(ctx, remoteClient, remoteOIDCClusterRoleBindingName, remoteIntegrationCluster, env.TestNamespace)
-
-		By("onboarding remote cluster")
-		restClient := clientutil.NewRestClientGetterFromBytes(env.RemoteKubeConfigBytes, env.TestNamespace)
-		restConfig, err := restClient.ToRESTConfig()
-		Expect(err).NotTo(HaveOccurred(), "there should be no error creating the remote REST config")
-		remoteAPIServerURL := restConfig.Host
-		remoteCA := make([]byte, base64.StdEncoding.EncodedLen(len(restConfig.CAData)))
-		base64.StdEncoding.Encode(remoteCA, restConfig.CAData)
-		shared.OnboardRemoteOIDCCluster(ctx, adminClient, remoteCA, remoteAPIServerURL, remoteIntegrationCluster, env.TestNamespace, team.Name)
-
-		By("verifying the cluster status is ready")
-		shared.ClusterIsReady(ctx, adminClient, remoteIntegrationCluster, env.TestNamespace)
-
-		By("executing the plugin integration scenario with direct plugin reference")
-		scenarios.PluginIntegrationByDirectReference(ctx, adminClient, remoteClient, env, remoteIntegrationCluster)
-	})
-
-	It("should resolve option values from plugin reference by label selector", func() {
-		By("executing the plugin integration scenario with plugin reference by label selector")
-		scenarios.PluginIntegrationBySelector(ctx, adminClient, remoteClient, env, remoteIntegrationCluster)
 	})
 
 	Context("OCI image replication", Ordered, func() {

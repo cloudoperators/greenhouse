@@ -20,12 +20,11 @@ global:
       postgresqlUsername:
   # Plugin configuration for Greenhouse.
   plugin:
-    expressionEvaluationEnabled: false
-    integrationEnabled: false
     ociMirroringEnabled: false
   # PluginPreset configuration for Greenhouse.
   pluginPreset:
     expressionEvaluationEnabled: false
+    integrationEnabled: false
 
 postgresqlng:
   enabled: true
