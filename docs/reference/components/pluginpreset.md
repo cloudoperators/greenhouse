@@ -344,13 +344,13 @@ spec:
 The expression field in valueFrom.ref supports multiple syntax styles:
 
 #### New simplified syntax
-```expression: spec.optionValues.filter(v, v.name == "my.value")[0].value```
+`expression: spec.optionValues.filter(v, v.name == "my.value")[0].value`
 
 #### With ${...} wrapper
-```expression: ${spec.optionValues.filter(v, v.name == "my.value")[0].value}```
+`expression: ${spec.optionValues.filter(v, v.name == "my.value")[0].value}`
 
 #### Legacy syntax (backward compatible)
-```expression: object.spec.optionValues.filter(v, v.name == "my.value")[0].value```
+`expression: object.spec.optionValues.filter(v, v.name == "my.value")[0].value`
 
 
 > :warning: ValueFrom references in PluginPresets only support referencing other PluginPresets (kind: PluginPreset). Referencing standalone Plugins is not supported.
