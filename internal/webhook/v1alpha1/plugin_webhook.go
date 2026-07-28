@@ -319,6 +319,12 @@ func validatePluginOptionValues(
 					}
 					continue
 				case val.ValueFrom != nil:
+					if val.ValueFrom.Secret == nil {
+						allErrs = append(allErrs, field.Required(
+							fieldPathWithIndex.Child("valueFrom").Child("secret"),
+							fmt.Sprintf("optionValue %s has valueFrom but no secret reference", val.Name)))
+						continue
+					}
 					if val.ValueFrom.Secret.Name == "" {
 						allErrs = append(allErrs, field.Required(fieldPathWithIndex.Child("valueFrom").Child("name"),
 							fmt.Sprintf("optionValue %s of type secret must reference a secret by name", val.Name)))
