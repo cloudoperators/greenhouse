@@ -177,14 +177,11 @@ spec:
 
 > :information_source: Expressions are only evaluated in PluginPresets.
 
-> :warning: CEL expressions on standalone Plugins are deprecated and will be removed in a future release. Use PluginPresets for expression evaluation.
-
-
 ## Feature Flag
 
 CEL expression evaluation in PluginPresets requires the feature flag `pluginPreset.expressionEvaluationEnabled` to be set to `true` in the Greenhouse feature flags ConfigMap.
 
-By default, this flag is `false` if it is unset or invalid, and expressions are not evaluated (the resulting Plugins will keep the `expression` fields unchanged).
+By default, this flag is `false` if it is unset or invalid. When disabled, PluginPresets containing expressions will be rejected with an error.
 
 ```yaml
 # greenhouse-feature-flags ConfigMap
