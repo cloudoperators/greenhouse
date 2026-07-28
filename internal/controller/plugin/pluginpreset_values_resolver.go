@@ -56,6 +56,12 @@ func (r *PluginPresetReconciler) resolvePluginOptionValuesForPreset(
 		if err != nil {
 			return nil, fmt.Errorf("failed to resolve references: %w", err)
 		}
+	} else {
+		for _, ov := range preset.Spec.Plugin.OptionValues {
+			if ov.ValueFrom != nil && ov.ValueFrom.Ref != nil {
+				return nil, fmt.Errorf("option %s has valueFrom.ref but integrationEnabled is disabled for PluginPreset controller", ov.Name)
+			}
+		}
 	}
 
 	return resolvedValues, nil

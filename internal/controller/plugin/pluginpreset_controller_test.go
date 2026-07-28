@@ -1194,6 +1194,51 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			"error should mention the option name")
 	})
 
+	It("should return error when valueFrom.ref is set but IntegrationEnabled is false", func() {
+		reconciler := &PluginPresetReconciler{
+			Client:             test.K8sClient,
+			IntegrationEnabled: false,
+		}
+		preset := &greenhousev1alpha1.PluginPreset{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "ref-flag-off-test",
+				Namespace: test.TestNamespace,
+			},
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				Plugin: greenhousev1alpha1.PluginPresetPluginSpec{
+					OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+						{
+							Name:  "direct.value",
+							Value: test.MustReturnJSONFor("works"),
+						},
+						{
+							Name: "test.reference",
+							ValueFrom: &greenhousev1alpha1.PluginPresetPluginValueFromSource{
+								Ref: &greenhousev1alpha1.ExternalValueSource{
+									Kind:       greenhousev1alpha1.PluginPresetKind,
+									Name:       "source-plugin",
+									Expression: "spec.optionValues[0].value",
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		cluster := &greenhousev1alpha1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-cluster",
+				Namespace: test.TestNamespace,
+			},
+		}
+		_, err := reconciler.resolvePluginOptionValuesForPreset(test.Ctx, preset, cluster)
+		Expect(err).To(HaveOccurred(), "should return error when valueFrom.ref exists but flag is disabled")
+		Expect(err.Error()).To(ContainSubstring("integrationEnabled"),
+			"error should mention the flag")
+		Expect(err.Error()).To(ContainSubstring("test.reference"),
+			"error should mention the option name")
+	})
+
 	It("should succeed when no expressions and flag is disabled", func() {
 		reconciler := &PluginPresetReconciler{
 			Client:                      test.K8sClient,
