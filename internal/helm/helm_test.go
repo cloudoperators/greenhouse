@@ -78,6 +78,26 @@ var _ = Describe("helm package test", func() {
 				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "global.greenhouse.ownedBy", Value: test.MustReturnJSONFor(plugin.Labels[string(greenhouseapis.LabelKeyOwnedBy)]), ValueFrom: nil}), "the plugin option values should contain the owning team")
 		})
 
+		It("should not generate the obsolete clusterNames and teamNames greenhouse values", func() {
+			greenhouseValues, err := helm.GetGreenhouseValues(test.Ctx, test.K8sClient, *plugin)
+			Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the greenhouse values")
+			Expect(greenhouseValues).ToNot(
+				ContainElement(HaveField("Name", "global.greenhouse.clusterNames")), "the obsolete clusterNames should not be generated")
+			Expect(greenhouseValues).ToNot(
+				ContainElement(HaveField("Name", "global.greenhouse.teamNames")), "the obsolete teamNames should not be generated")
+		})
+
+		It("should not mutate its input when stripping retired values", func() {
+			values := []greenhousev1alpha1.PluginOptionValue{
+				{Name: "key1", Value: test.MustReturnJSONFor("pluginValue1")},
+				{Name: "global.greenhouse.clusterNames", Value: test.MustReturnJSONFor([]string{"stale-cluster"})},
+			}
+			valuesBefore := slices.Clone(values)
+
+			Expect(helm.StripRetiredGreenhouseValues(values)).To(HaveLen(1), "the retired value should be dropped")
+			Expect(values).To(Equal(valuesBefore), "the input should be left untouched")
+		})
+
 		It("should not inject the obsolete clusterNames and teamNames greenhouse values", func() {
 			plugin.Spec.OptionValues = []greenhousev1alpha1.PluginOptionValue{*optionValue}
 			ensureExists(testPluginWithHelmChart)
