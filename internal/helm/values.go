@@ -6,6 +6,7 @@ package helm
 import (
 	"context"
 	"encoding/json"
+	"slices"
 	"strings"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -17,20 +18,34 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/common"
 )
 
+var retiredGreenhouseValues = []string{
+	"global.greenhouse.clusterNames",
+	"global.greenhouse.teamNames",
+}
+
 func GetPluginOptionValuesForPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
 	pluginDefinitionSpec, err := common.GetPluginDefinitionSpec(ctx, c, plugin.Spec.PluginDefinitionRef, plugin.GetNamespace())
 	if err != nil {
 		return nil, err
 	}
 
-	values := MergePluginAndPluginOptionValueSlice(pluginDefinitionSpec.Options, plugin.Spec.OptionValues)
+	// Clone, as the merge writes through to its input when the PluginDefinition declares no options.
+	values := MergePluginAndPluginOptionValueSlice(pluginDefinitionSpec.Options, slices.Clone(plugin.Spec.OptionValues))
 	// Enrich with default greenhouse values.
 	greenhouseValues, err := GetGreenhouseValues(ctx, c, *plugin)
 	if err != nil {
 		return nil, err
 	}
 	values = MergePluginOptionValues(values, greenhouseValues)
-	return values, nil
+	return StripRetiredGreenhouseValues(values), nil
+}
+
+// StripRetiredGreenhouseValues drops the values Greenhouse no longer injects.
+// It clones, as the input may alias a Plugin's OptionValues.
+func StripRetiredGreenhouseValues(values []greenhousev1alpha1.PluginOptionValue) []greenhousev1alpha1.PluginOptionValue {
+	return slices.DeleteFunc(slices.Clone(values), func(v greenhousev1alpha1.PluginOptionValue) bool {
+		return slices.Contains(retiredGreenhouseValues, v.Name)
+	})
 }
 
 // GetGreenhouseValues generate values for greenhouse core resources in the form:

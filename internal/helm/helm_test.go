@@ -6,6 +6,7 @@ package helm_test
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -90,6 +91,50 @@ var _ = Describe("helm package test", func() {
 				ContainElement(HaveField("Name", "global.greenhouse.teamNames")), "the obsolete teamNames should not be injected")
 		})
 
+		It("should drop obsolete greenhouse values already persisted in the plugin spec", func() {
+			plugin.Spec.OptionValues = []greenhousev1alpha1.PluginOptionValue{
+				*optionValue,
+				{Name: "global.greenhouse.clusterNames", Value: test.MustReturnJSONFor([]string{"stale-cluster"})},
+				{Name: "global.greenhouse.teamNames", Value: test.MustReturnJSONFor([]string{"stale-team"})},
+			}
+			ensureExists(testPluginWithHelmChart)
+
+			pluginOptionValues, err := helm.GetPluginOptionValuesForPlugin(test.Ctx, test.K8sClient, plugin)
+			Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the plugin option values")
+			Expect(pluginOptionValues).ToNot(
+				ContainElement(HaveField("Name", "global.greenhouse.clusterNames")), "the stale clusterNames should be removed from the spec")
+			Expect(pluginOptionValues).ToNot(
+				ContainElement(HaveField("Name", "global.greenhouse.teamNames")), "the stale teamNames should be removed from the spec")
+			Expect(pluginOptionValues).To(
+				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "key1", Value: test.MustReturnJSONFor("pluginValue1"), ValueFrom: nil}), "unrelated option values should be preserved")
+		})
+
+		It("should not mutate the plugin spec while dropping retired values", func() {
+			definitionWithoutOptions := testPluginWithHelmChart.DeepCopy()
+			definitionWithoutOptions.Name = "definition-without-options"
+			definitionWithoutOptions.Spec.Options = nil
+			ensureExists(definitionWithoutOptions)
+
+			// Nil Options plus a spec that already holds every greenhouse value means the merge
+			// neither copies nor reallocates, which is what leaves the slice aliased to the spec.
+			// The values are deliberately stale, so an in-place overwrite is observable.
+			pluginWithoutOptions := plugin.DeepCopy()
+			pluginWithoutOptions.Labels = nil
+			pluginWithoutOptions.Spec.ClusterName = ""
+			pluginWithoutOptions.Spec.PluginDefinitionRef.Name = definitionWithoutOptions.Name
+			pluginWithoutOptions.Spec.OptionValues = []greenhousev1alpha1.PluginOptionValue{
+				{Name: "key1", Value: test.MustReturnJSONFor("pluginValue1")},
+				{Name: "global.greenhouse.organizationName", Value: test.MustReturnJSONFor("stale-org")},
+				{Name: "global.greenhouse.baseDomain", Value: test.MustReturnJSONFor("stale.example.com")},
+				{Name: "global.greenhouse.clusterNames", Value: test.MustReturnJSONFor([]string{"stale-cluster"})},
+				{Name: "global.greenhouse.teamNames", Value: test.MustReturnJSONFor([]string{"stale-team"})},
+			}
+			specBefore := slices.Clone(pluginWithoutOptions.Spec.OptionValues)
+
+			_, err := helm.GetPluginOptionValuesForPlugin(test.Ctx, test.K8sClient, pluginWithoutOptions)
+			Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the plugin option values")
+			Expect(pluginWithoutOptions.Spec.OptionValues).To(Equal(specBefore), "the plugin spec should be left untouched")
+		})
 	})
 
 	When("handling a helm chart from a pluginDefinition", func() {

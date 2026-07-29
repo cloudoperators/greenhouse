@@ -155,6 +155,25 @@ var _ = Describe("prepareValues", func() {
 		opts.pluginPreset = pluginPreset
 	})
 
+	Context("with retired greenhouse values in the preset", func() {
+		It("should not render values the controller no longer injects", func() {
+			pluginPreset.Spec.Plugin.OptionValues = []greenhousev1alpha1.PluginPresetPluginOptionValue{
+				{Name: "global.greenhouse.clusterNames", Value: &apiextensionsv1.JSON{Raw: []byte(`["cluster-a"]`)}},
+				{Name: "global.greenhouse.teamNames", Value: &apiextensionsv1.JSON{Raw: []byte(`["team-1"]`)}},
+			}
+
+			err := opts.prepareValues()
+			Expect(err).NotTo(HaveOccurred())
+
+			names := make([]string, 0, len(opts.values))
+			for _, v := range opts.values {
+				names = append(names, v.Name)
+			}
+			Expect(names).NotTo(ContainElement("global.greenhouse.clusterNames"))
+			Expect(names).NotTo(ContainElement("global.greenhouse.teamNames"))
+		})
+	})
+
 	Context("with PluginDefinition defaults only", func() {
 		It("should include default values", func() {
 			err := opts.prepareValues()
