@@ -85,6 +85,22 @@ spec:
     - /spec/replicas
 ```
 
+## Injected Greenhouse Values
+
+The defaulting webhook adds a set of `global.greenhouse.*` OptionValues to every Plugin. A PluginDefinition does not need to declare them as PluginOptions. They are passed to the Helm chart like any other OptionValue and can be referenced in [PluginPreset expressions](./../pluginpreset#cel-expressions-in-optionvalues).
+
+| Value                                | Description                                                     | Example                  |
+|--------------------------------------|-----------------------------------------------------------------|--------------------------|
+| `global.greenhouse.organizationName` | Name of the `Organization`                                      | `my-org`                 |
+| `global.greenhouse.clusterName`      | Name of the target `Cluster`                                    | `cluster-a`              |
+| `global.greenhouse.baseDomain`       | Base domain of the Greenhouse installation                      | `greenhouse.example.com` |
+| `global.greenhouse.ownedBy`          | Owning `Team` of the Plugin                                     | `team-1`                 |
+| `global.greenhouse.metadata.*`       | [Cluster metadata labels](./../cluster#setting-metadata-labels) | `eu-de-1`                |
+
+`clusterName` and `metadata.*` are only set for Plugins targeting a Cluster, `ownedBy` only if the Plugin has the `greenhouse.sap/owned-by` label.
+
+> :warning: `global.greenhouse.clusterNames` and `global.greenhouse.teamNames` held all Clusters and Teams of an Organization. They are no longer passed to the Helm chart, which takes effect on the next reconciliation of a Plugin, not only when it is edited. They are additionally removed from `.spec.optionValues` the next time the Plugin is created or updated. A PluginPreset `.spec.plugin.optionValues[].expression` still referencing either of them fails to evaluate and blocks the PluginPreset from rolling out its Plugins, so migrate those to `global.greenhouse.clusterName` and `global.greenhouse.metadata.*` first.
+
 ## Working with Plugins
 
 ### Suspending the Plugin's reconciliation

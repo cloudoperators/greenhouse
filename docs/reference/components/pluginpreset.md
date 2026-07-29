@@ -121,12 +121,13 @@ spec:
 |--------------------------------------|----------------------------|------------------------------|
 | `global.greenhouse.clusterName`      | Name of the target cluster | `cluster-a`                  |
 | `global.greenhouse.organizationName` | Organization namespace     | `my-org`                     |
-| `global.greenhouse.clusterNames`     | List of all cluster names  | `["cluster-a", "cluster-b"]` |
-| `global.greenhouse.teamNames`        | List of all team names     | `["team-1", "team-2"]`       |
 | `global.greenhouse.baseDomain`       | Base DNS domain            | `greenhouse.example.com`     |
+| `global.greenhouse.ownedBy`          | Owning `Team`              | `team-1`                     |
 | `global.greenhouse.metadata.*`       | Cluster metadata labels    | `eu-de-1`                    |
 
 > :information_source: `global.greenhouse.metadata.*` values are derived from cluster labels prefixed with `metadata.greenhouse.sap/`. For example, the label `metadata.greenhouse.sap/region: eu-de-1` becomes available as `global.greenhouse.metadata.region`.
+
+> :warning: `global.greenhouse.clusterNames` and `global.greenhouse.teamNames` were removed. An expression still referencing either of them fails to evaluate and blocks the PluginPreset from rolling out its Plugins. See [Injected Greenhouse Values](./../plugin#injected-greenhouse-values).
 
 ### Examples
 
