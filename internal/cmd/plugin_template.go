@@ -243,8 +243,6 @@ func (o *PluginTemplatePresetOptions) runHelmTemplate(valuesFile string) error {
 
 func (o *PluginTemplatePresetOptions) getGreenhouseValuesForTemplate() ([]greenhousev1alpha1.PluginOptionValue, error) {
 	literalPaths := []string{
-		"global.greenhouse.clusterNames",
-		"global.greenhouse.teamNames",
 		"global.greenhouse.baseDomain",
 		"global.greenhouse.ownedBy",
 	}

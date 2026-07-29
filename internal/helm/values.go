@@ -6,7 +6,6 @@ package helm
 import (
 	"context"
 	"encoding/json"
-	"sort"
 	"strings"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -38,52 +37,14 @@ func GetPluginOptionValuesForPlugin(ctx context.Context, c client.Client, plugin
 //
 //	global:
 //	  greenhouse:
-//	    clusterNames:
-//		  - <name>
-//		teams:
-//		  - <name>
+//	    organizationName: <name>
+//	    clusterName: <name>
+//	    baseDomain: <domain>
+//	    ownedBy: <team>
+//	    metadata:
+//	      <key>: <value>
 func GetGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
 	greenhouseValues := make([]greenhousev1alpha1.PluginOptionValue, 0)
-	var clusterList = new(greenhousev1alpha1.ClusterList)
-	if err := c.List(ctx, clusterList, &client.ListOptions{Namespace: p.GetNamespace()}); err != nil {
-		return nil, err
-	}
-	clusterNames := make([]string, len(clusterList.Items))
-	for idx, cluster := range clusterList.Items {
-		clusterNames[idx] = cluster.Name
-	}
-
-	clusterNamesVal, err := stringSliceToHelmValue(clusterNames)
-	if err != nil {
-		return nil, err
-	}
-
-	greenhouseValues = append(greenhouseValues, greenhousev1alpha1.PluginOptionValue{
-		Name:      "global.greenhouse.clusterNames",
-		Value:     clusterNamesVal,
-		ValueFrom: nil,
-	})
-
-	// Teams within the organization.
-	var teamList = new(greenhousev1alpha1.TeamList)
-	if err := c.List(ctx, teamList, client.InNamespace(p.GetNamespace())); err != nil {
-		return nil, err
-	}
-	teamNames := make([]string, len(teamList.Items))
-	for idx, team := range teamList.Items {
-		teamNames[idx] = team.Name
-	}
-
-	teamNamesVal, err := stringSliceToHelmValue(teamNames)
-	if err != nil {
-		return nil, err
-	}
-
-	greenhouseValues = append(greenhouseValues, greenhousev1alpha1.PluginOptionValue{
-		Name:      "global.greenhouse.teamNames",
-		Value:     teamNamesVal,
-		ValueFrom: nil,
-	})
 
 	// append orgName
 	orgNameVal, err := json.Marshal(p.GetNamespace())
@@ -165,17 +126,6 @@ func setOrAppendNameValue(valueSlice []greenhousev1alpha1.PluginOptionValue, val
 		}
 	}
 	return append(valueSlice, valueToSetOrAppend)
-}
-
-// stringSliceToHelmValue sorts theSlice, marshals it to JSON and returns an apiextensionsv1.JSON object.
-func stringSliceToHelmValue(theSlice []string) (*apiextensionsv1.JSON, error) {
-	sort.Strings(theSlice)
-
-	raw, err := json.Marshal(theSlice)
-	if err != nil {
-		return nil, err
-	}
-	return &apiextensionsv1.JSON{Raw: raw}, nil
 }
 
 // extractMetadataKey extracts the metadata key from cluster labels with the pattern "metadata.greenhouse.sap/<key>".
