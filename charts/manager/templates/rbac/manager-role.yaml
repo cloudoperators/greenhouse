@@ -16,21 +16,11 @@ rules:
   - ""
   resources:
   - namespaces
+  - secrets
   - serviceaccounts
   verbs:
   - create
   - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - create
   - get
   - list
   - patch
