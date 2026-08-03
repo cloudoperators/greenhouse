@@ -83,11 +83,20 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			// we have finalizer, so delete cluster if one can be found
 			cluster := greenhousev1alpha1.Cluster{}
 			if err := r.Get(ctx, req.NamespacedName, &cluster); err != nil {
+				if client.IgnoreNotFound(err) == nil {
+					// cluster not found - remove finalizer
+					if controllerutil.ContainsFinalizer(kubeConfigSecret, secretFinalizer) {
+						controllerutil.RemoveFinalizer(kubeConfigSecret, secretFinalizer)
+						if err := r.Update(ctx, kubeConfigSecret); err != nil {
+							return ctrl.Result{}, err
+						}
+					}
+				}
 				return ctrl.Result{}, client.IgnoreNotFound(err)
 			}
 			log.FromContext(ctx).Info(
 				"Cluster secret is being deleted, requesting Cluster deletion",
-				"cluster", req.NamespacedName.String(),
+				"cluster", req.String(),
 			)
 			return ctrl.Result{}, client.IgnoreNotFound(r.Delete(ctx, &cluster))
 		}

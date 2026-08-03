@@ -275,6 +275,19 @@ func (r *RemoteClusterReconciler) reconcileServiceAccountToken(
 	return nil
 }
 
+func (r *RemoteClusterReconciler) ensureFinalizerAndMetricsCleanup(ctx context.Context, cluster *greenhousev1alpha1.Cluster, secret *corev1.Secret) error {
+	deleteClusterMetrics(cluster)
+	if controllerutil.ContainsFinalizer(secret, secretFinalizer) {
+		controllerutil.RemoveFinalizer(secret, secretFinalizer)
+		err := r.Update(ctx, secret)
+		if err != nil {
+			log.FromContext(ctx).Error(err, "failed to remove finalizer")
+			return err
+		}
+	}
+	return nil
+}
+
 // EnsureDeleted - handles the deletion / cleanup of cluster resource
 func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	cluster := resource.(*greenhousev1alpha1.Cluster)
@@ -295,8 +308,9 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 	kubeConfigSecret := &corev1.Secret{}
 	if err := r.Get(ctx, types.NamespacedName{Namespace: cluster.GetNamespace(), Name: cluster.GetSecretName()}, kubeConfigSecret); err != nil {
 		if client.IgnoreNotFound(err) == nil {
-			// Secret already missing, what means that parallel call to remove Cluster already finished removing
-			// finalizer on secret. that is possible only if parallel call to this func suceeded.
+			// Secret already missing. This means a parallel call to remove Cluster already removed its finalizer,
+			// which is only possible if that parallel call succeeded.
+			deleteClusterMetrics(cluster)
 			return ctrl.Result{}, lifecycle.Success, nil
 		}
 		return ctrl.Result{}, lifecycle.Failed, err
@@ -304,7 +318,9 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 	// early return if the cluster connectivity is via OIDC
 	if kubeConfigSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
 		log.FromContext(ctx).Info("no resources to clean up", "secretType", kubeConfigSecret.Type, "cluster", cluster.Name)
-		deleteClusterMetrics(cluster)
+		if err := r.ensureFinalizerAndMetricsCleanup(ctx, cluster, kubeConfigSecret); err != nil {
+			return ctrl.Result{}, lifecycle.Failed, err
+		}
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 	restClientGetter, err := clientutil.NewRestClientGetterFromSecret(kubeConfigSecret, cluster.Namespace)
@@ -321,15 +337,9 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 	if err := r.deleteClusterRoleBindingInRemoteCluster(ctx, remoteClient); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	deleteClusterMetrics(cluster)
 
-	if controllerutil.ContainsFinalizer(kubeConfigSecret, secretFinalizer) {
-		controllerutil.RemoveFinalizer(kubeConfigSecret, secretFinalizer)
-		err := r.Update(ctx, kubeConfigSecret)
-		if err != nil {
-			log.FromContext(ctx).Info("failed to remove finalizer", "error", err.Error())
-			return ctrl.Result{}, lifecycle.Failed, err
-		}
+	if err := r.ensureFinalizerAndMetricsCleanup(ctx, cluster, kubeConfigSecret); err != nil {
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	return ctrl.Result{}, lifecycle.Success, nil
 }
