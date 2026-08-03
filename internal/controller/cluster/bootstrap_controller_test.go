@@ -153,6 +153,10 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 			id := types.NamespacedName{Name: kubeConfigSecret.Name, Namespace: setup.Namespace()}
 			Eventually(func(g Gomega) bool {
 				g.Expect(test.K8sClient.Get(test.Ctx, id, cluster)).Should(Succeed(), "the cluster should have been created")
+				readyCondition := cluster.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
+				g.Expect(readyCondition).ToNot(BeNil())
+				g.Expect(readyCondition.Type).To(Equal(greenhousemetav1alpha1.ReadyCondition))
+				g.Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
 				return true
 			}).Should(BeTrue(), "getting the cluster should succeed eventually")
 

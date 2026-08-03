@@ -294,15 +294,17 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 
 	kubeConfigSecret := &corev1.Secret{}
 	if err := r.Get(ctx, types.NamespacedName{Namespace: cluster.GetNamespace(), Name: cluster.GetSecretName()}, kubeConfigSecret); err != nil {
+		if client.IgnoreNotFound(err) == nil {
+			// Secret already missing, what means that parallel call to remove Cluster already finished removing
+			// finalizer on secret. that is possible only if parallel call to this func suceeded.
+			return ctrl.Result{}, lifecycle.Success, nil
+		}
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	// early return if the cluster connectivity is via OIDC
 	if kubeConfigSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
 		log.FromContext(ctx).Info("no resources to clean up", "secretType", kubeConfigSecret.Type, "cluster", cluster.Name)
 		deleteClusterMetrics(cluster)
-		if err := r.ensureSecretFinalizerRemoved(ctx, kubeConfigSecret); err != nil {
-			return ctrl.Result{}, lifecycle.Failed, err
-		}
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 	restClientGetter, err := clientutil.NewRestClientGetterFromSecret(kubeConfigSecret, cluster.Namespace)
@@ -320,18 +322,16 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	deleteClusterMetrics(cluster)
-	if err := r.ensureSecretFinalizerRemoved(ctx, kubeConfigSecret); err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
+
+	if controllerutil.ContainsFinalizer(kubeConfigSecret, secretFinalizer) {
+		controllerutil.RemoveFinalizer(kubeConfigSecret, secretFinalizer)
+		err := r.Update(ctx, kubeConfigSecret)
+		if err != nil {
+			log.FromContext(ctx).Info("failed to remove finalizer", "error", err.Error())
+			return ctrl.Result{}, lifecycle.Failed, err
+		}
 	}
 	return ctrl.Result{}, lifecycle.Success, nil
-}
-
-func (r *RemoteClusterReconciler) ensureSecretFinalizerRemoved(ctx context.Context, secret *corev1.Secret) error {
-	if controllerutil.ContainsFinalizer(secret, secretFinalizer) {
-		controllerutil.RemoveFinalizer(secret, secretFinalizer)
-		return r.Update(ctx, secret)
-	}
-	return nil
 }
 
 func (r *RemoteClusterReconciler) EnsureSuspended(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, error) {
