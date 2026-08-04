@@ -275,6 +275,19 @@ func (r *RemoteClusterReconciler) reconcileServiceAccountToken(
 	return nil
 }
 
+func (r *RemoteClusterReconciler) ensureFinalizerAndMetricsCleanup(ctx context.Context, cluster *greenhousev1alpha1.Cluster, secret *corev1.Secret) error {
+	deleteClusterMetrics(cluster)
+	if controllerutil.ContainsFinalizer(secret, secretFinalizer) {
+		controllerutil.RemoveFinalizer(secret, secretFinalizer)
+		err := r.Update(ctx, secret)
+		if err != nil {
+			log.FromContext(ctx).Error(err, "failed to remove finalizer")
+			return err
+		}
+	}
+	return nil
+}
+
 // EnsureDeleted - handles the deletion / cleanup of cluster resource
 func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	cluster := resource.(*greenhousev1alpha1.Cluster)
@@ -294,13 +307,18 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 
 	kubeConfigSecret := &corev1.Secret{}
 	if err := r.Get(ctx, types.NamespacedName{Namespace: cluster.GetNamespace(), Name: cluster.GetSecretName()}, kubeConfigSecret); err != nil {
+		if client.IgnoreNotFound(err) == nil {
+			// Secret already missing. This means a parallel call to remove Cluster already removed its finalizer,
+			// which is only possible if that parallel call succeeded.
+			deleteClusterMetrics(cluster)
+			return ctrl.Result{}, lifecycle.Success, nil
+		}
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	// early return if the cluster connectivity is via OIDC
 	if kubeConfigSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
 		log.FromContext(ctx).Info("no resources to clean up", "secretType", kubeConfigSecret.Type, "cluster", cluster.Name)
-		deleteClusterMetrics(cluster)
-		if err := r.ensureSecretFinalizerRemoved(ctx, kubeConfigSecret); err != nil {
+		if err := r.ensureFinalizerAndMetricsCleanup(ctx, cluster, kubeConfigSecret); err != nil {
 			return ctrl.Result{}, lifecycle.Failed, err
 		}
 		return ctrl.Result{}, lifecycle.Success, nil
@@ -319,19 +337,11 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 	if err := r.deleteClusterRoleBindingInRemoteCluster(ctx, remoteClient); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	deleteClusterMetrics(cluster)
-	if err := r.ensureSecretFinalizerRemoved(ctx, kubeConfigSecret); err != nil {
+
+	if err := r.ensureFinalizerAndMetricsCleanup(ctx, cluster, kubeConfigSecret); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	return ctrl.Result{}, lifecycle.Success, nil
-}
-
-func (r *RemoteClusterReconciler) ensureSecretFinalizerRemoved(ctx context.Context, secret *corev1.Secret) error {
-	if controllerutil.ContainsFinalizer(secret, secretFinalizer) {
-		controllerutil.RemoveFinalizer(secret, secretFinalizer)
-		return r.Update(ctx, secret)
-	}
-	return nil
 }
 
 func (r *RemoteClusterReconciler) EnsureSuspended(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, error) {

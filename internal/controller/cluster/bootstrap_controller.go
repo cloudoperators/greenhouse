@@ -69,10 +69,40 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if err := r.Get(ctx, req.NamespacedName, kubeConfigSecret); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	if !kubeConfigSecret.DeletionTimestamp.IsZero() {
+	if kubeConfigSecret.DeletionTimestamp.IsZero() {
+		if !controllerutil.ContainsFinalizer(kubeConfigSecret, secretFinalizer) {
+			controllerutil.AddFinalizer(kubeConfigSecret, secretFinalizer)
+			if err := r.Update(ctx, kubeConfigSecret); err != nil {
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{RequeueAfter: time.Second}, nil
+		}
+	} else {
 		// the secret is being deleted
-		return ctrl.Result{}, r.requestClusterDeletion(ctx, req.NamespacedName)
+		if controllerutil.ContainsFinalizer(kubeConfigSecret, secretFinalizer) {
+			// we have finalizer, so delete cluster if one can be found
+			cluster := greenhousev1alpha1.Cluster{}
+			if err := r.Get(ctx, req.NamespacedName, &cluster); err != nil {
+				if client.IgnoreNotFound(err) == nil {
+					// cluster not found - remove finalizer
+					if controllerutil.ContainsFinalizer(kubeConfigSecret, secretFinalizer) {
+						controllerutil.RemoveFinalizer(kubeConfigSecret, secretFinalizer)
+						if err := r.Update(ctx, kubeConfigSecret); err != nil {
+							return ctrl.Result{}, err
+						}
+					}
+				}
+				return ctrl.Result{}, client.IgnoreNotFound(err)
+			}
+			log.FromContext(ctx).Info(
+				"Cluster secret is being deleted, requesting Cluster deletion",
+				"cluster", req.String(),
+			)
+			return ctrl.Result{}, client.IgnoreNotFound(r.Delete(ctx, &cluster))
+		}
+		return ctrl.Result{}, nil
 	}
+
 	if kubeConfigSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
 		// if secret type is oidc we check if a kubeconfig was already generated,
 		// and we also check if the greenhousekubeconfig key is present and the value is not empty
@@ -201,7 +231,7 @@ func (r *BootstrapReconciler) createOrUpdateCluster(
 		logMessage := fmt.Sprintf("%s cluster", result)
 		log.FromContext(ctx).Info(logMessage, "namespace", cluster.Namespace, "name", cluster.Name)
 	}
-	return r.ensureSecretFinalizer(ctx, kubeConfigSecret)
+	return nil
 }
 
 // ensureOwnerReferences adds the ownerReference to the secret containing the kubeconfig, so that it is garbage collected on cluster deletion.
@@ -219,28 +249,10 @@ func (r *BootstrapReconciler) ensureOwnerReferences(ctx context.Context, kubeCon
 	return err
 }
 
-// ensureSecretFinalizer adds the finalizer to the secret containing the kubeconfig, so that it will not be deleted before cluster deletion.
-func (r *BootstrapReconciler) ensureSecretFinalizer(ctx context.Context, secret *corev1.Secret) error {
-	if !controllerutil.ContainsFinalizer(secret, secretFinalizer) {
-		controllerutil.AddFinalizer(secret, secretFinalizer)
-		return r.Update(ctx, secret)
-	}
-	return nil
-}
-
 func (r *BootstrapReconciler) getCluster(ctx context.Context, kubeConfigSecret *corev1.Secret) (cluster *greenhousev1alpha1.Cluster, err error) {
 	cluster = new(greenhousev1alpha1.Cluster)
 	err = r.Get(ctx, client.ObjectKeyFromObject(kubeConfigSecret), cluster)
 	return cluster, client.IgnoreNotFound(err)
-}
-
-func (r *BootstrapReconciler) requestClusterDeletion(ctx context.Context, namespacedName types.NamespacedName) error {
-	cluster := greenhousev1alpha1.Cluster{}
-	if err := r.Get(ctx, namespacedName, &cluster); err != nil {
-		return client.IgnoreNotFound(err)
-	}
-	log.FromContext(ctx).Info("Cluster secret is being deleted, requesting Cluster deletion", "cluster", namespacedName.String())
-	return client.IgnoreNotFound(r.Delete(ctx, &cluster))
 }
 
 func enqueueSecretForCluster(_ context.Context, o client.Object) []ctrl.Request {
