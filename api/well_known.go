@@ -112,6 +112,8 @@ const (
 
 // Deletion Policies
 const (
+	AnnotationKeyDeletionPolicy = "greenhouse.sap/plugin-deletion"
+
 	// DeletionPolicyRetain means owned resources will be retained on deletion.
 	DeletionPolicyRetain = "Retain"
 	// DeletionPolicyDelete means owned resources will be deleted on deletion.

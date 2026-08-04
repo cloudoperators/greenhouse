@@ -128,6 +128,7 @@ func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource li
 	if err := r.reconcileServiceAccountToken(ctx, restClientGetter, remoteClient, cluster, clusterSecret); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
+
 	return ctrl.Result{RequeueAfter: utils.DefaultRequeueInterval}, lifecycle.Success, nil
 }
 
@@ -288,6 +289,17 @@ func (r *RemoteClusterReconciler) ensureFinalizerAndMetricsCleanup(ctx context.C
 	return nil
 }
 
+func (r *RemoteClusterReconciler) getPluginList(ctx context.Context, cluster *greenhousev1alpha1.Cluster) (*greenhousev1alpha1.PluginList, error) {
+	pluginList := &greenhousev1alpha1.PluginList{}
+	err := r.List(
+		ctx,
+		pluginList,
+		client.InNamespace(cluster.GetNamespace()),
+		client.MatchingLabels{greenhouseapis.LabelKeyCluster: cluster.GetName()},
+	)
+	return pluginList, err
+}
+
 // EnsureDeleted - handles the deletion / cleanup of cluster resource
 func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	cluster := resource.(*greenhousev1alpha1.Cluster)
@@ -296,6 +308,32 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 		deleteClusterMetrics(cluster)
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
+
+	// if cluster is annotated with DeletionPolicyRetain - propagate it to plugings
+	if cluster.Annotations[greenhouseapis.AnnotationKeyDeletionPolicy] == greenhouseapis.DeletionPolicyRetain {
+		updatedCount := 0
+		pluginList, err := r.getPluginList(ctx, cluster)
+		if err != nil {
+			return ctrl.Result{}, lifecycle.Failed, err
+		}
+		for _, plugin := range pluginList.Items {
+			if plugin.Annotations[greenhouseapis.AnnotationKeyDeletionPolicy] != greenhouseapis.DeletionPolicyRetain {
+				if plugin.Annotations == nil {
+					plugin.Annotations = make(map[string]string)
+				}
+				plugin.Annotations[greenhouseapis.AnnotationKeyDeletionPolicy] = greenhouseapis.DeletionPolicyRetain
+				err := r.Update(ctx, &plugin)
+				if client.IgnoreNotFound(err) != nil {
+					return ctrl.Result{}, lifecycle.Failed, err
+				}
+				updatedCount++
+			}
+		}
+		if updatedCount > 0 {
+			return ctrl.Result{RequeueAfter: 10 * time.Second}, lifecycle.Pending, nil
+		}
+	}
+
 	// delete all plugins that are bound to this cluster
 	deletionCount, err := deletePlugins(ctx, r.Client, cluster)
 	if err != nil {
