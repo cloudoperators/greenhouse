@@ -1124,14 +1124,10 @@ components:
                     type: string
                   overrides:
                     items:
-                      description: PluginOptionValue is the value for a PluginOption.
+                      description: PluginPresetPluginOptionValue is the value for a PluginOption.
                       properties:
                         expression:
-                          description: |-
-                            Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions.
-      
-                            Deprecated: Expression is deprecated on standalone Plugins and will be removed in a future release.
-                            Consider using a PluginPreset to deploy Plugins utilizing the Expression field.
+                          description: Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions.
                           type: string
                         name:
                           description: Name of the values.
@@ -1143,11 +1139,7 @@ components:
                           description: ValueFrom references value in another source.
                           properties:
                             ref:
-                              description: |-
-                                Ref references values defined in another resource (Plugin, PluginPreset)
-      
-                                Deprecated: Ref is deprecated on standalone Plugins and will be removed in a future release.
-                                Consider using a PluginPreset to deploy Plugins utilizing the Ref field.
+                              description: Ref references values defined in another resource (Plugin, PluginPreset)
                               properties:
                                 expression:
                                   description: Expression is a CEL expression to extract the value from the referenced resource
@@ -1346,14 +1338,10 @@ components:
                 optionValues:
                   description: Values are the values for a PluginDefinition instance.
                   items:
-                    description: PluginOptionValue is the value for a PluginOption.
+                    description: PluginPresetPluginOptionValue is the value for a PluginOption.
                     properties:
                       expression:
-                        description: |-
-                          Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions.
-      
-                          Deprecated: Expression is deprecated on standalone Plugins and will be removed in a future release.
-                          Consider using a PluginPreset to deploy Plugins utilizing the Expression field.
+                        description: Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions.
                         type: string
                       name:
                         description: Name of the values.
@@ -1365,11 +1353,7 @@ components:
                         description: ValueFrom references value in another source.
                         properties:
                           ref:
-                            description: |-
-                              Ref references values defined in another resource (Plugin, PluginPreset)
-      
-                              Deprecated: Ref is deprecated on standalone Plugins and will be removed in a future release.
-                              Consider using a PluginPreset to deploy Plugins utilizing the Ref field.
+                            description: Ref references values defined in another resource (Plugin, PluginPreset)
                             properties:
                               expression:
                                 description: Expression is a CEL expression to extract the value from the referenced resource
@@ -1523,6 +1507,9 @@ components:
             failedPlugins:
               description: FailedPlugins is the number of failed Plugins managed by the PluginPreset.
               type: integer
+            pluginDefinitionVersion:
+              description: PluginDefinitionVersion is the version of the PluginDefinition referenced by this PluginPreset.
+              type: string
             pluginStatuses:
               description: PluginStatuses contains statuses of Plugins managed by the PluginPreset.
               items:

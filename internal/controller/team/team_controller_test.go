@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -273,7 +274,58 @@ var _ = Describe("TeamController", Ordered, func() {
 			}).Should(Succeed(), "ServiceAccount should be created for support-group team")
 		})
 
-		It("should delete the ServiceAccount when support-group label is removed from Team", func() {
+		It("should create a Role and RoleBinding for a support-group Team", func() {
+			By("creating a support-group team")
+			team := setup.CreateTeam(test.Ctx, supportGroupTeamName,
+				test.WithMappedIDPGroup(validIdpGroupName),
+				test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"),
+			)
+
+			expectedRBACName := team.Name + "-sa-token-request"
+			expectedSAName := team.Name + "-sa"
+
+			Eventually(func(g Gomega) {
+				role := &rbacv1.Role{}
+				err := setup.Get(test.Ctx, types.NamespacedName{
+					Name:      expectedRBACName,
+					Namespace: setup.Namespace(),
+				}, role)
+				g.Expect(err).ShouldNot(HaveOccurred(), "Role should have been created")
+				g.Expect(role.Rules).To(HaveLen(1), "Role should have exactly one rule")
+				g.Expect(role.Rules[0].APIGroups).To(ConsistOf(""), "rule should target core API group")
+				g.Expect(role.Rules[0].Resources).To(ConsistOf("serviceaccounts/token"), "rule should target serviceaccounts/token")
+				g.Expect(role.Rules[0].Verbs).To(ConsistOf("create"), "rule should allow create verb")
+				g.Expect(role.Rules[0].ResourceNames).To(ConsistOf(expectedSAName), "rule should be scoped to the team SA")
+				g.Expect(role.OwnerReferences).To(HaveLen(1), "Role should have exactly one owner reference")
+				g.Expect(role.OwnerReferences[0].Name).To(Equal(team.Name), "Role owner reference should point to the Team")
+			}).Should(Succeed(), "Role should be created for support-group team")
+
+			Eventually(func(g Gomega) {
+				rb := &rbacv1.RoleBinding{}
+				err := setup.Get(test.Ctx, types.NamespacedName{
+					Name:      expectedRBACName,
+					Namespace: setup.Namespace(),
+				}, rb)
+				g.Expect(err).ShouldNot(HaveOccurred(), "RoleBinding should have been created")
+				g.Expect(rb.RoleRef.Kind).To(Equal("Role"), "RoleRef should reference a Role")
+				g.Expect(rb.RoleRef.Name).To(Equal(expectedRBACName), "RoleRef should reference the correct Role")
+				g.Expect(rb.Subjects).To(HaveLen(2), "RoleBinding should have exactly two subjects")
+				g.Expect(rb.Subjects).To(ContainElement(rbacv1.Subject{
+					APIGroup: rbacv1.GroupName,
+					Kind:     rbacv1.GroupKind,
+					Name:     "support-group:" + team.Name,
+				}), "RoleBinding should include the support-group group")
+				g.Expect(rb.Subjects).To(ContainElement(rbacv1.Subject{
+					Kind:      rbacv1.ServiceAccountKind,
+					Name:      expectedSAName,
+					Namespace: setup.Namespace(),
+				}), "RoleBinding should include the team ServiceAccount")
+				g.Expect(rb.OwnerReferences).To(HaveLen(1), "RoleBinding should have exactly one owner reference")
+				g.Expect(rb.OwnerReferences[0].Name).To(Equal(team.Name), "RoleBinding owner reference should point to the Team")
+			}).Should(Succeed(), "RoleBinding should be created for support-group team")
+		})
+
+		It("should delete the ServiceAccount, Role, and RoleBinding when support-group label is removed from Team", func() {
 			By("creating a support-group team")
 			team := setup.CreateTeam(test.Ctx, supportGroupTeamName,
 				test.WithMappedIDPGroup(validIdpGroupName),
@@ -281,29 +333,35 @@ var _ = Describe("TeamController", Ordered, func() {
 			)
 
 			expectedSAName := team.Name + "-sa"
+			expectedRBACName := team.Name + "-sa-token-request"
 
-			By("waiting for the ServiceAccount to be created")
+			By("waiting for the ServiceAccount, Role, and RoleBinding to be created")
 			Eventually(func(g Gomega) {
 				sa := &corev1.ServiceAccount{}
-				err := setup.Get(test.Ctx, types.NamespacedName{
-					Name:      expectedSAName,
-					Namespace: setup.Namespace(),
-				}, sa)
-				g.Expect(err).ShouldNot(HaveOccurred(), "ServiceAccount should have been created")
-			}).Should(Succeed(), "ServiceAccount should be created for support-group team")
+				g.Expect(setup.Get(test.Ctx, types.NamespacedName{Name: expectedSAName, Namespace: setup.Namespace()}, sa)).To(Succeed())
+				role := &rbacv1.Role{}
+				g.Expect(setup.Get(test.Ctx, types.NamespacedName{Name: expectedRBACName, Namespace: setup.Namespace()}, role)).To(Succeed())
+				rb := &rbacv1.RoleBinding{}
+				g.Expect(setup.Get(test.Ctx, types.NamespacedName{Name: expectedRBACName, Namespace: setup.Namespace()}, rb)).To(Succeed())
+			}).Should(Succeed(), "SA, Role, and RoleBinding should be created for support-group team")
 
 			By("removing the support-group label from the Team")
 			test.MustRemoveLabel(test.Ctx, setup.Client, team, greenhouseapis.LabelKeySupportGroup)
 
-			By("ensuring the ServiceAccount is deleted")
+			By("ensuring the ServiceAccount, Role, and RoleBinding are deleted")
 			Eventually(func(g Gomega) {
 				sa := &corev1.ServiceAccount{}
-				err := setup.Get(test.Ctx, types.NamespacedName{
-					Name:      expectedSAName,
-					Namespace: setup.Namespace(),
-				}, sa)
+				err := setup.Get(test.Ctx, types.NamespacedName{Name: expectedSAName, Namespace: setup.Namespace()}, sa)
 				g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "ServiceAccount should have been deleted after label removal")
-			}).Should(Succeed(), "ServiceAccount should be deleted when support-group label is removed")
+
+				role := &rbacv1.Role{}
+				err = setup.Get(test.Ctx, types.NamespacedName{Name: expectedRBACName, Namespace: setup.Namespace()}, role)
+				g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "Role should have been deleted after label removal")
+
+				rb := &rbacv1.RoleBinding{}
+				err = setup.Get(test.Ctx, types.NamespacedName{Name: expectedRBACName, Namespace: setup.Namespace()}, rb)
+				g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "RoleBinding should have been deleted after label removal")
+			}).Should(Succeed(), "SA, Role, and RoleBinding should be deleted when support-group label is removed")
 		})
 	})
 

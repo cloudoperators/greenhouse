@@ -8,6 +8,7 @@ import (
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 )
@@ -21,10 +22,6 @@ const (
 
 	// PluginDefinitionNotFound is set when the PluginDefinition referenced by the PluginPreset does not exist.
 	PluginDefinitionNotFound greenhousemetav1alpha1.ConditionReason = "PluginDefinitionNotFound"
-
-	// PreventDeletionAnnotation is the annotation used to prevent deletion of a PluginPreset.
-	// If the annotation is set the PluginPreset cannot be deleted.
-	PreventDeletionAnnotation = "greenhouse.sap/prevent-deletion"
 )
 
 // PluginPresetSpec defines the desired state of PluginPreset
@@ -62,7 +59,7 @@ type PluginPresetPluginSpec struct {
 	DisplayName string `json:"displayName,omitempty"`
 
 	// Values are the values for a PluginDefinition instance.
-	OptionValues []PluginOptionValue `json:"optionValues,omitempty"`
+	OptionValues []PluginPresetPluginOptionValue `json:"optionValues,omitempty"`
 
 	// ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.
 	// Defaults to the Greenhouse managed namespace if not set.
@@ -114,8 +111,8 @@ type PluginPresetPluginValueFromSource struct {
 // ClusterOptionOverride defines which plugin option should be override in which cluster
 // +Optional
 type ClusterOptionOverride struct {
-	ClusterName string              `json:"clusterName"`
-	Overrides   []PluginOptionValue `json:"overrides"`
+	ClusterName string                          `json:"clusterName"`
+	Overrides   []PluginPresetPluginOptionValue `json:"overrides"`
 }
 
 const (
@@ -125,6 +122,8 @@ const (
 	PluginFailedCondition greenhousemetav1alpha1.ConditionType = "PluginFailed"
 	// AllPluginsReadyCondition is set when all Plugins managed by the PluginPreset are created and ready.
 	AllPluginsReadyCondition greenhousemetav1alpha1.ConditionType = "AllPluginsReady"
+	// PluginDefinitionNotFoundCondition is set when the referenced PluginDefinition or ClusterPluginDefinition cannot be resolved.
+	PluginDefinitionNotFoundCondition greenhousemetav1alpha1.ConditionType = "PluginDefinitionNotFound"
 )
 
 // PluginPresetStatus defines the observed state of PluginPreset
@@ -140,6 +139,8 @@ type PluginPresetStatus struct {
 	ReadyPlugins int `json:"readyPlugins,omitempty"`
 	// FailedPlugins is the number of failed Plugins managed by the PluginPreset.
 	FailedPlugins int `json:"failedPlugins,omitempty"`
+	// PluginDefinitionVersion is the version of the PluginDefinition referenced by this PluginPreset.
+	PluginDefinitionVersion string `json:"pluginDefinitionVersion,omitempty"`
 }
 
 // ManagedPluginStatus defines the Ready condition of a managed Plugin identified by its name.
@@ -152,6 +153,7 @@ type ManagedPluginStatus struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:shortName=pp
 //+kubebuilder:printcolumn:name="Plugin Definition",type=string,JSONPath=`.spec.plugin.pluginDefinitionRef.name`
+//+kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.status.pluginDefinitionVersion`
 //+kubebuilder:printcolumn:name="Release Namespace",type=string,JSONPath=`.spec.plugin.releaseNamespace`
 //+kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
@@ -193,5 +195,8 @@ type PluginPresetList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&PluginPreset{}, &PluginPresetList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &PluginPreset{}, &PluginPresetList{})
+		return nil
+	})
 }

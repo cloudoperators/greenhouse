@@ -27,6 +27,7 @@ import (
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/util"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
@@ -37,6 +38,7 @@ var presetExposedConditions = []greenhousemetav1alpha1.ConditionType{
 	greenhousev1alpha1.PluginSkippedCondition,
 	greenhousev1alpha1.PluginFailedCondition,
 	greenhousev1alpha1.AllPluginsReadyCondition,
+	greenhousev1alpha1.PluginDefinitionNotFoundCondition,
 	greenhousemetav1alpha1.ClusterListEmpty,
 	greenhousemetav1alpha1.OwnerLabelSetCondition,
 }
@@ -44,7 +46,8 @@ var presetExposedConditions = []greenhousemetav1alpha1.ConditionType{
 // PluginPresetReconciler reconciles a PluginPreset object
 type PluginPresetReconciler struct {
 	client.Client
-	recorder events.EventRecorder
+	recorder                    events.EventRecorder
+	ExpressionEvaluationEnabled bool
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=pluginpresets,verbs=get;list;watch;update
@@ -54,6 +57,7 @@ type PluginPresetReconciler struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=clusters,verbs=get;list;watch;
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch;
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=clusterplugindefinitions,verbs=get;list;watch;
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=teams,verbs=get;list;watch
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *PluginPresetReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
@@ -92,6 +96,7 @@ func (r *PluginPresetReconciler) setConditions() lifecycle.Conditioner {
 			return
 		}
 
+		r.reconcilePluginDefinitionVersion(ctx, pluginPreset)
 		readyCondition := r.computeReadyCondition(pluginPreset.Status.StatusConditions)
 		ownerLabelCondition := util.ComputeOwnerLabelCondition(ctx, r.Client, pluginPreset)
 		util.UpdateOwnedByLabelMissingMetric(pluginPreset, ownerLabelCondition.IsFalse())
@@ -125,7 +130,6 @@ func (r *PluginPresetReconciler) EnsureCreated(ctx context.Context, resource lif
 	}
 
 	clusters = clientutil.FilterClustersBeingDeleted(clusters)
-
 	err = r.reconcilePluginPreset(ctx, pluginPreset, clusters)
 	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
@@ -238,12 +242,19 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 
 			releaseName := getReleaseName(plugin, preset)
 
+			// Apply overrides first, then resolve expressions
+			presetWithOverrides := applyOverridesToPreset(preset, cluster.GetName())
+
+			resolvedValues, err := r.resolvePluginOptionValuesForPreset(ctx, presetWithOverrides, &cluster)
+			if err != nil {
+				return fmt.Errorf("failed to resolve option values for plugin %s: %w", plugin.Name, err)
+			}
+
 			plugin.Spec = pluginSpecFromPluginPreset(preset, cluster.GetName())
+			plugin.Spec.OptionValues = resolvedValues
 			plugin.Spec.ReleaseName = releaseName
 			// transport plugin preset labels to plugin
 			plugin = (lifecycle.NewPropagator(preset, plugin).Apply()).(*greenhousev1alpha1.Plugin)
-			// overrides options based on preset definition
-			overridesPluginOptionValues(plugin, preset)
 			return nil
 		})
 		if err != nil {
@@ -329,32 +340,26 @@ func (r *PluginPresetReconciler) reconcilePluginStatuses(
 	return nil
 }
 
-func isPluginManagedByPreset(plugin *greenhousev1alpha1.Plugin, presetName string) bool {
-	return plugin.Labels[greenhouseapis.LabelKeyPluginPreset] == presetName
-}
-
-func overridesPluginOptionValues(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha1.PluginPreset) {
-	index := slices.IndexFunc(preset.Spec.ClusterOptionOverrides, func(override greenhousev1alpha1.ClusterOptionOverride) bool {
-		return override.ClusterName == plugin.Spec.ClusterName
-	})
-
-	// when plugin is running on different cluster then defined in
-	if index == -1 {
+// reconcilePluginDefinitionVersion fetches the referenced PluginDefinition and updates the version in the preset's status.
+func (r *PluginPresetReconciler) reconcilePluginDefinitionVersion(ctx context.Context, preset *greenhousev1alpha1.PluginPreset) {
+	pluginDefinitionSpec, err := common.GetPluginDefinitionSpec(ctx, r.Client, preset.Spec.Plugin.PluginDefinitionRef, preset.GetNamespace())
+	if err != nil {
+		preset.Status.PluginDefinitionVersion = ""
+		preset.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.PluginDefinitionNotFoundCondition,
+			greenhousev1alpha1.PluginDefinitionNotFound,
+			err.Error(),
+		))
 		return
 	}
+	preset.Status.PluginDefinitionVersion = pluginDefinitionSpec.Version
+	preset.SetCondition(greenhousemetav1alpha1.FalseCondition(
+		greenhousev1alpha1.PluginDefinitionNotFoundCondition, "", "",
+	))
+}
 
-	// overrides value
-	for _, overrideValue := range preset.Spec.ClusterOptionOverrides[index].Overrides {
-		valueIndex := slices.IndexFunc(plugin.Spec.OptionValues, func(value greenhousev1alpha1.PluginOptionValue) bool {
-			return value.Name == overrideValue.Name
-		})
-
-		if valueIndex == -1 {
-			plugin.Spec.OptionValues = append(plugin.Spec.OptionValues, overrideValue)
-		} else {
-			plugin.Spec.OptionValues[valueIndex] = overrideValue
-		}
-	}
+func isPluginManagedByPreset(plugin *greenhousev1alpha1.Plugin, presetName string) bool {
+	return plugin.Labels[greenhouseapis.LabelKeyPluginPreset] == presetName
 }
 
 // generatePluginName generates a name for a plugin based on the used PluginPreset's name and the Cluster.
@@ -389,6 +394,12 @@ func (r *PluginPresetReconciler) computeReadyCondition(
 		} else {
 			readyCondition.Message = "Plugin reconciliation failed"
 		}
+		return readyCondition
+	}
+
+	if conditions.GetConditionByType(greenhousev1alpha1.PluginDefinitionNotFoundCondition).IsTrue() {
+		readyCondition.Status = metav1.ConditionFalse
+		readyCondition.Message = conditions.GetConditionByType(greenhousev1alpha1.PluginDefinitionNotFoundCondition).Message
 		return readyCondition
 	}
 
@@ -515,7 +526,7 @@ func pluginSpecFromPluginPreset(preset *greenhousev1alpha1.PluginPreset, cluster
 	return greenhousev1alpha1.PluginSpec{
 		PluginDefinitionRef: preset.Spec.Plugin.PluginDefinitionRef,
 		DisplayName:         preset.Spec.Plugin.DisplayName,
-		OptionValues:        preset.Spec.Plugin.OptionValues,
+		OptionValues:        util.ConvertToPluginOptionValues(preset.Spec.Plugin.OptionValues),
 		ReleaseNamespace:    preset.Spec.Plugin.ReleaseNamespace,
 		DeletionPolicy:      preset.Spec.Plugin.DeletionPolicy,
 		IgnoreDifferences:   preset.Spec.Plugin.IgnoreDifferences,

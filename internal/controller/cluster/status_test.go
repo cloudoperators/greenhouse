@@ -18,7 +18,6 @@ import (
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/test"
-	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 var _ = Describe("Cluster status", Ordered, func() {
@@ -234,52 +233,6 @@ var _ = Describe("Cluster status", Ordered, func() {
 			g.Expect(readyCondition).ToNot(BeNil(), "The ClusterReady condition should be present")
 			g.Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
 			g.Expect(validCluster.Status.KubernetesVersion).ToNot(BeNil())
-		}).Should(Succeed())
-	})
-
-	It("should reconcile the status of a cluster without a secret", func() {
-		By("checking cluster conditions")
-		Eventually(func(g Gomega) {
-			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: invalidCluster.Name, Namespace: setup.Namespace()}, invalidCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
-			g.Expect(invalidCluster.Status.StatusConditions).ToNot(BeNil())
-			// Accessible condition validation.
-			accessibleCondition := invalidCluster.Status.GetConditionByType(greenhousev1alpha1.PermissionsVerified)
-			g.Expect(accessibleCondition).ToNot(BeNil(), "The Accessible condition should be present")
-			g.Expect(accessibleCondition.Status).To(Equal(metav1.ConditionUnknown), "The Accessible condition should be unknown")
-			g.Expect(accessibleCondition.Message).To(Equal("kubeconfig not valid - cannot validate cluster access"))
-			// ManagedResourcesDeployed condition validation.
-			managedResourcesDeployes := invalidCluster.Status.GetConditionByType(greenhousev1alpha1.ManagedResourcesDeployed)
-			g.Expect(managedResourcesDeployes).ToNot(BeNil(), "The ManagedResourcesDeployed condition should be present")
-			g.Expect(managedResourcesDeployes.Status).To(Equal(metav1.ConditionUnknown), "The ManagedResourcesDeployed condition should be unknown")
-			g.Expect(managedResourcesDeployes.Message).To(Equal("kubeconfig not valid - cannot validate managed resources"))
-			// KubeConfigValid condition validation.
-			kubeConfigValidCondition := invalidCluster.Status.GetConditionByType(greenhousev1alpha1.KubeConfigValid)
-			g.Expect(kubeConfigValidCondition).ToNot(BeNil(), "The KubeConfigValid condition should be present")
-			g.Expect(kubeConfigValidCondition.Status).To(Equal(metav1.ConditionFalse))
-			g.Expect(kubeConfigValidCondition.Message).To(ContainSubstring("Secret \"" + invalidCluster.Name + "\" not found"))
-			// Ready condition validation.
-			readyCondition := invalidCluster.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
-			g.Expect(readyCondition).ToNot(BeNil(), "The ClusterReady condition should be present")
-			g.Expect(readyCondition.Status).To(Equal(metav1.ConditionFalse))
-		}).Should(Succeed())
-	})
-
-	It("should set the deletion condition when the cluster is marked for deletion", func() {
-		By("marking the cluster for deletion")
-		Eventually(func(g Gomega) {
-			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).
-				ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
-			validCluster.SetAnnotations(map[string]string{
-				greenhouseapis.MarkClusterDeletionAnnotation: "true",
-			})
-			g.Expect(test.K8sClient.Update(test.Ctx, &validCluster)).To(Succeed(), "there must be no error updating the object")
-		}).Should(Succeed(), "marking cluster for deletion should eventually succeed")
-
-		By("checking the deletion condition")
-		Eventually(func(g Gomega) {
-			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
-			g.Expect(validCluster.Status.GetConditionByType(greenhousemetav1alpha1.DeleteCondition)).ToNot(BeNil(), "The Delete condition should be present")
-			g.Expect(validCluster.Status.GetConditionByType(greenhousemetav1alpha1.DeleteCondition).Reason).To(Equal(lifecycle.ScheduledDeletionReason))
 		}).Should(Succeed())
 	})
 })

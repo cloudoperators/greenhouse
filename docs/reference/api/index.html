@@ -16,6 +16,13 @@ description: Technical reference documentation for Greenhouse API resources
 <h2 id="greenhouse.sap/v1alpha1">greenhouse.sap/v1alpha1</h2>
 Resource Types:
 <ul class="simple"></ul>
+<h3 id="greenhouse.sap/v1alpha1.AuthType">AuthType
+(<code>string</code> alias)</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.SCIMConfig">SCIMConfig</a>)
+</p>
+<p>AuthType defines the authentication method for SCIM API access.</p>
 <h3 id="greenhouse.sap/v1alpha1.Authentication">Authentication
 </h3>
 <p>
@@ -1082,8 +1089,8 @@ string
 <td>
 <code>overrides</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.PluginOptionValue">
-[]PluginOptionValue
+<a href="#greenhouse.sap/v1alpha1.PluginPresetPluginOptionValue">
+[]PluginPresetPluginOptionValue
 </a>
 </em>
 </td>
@@ -3126,8 +3133,6 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.ClusterOptionOverride">ClusterOptionOverride</a>, 
-<a href="#greenhouse.sap/v1alpha1.PluginPresetPluginSpec">PluginPresetPluginSpec</a>, 
 <a href="#greenhouse.sap/v1alpha1.PluginSpec">PluginSpec</a>)
 </p>
 <p>PluginOptionValue is the value for a PluginOption.</p>
@@ -3320,6 +3325,11 @@ PluginPresetStatus
 </div>
 <h3 id="greenhouse.sap/v1alpha1.PluginPresetPluginOptionValue">PluginPresetPluginOptionValue
 </h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterOptionOverride">ClusterOptionOverride</a>, 
+<a href="#greenhouse.sap/v1alpha1.PluginPresetPluginSpec">PluginPresetPluginSpec</a>)
+</p>
 <p>PluginPresetPluginOptionValue is the value for a PluginOption.</p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
@@ -3430,8 +3440,8 @@ Defaults to a normalized version of metadata.name.</p>
 <td>
 <code>optionValues</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.PluginOptionValue">
-[]PluginOptionValue
+<a href="#greenhouse.sap/v1alpha1.PluginPresetPluginOptionValue">
+[]PluginPresetPluginOptionValue
 </a>
 </em>
 </td>
@@ -3700,6 +3710,17 @@ int
 </td>
 <td>
 <p>FailedPlugins is the number of failed Plugins managed by the PluginPreset.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>pluginDefinitionVersion</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>PluginDefinitionVersion is the version of the PluginDefinition referenced by this PluginPreset.</p>
 </td>
 </tr>
 </tbody>
@@ -4128,7 +4149,9 @@ string
 <td>
 <code>authType</code><br>
 <em>
-github.com/cloudoperators/greenhouse/internal/scim.AuthType
+<a href="#greenhouse.sap/v1alpha1.AuthType">
+AuthType
+</a>
 </em>
 </td>
 <td>

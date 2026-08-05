@@ -46,7 +46,7 @@ type RemoteClusterReconciler struct {
 //+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;update;patch;create
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;update;patch;create;delete
 //+kubebuilder:rbac:groups="events.k8s.io",resources=events,verbs=get;list;watch;update;patch
-//+kubebuilder:rbac:groups="rbac",resources=clusterrolebindings,verbs=get;list;watch;update;patch;create
+//+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterrolebindings,verbs=get;list;watch;update;patch;create
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *RemoteClusterReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
@@ -76,20 +76,6 @@ func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource li
 	cluster := resource.(*greenhousev1alpha1.Cluster)
 	if cluster.Spec.AccessMode != greenhousev1alpha1.ClusterAccessModeDirect {
 		return ctrl.Result{}, lifecycle.Failed, nil
-	}
-	// Deletion Schedule mechanism
-	isScheduled, schedule, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
-	if err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-	if isScheduled && cluster.DeletionTimestamp == nil {
-		if ok, err := clientutil.ShouldProceedDeletion(time.Now(), schedule); ok && err == nil {
-			err = r.Delete(ctx, cluster)
-			if err != nil {
-				return ctrl.Result{}, lifecycle.Failed, err
-			}
-			return ctrl.Result{}, lifecycle.Success, nil
-		}
 	}
 	defer UpdateClusterMetrics(cluster)
 	clusterSecret := &corev1.Secret{}
@@ -289,6 +275,19 @@ func (r *RemoteClusterReconciler) reconcileServiceAccountToken(
 	return nil
 }
 
+func (r *RemoteClusterReconciler) ensureFinalizerAndMetricsCleanup(ctx context.Context, cluster *greenhousev1alpha1.Cluster, secret *corev1.Secret) error {
+	deleteClusterMetrics(cluster)
+	if controllerutil.ContainsFinalizer(secret, secretFinalizer) {
+		controllerutil.RemoveFinalizer(secret, secretFinalizer)
+		err := r.Update(ctx, secret)
+		if err != nil {
+			log.FromContext(ctx).Error(err, "failed to remove finalizer")
+			return err
+		}
+	}
+	return nil
+}
+
 // EnsureDeleted - handles the deletion / cleanup of cluster resource
 func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	cluster := resource.(*greenhousev1alpha1.Cluster)
@@ -308,12 +307,20 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 
 	kubeConfigSecret := &corev1.Secret{}
 	if err := r.Get(ctx, types.NamespacedName{Namespace: cluster.GetNamespace(), Name: cluster.GetSecretName()}, kubeConfigSecret); err != nil {
+		if client.IgnoreNotFound(err) == nil {
+			// Secret already missing. This means a parallel call to remove Cluster already removed its finalizer,
+			// which is only possible if that parallel call succeeded.
+			deleteClusterMetrics(cluster)
+			return ctrl.Result{}, lifecycle.Success, nil
+		}
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	// early return if the cluster connectivity is via OIDC
 	if kubeConfigSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
 		log.FromContext(ctx).Info("no resources to clean up", "secretType", kubeConfigSecret.Type, "cluster", cluster.Name)
-		deleteClusterMetrics(cluster)
+		if err := r.ensureFinalizerAndMetricsCleanup(ctx, cluster, kubeConfigSecret); err != nil {
+			return ctrl.Result{}, lifecycle.Failed, err
+		}
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 	restClientGetter, err := clientutil.NewRestClientGetterFromSecret(kubeConfigSecret, cluster.Namespace)
@@ -330,7 +337,10 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 	if err := r.deleteClusterRoleBindingInRemoteCluster(ctx, remoteClient); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	deleteClusterMetrics(cluster)
+
+	if err := r.ensureFinalizerAndMetricsCleanup(ctx, cluster, kubeConfigSecret); err != nil {
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 

@@ -1,0 +1,37 @@
+name: "Check playbooks index is up to date"
+
+on:
+  pull_request:
+    paths:
+      - 'charts/manager/alerts/**'
+      - 'hack/docs-generator/alerts/**'
+      - 'docs/operations/playbooks/_index.md'
+      - 'Makefile'
+
+permissions:
+  contents: read
+
+jobs:
+  check-alerts-doc:
+    runs-on: [ ubuntu-latest ]
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: 'go.mod'
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Regenerate playbooks index
+        run: make generate-alerts-doc
+
+      - name: Fail on drift
+        run: |
+          if ! git diff --exit-code -- docs/operations/playbooks/_index.md; then
+            echo "::error::docs/operations/playbooks/_index.md is out of date."
+            echo "::error::Run 'make generate-alerts-doc' locally and commit the result."
+            exit 1
+          fi

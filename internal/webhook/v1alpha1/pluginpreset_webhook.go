@@ -5,7 +5,6 @@ package v1alpha1
 
 import (
 	"context"
-	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -27,7 +26,6 @@ func SetupPluginPresetWebhookWithManager(mgr ctrl.Manager) error {
 			DefaultFunc:        DefaultPluginPreset,
 			ValidateCreateFunc: ValidateCreatePluginPreset,
 			ValidateUpdateFunc: ValidateUpdatePluginPreset,
-			ValidateDeleteFunc: ValidateDeletePluginPreset,
 		},
 	)
 }
@@ -35,14 +33,6 @@ func SetupPluginPresetWebhookWithManager(mgr ctrl.Manager) error {
 //+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-pluginpreset,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=pluginpresets,verbs=create;update,versions=v1alpha1,name=mpluginpreset.kb.io,admissionReviewVersions=v1
 
 func DefaultPluginPreset(ctx context.Context, c client.Client, pluginPreset *greenhousev1alpha1.PluginPreset) error {
-	// prevent deletion on plugin preset creation
-	if pluginPreset.Annotations == nil {
-		pluginPreset.Annotations = map[string]string{}
-	}
-	if pluginPreset.CreationTimestamp.IsZero() {
-		pluginPreset.Annotations[greenhousev1alpha1.PreventDeletionAnnotation] = "true"
-	}
-
 	if pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind == "" {
 		pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind = greenhousev1alpha1.PluginDefinitionKind
 	}
@@ -123,34 +113,39 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldPluginP
 	return allWarns, nil
 }
 
-func ValidateDeletePluginPreset(_ context.Context, _ client.Client, pluginPreset *greenhousev1alpha1.PluginPreset) (admission.Warnings, error) {
-	var allErrs field.ErrorList
-	if _, ok := pluginPreset.Annotations[greenhousev1alpha1.PreventDeletionAnnotation]; ok {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("metadata").Child("annotation").Child(greenhousev1alpha1.PreventDeletionAnnotation),
-			pluginPreset.Annotations, fmt.Sprintf("PluginPreset with annotation '%s' set may not be deleted.", greenhousev1alpha1.PreventDeletionAnnotation)))
-	}
-
-	if len(allErrs) > 0 {
-		return nil, apierrors.NewInvalid(pluginPreset.GroupVersionKind().GroupKind(), pluginPreset.Name, allErrs)
-	}
-	return nil, nil
-}
-
 // validatePluginOptionValuesForPreset validates plugin options and their values, but skips the check for required options.
 // Required options are checked at the Plugin creation level, because the preset can override options and we cannot predict what clusters will be a part of the PluginPreset later on.
 func validatePluginOptionValuesForPreset(pluginPreset *greenhousev1alpha1.PluginPreset, pluginDefinitionName string, pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec) field.ErrorList {
 	var allErrs field.ErrorList
 
 	optionValuesPath := field.NewPath("spec").Child("plugin").Child("optionValues")
-	errors := validatePluginOptionValues(pluginPreset.Spec.Plugin.OptionValues, pluginDefinitionName, pluginDefinitionSpec, false, optionValuesPath)
+	errors := validatePluginOptionValues(convertPresetToPluginOptionValues(pluginPreset.Spec.Plugin.OptionValues), pluginDefinitionName, pluginDefinitionSpec, false, optionValuesPath)
 	allErrs = append(allErrs, errors...)
 
 	for idx, overridesForSingleCluster := range pluginPreset.Spec.ClusterOptionOverrides {
 		optionOverridesPath := field.NewPath("spec").Child("clusterOptionOverrides").Index(idx).Child("overrides")
-		errors = validatePluginOptionValues(overridesForSingleCluster.Overrides, pluginDefinitionName, pluginDefinitionSpec, false, optionOverridesPath)
+		errors = validatePluginOptionValues(convertPresetToPluginOptionValues(overridesForSingleCluster.Overrides), pluginDefinitionName, pluginDefinitionSpec, false, optionOverridesPath)
 		allErrs = append(allErrs, errors...)
 	}
 	return allErrs
+}
+
+func convertPresetToPluginOptionValues(presetValues []greenhousev1alpha1.PluginPresetPluginOptionValue) []greenhousev1alpha1.PluginOptionValue {
+	result := make([]greenhousev1alpha1.PluginOptionValue, 0, len(presetValues))
+	for _, pv := range presetValues {
+		ov := greenhousev1alpha1.PluginOptionValue{
+			Name:       pv.Name,
+			Value:      pv.Value,
+			Expression: pv.Expression,
+		}
+		if pv.ValueFrom != nil {
+			ov.ValueFrom = &greenhousev1alpha1.PluginValueFromSource{
+				Secret: pv.ValueFrom.Secret,
+			}
+		}
+		result = append(result, ov)
+	}
+	return result
 }
 
 // validateWaitForPluginRefs validates that the WaitFor list is unique and that each PluginRef has exactly one field set.

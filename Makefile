@@ -77,6 +77,10 @@ generate-open-api-spec:
 generate-types: generate-open-api-spec## Generate typescript types from CRDs.
 	hack/typescript/create-types $(CURDIR)/docs/reference/api/openapi.yaml $(CURDIR)/hack/typescript/metadata.yaml $(CURDIR)/types/typescript/
 
+.PHONY: generate-alerts-doc
+generate-alerts-doc: ## Regenerate docs/operations/playbooks/_index.md from charts/manager/alerts.
+	go run ./hack/docs-generator/alerts
+
 .PHONY: actiongenerate
 actiongenerate: action-controllergen
 	$(CONTROLLER_GEN_ACTION) object:headerFile="hack/boilerplate.go.txt" paths="./api/..."
@@ -102,12 +106,14 @@ check-gen-crd-api-reference-docs:
 
 GEN_DOCS ?= $(LOCALBIN)/gen-crd-api-reference-docs
 .PHONY: generate-documentation
-generate-documentation: check-gen-crd-api-reference-docs
+generate-documentation: check-gen-crd-api-reference-docs generate-alerts-doc
 	$(GEN_DOCS) -api-dir=$(GEN_DOCS_API_DIR) -config=$(GEN_DOCS_CONFIG) -template-dir=$(GEN_DOCS_TEMPLATE_DIR) -out-file=$(GEN_DOCS_OUT_FILE)
 
 .PHONY: test
-test: manifests generate envtest flux-crds ## Run tests.
+test: manifests generate license envtest flux-crds ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out -v
+	cd api; go test ./...
+
 
 .PHONY: flux-crds
 flux-crds: kustomize
@@ -118,10 +124,12 @@ flux-crds: kustomize
 fmt: goimports
 	GOBIN=$(LOCALBIN) go fmt ./...
 	$(GOIMPORTS) -w -local github.com/cloudoperators/greenhouse .
+	cd api; GOBIN=$(LOCALBIN) go fmt ./...
 
 .PHONY: lint
 lint: golint
-	$(GOLINT) run -v --timeout 5m	
+	$(GOLINT) run -v --timeout 5m
+	cd api; $(GOLINT) run -v --timeout 5m
 
 .PHONY: check
 check: fmt lint test
@@ -379,8 +387,7 @@ mockery:
 .PHONY: cert-manager
 cert-manager: kustomize
 	helm repo add jetstack https://charts.jetstack.io
-	helm upgrade --namespace cert-manager --version $(CERT_MANAGER_VERSION) --install cert-manager jetstack/cert-manager --set crds.enabled=true --create-namespace
-	-$(KUSTOMIZE) build config/samples/cert-manager | kubectl apply -f -
+	helm upgrade --namespace greenhouse --version $(CERT_MANAGER_VERSION) --install cert-manager jetstack/cert-manager --set crds.enabled=true --create-namespace
 
 .PHONY: flux
 flux: kustomize

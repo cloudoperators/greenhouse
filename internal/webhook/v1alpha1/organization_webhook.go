@@ -13,7 +13,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	"github.com/cloudoperators/greenhouse/internal/scim"
 	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
 
@@ -99,14 +98,14 @@ func validateSCIMConfig(org *greenhousev1alpha1.Organization) field.ErrorList {
 	}
 
 	switch scimCfg.AuthType {
-	case scim.Basic:
+	case greenhousev1alpha1.AuthTypeBasic:
 		if scimCfg.BasicAuthUser == nil || scimCfg.BasicAuthUser.Secret == nil {
 			errs = append(errs, field.Required(scimPath.Child("basicAuthUser"), "basicAuthUser and its secret are required"))
 		}
 		if scimCfg.BasicAuthPw == nil || scimCfg.BasicAuthPw.Secret == nil {
 			errs = append(errs, field.Required(scimPath.Child("basicAuthPw"), "basicAuthPw and its secret are required"))
 		}
-	case scim.BearerToken:
+	case greenhousev1alpha1.AuthTypeBearerToken:
 		if scimCfg.BearerToken == nil || scimCfg.BearerToken.Secret == nil {
 			errs = append(errs, field.Required(scimPath.Child("bearerToken"), "bearerToken and its secret are required"))
 		}

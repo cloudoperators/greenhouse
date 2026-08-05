@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"time"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	"github.com/pkg/errors"
@@ -18,14 +17,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
-	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 // exposedConditions are the conditions that are exposed in the StatusConditions of the Plugin.
@@ -46,10 +43,6 @@ var deprecatedConditions = []greenhousemetav1alpha1.ConditionType{
 	"HelmDriftDetected",
 	"WaitingForDependencies",
 	"RetriesExhausted",
-}
-
-type reconcileResult struct {
-	requeueAfter time.Duration
 }
 
 // InitPluginStatus initializes all empty Plugin Conditions to "unknown" and removes deprecated conditions.
@@ -214,33 +207,6 @@ func convertRuntimeObject[T any](o any) (*T, error) {
 	default:
 		return nil, fmt.Errorf("unsupported runtime.Object type: %T", obj)
 	}
-}
-
-func shouldReconcileOrRequeue(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) (*reconcileResult, error) {
-	logger := ctrl.LoggerFrom(ctx)
-	if plugin.Spec.ClusterName == "" {
-		logger.Info("plugin does not have a clusterName set, will skip requeue")
-		return nil, nil
-	}
-	cluster := &greenhousev1alpha1.Cluster{}
-	err := c.Get(ctx, types.NamespacedName{Namespace: plugin.Namespace, Name: plugin.Spec.ClusterName}, cluster)
-	if err != nil {
-		return nil, err
-	}
-	scheduleExists, schedule, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
-	if err != nil {
-		return nil, err
-	}
-	if scheduleExists {
-		msg := fmt.Sprintf("cluster %s is scheduled for deletion at %s", plugin.Spec.ClusterName, schedule)
-		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousemetav1alpha1.DeleteCondition, lifecycle.ScheduledDeletionReason, msg))
-		requeueAfter := time.Until(schedule)
-		return &reconcileResult{
-			requeueAfter: requeueAfter,
-		}, nil
-	}
-
-	return nil, nil
 }
 
 // resolvePluginDependencies transforms the WaitFor PluginRefs so that only Plugin names are set in the output and returns flux HelmRelease dependencies.

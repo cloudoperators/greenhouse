@@ -9,13 +9,6 @@ import (
 	"strings"
 )
 
-type AuthType string
-
-const (
-	Basic       AuthType = "basic"
-	BearerToken AuthType = "token"
-)
-
 const (
 	InitialStartID = "initial"
 )

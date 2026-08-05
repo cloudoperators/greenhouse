@@ -145,7 +145,7 @@ linters:
         - k8s.io/component-base
         - k8s.io/kubectl
         - sigs.k8s.io/controller-runtime
-
+      replace-local: true
       toolchain-forbidden: true
       go-version-pattern: 1\.\d+(\.0)?$
     gosec:

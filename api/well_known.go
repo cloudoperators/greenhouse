@@ -130,14 +130,9 @@ const (
 
 // cluster annotations
 const (
-	// MarkClusterDeletionAnnotation is used to mark a cluster for deletion.
-	MarkClusterDeletionAnnotation = "greenhouse.sap/delete-cluster"
-	// ScheduleClusterDeletionAnnotation is used to schedule a cluster for deletion.
-	// Timestamp is set by mutating webhook if cluster is marked for deletion.
-	ScheduleClusterDeletionAnnotation = "greenhouse.sap/deletion-schedule"
-	ClusterConnectivityAnnotation     = "greenhouse.sap/cluster-connectivity"
-	ClusterConnectivityKubeconfig     = "kubeconfig"
-	ClusterConnectivityOIDC           = "oidc"
+	ClusterConnectivityAnnotation = "greenhouse.sap/cluster-connectivity"
+	ClusterConnectivityKubeconfig = "kubeconfig"
+	ClusterConnectivityOIDC       = "oidc"
 )
 
 const (

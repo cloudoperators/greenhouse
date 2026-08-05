@@ -7,10 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
-	"time"
 
-	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -86,10 +83,6 @@ func (r *RemoteClusterReconciler) setConditions() lifecycle.Conditioner {
 			resourcesDeployedCondition,
 			payloadSchedulable,
 		}
-		deletionCondition := r.checkDeletionSchedule(logger, cluster)
-		if !deletionCondition.IsUnknown() {
-			conditions = append(conditions, deletionCondition)
-		}
 		cluster.Status.KubernetesVersion = k8sVersion
 		cluster.Status.SetConditions(conditions...)
 
@@ -109,23 +102,6 @@ func (r *RemoteClusterReconciler) getClusterSecretAndClientGetter(ctx context.Co
 	}
 
 	return clusterSecret, restClientGetter, nil
-}
-
-func (r *RemoteClusterReconciler) checkDeletionSchedule(logger logr.Logger, cluster *greenhousev1alpha1.Cluster) greenhousemetav1alpha1.Condition {
-	deletionCondition := greenhousemetav1alpha1.UnknownCondition(greenhousemetav1alpha1.DeleteCondition, "", "")
-	scheduleExists, schedule, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
-	if err != nil {
-		logger.Error(err, "failed to extract deletion schedule - ignoring deletion schedule")
-	}
-	if scheduleExists {
-		deletionCondition = greenhousemetav1alpha1.FalseCondition(greenhousemetav1alpha1.DeleteCondition, lifecycle.ScheduledDeletionReason, "deletion scheduled at "+schedule.Format(time.DateTime))
-	} else {
-		// Remove the deletion condition if it exists as the deletion schedule annotation has been removed
-		cluster.Status.Conditions = slices.DeleteFunc(cluster.Status.Conditions, func(condition greenhousemetav1alpha1.Condition) bool {
-			return condition.Type == greenhousemetav1alpha1.DeleteCondition && condition.IsFalse()
-		})
-	}
-	return deletionCondition
 }
 
 func (r *RemoteClusterReconciler) reconcileBootstrapResources(ctx context.Context, clientGetter genericclioptions.RESTClientGetter, secret *corev1.Secret) greenhousemetav1alpha1.Condition {

@@ -10,7 +10,9 @@ metadata:
   name: alerts-demo
   namespace: {{ .Chart.Name }}
 spec:
-  pluginDefinition: alerts
+  pluginDefinitionRef:
+    kind: PluginDefinition
+    name: supernova
   disabled: false
   displayName: Alerts
   optionValues:

@@ -9,12 +9,12 @@ import (
 	"errors"
 	"maps"
 	"os"
-	"time"
 
 	fluxmeta "github.com/fluxcd/pkg/apis/meta"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,22 +24,11 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/common"
 )
-
-func UpdateClusterWithDeletionAnnotation(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster) *greenhousev1alpha1.Cluster {
-	GinkgoHelper()
-	schedule, err := clientutil.ParseDateTime(time.Now().Add(-1 * time.Minute))
-	Expect(err).ToNot(HaveOccurred(), "there should be no error parsing the time")
-	MustSetAnnotations(ctx, c, cluster, map[string]string{
-		greenhouseapis.MarkClusterDeletionAnnotation:     "true",
-		greenhouseapis.ScheduleClusterDeletionAnnotation: schedule.Format(time.DateTime)})
-	return cluster
-}
 
 func MustSetAnnotation(ctx context.Context, c client.Client, o client.Object, key, value string) {
 	GinkgoHelper()
@@ -81,7 +70,6 @@ func MustRemoveLabel(ctx context.Context, c client.Client, o client.Object, key 
 // MustDeleteCluster is used in the test context only and removes a cluster by namespaced name.
 func MustDeleteCluster(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster) {
 	GinkgoHelper()
-	UpdateClusterWithDeletionAnnotation(ctx, c, cluster)
 
 	// Retry delete until the cluster is gone - handles conflicts and waits for deletion to complete
 	Eventually(func() bool {
@@ -99,6 +87,28 @@ func MustDeleteCluster(ctx context.Context, c client.Client, cluster *greenhouse
 		err = c.Get(ctx, client.ObjectKeyFromObject(cluster), cluster)
 		return apierrors.IsNotFound(err)
 	}).Should(BeTrue(), "the cluster should be deleted eventually", "key", client.ObjectKeyFromObject(cluster))
+}
+
+// MustDeleteSecret is used in the test context only and removes a secret by namespaced name.
+func MustDeleteSecret(ctx context.Context, c client.Client, secret *corev1.Secret) {
+	GinkgoHelper()
+
+	// Retry delete until the secret is gone - handles conflicts and waits for deletion to complete
+	Eventually(func() bool {
+		err := c.Get(ctx, client.ObjectKeyFromObject(secret), secret)
+		if err != nil {
+			return apierrors.IsNotFound(err)
+		}
+
+		err = c.Delete(ctx, secret)
+		if err != nil && !apierrors.IsNotFound(err) {
+			return false // Delete failed, will retry
+		}
+
+		// Make sure that the secret is gone
+		err = c.Get(ctx, client.ObjectKeyFromObject(secret), secret)
+		return apierrors.IsNotFound(err)
+	}).Should(BeTrue(), "the secret should be deleted eventually", "key", client.ObjectKeyFromObject(secret))
 }
 
 // SetClusterReadyCondition sets the ready condition of the cluster resource.

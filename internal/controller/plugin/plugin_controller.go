@@ -174,6 +174,8 @@ func (r *PluginReconciler) EnsureDeleted(ctx context.Context, resource lifecycle
 	result, lifecycleResult, err := r.EnsureFluxDeleted(ctx, plugin)
 	if lifecycleResult == lifecycle.Success && err == nil {
 		deletePluginReadyMetric(plugin)
+	} else {
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError)
 	}
 	return result, lifecycleResult, err
 }
@@ -181,15 +183,14 @@ func (r *PluginReconciler) EnsureDeleted(ctx context.Context, resource lifecycle
 func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	plugin := resource.(*greenhousev1alpha1.Plugin)
 	InitPluginStatus(plugin)
-	// Check if we should continue with reconciliation or requeue if cluster is scheduled for deletion
-	result, err := shouldReconcileOrRequeue(ctx, r.Client, plugin)
-	if err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
+	res, lifecycleResult, err := r.EnsureFluxCreated(ctx, plugin)
+	switch lifecycleResult {
+	case lifecycle.Success:
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultSuccess)
+	default:
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError)
 	}
-	if result != nil {
-		return ctrl.Result{RequeueAfter: result.requeueAfter}, lifecycle.Pending, nil
-	}
-	return r.EnsureFluxCreated(ctx, plugin)
+	return res, lifecycleResult, err
 }
 
 func (r *PluginReconciler) EnsureSuspended(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, error) {

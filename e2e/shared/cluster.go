@@ -10,7 +10,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
-	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/test"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 
@@ -65,8 +64,9 @@ func OffBoardRemoteCluster(ctx context.Context, adminClient, remoteClient client
 	}
 	Expect(err).NotTo(HaveOccurred())
 
-	By("marking the cluster for deletion")
-	mustTriggerClusterDeletion(ctx, adminClient, cluster, testStartTime)
+	By("removing the cluster resource")
+	err = adminClient.Delete(ctx, cluster)
+	Expect(err).NotTo(HaveOccurred())
 
 	By("checking the cluster resource is eventually deleted")
 	Eventually(func(g Gomega) {
@@ -105,14 +105,4 @@ func ClusterIsReady(ctx context.Context, adminClient client.Client, clusterName,
 		g.Expect(readyCondition.IsTrue()).To(BeTrue(), "cluster should be ready")
 		g.Expect(cluster.Status.KubernetesVersion).ToNot(BeEmpty(), "cluster should have kubernetes version")
 	}).Should(Succeed(), "cluster should be ready")
-}
-
-func mustTriggerClusterDeletion(ctx context.Context, k8sClient client.Client, cluster *greenhousev1alpha1.Cluster, testStartTime time.Time) {
-	GinkgoHelper()
-	schedule, err := clientutil.ParseDateTime(testStartTime)
-	Expect(err).ToNot(HaveOccurred(), "there should be no error parsing the time")
-	test.MustSetAnnotations(ctx, k8sClient, cluster, map[string]string{
-		greenhouseapis.MarkClusterDeletionAnnotation:     "true",
-		greenhouseapis.ScheduleClusterDeletionAnnotation: schedule.Format(time.DateTime),
-	})
 }

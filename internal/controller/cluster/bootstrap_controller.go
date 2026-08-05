@@ -32,6 +32,10 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
+const (
+	secretFinalizer = "greenhouse.sap/finalizer"
+)
+
 type BootstrapReconciler struct {
 	client.Client
 	recorder events.EventRecorder
@@ -41,7 +45,7 @@ type BootstrapReconciler struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=clusters/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=clusters/finalizers,verbs=update
 //+kubebuilder:rbac:groups="events.k8s.io",resources=events,verbs=get;list;watch;update;patch
-//+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update;patch;delete
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *BootstrapReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
@@ -65,6 +69,40 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if err := r.Get(ctx, req.NamespacedName, kubeConfigSecret); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+	if kubeConfigSecret.DeletionTimestamp.IsZero() {
+		if !controllerutil.ContainsFinalizer(kubeConfigSecret, secretFinalizer) {
+			controllerutil.AddFinalizer(kubeConfigSecret, secretFinalizer)
+			if err := r.Update(ctx, kubeConfigSecret); err != nil {
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{RequeueAfter: time.Second}, nil
+		}
+	} else {
+		// the secret is being deleted
+		if controllerutil.ContainsFinalizer(kubeConfigSecret, secretFinalizer) {
+			// we have finalizer, so delete cluster if one can be found
+			cluster := greenhousev1alpha1.Cluster{}
+			if err := r.Get(ctx, req.NamespacedName, &cluster); err != nil {
+				if client.IgnoreNotFound(err) == nil {
+					// cluster not found - remove finalizer
+					if controllerutil.ContainsFinalizer(kubeConfigSecret, secretFinalizer) {
+						controllerutil.RemoveFinalizer(kubeConfigSecret, secretFinalizer)
+						if err := r.Update(ctx, kubeConfigSecret); err != nil {
+							return ctrl.Result{}, err
+						}
+					}
+				}
+				return ctrl.Result{}, client.IgnoreNotFound(err)
+			}
+			log.FromContext(ctx).Info(
+				"Cluster secret is being deleted, requesting Cluster deletion",
+				"cluster", req.String(),
+			)
+			return ctrl.Result{}, client.IgnoreNotFound(r.Delete(ctx, &cluster))
+		}
+		return ctrl.Result{}, nil
+	}
+
 	if kubeConfigSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
 		// if secret type is oidc we check if a kubeconfig was already generated,
 		// and we also check if the greenhousekubeconfig key is present and the value is not empty

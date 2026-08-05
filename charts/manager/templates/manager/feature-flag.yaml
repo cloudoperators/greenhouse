@@ -26,9 +26,16 @@ data:
       expressionEvaluationEnabled: false / true
       integrationEnabled: false / true
       ociMirroringEnabled: false / true
+    # enable pluginPreset features
+    # expressionEvaluationEnabled allows you to enable or disable CEL expression evaluation in PluginPreset
+    # when enabled, expressions in PluginPreset.spec.plugin.optionValues are evaluated before creating the Plugin
+    pluginPreset: |
+      expressionEvaluationEnabled: false / true
   dex: |
     storage: {{ include "dex.backend" $ }}
   plugin: |
     expressionEvaluationEnabled: {{ include "plugin.expressionEvaluationEnabled" $ }}
     integrationEnabled: {{ include "plugin.integrationEnabled" $ }}
     ociMirroringEnabled: {{ include "plugin.ociMirroringEnabled" $ }}
+  pluginPreset: |
+    expressionEvaluationEnabled: {{ include "pluginPreset.expressionEvaluationEnabled" $ }}

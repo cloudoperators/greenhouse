@@ -14,23 +14,11 @@ import (
 
 type (
 	MetricResult string
-	MetricReason string
 )
 
 const (
 	MetricResultSuccess MetricResult = "success"
 	MetricResultError   MetricResult = "error"
-
-	MetricReasonEmpty                    MetricReason = ""
-	MetricReasonClusterAccessFailed      MetricReason = "cluster_access_failed"
-	MetricReasonUninstallHelmFailed      MetricReason = "uninstall_helm_failed"
-	MetricReasonInstallFailed            MetricReason = "upgrade_failed"
-	MetricReasonUpgradeFailed            MetricReason = "upgrade_failed"
-	MetricReasonPluginDefinitionNotFound MetricReason = "plugin_definition_not_found"
-	MetricReasonTemplateFailed           MetricReason = "template_failed"
-	MetricReasonDiffFailed               MetricReason = "diff_failed"
-	MetricReasonHelmChartIsNotDefined    MetricReason = "helm_chart_is_not_defined"
-	MetricReasonSuspendFailed            MetricReason = "suspend_failed"
 )
 
 var (
@@ -38,7 +26,7 @@ var (
 		prometheus.CounterOpts{
 			Name: "greenhouse_plugin_reconcile_total",
 		},
-		[]string{"pluginDefinition", "clusterName", "plugin", "organization", "result", "reason", "owned_by"})
+		[]string{"pluginDefinition", "clusterName", "plugin", "organization", "result", "owned_by"})
 	OwnedByLabelMissingGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "greenhouse_owned_by_label_missing",
@@ -53,14 +41,13 @@ func init() {
 	crmetrics.Registry.MustRegister(OwnedByLabelMissingGauge)
 }
 
-func UpdatePluginReconcileTotalMetric(plugin *greenhousev1alpha1.Plugin, result MetricResult, reason MetricReason) {
+func UpdatePluginReconcileTotalMetric(plugin *greenhousev1alpha1.Plugin, result MetricResult) {
 	pluginReconcileTotalLabels := prometheus.Labels{
 		"pluginDefinition": plugin.Spec.PluginDefinitionRef.Name,
 		"clusterName":      plugin.Spec.ClusterName,
 		"plugin":           plugin.Name,
 		"organization":     plugin.Namespace,
 		"result":           string(result),
-		"reason":           string(reason),
 		"owned_by":         plugin.Labels[greenhouseapis.LabelKeyOwnedBy],
 	}
 	PluginReconcileTotal.With(pluginReconcileTotalLabels).Inc()

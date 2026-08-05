@@ -211,7 +211,7 @@ func (s *source) reconcileGitRepository(ctx context.Context) error {
 	spec := sourcev1.GitRepositorySpec{
 		URL:       s.source.Repository,
 		Interval:  s.source.GetInterval(),
-		Reference: s.source.GetGitRepositoryReference(),
+		Reference: getGitRepositoryReference(&s.source),
 		Provider:  genericAuthProvider,
 		Suspend:   false,
 	}

@@ -6,6 +6,7 @@ package v1alpha1
 import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 )
@@ -50,7 +51,10 @@ type TeamRoleList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&TeamRole{}, &TeamRoleList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &TeamRole{}, &TeamRoleList{})
+		return nil
+	})
 }
 
 // GetRBACName returns the name of the rbacv1.ClusterRole that will be created on the remote cluster

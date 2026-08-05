@@ -20,7 +20,7 @@ type CELResolver struct {
 
 // NewCELResolver creates a new CELResolver for a given Plugin.
 func NewCELResolver(optionValues []greenhousev1alpha1.PluginOptionValue) (*CELResolver, error) {
-	templateData, err := buildTemplateData(optionValues)
+	templateData, err := BuildTemplateData(optionValues)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build template data: %w", err)
 	}
@@ -59,8 +59,8 @@ func (c *CELResolver) ResolveExpression(optionValue greenhousev1alpha1.PluginOpt
 	}, nil
 }
 
-// buildTemplateData extracts global.greenhouse.* values to build template data for CEL evaluation.
-func buildTemplateData(optionValues []greenhousev1alpha1.PluginOptionValue) (map[string]any, error) {
+// BuildTemplateData extracts global.greenhouse.* values to build template data for CEL evaluation.
+func BuildTemplateData(optionValues []greenhousev1alpha1.PluginOptionValue) (map[string]any, error) {
 	greenhouseValues := make([]greenhousev1alpha1.PluginOptionValue, 0)
 	for _, optionValue := range optionValues {
 		// Include global.greenhouse.* values for CEL evaluation.

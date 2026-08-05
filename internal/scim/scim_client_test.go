@@ -6,13 +6,13 @@ package scim
 import (
 	"context"
 	"fmt"
-
-	ctrl "sigs.k8s.io/controller-runtime"
-
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	ctrl "sigs.k8s.io/controller-runtime"
+
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
 func Test_SCIM_Client(t *testing.T) {
@@ -20,14 +20,14 @@ func Test_SCIM_Client(t *testing.T) {
 
 	testTable := []struct {
 		name              string
-		authType          AuthType
+		authType          greenhousev1alpha1.AuthType
 		basicAuthConfig   *BasicAuthConfig
 		bearerTokenConfig *BearerTokenConfig
 		withError         bool
 	}{
 		{
 			name:     "it should successfully create a basic auth client",
-			authType: Basic,
+			authType: greenhousev1alpha1.AuthTypeBasic,
 			basicAuthConfig: &BasicAuthConfig{
 				Username: "some-username",
 				Password: "some-password",
@@ -35,7 +35,7 @@ func Test_SCIM_Client(t *testing.T) {
 		},
 		{
 			name:     "it should fail to create a basic auth client, when no username is provided",
-			authType: Basic,
+			authType: greenhousev1alpha1.AuthTypeBasic,
 			basicAuthConfig: &BasicAuthConfig{
 				Password: "some-password",
 			},
@@ -43,7 +43,7 @@ func Test_SCIM_Client(t *testing.T) {
 		},
 		{
 			name:     "it should fail to create a basic auth client, when no password is provided",
-			authType: Basic,
+			authType: greenhousev1alpha1.AuthTypeBasic,
 			basicAuthConfig: &BasicAuthConfig{
 				Username: "some-username",
 			},
@@ -51,19 +51,19 @@ func Test_SCIM_Client(t *testing.T) {
 		},
 		{
 			name:      "it should fail to create a basic auth client, when no username and password is provided",
-			authType:  Basic,
+			authType:  greenhousev1alpha1.AuthTypeBasic,
 			withError: true,
 		},
 		{
 			name:     "it should successfully create a bearer token client",
-			authType: BearerToken,
+			authType: greenhousev1alpha1.AuthTypeBearerToken,
 			bearerTokenConfig: &BearerTokenConfig{
 				Token: bearerToken,
 			},
 		},
 		{
 			name:              "it should failed to create a bearer token client, when no bearer token is provided",
-			authType:          BearerToken,
+			authType:          greenhousev1alpha1.AuthTypeBearerToken,
 			withError:         true,
 			bearerTokenConfig: &BearerTokenConfig{},
 		},
@@ -111,7 +111,7 @@ func TestClient_GetGroups(t *testing.T) {
 	})
 	scimClient, err := NewSCIMClient(logger, &Config{
 		URL:      server.URL + baseURLPath,
-		AuthType: Basic,
+		AuthType: greenhousev1alpha1.AuthTypeBasic,
 		BasicAuth: &BasicAuthConfig{
 			Username: "some-username",
 			Password: "some-password",
@@ -199,7 +199,7 @@ func TestClient_GetUsers(t *testing.T) {
 	// Create the SCIM client
 	scimClient, err := NewSCIMClient(logger, &Config{
 		URL:      server.URL + baseURLPath,
-		AuthType: Basic,
+		AuthType: greenhousev1alpha1.AuthTypeBasic,
 		BasicAuth: &BasicAuthConfig{
 			Username: "some-username",
 			Password: "some-password",
@@ -294,7 +294,7 @@ func TestClient_GetPaginatedUsers(t *testing.T) {
 	// Create the SCIM client
 	scimClient, err := NewSCIMClient(logger, &Config{
 		URL:      server.URL + baseURLPath,
-		AuthType: Basic,
+		AuthType: greenhousev1alpha1.AuthTypeBasic,
 		BasicAuth: &BasicAuthConfig{
 			Username: "some-username",
 			Password: "some-password",

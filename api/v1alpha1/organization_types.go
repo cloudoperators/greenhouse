@@ -7,9 +7,9 @@ import (
 	"slices"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
-	"github.com/cloudoperators/greenhouse/internal/scim"
 )
 
 const (
@@ -109,7 +109,7 @@ type SCIMConfig struct {
 	// AuthType defined possible authentication type
 	// +kubebuilder:validation:Enum=basic;token
 	// +kubebuilder:default="basic"
-	AuthType scim.AuthType `json:"authType,omitempty"`
+	AuthType AuthType `json:"authType,omitempty"`
 	// User to be used for basic authentication.
 	BasicAuthUser *ValueFromSource `json:"basicAuthUser,omitempty"`
 	// Password to be used for basic authentication.
@@ -121,6 +121,14 @@ type SCIMConfig struct {
 	// BearerHeader to be used to defined bearer token header
 	BearerHeader string `json:"bearerHeader,omitempty"`
 }
+
+// AuthType defines the authentication method for SCIM API access.
+type AuthType string
+
+const (
+	AuthTypeBasic       AuthType = "basic"
+	AuthTypeBearerToken AuthType = "token"
+)
 
 // OrganizationStatus defines the observed state of an Organization
 type OrganizationStatus struct {
@@ -155,7 +163,10 @@ type OrganizationList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&Organization{}, &OrganizationList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &Organization{}, &OrganizationList{})
+		return nil
+	})
 }
 
 func (o *Organization) GetConditions() greenhousemetav1alpha1.StatusConditions {
