@@ -48,7 +48,7 @@ func StripRetiredGreenhouseValues(values []greenhousev1alpha1.PluginOptionValue)
 	})
 }
 
-// GetGreenhouseValues generate values for greenhouse core resources in the form:
+// GetGreenhouseValues generates values for greenhouse core resources in the form:
 //
 //	global:
 //	  greenhouse:
