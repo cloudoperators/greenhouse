@@ -43,4 +43,4 @@ Within Greenhouse the controllers implement the `lifecycle.Reconciler` interface
 
 Unit/Integration tests for the controllers use Kubebuilder's envtest environment and are implemented using Ginkgo and Gomega. For examples on how to write tests please refer to the existing tests. There are also some helper functions in the `internal/test` package that can be used to simplify the testing of controllers.
 
-For e2e tests, please refer to the `test/e2e/README.md`.
+For e2e tests, please refer to the `e2e/README.md`.
