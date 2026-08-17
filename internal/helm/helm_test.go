@@ -87,14 +87,14 @@ var _ = Describe("helm package test", func() {
 				ContainElement(HaveField("Name", "global.greenhouse.teamNames")), "the obsolete teamNames should not be generated")
 		})
 
-		It("should not mutate its input when stripping retired values", func() {
+		It("should not mutate its input when stripping excluded values", func() {
 			values := []greenhousev1alpha1.PluginOptionValue{
 				{Name: "key1", Value: test.MustReturnJSONFor("pluginValue1")},
 				{Name: "global.greenhouse.clusterNames", Value: test.MustReturnJSONFor([]string{"stale-cluster"})},
 			}
 			valuesBefore := slices.Clone(values)
 
-			Expect(helm.StripRetiredGreenhouseValues(values)).To(HaveLen(1), "the retired value should be dropped")
+			Expect(helm.StripExcludedGreenhouseValues(values)).To(HaveLen(1), "the excluded value should be dropped")
 			Expect(values).To(Equal(valuesBefore), "the input should be left untouched")
 		})
 
@@ -129,7 +129,7 @@ var _ = Describe("helm package test", func() {
 				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "key1", Value: test.MustReturnJSONFor("pluginValue1"), ValueFrom: nil}), "unrelated option values should be preserved")
 		})
 
-		It("should not mutate the plugin spec while dropping retired values", func() {
+		It("should not mutate the plugin spec while dropping excluded values", func() {
 			definitionWithoutOptions := testPluginWithHelmChart.DeepCopy()
 			definitionWithoutOptions.Name = "definition-without-options"
 			definitionWithoutOptions.Spec.Options = nil

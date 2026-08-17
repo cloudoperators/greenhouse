@@ -202,7 +202,7 @@ func (o *PluginTemplatePresetOptions) prepareValues() error {
 		return err
 	}
 
-	o.values = helminternal.StripRetiredGreenhouseValues(values)
+	o.values = helminternal.StripExcludedGreenhouseValues(values)
 	return nil
 }
 

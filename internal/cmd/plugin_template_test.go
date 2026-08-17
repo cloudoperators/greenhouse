@@ -155,7 +155,7 @@ var _ = Describe("prepareValues", func() {
 		opts.pluginPreset = pluginPreset
 	})
 
-	Context("with retired greenhouse values in the preset", func() {
+	Context("with excluded greenhouse values in the preset", func() {
 		It("should not render values the controller no longer injects", func() {
 			pluginPreset.Spec.Plugin.OptionValues = []greenhousev1alpha1.PluginPresetPluginOptionValue{
 				{Name: "global.greenhouse.clusterNames", Value: &apiextensionsv1.JSON{Raw: []byte(`["cluster-a"]`)}},

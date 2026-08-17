@@ -18,7 +18,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/common"
 )
 
-var retiredGreenhouseValues = []string{
+var excludedGreenhouseValues = []string{
 	"global.greenhouse.clusterNames",
 	"global.greenhouse.teamNames",
 }
@@ -37,14 +37,14 @@ func GetPluginOptionValuesForPlugin(ctx context.Context, c client.Client, plugin
 		return nil, err
 	}
 	values = MergePluginOptionValues(values, greenhouseValues)
-	return StripRetiredGreenhouseValues(values), nil
+	return StripExcludedGreenhouseValues(values), nil
 }
 
-// StripRetiredGreenhouseValues drops the values Greenhouse no longer injects.
+// StripExcludedGreenhouseValues drops the values Greenhouse no longer injects.
 // It clones, as the input may alias a Plugin's OptionValues.
-func StripRetiredGreenhouseValues(values []greenhousev1alpha1.PluginOptionValue) []greenhousev1alpha1.PluginOptionValue {
+func StripExcludedGreenhouseValues(values []greenhousev1alpha1.PluginOptionValue) []greenhousev1alpha1.PluginOptionValue {
 	return slices.DeleteFunc(slices.Clone(values), func(v greenhousev1alpha1.PluginOptionValue) bool {
-		return slices.Contains(retiredGreenhouseValues, v.Name)
+		return slices.Contains(excludedGreenhouseValues, v.Name)
 	})
 }
 
