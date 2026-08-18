@@ -6,6 +6,7 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -310,7 +311,7 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 	}
 
 	// if cluster is annotated with DeletionPolicyRetain - propagate it to plugings
-	if cluster.Annotations[greenhouseapis.AnnotationKeyDeletionPolicy] == greenhouseapis.DeletionPolicyRetain {
+	if strings.EqualFold(cluster.Annotations[greenhouseapis.AnnotationKeyDeletionPolicy], greenhouseapis.DeletionPolicyRetain) {
 		updatedCount := 0
 		pluginList, err := r.getPluginList(ctx, cluster)
 		if err != nil {
@@ -318,15 +319,19 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 		}
 		for _, plugin := range pluginList.Items {
 			if plugin.Annotations[greenhouseapis.AnnotationKeyDeletionPolicy] != greenhouseapis.DeletionPolicyRetain {
-				if plugin.Annotations == nil {
-					plugin.Annotations = make(map[string]string)
-				}
-				plugin.Annotations[greenhouseapis.AnnotationKeyDeletionPolicy] = greenhouseapis.DeletionPolicyRetain
-				err := r.Update(ctx, &plugin)
+				result, err := controllerutil.CreateOrUpdate(ctx, r.Client, &plugin, func() error {
+					if plugin.Annotations == nil {
+						plugin.Annotations = make(map[string]string)
+					}
+					plugin.Annotations[greenhouseapis.AnnotationKeyDeletionPolicy] = greenhouseapis.DeletionPolicyRetain
+					return nil
+				})
 				if client.IgnoreNotFound(err) != nil {
 					return ctrl.Result{}, lifecycle.Failed, err
 				}
-				updatedCount++
+				if result == controllerutil.OperationResultUpdated {
+					updatedCount++
+				}
 			}
 		}
 		if updatedCount > 0 {
