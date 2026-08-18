@@ -247,7 +247,10 @@ func (r *PluginPresetReconciler) resolvePluginPresetRefByName(
 		"name", ref.Name,
 		"expression", ref.Expression)
 
-	resolvedRefValues := r.resolveReferencedPresetValues(ctx, refPreset, cluster)
+	resolvedRefValues, err := r.resolveReferencedPresetValues(ctx, refPreset, cluster)
+	if err != nil {
+		return nil, err
+	}
 	celObject := buildCELObject(refPreset.Name, refPreset.Namespace, resolvedRefValues)
 
 	value, err := evaluateCELWithObject(ref.Expression, celObject)
@@ -294,7 +297,10 @@ func (r *PluginPresetReconciler) resolvePluginPresetRefBySelector(
 	results := make([]any, 0, len(presetList.Items))
 	for i := range presetList.Items {
 		refPreset := &presetList.Items[i]
-		resolvedRefValues := r.resolveReferencedPresetValues(ctx, refPreset, cluster)
+		resolvedRefValues, err := r.resolveReferencedPresetValues(ctx, refPreset, cluster)
+		if err != nil {
+			return nil, err
+		}
 		celObject := buildCELObject(refPreset.Name, refPreset.Namespace, resolvedRefValues)
 
 		value, err := evaluateCELWithObject(ref.Expression, celObject)
@@ -313,10 +319,10 @@ func (r *PluginPresetReconciler) resolveReferencedPresetValues(
 	ctx context.Context,
 	refPreset *greenhousev1alpha1.PluginPreset,
 	cluster *greenhousev1alpha1.Cluster,
-) []greenhousev1alpha1.PluginOptionValue {
+) ([]greenhousev1alpha1.PluginOptionValue, error) {
 
 	if !r.ExpressionEvaluationEnabled {
-		return util.ConvertToPluginOptionValues(refPreset.Spec.Plugin.OptionValues)
+		return util.ConvertToPluginOptionValues(refPreset.Spec.Plugin.OptionValues), nil
 	}
 
 	// Apply cluster-specific overrides to referenced preset first
@@ -324,13 +330,10 @@ func (r *PluginPresetReconciler) resolveReferencedPresetValues(
 
 	resolvedRefValues, err := r.resolveExpressionsForPreset(ctx, refPresetWithOverrides, cluster)
 	if err != nil {
-		log := ctrl.LoggerFrom(ctx)
-		log.Error(err, "Failed to resolve expressions in referenced PluginPreset, using raw values",
-			"name", refPreset.Name)
-		return util.ConvertToPluginOptionValues(refPresetWithOverrides.Spec.Plugin.OptionValues)
+		return nil, fmt.Errorf("failed to resolve expression in referenced PluginPreset %s: %w",
+			refPreset.Name, err)
 	}
-
-	return resolvedRefValues
+	return resolvedRefValues, nil
 }
 
 // buildCELObject creates a CEL-friendly object structure from option values.
