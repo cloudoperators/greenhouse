@@ -54,10 +54,11 @@ The following `global.greenhouse.*` variables are available in expressions:
 |----------|-------------|
 | `global.greenhouse.clusterName` | The name of the target cluster |
 | `global.greenhouse.organizationName` | The name of the organization |
-| `global.greenhouse.clusterNames` | Names of all clusters in the organization |
-| `global.greenhouse.teamNames` | Names of all teams in the organization |
 | `global.greenhouse.baseDomain` | DNS base domain for Greenhouse |
+| `global.greenhouse.ownedBy` | The owning team of the Plugin |
 | `global.greenhouse.metadata.*` | Cluster metadata labels |
+
+> :warning: `global.greenhouse.clusterNames` and `global.greenhouse.teamNames` were removed. An expression still referencing either of them fails to evaluate and blocks the PluginPreset from rolling out its Plugins. See [Injected Greenhouse Values](./../../../reference/components/plugin#injected-greenhouse-values).
 
 ### Using CEL Functions
 

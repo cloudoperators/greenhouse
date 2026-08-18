@@ -48,11 +48,12 @@ Here's a high-level overview of how to develop a plugin for Greenhouse:
    - Provide a list of `PluginOptions` which are values that are consumed to configure the actual `Plugin` instance of your `PluginDefinition`.
      Greenhouse always provides some global values that are injected into your `Plugin` upon deployment:
      - `global.greenhouse.organizationName`: The `name` of your `Organization`
-     - `global.greenhouse.teamNames`: All available `Teams` in your `Organization`
-     - `global.greenhouse.clusterNames`: All available `Clusters` in your `Organization`
      - `global.greenhouse.clusterName`: The `name` of the `Cluster` this `Plugin` instance is deployed to.
      - `global.greenhouse.baseDomain`: The base domain of your Greenhouse installation
      - `global.greenhouse.ownedBy`: The owner (usually a owning `Team`) of this `Plugin` instance
+     - `global.greenhouse.metadata.*`: The metadata labels of the `Cluster` this `Plugin` instance is deployed to
+
+     See [Injected Greenhouse Values](./../../reference/components/plugin#injected-greenhouse-values).
 
 3. **Plugin Components**:
 

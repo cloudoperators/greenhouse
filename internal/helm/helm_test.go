@@ -6,6 +6,7 @@ package helm_test
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -68,8 +69,6 @@ var _ = Describe("helm package test", func() {
 			Expect(pluginOptionValues).To(
 				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "key1", Value: test.MustReturnJSONFor("pluginValue1"), ValueFrom: nil}), "the plugin option values should contain default from pluginDefinition spec")
 			Expect(pluginOptionValues).To(
-				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "global.greenhouse.teamNames", Value: test.MustReturnJSONFor([]string{"test-team-1"}), ValueFrom: nil}), "the plugin option values should contain greenhouse values")
-			Expect(pluginOptionValues).To(
 				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "global.greenhouse.clusterName", Value: test.MustReturnJSONFor(plugin.Spec.ClusterName), ValueFrom: nil}), "the plugin option values should contain the clusterName from the plugin")
 			Expect(pluginOptionValues).To(
 				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "global.greenhouse.organizationName", Value: test.MustReturnJSONFor(plugin.GetNamespace()), ValueFrom: nil}), "the plugin option values should contain the orgName from the plugin namespace")
@@ -77,6 +76,84 @@ var _ = Describe("helm package test", func() {
 				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "global.greenhouse.baseDomain", Value: test.MustReturnJSONFor(common.DNSDomain), ValueFrom: nil}), "the plugin option values should contain the baseDomain")
 			Expect(pluginOptionValues).To(
 				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "global.greenhouse.ownedBy", Value: test.MustReturnJSONFor(plugin.Labels[string(greenhouseapis.LabelKeyOwnedBy)]), ValueFrom: nil}), "the plugin option values should contain the owning team")
+		})
+
+		It("should not generate the obsolete clusterNames and teamNames greenhouse values", func() {
+			greenhouseValues, err := helm.GetGreenhouseValues(test.Ctx, test.K8sClient, *plugin)
+			Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the greenhouse values")
+			Expect(greenhouseValues).ToNot(
+				ContainElement(HaveField("Name", "global.greenhouse.clusterNames")), "the obsolete clusterNames should not be generated")
+			Expect(greenhouseValues).ToNot(
+				ContainElement(HaveField("Name", "global.greenhouse.teamNames")), "the obsolete teamNames should not be generated")
+		})
+
+		It("should not mutate its input when stripping excluded values", func() {
+			values := []greenhousev1alpha1.PluginOptionValue{
+				{Name: "key1", Value: test.MustReturnJSONFor("pluginValue1")},
+				{Name: "global.greenhouse.clusterNames", Value: test.MustReturnJSONFor([]string{"stale-cluster"})},
+			}
+			valuesBefore := slices.Clone(values)
+
+			Expect(helm.StripExcludedGreenhouseValues(values)).To(HaveLen(1), "the excluded value should be dropped")
+			Expect(values).To(Equal(valuesBefore), "the input should be left untouched")
+		})
+
+		It("should not inject the obsolete clusterNames and teamNames greenhouse values", func() {
+			plugin.Spec.OptionValues = []greenhousev1alpha1.PluginOptionValue{*optionValue}
+			ensureExists(testPluginWithHelmChart)
+			ensureExists(team)
+
+			pluginOptionValues, err := helm.GetPluginOptionValuesForPlugin(test.Ctx, test.K8sClient, plugin)
+			Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the plugin option values")
+			Expect(pluginOptionValues).ToNot(
+				ContainElement(HaveField("Name", "global.greenhouse.clusterNames")), "the obsolete clusterNames should not be injected")
+			Expect(pluginOptionValues).ToNot(
+				ContainElement(HaveField("Name", "global.greenhouse.teamNames")), "the obsolete teamNames should not be injected")
+		})
+
+		It("should drop obsolete greenhouse values already persisted in the plugin spec", func() {
+			plugin.Spec.OptionValues = []greenhousev1alpha1.PluginOptionValue{
+				*optionValue,
+				{Name: "global.greenhouse.clusterNames", Value: test.MustReturnJSONFor([]string{"stale-cluster"})},
+				{Name: "global.greenhouse.teamNames", Value: test.MustReturnJSONFor([]string{"stale-team"})},
+			}
+			ensureExists(testPluginWithHelmChart)
+
+			pluginOptionValues, err := helm.GetPluginOptionValuesForPlugin(test.Ctx, test.K8sClient, plugin)
+			Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the plugin option values")
+			Expect(pluginOptionValues).ToNot(
+				ContainElement(HaveField("Name", "global.greenhouse.clusterNames")), "the stale clusterNames should be removed from the spec")
+			Expect(pluginOptionValues).ToNot(
+				ContainElement(HaveField("Name", "global.greenhouse.teamNames")), "the stale teamNames should be removed from the spec")
+			Expect(pluginOptionValues).To(
+				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "key1", Value: test.MustReturnJSONFor("pluginValue1"), ValueFrom: nil}), "unrelated option values should be preserved")
+		})
+
+		It("should not mutate the plugin spec while dropping excluded values", func() {
+			definitionWithoutOptions := testPluginWithHelmChart.DeepCopy()
+			definitionWithoutOptions.Name = "definition-without-options"
+			definitionWithoutOptions.Spec.Options = nil
+			ensureExists(definitionWithoutOptions)
+
+			// Nil Options plus a spec that already holds every greenhouse value means the merge
+			// neither copies nor reallocates, which is what leaves the slice aliased to the spec.
+			// The values are deliberately stale, so an in-place overwrite is observable.
+			pluginWithoutOptions := plugin.DeepCopy()
+			pluginWithoutOptions.Labels = nil
+			pluginWithoutOptions.Spec.ClusterName = ""
+			pluginWithoutOptions.Spec.PluginDefinitionRef.Name = definitionWithoutOptions.Name
+			pluginWithoutOptions.Spec.OptionValues = []greenhousev1alpha1.PluginOptionValue{
+				{Name: "key1", Value: test.MustReturnJSONFor("pluginValue1")},
+				{Name: "global.greenhouse.organizationName", Value: test.MustReturnJSONFor("stale-org")},
+				{Name: "global.greenhouse.baseDomain", Value: test.MustReturnJSONFor("stale.example.com")},
+				{Name: "global.greenhouse.clusterNames", Value: test.MustReturnJSONFor([]string{"stale-cluster"})},
+				{Name: "global.greenhouse.teamNames", Value: test.MustReturnJSONFor([]string{"stale-team"})},
+			}
+			specBefore := slices.Clone(pluginWithoutOptions.Spec.OptionValues)
+
+			_, err := helm.GetPluginOptionValuesForPlugin(test.Ctx, test.K8sClient, pluginWithoutOptions)
+			Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the plugin option values")
+			Expect(pluginWithoutOptions.Spec.OptionValues).To(Equal(specBefore), "the plugin spec should be left untouched")
 		})
 	})
 
@@ -252,3 +329,14 @@ var _ = Describe("Plugin option checksum", Ordered, func() {
 		Entry("different option values should not be equal", optionValuesRequiredAndOptional, optionValuesRequiredAndSecret, false),
 	)
 })
+
+// ensureExists creates a copy of obj unless it already exists, dropping the resourceVersion
+// so shared fixtures can be reused across specs.
+func ensureExists(obj client.Object) {
+	GinkgoHelper()
+	objCopy, ok := obj.DeepCopyObject().(client.Object)
+	Expect(ok).To(BeTrue(), "the deep copy should implement client.Object")
+	objCopy.SetResourceVersion("")
+	Expect(client.IgnoreAlreadyExists(test.K8sClient.Create(test.Ctx, objCopy))).
+		To(Succeed(), "creating %T %s should be successful", obj, obj.GetName())
+}
