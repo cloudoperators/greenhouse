@@ -40,7 +40,7 @@ const (
 
 func (r *PluginReconciler) EnsureFluxDeleted(ctx context.Context, plugin *greenhousev1alpha1.Plugin) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	// suspend the HelmRelease first to delete the Flux HelmRelease without removing the Helm release from the target cluster
-	if plugin.Spec.DeletionPolicy == greenhouseapis.DeletionPolicyRetain {
+	if plugin.Spec.DeletionPolicy == greenhouseapis.DeletionPolicyRetain || plugin.Annotations[greenhouseapis.AnnotationKeyDeletionPolicy] == greenhouseapis.DeletionPolicyRetain {
 		if _, err := r.EnsureFluxSuspended(ctx, plugin); err != nil {
 			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseDeployedCondition, greenhousev1alpha1.HelmUninstallFailedReason, err.Error()))
 			return ctrl.Result{}, lifecycle.Failed, err

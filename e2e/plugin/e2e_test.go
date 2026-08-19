@@ -122,4 +122,8 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			scenarios.PluginImageReplicationFailure(ctx, adminClient, env, remoteClusterName)
 		})
 	})
+
+	It("should retain the helm release when Cluster annotated with DeletionPolicy set to `Retain` is deleted", func() {
+		scenarios.FluxControllerClusterDeletePolicyRetain(ctx, adminClient, env, remoteClusterName, team.Name)
+	})
 })
