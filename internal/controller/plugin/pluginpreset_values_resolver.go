@@ -285,8 +285,7 @@ func (r *PluginPresetReconciler) resolvePluginPresetRefBySelector(
 	}
 
 	if len(presetList.Items) == 0 {
-		log.Info("No PluginPresets found matching selector", "selector", ref.Selector)
-		return []any{}, nil
+		return nil, fmt.Errorf("no PluginPresets found matching selector %v: referenced presets may not be created yet", ref.Selector)
 	}
 
 	log.Info("Resolving reference to PluginPresets by selector",

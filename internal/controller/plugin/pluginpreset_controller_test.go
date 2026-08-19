@@ -1628,7 +1628,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, sourceAPreset)
 	})
 
-	It("should return empty array when selector matches no PluginPresets", func() {
+	It("should not create Plugin when selector matches no PluginPresets", func() {
 		By("creating consumer PluginPreset with selector that matches nothing")
 		consumerSpec := greenhousev1alpha1.PluginPresetPluginSpec{
 			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
@@ -1655,7 +1655,6 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 				},
 			},
 		}
-
 		consumerPreset := test.NewPluginPreset("sel-empty", test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 			test.WithPresetPluginSpec(consumerSpec),
@@ -1664,24 +1663,14 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			}))
 		Expect(test.K8sClient.Create(test.Ctx, consumerPreset)).To(Succeed())
 
-		By("ensuring consumer Plugin is created with empty array")
+		By("ensuring consumer Plugin is NOT created due to unresolved references")
 		consumerPluginName := types.NamespacedName{Name: "sel-empty-" + clusterA, Namespace: test.TestNamespace}
-		Eventually(func(g Gomega) {
+		Consistently(func(g Gomega) {
 			consumerPlugin := &greenhousev1alpha1.Plugin{}
-			g.Expect(test.K8sClient.Get(test.Ctx, consumerPluginName, consumerPlugin)).To(Succeed())
-
-			var found bool
-			for _, ov := range consumerPlugin.Spec.OptionValues {
-				if ov.Name == "consumer.value" {
-					found = true
-					g.Expect(ov.ValueFrom).To(BeNil(), "ValueFrom should be resolved")
-					g.Expect(ov.Value).ToNot(BeNil(), "Value should be set")
-					g.Expect(string(ov.Value.Raw)).To(Equal("[]"),
-						"Value should be empty array when no presets match selector")
-				}
-			}
-			g.Expect(found).To(BeTrue())
-		}).Should(Succeed(), "Consumer should handle empty selector result")
+			err := test.K8sClient.Get(test.Ctx, consumerPluginName, consumerPlugin)
+			g.Expect(err).To(HaveOccurred())
+			g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		}).Should(Succeed(), "Plugin should not be created when referenced presets don't exist")
 
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, consumerPreset)
 	})
