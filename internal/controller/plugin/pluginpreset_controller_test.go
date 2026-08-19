@@ -1508,6 +1508,187 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, sourcePreset)
 	})
 
+	It("should reconcile consumer when referenced PluginPreset is created after consumer", func() {
+		By("creating consumer PluginPreset that references a not-yet-existing preset")
+		consumerSpec := greenhousev1alpha1.PluginPresetPluginSpec{
+			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+				Name: pluginPresetDefinitionName,
+			},
+			ReleaseName:      releaseName + "-consumer-watch",
+			ReleaseNamespace: releaseNamespace,
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+				{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
+				{
+					Name: "consumer.value",
+					ValueFrom: &greenhousev1alpha1.PluginPresetPluginValueFromSource{
+						Ref: &greenhousev1alpha1.ExternalValueSource{
+							Kind:       greenhousev1alpha1.PluginPresetKind,
+							Name:       "provider-watch",
+							Expression: `spec.optionValues.filter(o, o.name == "provider.output")[0].value`,
+						},
+					},
+				},
+			},
+		}
+		consumerPreset := test.NewPluginPreset("consumer-watch", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPresetPluginSpec(consumerSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{"cluster": clusterA},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, consumerPreset)).To(Succeed())
+
+		By("ensuring consumer Plugin is NOT created while referenced preset doesn't exist")
+		consumerPluginName := types.NamespacedName{Name: "consumer-watch-" + clusterA, Namespace: test.TestNamespace}
+		Consistently(func(g Gomega) {
+			consumerPlugin := &greenhousev1alpha1.Plugin{}
+			err := test.K8sClient.Get(test.Ctx, consumerPluginName, consumerPlugin)
+			g.Expect(err).To(HaveOccurred())
+			g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		}, "3s", "500ms").Should(Succeed(), "Plugin should not be created when referenced preset doesn't exist")
+
+		By("creating the referenced provider PluginPreset")
+		providerSpec := greenhousev1alpha1.PluginPresetPluginSpec{
+			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+				Name: pluginPresetDefinitionName,
+			},
+			ReleaseName:      releaseName + "-provider-watch",
+			ReleaseNamespace: releaseNamespace,
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+				{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
+				{Name: "provider.output", Value: test.MustReturnJSONFor("resolved-value")},
+			},
+		}
+		providerPreset := test.NewPluginPreset("provider-watch", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPresetPluginSpec(providerSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{"cluster": clusterA},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, providerPreset)).To(Succeed())
+
+		By("ensuring consumer Plugin is now created with resolved value")
+		Eventually(func(g Gomega) {
+			consumerPlugin := &greenhousev1alpha1.Plugin{}
+			g.Expect(test.K8sClient.Get(test.Ctx, consumerPluginName, consumerPlugin)).To(Succeed())
+			var found bool
+			for _, ov := range consumerPlugin.Spec.OptionValues {
+				if ov.Name == "consumer.value" {
+					found = true
+					g.Expect(ov.ValueFrom).To(BeNil(), "ValueFrom should be resolved")
+					g.Expect(ov.Value).ToNot(BeNil(), "Value should be set")
+					g.Expect(string(ov.Value.Raw)).To(Equal(`"resolved-value"`),
+						"Value should contain the provider's output")
+				}
+			}
+			g.Expect(found).To(BeTrue(), "consumer.value option should exist")
+		}, "3s", "500ms").Should(Succeed(), "Consumer should be reconciled after provider is created")
+
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, consumerPreset)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, providerPreset)
+	})
+
+	It("should reconcile consumer when referenced PluginPreset is updated", func() {
+		By("creating the provider PluginPreset")
+		providerSpec := greenhousev1alpha1.PluginPresetPluginSpec{
+			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+				Name: pluginPresetDefinitionName,
+			},
+			ReleaseName:      releaseName + "-provider-upd",
+			ReleaseNamespace: releaseNamespace,
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+				{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
+				{Name: "provider.output", Value: test.MustReturnJSONFor("initial-value")},
+			},
+		}
+		providerPreset := test.NewPluginPreset("provider-upd", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPresetPluginSpec(providerSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{"cluster": clusterA},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, providerPreset)).To(Succeed())
+
+		By("creating consumer PluginPreset that references the provider")
+		consumerSpec := greenhousev1alpha1.PluginPresetPluginSpec{
+			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+				Name: pluginPresetDefinitionName,
+			},
+			ReleaseName:      releaseName + "-consumer-upd",
+			ReleaseNamespace: releaseNamespace,
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+				{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
+				{
+					Name: "consumer.value",
+					ValueFrom: &greenhousev1alpha1.PluginPresetPluginValueFromSource{
+						Ref: &greenhousev1alpha1.ExternalValueSource{
+							Kind:       greenhousev1alpha1.PluginPresetKind,
+							Name:       "provider-upd",
+							Expression: `spec.optionValues.filter(o, o.name == "provider.output")[0].value`,
+						},
+					},
+				},
+			},
+		}
+		consumerPreset := test.NewPluginPreset("consumer-upd", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPresetPluginSpec(consumerSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{"cluster": clusterA},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, consumerPreset)).To(Succeed())
+
+		By("ensuring consumer Plugin is created with initial value")
+		consumerPluginName := types.NamespacedName{Name: "consumer-upd-" + clusterA, Namespace: test.TestNamespace}
+		Eventually(func(g Gomega) {
+			consumerPlugin := &greenhousev1alpha1.Plugin{}
+			g.Expect(test.K8sClient.Get(test.Ctx, consumerPluginName, consumerPlugin)).To(Succeed())
+			var found bool
+			for _, ov := range consumerPlugin.Spec.OptionValues {
+				if ov.Name == "consumer.value" {
+					found = true
+					g.Expect(ov.Value).ToNot(BeNil())
+					g.Expect(string(ov.Value.Raw)).To(Equal(`"initial-value"`))
+				}
+			}
+			g.Expect(found).To(BeTrue())
+		}, "10s", "500ms").Should(Succeed(), "Consumer should resolve initial provider value")
+
+		By("updating the provider PluginPreset's output value")
+		Eventually(func(g Gomega) {
+			updatedProvider := &greenhousev1alpha1.PluginPreset{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: "provider-upd", Namespace: test.TestNamespace}, updatedProvider)).To(Succeed())
+			updatedProvider.Spec.Plugin.OptionValues = []greenhousev1alpha1.PluginPresetPluginOptionValue{
+				{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
+				{Name: "provider.output", Value: test.MustReturnJSONFor("updated-value")},
+			}
+			g.Expect(test.K8sClient.Update(test.Ctx, updatedProvider)).To(Succeed())
+		}, "5s", "500ms").Should(Succeed(), "Provider should be updated")
+
+		By("ensuring consumer Plugin picks up the updated value")
+		Eventually(func(g Gomega) {
+			consumerPlugin := &greenhousev1alpha1.Plugin{}
+			g.Expect(test.K8sClient.Get(test.Ctx, consumerPluginName, consumerPlugin)).To(Succeed())
+			var found bool
+			for _, ov := range consumerPlugin.Spec.OptionValues {
+				if ov.Name == "consumer.value" {
+					found = true
+					g.Expect(ov.Value).ToNot(BeNil())
+					g.Expect(string(ov.Value.Raw)).To(Equal(`"updated-value"`),
+						"Consumer should reflect the provider's updated value")
+				}
+			}
+			g.Expect(found).To(BeTrue())
+		}, "10s", "500ms").Should(Succeed(), "Consumer should be re-reconciled after provider update")
+
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, consumerPreset)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, providerPreset)
+	})
+
 	It("should resolve valueFrom.ref with selector pointing to multiple PluginPresets", func() {
 		By("creating two source PluginPresets with selector label")
 		sourceAExprStr := `"endpoint-a-${global.greenhouse.clusterName}"`

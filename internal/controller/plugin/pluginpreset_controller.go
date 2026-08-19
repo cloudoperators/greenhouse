@@ -81,6 +81,11 @@ func (r *PluginPresetReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 		Watches(&greenhousev1alpha1.PluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueuePluginPresetsForPluginDefinition), builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		// If a ClusterPluginDefinition was changed, reconcile relevant PluginPresets.
 		Watches(&greenhousev1alpha1.ClusterPluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueuePluginPresetsForClusterPluginDefinition), builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		// If a PluginPreset changes, reconcile all PluginPresets in the namespace
+		// so that consumers with valueFrom.ref references pick up the change.
+		Watches(&greenhousev1alpha1.PluginPreset{},
+			handler.EnqueueRequestsFromMapFunc(r.enqueueReferencingPluginPresets),
+			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(r)
 }
 
@@ -484,6 +489,16 @@ func (r *PluginPresetReconciler) enqueuePluginPresetsForClusterPluginDefinition(
 	return listPluginPresetAsReconcileRequests(ctx, r.Client,
 		client.MatchingLabels{greenhouseapis.LabelKeyClusterPluginDefinition: obj.GetName()},
 	)
+}
+
+// enqueueReferencingPluginPresets enqueues all PluginPresets in the same namespace
+// when a PluginPreset changes, so that consumers with valueFrom.ref references
+// pick up changes in referenced presets.
+func (r *PluginPresetReconciler) enqueueReferencingPluginPresets(ctx context.Context, obj client.Object) []ctrl.Request {
+	if !r.IntegrationEnabled {
+		return nil
+	}
+	return listPluginPresetAsReconcileRequests(ctx, r.Client, client.InNamespace(obj.GetNamespace()))
 }
 
 // listPluginPresetsAsReconcileRequests returns a list of reconcile requests for all PluginPresets that match the given list options.
