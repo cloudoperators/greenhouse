@@ -10,8 +10,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/cel-go/cel"
-	"github.com/google/cel-go/ext"
+	"cel.dev/cel-go/cel"
+	"cel.dev/cel-go/ext"
 	sigsyaml "sigs.k8s.io/yaml"
 )
 
@@ -24,7 +24,6 @@ var (
 func createExpressionCELEnv() (*cel.Env, error) {
 	return cel.NewEnv(
 		cel.Variable("global", cel.DynType),
-		// See: https://github.com/google/cel-go/tree/master/ext#strings
 		ext.Strings(),
 	)
 }
