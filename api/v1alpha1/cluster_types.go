@@ -74,10 +74,20 @@ type ClusterStatus struct {
 	greenhousemetav1alpha1.StatusConditions `json:"statusConditions,omitempty"`
 	// Nodes contain a short summary of nodes count and not ready nodes status.
 	Nodes *Nodes `json:"nodes,omitempty"`
+	// DiscoveryCache holds the discovered API groups of the remote cluster and a hash for change detection.
+	DiscoveryCache *DiscoveryCache `json:"discoveryCache,omitempty"`
 }
 
 // ClusterConditionType is a valid condition of a cluster.
 type ClusterConditionType string
+
+// DiscoveryCache caches the API groups discovered in the remote cluster.
+type DiscoveryCache struct {
+	// Hash is the SHA-256 hex hash of the sorted Groups, used to skip redundant status writes.
+	Hash string `json:"hash,omitempty"`
+	// Groups is the sorted list of API group names discovered in the remote cluster.
+	Groups []string `json:"groups,omitempty"`
+}
 
 // Nodes contains node count metrics and tracks non-ready nodes in a cluster.
 type Nodes struct {

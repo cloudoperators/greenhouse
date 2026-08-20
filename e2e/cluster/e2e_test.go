@@ -29,6 +29,7 @@ import (
 	"github.com/cloudoperators/greenhouse/e2e/shared"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 const (
@@ -302,7 +303,7 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 			secret := &corev1.Secret{}
 			err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterHName, Namespace: env.TestNamespace}, secret)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(controllerutil.ContainsFinalizer(secret, "greenhouse.sap/finalizer")).To(BeTrue(), "secret should have finalizer")
+			Expect(controllerutil.ContainsFinalizer(secret, lifecycle.CommonCleanupFinalizer)).To(BeTrue(), "secret should have finalizer")
 
 			By("removing the secret resource")
 			err = adminClient.Delete(ctx, secret)

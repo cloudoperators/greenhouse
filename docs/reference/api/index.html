@@ -1444,6 +1444,62 @@ Nodes
 <p>Nodes contain a short summary of nodes count and not ready nodes status.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>discoveryCache</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.DiscoveryCache">
+DiscoveryCache
+</a>
+</em>
+</td>
+<td>
+<p>DiscoveryCache holds the discovered API groups of the remote cluster and a hash for change detection.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.DiscoveryCache">DiscoveryCache
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterStatus">ClusterStatus</a>)
+</p>
+<p>DiscoveryCache caches the API groups discovered in the remote cluster.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>hash</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Hash is the SHA-256 hex hash of the sorted Groups, used to skip redundant status writes.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>groups</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Groups is the sorted list of API group names discovered in the remote cluster.</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
