@@ -79,7 +79,7 @@ optionValues:
     expression: ${global.greenhouse.metadata.environment.contains('prod')}
 ```
 
-For a complete list of available CEL string functions, see the [CEL string extension documentation](https://github.com/google/cel-go/tree/master/ext#strings).
+For a complete list of available CEL string functions, see the [CEL string extension documentation](https://github.com/cel-expr/cel-go/tree/master/ext#strings).
 
 ## Next Steps
 

@@ -29,6 +29,7 @@ replace (
 )
 
 require (
+	cel.dev/cel-go v0.32.0
 	github.com/cenkalti/backoff/v7 v7.0.0
 	github.com/cloudoperators/greenhouse/api v0.0.0-00010101000000-000000000000
 	github.com/dexidp/dex v0.0.0-20260303133905-11d2eeb52b42
@@ -41,7 +42,6 @@ require (
 	github.com/fluxcd/source-watcher/api/v2 v2.2.2
 	github.com/go-jose/go-jose/v4 v4.1.4
 	github.com/go-logr/logr v1.4.4
-	github.com/google/cel-go v0.31.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-containerregistry v0.21.9
 	github.com/google/go-github/v90 v90.0.0
@@ -100,7 +100,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chai2010/gettext-go v1.0.3 // indirect
 	github.com/coreos/go-oidc/v3 v3.17.0 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/creack/pty v1.1.23 // indirect
 	github.com/cyphar/filepath-securejoin v0.7.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
