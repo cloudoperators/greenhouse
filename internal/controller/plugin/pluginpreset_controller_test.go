@@ -2286,6 +2286,9 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 })
 
 var _ = Describe("applyOverridesToPreset", func() {
+	expressionStr := `"generated-${global.greenhouse.clusterName}"`
+	overrideExpressionStr := `"overridden-${global.greenhouse.clusterName}"`
+
 	DescribeTable("test cases",
 		func(preset *greenhousev1alpha1.PluginPreset, clusterName string, expectedOptionValues []greenhousev1alpha1.PluginPresetPluginOptionValue) {
 			result := applyOverridesToPreset(preset, clusterName)
@@ -2435,6 +2438,54 @@ var _ = Describe("applyOverridesToPreset", func() {
 				{Name: "option-1", Value: test.MustReturnJSONFor("added")},
 			},
 		),
+		Entry("with overrides replacing an expression-based option value",
+			&greenhousev1alpha1.PluginPreset{
+				Spec: greenhousev1alpha1.PluginPresetSpec{
+					Plugin: greenhousev1alpha1.PluginPresetPluginSpec{
+						OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+							{Name: "option-1", Expression: &expressionStr},
+							{Name: "option-2", Value: test.MustReturnJSONFor("unchanged")},
+						},
+					},
+					ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
+						{
+							ClusterName: clusterA,
+							Overrides: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+								{Name: "option-1", Value: test.MustReturnJSONFor("static-override")},
+							},
+						},
+					},
+				},
+			},
+			clusterA,
+			[]greenhousev1alpha1.PluginPresetPluginOptionValue{
+				{Name: "option-1", Value: test.MustReturnJSONFor("static-override")},
+				{Name: "option-2", Value: test.MustReturnJSONFor("unchanged")},
+			},
+		),
+		Entry("with overrides replacing a static value with an expression",
+			&greenhousev1alpha1.PluginPreset{
+				Spec: greenhousev1alpha1.PluginPresetSpec{
+					Plugin: greenhousev1alpha1.PluginPresetPluginSpec{
+						OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+							{Name: "option-1", Value: test.MustReturnJSONFor("static-default")},
+						},
+					},
+					ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
+						{
+							ClusterName: clusterA,
+							Overrides: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+								{Name: "option-1", Expression: &overrideExpressionStr},
+							},
+						},
+					},
+				},
+			},
+			clusterA,
+			[]greenhousev1alpha1.PluginPresetPluginOptionValue{
+				{Name: "option-1", Expression: &overrideExpressionStr},
+			},
+		),
 	)
 
 	It("should not mutate the original preset", func() {
@@ -2465,6 +2516,168 @@ var _ = Describe("applyOverridesToPreset", func() {
 		// Original preset should NOT be mutated
 		Expect(preset.Spec.Plugin.OptionValues[0].Value).To(Equal(originalValue),
 			"original preset should not be mutated by applyOverridesToPreset")
+	})
+})
+
+var _ = Describe("resolveReferencedPresetValues", func() {
+	var reconciler *PluginPresetReconciler
+
+	BeforeEach(func() {
+		reconciler = &PluginPresetReconciler{
+			Client: test.K8sClient,
+		}
+	})
+
+	It("should apply overrides when ExpressionEvaluationEnabled is false", func() {
+		reconciler.ExpressionEvaluationEnabled = false
+
+		refPreset := &greenhousev1alpha1.PluginPreset{
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				Plugin: greenhousev1alpha1.PluginPresetPluginSpec{
+					OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+						{Name: "option-1", Value: test.MustReturnJSONFor("default-value")},
+						{Name: "option-2", Value: test.MustReturnJSONFor("unchanged")},
+					},
+				},
+				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
+					{
+						ClusterName: clusterA,
+						Overrides: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+							{Name: "option-1", Value: test.MustReturnJSONFor("overridden-value")},
+						},
+					},
+				},
+			},
+		}
+
+		cluster := &greenhousev1alpha1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: clusterA,
+			},
+		}
+
+		result, err := reconciler.resolveReferencedPresetValues(test.Ctx, refPreset, cluster)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).To(HaveLen(2))
+		Expect(result[0].Name).To(Equal("option-1"))
+		Expect(string(result[0].Value.Raw)).To(Equal(`"overridden-value"`),
+			"override should be applied even when ExpressionEvaluationEnabled is false")
+		Expect(result[1].Name).To(Equal("option-2"))
+		Expect(string(result[1].Value.Raw)).To(Equal(`"unchanged"`))
+	})
+
+	It("should apply overrides when ExpressionEvaluationEnabled is true", func() {
+		reconciler.ExpressionEvaluationEnabled = true
+
+		refPreset := &greenhousev1alpha1.PluginPreset{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "ref-preset",
+				Namespace: test.TestNamespace,
+			},
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				Plugin: greenhousev1alpha1.PluginPresetPluginSpec{
+					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						Name: pluginPresetDefinitionName,
+					},
+					OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+						{Name: "option-1", Value: test.MustReturnJSONFor("default-value")},
+						{Name: "option-2", Value: test.MustReturnJSONFor("unchanged")},
+					},
+				},
+				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
+					{
+						ClusterName: clusterA,
+						Overrides: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+							{Name: "option-1", Value: test.MustReturnJSONFor("overridden-value")},
+						},
+					},
+				},
+			},
+		}
+
+		cluster := &greenhousev1alpha1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: clusterA,
+			},
+		}
+
+		result, err := reconciler.resolveReferencedPresetValues(test.Ctx, refPreset, cluster)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).To(HaveLen(2))
+		Expect(result[0].Name).To(Equal("option-1"))
+		Expect(string(result[0].Value.Raw)).To(Equal(`"overridden-value"`),
+			"override should be applied when ExpressionEvaluationEnabled is true")
+		Expect(result[1].Name).To(Equal("option-2"))
+		Expect(string(result[1].Value.Raw)).To(Equal(`"unchanged"`))
+	})
+
+	It("should not apply overrides for a different cluster", func() {
+		reconciler.ExpressionEvaluationEnabled = false
+
+		refPreset := &greenhousev1alpha1.PluginPreset{
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				Plugin: greenhousev1alpha1.PluginPresetPluginSpec{
+					OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+						{Name: "option-1", Value: test.MustReturnJSONFor("default-value")},
+					},
+				},
+				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
+					{
+						ClusterName: clusterB,
+						Overrides: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+							{Name: "option-1", Value: test.MustReturnJSONFor("overridden-value")},
+						},
+					},
+				},
+			},
+		}
+
+		cluster := &greenhousev1alpha1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: clusterA,
+			},
+		}
+
+		result, err := reconciler.resolveReferencedPresetValues(test.Ctx, refPreset, cluster)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).To(HaveLen(1))
+		Expect(result[0].Name).To(Equal("option-1"))
+		Expect(string(result[0].Value.Raw)).To(Equal(`"default-value"`),
+			"override for different cluster should not be applied")
+	})
+
+	It("should not mutate the original preset", func() {
+		reconciler.ExpressionEvaluationEnabled = false
+
+		refPreset := &greenhousev1alpha1.PluginPreset{
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				Plugin: greenhousev1alpha1.PluginPresetPluginSpec{
+					OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+						{Name: "option-1", Value: test.MustReturnJSONFor("original")},
+					},
+				},
+				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
+					{
+						ClusterName: clusterA,
+						Overrides: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+							{Name: "option-1", Value: test.MustReturnJSONFor("overridden")},
+						},
+					},
+				},
+			},
+		}
+
+		cluster := &greenhousev1alpha1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: clusterA,
+			},
+		}
+
+		_, err := reconciler.resolveReferencedPresetValues(test.Ctx, refPreset, cluster)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(string(refPreset.Spec.Plugin.OptionValues[0].Value.Raw)).To(Equal(`"original"`),
+			"original preset should not be mutated")
 	})
 })
 

@@ -320,12 +320,12 @@ func (r *PluginPresetReconciler) resolveReferencedPresetValues(
 	cluster *greenhousev1alpha1.Cluster,
 ) ([]greenhousev1alpha1.PluginOptionValue, error) {
 
-	if !r.ExpressionEvaluationEnabled {
-		return util.ConvertToPluginOptionValues(refPreset.Spec.Plugin.OptionValues), nil
-	}
-
-	// Apply cluster-specific overrides to referenced preset first
+	// Always apply cluster-specific overrides to referenced preset
 	refPresetWithOverrides := applyOverridesToPreset(refPreset, cluster.Name)
+
+	if !r.ExpressionEvaluationEnabled {
+		return util.ConvertToPluginOptionValues(refPresetWithOverrides.Spec.Plugin.OptionValues), nil
+	}
 
 	resolvedRefValues, err := r.resolveExpressionsForPreset(ctx, refPresetWithOverrides, cluster)
 	if err != nil {
