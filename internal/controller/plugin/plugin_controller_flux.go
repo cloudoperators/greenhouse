@@ -449,7 +449,6 @@ func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhou
 	if err != nil {
 		return nil, err
 	}
-
 	for _, v := range optionValues {
 		switch {
 		case v.Value != nil:

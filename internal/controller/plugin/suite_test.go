@@ -41,6 +41,7 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager)
 	test.RegisterController("pluginPreset", (&PluginPresetReconciler{
 		ExpressionEvaluationEnabled: true,
+		IntegrationEnabled:          true,
 	}).SetupWithManager)
 	test.RegisterController("pluginDefinition", (&greenhouseDef.PluginDefinitionReconciler{}).SetupWithManager)
 	test.RegisterController("clusterPluginDefinition", (&greenhouseDef.ClusterPluginDefinitionReconciler{}).SetupWithManager)
