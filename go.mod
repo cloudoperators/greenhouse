@@ -14,8 +14,8 @@ replace (
 	github.com/fluxcd/kustomize-controller/api => github.com/fluxcd/kustomize-controller/api v1.9.4
 	github.com/fluxcd/pkg/apis/kustomize => github.com/fluxcd/pkg/apis/kustomize v1.20.0
 	github.com/fluxcd/pkg/apis/meta => github.com/fluxcd/pkg/apis/meta v1.31.0
-	github.com/fluxcd/source-controller/api => github.com/fluxcd/source-controller/api v1.9.3
-	github.com/fluxcd/source-watcher/api/v2 => github.com/fluxcd/source-watcher/api/v2 v2.2.2
+	github.com/fluxcd/source-controller/api => github.com/fluxcd/source-controller/api v1.9.4
+	github.com/fluxcd/source-watcher/api/v2 => github.com/fluxcd/source-watcher/api/v2 v2.2.3
 
 	// Keep k8s dependencies in sync.
 	k8s.io/api => k8s.io/api v0.36.0
@@ -38,8 +38,8 @@ require (
 	github.com/fluxcd/kustomize-controller/api v1.9.4
 	github.com/fluxcd/pkg/apis/kustomize v1.20.0
 	github.com/fluxcd/pkg/apis/meta v1.31.0
-	github.com/fluxcd/source-controller/api v1.9.3
-	github.com/fluxcd/source-watcher/api/v2 v2.2.2
+	github.com/fluxcd/source-controller/api v1.9.4
+	github.com/fluxcd/source-watcher/api/v2 v2.2.3
 	github.com/go-jose/go-jose/v4 v4.1.4
 	github.com/go-logr/logr v1.4.4
 	github.com/google/go-cmp v0.7.0
