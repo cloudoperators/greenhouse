@@ -82,6 +82,11 @@ type Reconciler interface {
 	EnsureSuspended(context.Context, RuntimeObject) (ctrl.Result, error)
 }
 
+// FinalizerNamer is an optional interface a Reconciler can implement to override the default finalizer name.
+type FinalizerNamer interface {
+	GetFinalizerName() string
+}
+
 // Reconcile - is a generic function that is used to reconcile the state of a resource
 // It standardizes the reconciliation loop and provides a common way to set finalizers, remove finalizers, and update the status of the resource
 // It splits the reconciliation into two phases: EnsureCreated and EnsureDeleted to keep the create / update and delete logic in controllers segregated
@@ -93,12 +98,13 @@ func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName typ
 	// store the original object in the context
 	ctx = createContextFromRuntimeObject(ctx, runtimeObject)
 
+	finalizerName := resolveFinalizerName(reconciler)
 	shouldBeDeleted := runtimeObject.GetDeletionTimestamp() != nil
-	hasFinalizer := controllerutil.ContainsFinalizer(runtimeObject, CommonCleanupFinalizer)
+	hasFinalizer := controllerutil.ContainsFinalizer(runtimeObject, finalizerName)
 
 	// check whether finalizer is set
 	if !shouldBeDeleted && !hasFinalizer {
-		return ctrl.Result{}, ensureFinalizer(ctx, kubeClient, runtimeObject, CommonCleanupFinalizer)
+		return ctrl.Result{}, ensureFinalizer(ctx, kubeClient, runtimeObject, finalizerName)
 	}
 
 	var (
@@ -132,7 +138,7 @@ func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName typ
 		// check if the resource is already deleted (a control state to decide whether to remove finalizer)
 		// at this point the remote resource is already cleaned up so garbage collection can be done
 		if isResourceDeleted(runtimeObject) {
-			err = removeFinalizer(ctx, kubeClient, runtimeObject, CommonCleanupFinalizer)
+			err = removeFinalizer(ctx, kubeClient, runtimeObject, finalizerName)
 			return ctrl.Result{}, client.IgnoreNotFound(err)
 		}
 		// if the resource is not deleted yet, we need to ensure it is deleted
@@ -254,6 +260,14 @@ func patchStatus(ctx context.Context, kubeClient client.Client, newObject Runtim
 		return err
 	}
 	return reconcileError
+}
+
+// resolveFinalizerName returns the finalizer name from the reconciler if it implements FinalizerNamer, otherwise returns the default.
+func resolveFinalizerName(reconciler Reconciler) string {
+	if fn, ok := reconciler.(FinalizerNamer); ok {
+		return fn.GetFinalizerName()
+	}
+	return CommonCleanupFinalizer
 }
 
 // ensureFinalizer - ensures a finalizer is present on the object. Returns an error on failure.

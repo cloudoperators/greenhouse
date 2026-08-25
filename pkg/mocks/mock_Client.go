@@ -47,11 +47,11 @@ func (_m *MockClient) EXPECT() *MockClient_Expecter {
 // Apply provides a mock function for the type MockClient
 func (_mock *MockClient) Apply(ctx context.Context, obj runtime.ApplyConfiguration, opts ...client.ApplyOption) error {
 	// client.ApplyOption
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, obj)
 	_ca = append(_ca, _va...)
 	ret := _mock.Called(_ca...)
@@ -78,9 +78,9 @@ type MockClient_Apply_Call struct {
 //   - ctx context.Context
 //   - obj runtime.ApplyConfiguration
 //   - opts ...client.ApplyOption
-func (_e *MockClient_Expecter) Apply(ctx interface{}, obj interface{}, opts ...interface{}) *MockClient_Apply_Call {
+func (_e *MockClient_Expecter) Apply(ctx any, obj any, opts ...any) *MockClient_Apply_Call {
 	return &MockClient_Apply_Call{Call: _e.mock.On("Apply",
-		append([]interface{}{ctx, obj}, opts...)...)}
+		append([]any{ctx, obj}, opts...)...)}
 }
 
 func (_c *MockClient_Apply_Call) Run(run func(ctx context.Context, obj runtime.ApplyConfiguration, opts ...client.ApplyOption)) *MockClient_Apply_Call {
@@ -123,11 +123,11 @@ func (_c *MockClient_Apply_Call) RunAndReturn(run func(ctx context.Context, obj 
 // Create provides a mock function for the type MockClient
 func (_mock *MockClient) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
 	// client.CreateOption
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, obj)
 	_ca = append(_ca, _va...)
 	ret := _mock.Called(_ca...)
@@ -154,9 +154,9 @@ type MockClient_Create_Call struct {
 //   - ctx context.Context
 //   - obj client.Object
 //   - opts ...client.CreateOption
-func (_e *MockClient_Expecter) Create(ctx interface{}, obj interface{}, opts ...interface{}) *MockClient_Create_Call {
+func (_e *MockClient_Expecter) Create(ctx any, obj any, opts ...any) *MockClient_Create_Call {
 	return &MockClient_Create_Call{Call: _e.mock.On("Create",
-		append([]interface{}{ctx, obj}, opts...)...)}
+		append([]any{ctx, obj}, opts...)...)}
 }
 
 func (_c *MockClient_Create_Call) Run(run func(ctx context.Context, obj client.Object, opts ...client.CreateOption)) *MockClient_Create_Call {
@@ -199,11 +199,11 @@ func (_c *MockClient_Create_Call) RunAndReturn(run func(ctx context.Context, obj
 // Delete provides a mock function for the type MockClient
 func (_mock *MockClient) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
 	// client.DeleteOption
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, obj)
 	_ca = append(_ca, _va...)
 	ret := _mock.Called(_ca...)
@@ -230,9 +230,9 @@ type MockClient_Delete_Call struct {
 //   - ctx context.Context
 //   - obj client.Object
 //   - opts ...client.DeleteOption
-func (_e *MockClient_Expecter) Delete(ctx interface{}, obj interface{}, opts ...interface{}) *MockClient_Delete_Call {
+func (_e *MockClient_Expecter) Delete(ctx any, obj any, opts ...any) *MockClient_Delete_Call {
 	return &MockClient_Delete_Call{Call: _e.mock.On("Delete",
-		append([]interface{}{ctx, obj}, opts...)...)}
+		append([]any{ctx, obj}, opts...)...)}
 }
 
 func (_c *MockClient_Delete_Call) Run(run func(ctx context.Context, obj client.Object, opts ...client.DeleteOption)) *MockClient_Delete_Call {
@@ -275,11 +275,11 @@ func (_c *MockClient_Delete_Call) RunAndReturn(run func(ctx context.Context, obj
 // DeleteAllOf provides a mock function for the type MockClient
 func (_mock *MockClient) DeleteAllOf(ctx context.Context, obj client.Object, opts ...client.DeleteAllOfOption) error {
 	// client.DeleteAllOfOption
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, obj)
 	_ca = append(_ca, _va...)
 	ret := _mock.Called(_ca...)
@@ -306,9 +306,9 @@ type MockClient_DeleteAllOf_Call struct {
 //   - ctx context.Context
 //   - obj client.Object
 //   - opts ...client.DeleteAllOfOption
-func (_e *MockClient_Expecter) DeleteAllOf(ctx interface{}, obj interface{}, opts ...interface{}) *MockClient_DeleteAllOf_Call {
+func (_e *MockClient_Expecter) DeleteAllOf(ctx any, obj any, opts ...any) *MockClient_DeleteAllOf_Call {
 	return &MockClient_DeleteAllOf_Call{Call: _e.mock.On("DeleteAllOf",
-		append([]interface{}{ctx, obj}, opts...)...)}
+		append([]any{ctx, obj}, opts...)...)}
 }
 
 func (_c *MockClient_DeleteAllOf_Call) Run(run func(ctx context.Context, obj client.Object, opts ...client.DeleteAllOfOption)) *MockClient_DeleteAllOf_Call {
@@ -351,11 +351,11 @@ func (_c *MockClient_DeleteAllOf_Call) RunAndReturn(run func(ctx context.Context
 // Get provides a mock function for the type MockClient
 func (_mock *MockClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 	// client.GetOption
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, key, obj)
 	_ca = append(_ca, _va...)
 	ret := _mock.Called(_ca...)
@@ -383,9 +383,9 @@ type MockClient_Get_Call struct {
 //   - key client.ObjectKey
 //   - obj client.Object
 //   - opts ...client.GetOption
-func (_e *MockClient_Expecter) Get(ctx interface{}, key interface{}, obj interface{}, opts ...interface{}) *MockClient_Get_Call {
+func (_e *MockClient_Expecter) Get(ctx any, key any, obj any, opts ...any) *MockClient_Get_Call {
 	return &MockClient_Get_Call{Call: _e.mock.On("Get",
-		append([]interface{}{ctx, key, obj}, opts...)...)}
+		append([]any{ctx, key, obj}, opts...)...)}
 }
 
 func (_c *MockClient_Get_Call) Run(run func(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption)) *MockClient_Get_Call {
@@ -463,7 +463,7 @@ type MockClient_GroupVersionKindFor_Call struct {
 
 // GroupVersionKindFor is a helper method to define mock.On call
 //   - obj runtime.Object
-func (_e *MockClient_Expecter) GroupVersionKindFor(obj interface{}) *MockClient_GroupVersionKindFor_Call {
+func (_e *MockClient_Expecter) GroupVersionKindFor(obj any) *MockClient_GroupVersionKindFor_Call {
 	return &MockClient_GroupVersionKindFor_Call{Call: _e.mock.On("GroupVersionKindFor", obj)}
 }
 
@@ -523,7 +523,7 @@ type MockClient_IsObjectNamespaced_Call struct {
 
 // IsObjectNamespaced is a helper method to define mock.On call
 //   - obj runtime.Object
-func (_e *MockClient_Expecter) IsObjectNamespaced(obj interface{}) *MockClient_IsObjectNamespaced_Call {
+func (_e *MockClient_Expecter) IsObjectNamespaced(obj any) *MockClient_IsObjectNamespaced_Call {
 	return &MockClient_IsObjectNamespaced_Call{Call: _e.mock.On("IsObjectNamespaced", obj)}
 }
 
@@ -553,11 +553,11 @@ func (_c *MockClient_IsObjectNamespaced_Call) RunAndReturn(run func(obj runtime.
 // List provides a mock function for the type MockClient
 func (_mock *MockClient) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
 	// client.ListOption
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, list)
 	_ca = append(_ca, _va...)
 	ret := _mock.Called(_ca...)
@@ -584,9 +584,9 @@ type MockClient_List_Call struct {
 //   - ctx context.Context
 //   - list client.ObjectList
 //   - opts ...client.ListOption
-func (_e *MockClient_Expecter) List(ctx interface{}, list interface{}, opts ...interface{}) *MockClient_List_Call {
+func (_e *MockClient_Expecter) List(ctx any, list any, opts ...any) *MockClient_List_Call {
 	return &MockClient_List_Call{Call: _e.mock.On("List",
-		append([]interface{}{ctx, list}, opts...)...)}
+		append([]any{ctx, list}, opts...)...)}
 }
 
 func (_c *MockClient_List_Call) Run(run func(ctx context.Context, list client.ObjectList, opts ...client.ListOption)) *MockClient_List_Call {
@@ -629,11 +629,11 @@ func (_c *MockClient_List_Call) RunAndReturn(run func(ctx context.Context, list 
 // Patch provides a mock function for the type MockClient
 func (_mock *MockClient) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
 	// client.PatchOption
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, obj, patch)
 	_ca = append(_ca, _va...)
 	ret := _mock.Called(_ca...)
@@ -661,9 +661,9 @@ type MockClient_Patch_Call struct {
 //   - obj client.Object
 //   - patch client.Patch
 //   - opts ...client.PatchOption
-func (_e *MockClient_Expecter) Patch(ctx interface{}, obj interface{}, patch interface{}, opts ...interface{}) *MockClient_Patch_Call {
+func (_e *MockClient_Expecter) Patch(ctx any, obj any, patch any, opts ...any) *MockClient_Patch_Call {
 	return &MockClient_Patch_Call{Call: _e.mock.On("Patch",
-		append([]interface{}{ctx, obj, patch}, opts...)...)}
+		append([]any{ctx, obj, patch}, opts...)...)}
 }
 
 func (_c *MockClient_Patch_Call) Run(run func(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption)) *MockClient_Patch_Call {
@@ -872,7 +872,7 @@ type MockClient_SubResource_Call struct {
 
 // SubResource is a helper method to define mock.On call
 //   - subResource string
-func (_e *MockClient_Expecter) SubResource(subResource interface{}) *MockClient_SubResource_Call {
+func (_e *MockClient_Expecter) SubResource(subResource any) *MockClient_SubResource_Call {
 	return &MockClient_SubResource_Call{Call: _e.mock.On("SubResource", subResource)}
 }
 
@@ -902,11 +902,11 @@ func (_c *MockClient_SubResource_Call) RunAndReturn(run func(subResource string)
 // Update provides a mock function for the type MockClient
 func (_mock *MockClient) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
 	// client.UpdateOption
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, obj)
 	_ca = append(_ca, _va...)
 	ret := _mock.Called(_ca...)
@@ -933,9 +933,9 @@ type MockClient_Update_Call struct {
 //   - ctx context.Context
 //   - obj client.Object
 //   - opts ...client.UpdateOption
-func (_e *MockClient_Expecter) Update(ctx interface{}, obj interface{}, opts ...interface{}) *MockClient_Update_Call {
+func (_e *MockClient_Expecter) Update(ctx any, obj any, opts ...any) *MockClient_Update_Call {
 	return &MockClient_Update_Call{Call: _e.mock.On("Update",
-		append([]interface{}{ctx, obj}, opts...)...)}
+		append([]any{ctx, obj}, opts...)...)}
 }
 
 func (_c *MockClient_Update_Call) Run(run func(ctx context.Context, obj client.Object, opts ...client.UpdateOption)) *MockClient_Update_Call {

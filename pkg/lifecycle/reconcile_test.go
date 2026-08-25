@@ -356,4 +356,40 @@ var _ = Describe("Reconcile", func() {
 			Expect(suspendedCond).To(BeNil())
 		})
 	})
+
+	Context("Custom finalizer via FinalizerNamer", func() {
+		It("should use the custom finalizer when reconciler implements FinalizerNamer", func() {
+			customFinalizer := "custom.io/finalizer"
+
+			finalizerNamer := &mocks.MockFinalizerNamer{}
+			finalizerNamer.On("GetFinalizerName").Return(customFinalizer)
+
+			finalizerNamerReconciler := struct {
+				*mocks.MockReconciler
+				*mocks.MockFinalizerNamer
+			}{
+				MockReconciler:     mockReconciler,
+				MockFinalizerNamer: finalizerNamer,
+			}
+			mockReconciler.On("EnsureCreated", mock.Anything, mock.Anything).Return(ctrl.Result{}, lifecycle.Success, nil)
+
+			resourceForTest = &fixtures.Dummy{
+				Spec:   fixtures.DummySpec{},
+				Status: fixtures.DummyStatus{StatusConditions: greenhousemetav1alpha1.StatusConditions{Conditions: []greenhousemetav1alpha1.Condition{}}},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "DummyResource",
+					Namespace:         "default",
+					CreationTimestamp: metav1.NewTime(time.Now()),
+					Finalizers:        []string{customFinalizer},
+				},
+			}
+
+			_, err := lifecycle.Reconcile(ctx, mockClient, namespacedName, resourceForTest, finalizerNamerReconciler, nil)
+
+			Expect(err).ToNot(HaveOccurred())
+			finalizerNamer.AssertCalled(GinkgoT(), "GetFinalizerName")
+			Expect(resourceForTest.GetFinalizers()).To(ContainElement(customFinalizer))
+			Expect(resourceForTest.GetFinalizers()).NotTo(ContainElement(lifecycle.CommonCleanupFinalizer))
+		})
+	})
 })
