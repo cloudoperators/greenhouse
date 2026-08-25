@@ -118,10 +118,10 @@ github.com/fluxcd/pkg/apis/kustomize v1.20.0 h1:Aur2337TwSYGUffDQVlawOR3SJfRvxH7
 github.com/fluxcd/pkg/apis/kustomize v1.20.0/go.mod h1:9FUs77fd/Rh5/mDgZbGBUCL0UqmXiGj8rYywG3T3x+s=
 github.com/fluxcd/pkg/apis/meta v1.31.0 h1:5niQvTirK0wTE0TfRjnUSdmu6GTSbAFzrdnovtZ9rJ8=
 github.com/fluxcd/pkg/apis/meta v1.31.0/go.mod h1:Gx+YRq26a+mTbCjotSXC7/6kSSyo0zXQ8JnsEXf2vVk=
-github.com/fluxcd/source-controller/api v1.9.3 h1:Z5Id6iPV+n1OY/14dpC18PaHRATzAyZkjAzDNYxSl4E=
-github.com/fluxcd/source-controller/api v1.9.3/go.mod h1:qO98L20gw0MvLpSPapJKypyxHP7PejmJN5KxWXxDjCA=
-github.com/fluxcd/source-watcher/api/v2 v2.2.2 h1:D9zHdmLoLl8VI+DgsgAaa6Vc2e1mXGDBn8OaToAhMT4=
-github.com/fluxcd/source-watcher/api/v2 v2.2.2/go.mod h1:v84ckEC92IRw9HZVHzUamwkgIv1Vh38NQn/jCwo8Sro=
+github.com/fluxcd/source-controller/api v1.9.4 h1:ZGV510DIWVh2QO1ppdME13J0bm/SMoshfJ+Fx/zScOY=
+github.com/fluxcd/source-controller/api v1.9.4/go.mod h1:qO98L20gw0MvLpSPapJKypyxHP7PejmJN5KxWXxDjCA=
+github.com/fluxcd/source-watcher/api/v2 v2.2.3 h1:PWMhNEEGPgmNHWBC/BMoesFrC4O2zRNsba/KEPK0Yb8=
+github.com/fluxcd/source-watcher/api/v2 v2.2.3/go.mod h1:v84ckEC92IRw9HZVHzUamwkgIv1Vh38NQn/jCwo8Sro=
 github.com/fortytw2/leaktest v1.3.0 h1:u8491cBMTQ8ft8aeV+adlcytMZylmA5nnwwkRZjI8vw=
 github.com/fortytw2/leaktest v1.3.0/go.mod h1:jDsjWgpAGjm2CA7WthBh/CdZYEPF31XHquHwclZch5g=
 github.com/foxcpp/go-mockdns v1.2.0 h1:omK3OrHRD1IWJz1FuFBCFquhXslXoF17OvBS6JPzZF0=
