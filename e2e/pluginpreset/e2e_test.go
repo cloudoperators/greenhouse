@@ -103,4 +103,12 @@ var _ = Describe("PluginPreset E2E", Ordered, func() {
 	It("should resolve cross-PluginPreset references respecting source ClusterOptionOverrides", func() {
 		scenarios.PluginPresetCrossPresetReferenceWithOverrides(ctx, adminClient, remoteClient, env, remoteClusterName, team.Name)
 	})
+
+	It("should resolve cross-Plugin references by name", func() {
+		scenarios.PluginPresetCrossPluginNameReference(ctx, adminClient, remoteClient, env, remoteClusterName, team.Name)
+	})
+
+	It("should resolve cross-Plugin references by selector", func() {
+		scenarios.PluginPresetCrossPluginSelectorReference(ctx, adminClient, remoteClient, env, remoteClusterName, team.Name)
+	})
 })
