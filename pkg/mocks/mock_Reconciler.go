@@ -10,10 +10,9 @@ package mocks
 import (
 	"context"
 
-	mock "github.com/stretchr/testify/mock"
-	controllerruntime "sigs.k8s.io/controller-runtime"
-
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
+	mock "github.com/stretchr/testify/mock"
+	"sigs.k8s.io/controller-runtime"
 )
 
 // NewMockReconciler creates a new instance of MockReconciler. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -83,7 +82,7 @@ type MockReconciler_EnsureCreated_Call struct {
 // EnsureCreated is a helper method to define mock.On call
 //   - context1 context.Context
 //   - runtimeObject lifecycle.RuntimeObject
-func (_e *MockReconciler_Expecter) EnsureCreated(context1 interface{}, runtimeObject interface{}) *MockReconciler_EnsureCreated_Call {
+func (_e *MockReconciler_Expecter) EnsureCreated(context1 any, runtimeObject any) *MockReconciler_EnsureCreated_Call {
 	return &MockReconciler_EnsureCreated_Call{Call: _e.mock.On("EnsureCreated", context1, runtimeObject)}
 }
 
@@ -105,8 +104,8 @@ func (_c *MockReconciler_EnsureCreated_Call) Run(run func(context1 context.Conte
 	return _c
 }
 
-func (_c *MockReconciler_EnsureCreated_Call) Return(v controllerruntime.Result, reconcileResult lifecycle.ReconcileResult, err error) *MockReconciler_EnsureCreated_Call {
-	_c.Call.Return(v, reconcileResult, err)
+func (_c *MockReconciler_EnsureCreated_Call) Return(result controllerruntime.Result, reconcileResult lifecycle.ReconcileResult, err error) *MockReconciler_EnsureCreated_Call {
+	_c.Call.Return(result, reconcileResult, err)
 	return _c
 }
 
@@ -155,7 +154,7 @@ type MockReconciler_EnsureDeleted_Call struct {
 // EnsureDeleted is a helper method to define mock.On call
 //   - context1 context.Context
 //   - runtimeObject lifecycle.RuntimeObject
-func (_e *MockReconciler_Expecter) EnsureDeleted(context1 interface{}, runtimeObject interface{}) *MockReconciler_EnsureDeleted_Call {
+func (_e *MockReconciler_Expecter) EnsureDeleted(context1 any, runtimeObject any) *MockReconciler_EnsureDeleted_Call {
 	return &MockReconciler_EnsureDeleted_Call{Call: _e.mock.On("EnsureDeleted", context1, runtimeObject)}
 }
 
@@ -177,8 +176,8 @@ func (_c *MockReconciler_EnsureDeleted_Call) Run(run func(context1 context.Conte
 	return _c
 }
 
-func (_c *MockReconciler_EnsureDeleted_Call) Return(v controllerruntime.Result, reconcileResult lifecycle.ReconcileResult, err error) *MockReconciler_EnsureDeleted_Call {
-	_c.Call.Return(v, reconcileResult, err)
+func (_c *MockReconciler_EnsureDeleted_Call) Return(result controllerruntime.Result, reconcileResult lifecycle.ReconcileResult, err error) *MockReconciler_EnsureDeleted_Call {
+	_c.Call.Return(result, reconcileResult, err)
 	return _c
 }
 
@@ -221,7 +220,7 @@ type MockReconciler_EnsureSuspended_Call struct {
 // EnsureSuspended is a helper method to define mock.On call
 //   - context1 context.Context
 //   - runtimeObject lifecycle.RuntimeObject
-func (_e *MockReconciler_Expecter) EnsureSuspended(context1 interface{}, runtimeObject interface{}) *MockReconciler_EnsureSuspended_Call {
+func (_e *MockReconciler_Expecter) EnsureSuspended(context1 any, runtimeObject any) *MockReconciler_EnsureSuspended_Call {
 	return &MockReconciler_EnsureSuspended_Call{Call: _e.mock.On("EnsureSuspended", context1, runtimeObject)}
 }
 
@@ -243,8 +242,8 @@ func (_c *MockReconciler_EnsureSuspended_Call) Run(run func(context1 context.Con
 	return _c
 }
 
-func (_c *MockReconciler_EnsureSuspended_Call) Return(v controllerruntime.Result, err error) *MockReconciler_EnsureSuspended_Call {
-	_c.Call.Return(v, err)
+func (_c *MockReconciler_EnsureSuspended_Call) Return(result controllerruntime.Result, err error) *MockReconciler_EnsureSuspended_Call {
+	_c.Call.Return(result, err)
 	return _c
 }
 
