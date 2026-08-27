@@ -158,9 +158,14 @@ func (r *PluginPresetReconciler) resolveReferencesForPreset(
 	}
 
 	log := ctrl.LoggerFrom(ctx)
-	result := make([]greenhousev1alpha1.PluginOptionValue, 0, len(presetOptionValues))
 
-	for i, presetOV := range presetOptionValues {
+	resolvedByName := make(map[string]greenhousev1alpha1.PluginOptionValue, len(resolvedValues))
+	for _, rv := range resolvedValues {
+		resolvedByName[rv.Name] = rv
+	}
+
+	result := make([]greenhousev1alpha1.PluginOptionValue, 0, len(presetOptionValues))
+	for _, presetOV := range presetOptionValues {
 		if presetOV.ValueFrom != nil && presetOV.ValueFrom.Ref != nil {
 			log.Info("Resolving valueFrom.ref",
 				"option", presetOV.Name,
@@ -182,10 +187,13 @@ func (r *PluginPresetReconciler) resolveReferencesForPreset(
 				Value: &apiextensionsv1.JSON{Raw: byteVal},
 			})
 		} else {
-			result = append(result, resolvedValues[i])
+			rv, ok := resolvedByName[presetOV.Name]
+			if !ok {
+				return nil, fmt.Errorf("resolved value for option %s not found", presetOV.Name)
+			}
+			result = append(result, rv)
 		}
 	}
-
 	return result, nil
 }
 
