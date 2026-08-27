@@ -291,6 +291,10 @@ func (r *PluginPresetReconciler) resolvePluginRefBySelector(
 		return nil, fmt.Errorf("no Plugins found matching selector %v", ref.Selector)
 	}
 
+	slices.SortFunc(pluginList.Items, func(a, b greenhousev1alpha1.Plugin) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+
 	log.Info("Resolving reference to Plugins by selector",
 		"selector", ref.Selector,
 		"matchCount", len(pluginList.Items),
@@ -423,6 +427,10 @@ func (r *PluginPresetReconciler) resolvePluginPresetRefBySelector(
 	if len(presetList.Items) == 0 {
 		return nil, fmt.Errorf("no PluginPresets found matching selector %v: referenced presets may not be created yet", ref.Selector)
 	}
+
+	slices.SortFunc(presetList.Items, func(a, b greenhousev1alpha1.PluginPreset) int {
+		return strings.Compare(a.Name, b.Name)
+	})
 
 	log.Info("Resolving reference to PluginPresets by selector",
 		"selector", ref.Selector,

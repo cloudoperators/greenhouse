@@ -1902,6 +1902,216 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, consumerPreset)
 	})
 
+	It("should resolve valueFrom.ref with kind Plugin by selector in deterministic order", func() {
+		selectorLabel := "ref-order-group"
+		selectorValue := "deterministic-order-test"
+
+		pluginNames := []string{"b-order-plugin", "a-order-plugin", "c-order-plugin"}
+		plugins := make([]*greenhousev1alpha1.Plugin, 0, len(pluginNames))
+
+		for _, name := range pluginNames {
+			plugin := &greenhousev1alpha1.Plugin{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: test.TestNamespace,
+					Labels: map[string]string{
+						greenhouseapis.LabelKeyOwnedBy: testTeam.Name,
+						selectorLabel:                  selectorValue,
+					},
+				},
+				Spec: greenhousev1alpha1.PluginSpec{
+					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						Name: pluginPresetDefinitionName,
+					},
+					ClusterName:      clusterA,
+					ReleaseName:      name,
+					ReleaseNamespace: releaseNamespace,
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						{Name: "myRequiredOption", Value: test.MustReturnJSONFor("someValue")},
+						{Name: "endpoint", Value: test.MustReturnJSONFor("https://" + name + ".example.com")},
+					},
+				},
+			}
+			Expect(test.K8sClient.Create(test.Ctx, plugin)).To(Succeed())
+			plugins = append(plugins, plugin)
+		}
+
+		By("creating consumer PluginPreset that references Plugins by selector")
+		consumerSpec := greenhousev1alpha1.PluginPresetPluginSpec{
+			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+				Name: pluginPresetDefinitionName,
+			},
+			ReleaseName:      releaseName + "-plugin-order",
+			ReleaseNamespace: releaseNamespace,
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+				{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
+				{
+					Name: "resolved.endpoints",
+					ValueFrom: &greenhousev1alpha1.PluginPresetPluginValueFromSource{
+						Ref: &greenhousev1alpha1.ExternalValueSource{
+							Kind: greenhousev1alpha1.PluginKind,
+							Selector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{selectorLabel: selectorValue},
+							},
+							Expression: `spec.optionValues.filter(v, v.name == "endpoint")[0].value`,
+						},
+					},
+				},
+			},
+		}
+		consumerPreset := test.NewPluginPreset("ref-plugin-order", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPresetPluginSpec(consumerSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{"cluster": clusterA},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, consumerPreset)).To(Succeed())
+
+		By("ensuring resolved values are in deterministic alphabetical order")
+		expectedPluginName := consumerPreset.Name + "-" + clusterA
+		Eventually(func(g Gomega) {
+			managedPlugin := &greenhousev1alpha1.Plugin{}
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKey{
+				Namespace: test.TestNamespace,
+				Name:      expectedPluginName,
+			}, managedPlugin)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			var found bool
+			for _, ov := range managedPlugin.Spec.OptionValues {
+				if ov.Name == "resolved.endpoints" {
+					found = true
+					g.Expect(ov.ValueFrom).To(BeNil(), "ValueFrom should be resolved")
+					g.Expect(ov.Value).ToNot(BeNil())
+
+					var endpoints []any
+					err := json.Unmarshal(ov.Value.Raw, &endpoints)
+					g.Expect(err).ToNot(HaveOccurred())
+					g.Expect(endpoints).To(HaveLen(3))
+
+					g.Expect(endpoints[0]).To(Equal("https://a-order-plugin.example.com"))
+					g.Expect(endpoints[1]).To(Equal("https://b-order-plugin.example.com"))
+					g.Expect(endpoints[2]).To(Equal("https://c-order-plugin.example.com"))
+				}
+			}
+			g.Expect(found).To(BeTrue(), "expected resolved.endpoints option value in managed Plugin")
+		}).Should(Succeed())
+
+		By("cleaning up")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, consumerPreset)
+		for _, plugin := range plugins {
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, plugin)
+		}
+	})
+
+	It("should resolve valueFrom.ref with PluginPreset selector in deterministic order", func() {
+		selectorLabel := "ref-preset-order-group"
+		selectorValue := "preset-deterministic-order-test"
+
+		presetNames := []string{"c-order-preset", "a-order-preset", "b-order-preset"}
+		presets := make([]*greenhousev1alpha1.PluginPreset, 0, len(presetNames))
+
+		for _, name := range presetNames {
+			presetSpec := greenhousev1alpha1.PluginPresetPluginSpec{
+				PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+					Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					Name: pluginPresetDefinitionName,
+				},
+				ReleaseName:      name,
+				ReleaseNamespace: releaseNamespace,
+				OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+					{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
+					{Name: "source.endpoint", Value: test.MustReturnJSONFor("https://" + name + ".example.com")},
+				},
+			}
+			preset := test.NewPluginPreset(name, test.TestNamespace,
+				test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+				test.WithPluginPresetLabel(selectorLabel, selectorValue),
+				test.WithPresetPluginSpec(presetSpec),
+				test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+					MatchLabels: map[string]string{"cluster": clusterA},
+				}))
+			Expect(test.K8sClient.Create(test.Ctx, preset)).To(Succeed())
+			presets = append(presets, preset)
+		}
+
+		By("waiting for source Plugins to be created")
+		for _, name := range presetNames {
+			Eventually(func(g Gomega) {
+				plugin := &greenhousev1alpha1.Plugin{}
+				g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{
+					Name: name + "-" + clusterA, Namespace: test.TestNamespace,
+				}, plugin)).To(Succeed())
+			}).Should(Succeed())
+		}
+
+		By("creating consumer PluginPreset with selector reference")
+		consumerSpec := greenhousev1alpha1.PluginPresetPluginSpec{
+			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+				Name: pluginPresetDefinitionName,
+			},
+			ReleaseName:      releaseName + "-preset-order",
+			ReleaseNamespace: releaseNamespace,
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+				{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
+				{
+					Name: "consumer.endpoints",
+					ValueFrom: &greenhousev1alpha1.PluginPresetPluginValueFromSource{
+						Ref: &greenhousev1alpha1.ExternalValueSource{
+							Kind: greenhousev1alpha1.PluginPresetKind,
+							Selector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{selectorLabel: selectorValue},
+							},
+							Expression: `spec.optionValues.filter(v, v.name == "source.endpoint")[0].value`,
+						},
+					},
+				},
+			},
+		}
+		consumerPreset := test.NewPluginPreset("sel-order-consumer", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPresetPluginSpec(consumerSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{"cluster": clusterA},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, consumerPreset)).To(Succeed())
+
+		By("ensuring resolved values are in deterministic alphabetical order")
+		consumerPluginName := types.NamespacedName{Name: "sel-order-consumer-" + clusterA, Namespace: test.TestNamespace}
+		Eventually(func(g Gomega) {
+			consumerPlugin := &greenhousev1alpha1.Plugin{}
+			g.Expect(test.K8sClient.Get(test.Ctx, consumerPluginName, consumerPlugin)).To(Succeed())
+
+			var found bool
+			for _, ov := range consumerPlugin.Spec.OptionValues {
+				if ov.Name == "consumer.endpoints" {
+					found = true
+					g.Expect(ov.ValueFrom).To(BeNil())
+					g.Expect(ov.Value).ToNot(BeNil())
+
+					var endpoints []any
+					err := json.Unmarshal(ov.Value.Raw, &endpoints)
+					g.Expect(err).ToNot(HaveOccurred())
+					g.Expect(endpoints).To(HaveLen(3))
+
+					g.Expect(endpoints[0]).To(Equal("https://a-order-preset.example.com"))
+					g.Expect(endpoints[1]).To(Equal("https://b-order-preset.example.com"))
+					g.Expect(endpoints[2]).To(Equal("https://c-order-preset.example.com"))
+				}
+			}
+			g.Expect(found).To(BeTrue())
+		}).Should(Succeed(), "Consumer should have collected values in deterministic order")
+
+		By("cleaning up")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, consumerPreset)
+		for _, preset := range presets {
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, preset)
+		}
+	})
+
 	It("should resolve valueFrom.ref with kind Plugin by name", func() {
 		referencedPlugin := &greenhousev1alpha1.Plugin{
 			ObjectMeta: metav1.ObjectMeta{
