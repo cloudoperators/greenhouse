@@ -9,6 +9,9 @@ packages:
       Reconciler:
         config:
           filename: "mock_{{.InterfaceName}}.go"
+      FinalizerNamer:
+        config:
+          filename: "mock_{{.InterfaceName}}.go"
   github.com/dexidp/dex/storage:
     interfaces:
       Storage:

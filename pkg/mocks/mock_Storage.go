@@ -111,7 +111,7 @@ type MockStorage_CreateAuthCode_Call struct {
 // CreateAuthCode is a helper method to define mock.On call
 //   - ctx context.Context
 //   - c storage.AuthCode
-func (_e *MockStorage_Expecter) CreateAuthCode(ctx interface{}, c interface{}) *MockStorage_CreateAuthCode_Call {
+func (_e *MockStorage_Expecter) CreateAuthCode(ctx any, c any) *MockStorage_CreateAuthCode_Call {
 	return &MockStorage_CreateAuthCode_Call{Call: _e.mock.On("CreateAuthCode", ctx, c)}
 }
 
@@ -168,7 +168,7 @@ type MockStorage_CreateAuthRequest_Call struct {
 // CreateAuthRequest is a helper method to define mock.On call
 //   - ctx context.Context
 //   - a storage.AuthRequest
-func (_e *MockStorage_Expecter) CreateAuthRequest(ctx interface{}, a interface{}) *MockStorage_CreateAuthRequest_Call {
+func (_e *MockStorage_Expecter) CreateAuthRequest(ctx any, a any) *MockStorage_CreateAuthRequest_Call {
 	return &MockStorage_CreateAuthRequest_Call{Call: _e.mock.On("CreateAuthRequest", ctx, a)}
 }
 
@@ -225,7 +225,7 @@ type MockStorage_CreateClient_Call struct {
 // CreateClient is a helper method to define mock.On call
 //   - ctx context.Context
 //   - c storage.Client
-func (_e *MockStorage_Expecter) CreateClient(ctx interface{}, c interface{}) *MockStorage_CreateClient_Call {
+func (_e *MockStorage_Expecter) CreateClient(ctx any, c any) *MockStorage_CreateClient_Call {
 	return &MockStorage_CreateClient_Call{Call: _e.mock.On("CreateClient", ctx, c)}
 }
 
@@ -282,7 +282,7 @@ type MockStorage_CreateConnector_Call struct {
 // CreateConnector is a helper method to define mock.On call
 //   - ctx context.Context
 //   - c storage.Connector
-func (_e *MockStorage_Expecter) CreateConnector(ctx interface{}, c interface{}) *MockStorage_CreateConnector_Call {
+func (_e *MockStorage_Expecter) CreateConnector(ctx any, c any) *MockStorage_CreateConnector_Call {
 	return &MockStorage_CreateConnector_Call{Call: _e.mock.On("CreateConnector", ctx, c)}
 }
 
@@ -339,7 +339,7 @@ type MockStorage_CreateDeviceRequest_Call struct {
 // CreateDeviceRequest is a helper method to define mock.On call
 //   - ctx context.Context
 //   - d storage.DeviceRequest
-func (_e *MockStorage_Expecter) CreateDeviceRequest(ctx interface{}, d interface{}) *MockStorage_CreateDeviceRequest_Call {
+func (_e *MockStorage_Expecter) CreateDeviceRequest(ctx any, d any) *MockStorage_CreateDeviceRequest_Call {
 	return &MockStorage_CreateDeviceRequest_Call{Call: _e.mock.On("CreateDeviceRequest", ctx, d)}
 }
 
@@ -396,7 +396,7 @@ type MockStorage_CreateDeviceToken_Call struct {
 // CreateDeviceToken is a helper method to define mock.On call
 //   - ctx context.Context
 //   - d storage.DeviceToken
-func (_e *MockStorage_Expecter) CreateDeviceToken(ctx interface{}, d interface{}) *MockStorage_CreateDeviceToken_Call {
+func (_e *MockStorage_Expecter) CreateDeviceToken(ctx any, d any) *MockStorage_CreateDeviceToken_Call {
 	return &MockStorage_CreateDeviceToken_Call{Call: _e.mock.On("CreateDeviceToken", ctx, d)}
 }
 
@@ -453,7 +453,7 @@ type MockStorage_CreateOfflineSessions_Call struct {
 // CreateOfflineSessions is a helper method to define mock.On call
 //   - ctx context.Context
 //   - s storage.OfflineSessions
-func (_e *MockStorage_Expecter) CreateOfflineSessions(ctx interface{}, s interface{}) *MockStorage_CreateOfflineSessions_Call {
+func (_e *MockStorage_Expecter) CreateOfflineSessions(ctx any, s any) *MockStorage_CreateOfflineSessions_Call {
 	return &MockStorage_CreateOfflineSessions_Call{Call: _e.mock.On("CreateOfflineSessions", ctx, s)}
 }
 
@@ -510,7 +510,7 @@ type MockStorage_CreatePassword_Call struct {
 // CreatePassword is a helper method to define mock.On call
 //   - ctx context.Context
 //   - p storage.Password
-func (_e *MockStorage_Expecter) CreatePassword(ctx interface{}, p interface{}) *MockStorage_CreatePassword_Call {
+func (_e *MockStorage_Expecter) CreatePassword(ctx any, p any) *MockStorage_CreatePassword_Call {
 	return &MockStorage_CreatePassword_Call{Call: _e.mock.On("CreatePassword", ctx, p)}
 }
 
@@ -567,7 +567,7 @@ type MockStorage_CreateRefresh_Call struct {
 // CreateRefresh is a helper method to define mock.On call
 //   - ctx context.Context
 //   - r storage.RefreshToken
-func (_e *MockStorage_Expecter) CreateRefresh(ctx interface{}, r interface{}) *MockStorage_CreateRefresh_Call {
+func (_e *MockStorage_Expecter) CreateRefresh(ctx any, r any) *MockStorage_CreateRefresh_Call {
 	return &MockStorage_CreateRefresh_Call{Call: _e.mock.On("CreateRefresh", ctx, r)}
 }
 
@@ -624,7 +624,7 @@ type MockStorage_DeleteAuthCode_Call struct {
 // DeleteAuthCode is a helper method to define mock.On call
 //   - ctx context.Context
 //   - code string
-func (_e *MockStorage_Expecter) DeleteAuthCode(ctx interface{}, code interface{}) *MockStorage_DeleteAuthCode_Call {
+func (_e *MockStorage_Expecter) DeleteAuthCode(ctx any, code any) *MockStorage_DeleteAuthCode_Call {
 	return &MockStorage_DeleteAuthCode_Call{Call: _e.mock.On("DeleteAuthCode", ctx, code)}
 }
 
@@ -681,7 +681,7 @@ type MockStorage_DeleteAuthRequest_Call struct {
 // DeleteAuthRequest is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id string
-func (_e *MockStorage_Expecter) DeleteAuthRequest(ctx interface{}, id interface{}) *MockStorage_DeleteAuthRequest_Call {
+func (_e *MockStorage_Expecter) DeleteAuthRequest(ctx any, id any) *MockStorage_DeleteAuthRequest_Call {
 	return &MockStorage_DeleteAuthRequest_Call{Call: _e.mock.On("DeleteAuthRequest", ctx, id)}
 }
 
@@ -738,7 +738,7 @@ type MockStorage_DeleteClient_Call struct {
 // DeleteClient is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id string
-func (_e *MockStorage_Expecter) DeleteClient(ctx interface{}, id interface{}) *MockStorage_DeleteClient_Call {
+func (_e *MockStorage_Expecter) DeleteClient(ctx any, id any) *MockStorage_DeleteClient_Call {
 	return &MockStorage_DeleteClient_Call{Call: _e.mock.On("DeleteClient", ctx, id)}
 }
 
@@ -795,7 +795,7 @@ type MockStorage_DeleteConnector_Call struct {
 // DeleteConnector is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id string
-func (_e *MockStorage_Expecter) DeleteConnector(ctx interface{}, id interface{}) *MockStorage_DeleteConnector_Call {
+func (_e *MockStorage_Expecter) DeleteConnector(ctx any, id any) *MockStorage_DeleteConnector_Call {
 	return &MockStorage_DeleteConnector_Call{Call: _e.mock.On("DeleteConnector", ctx, id)}
 }
 
@@ -853,7 +853,7 @@ type MockStorage_DeleteOfflineSessions_Call struct {
 //   - ctx context.Context
 //   - userID string
 //   - connID string
-func (_e *MockStorage_Expecter) DeleteOfflineSessions(ctx interface{}, userID interface{}, connID interface{}) *MockStorage_DeleteOfflineSessions_Call {
+func (_e *MockStorage_Expecter) DeleteOfflineSessions(ctx any, userID any, connID any) *MockStorage_DeleteOfflineSessions_Call {
 	return &MockStorage_DeleteOfflineSessions_Call{Call: _e.mock.On("DeleteOfflineSessions", ctx, userID, connID)}
 }
 
@@ -915,7 +915,7 @@ type MockStorage_DeletePassword_Call struct {
 // DeletePassword is a helper method to define mock.On call
 //   - ctx context.Context
 //   - email string
-func (_e *MockStorage_Expecter) DeletePassword(ctx interface{}, email interface{}) *MockStorage_DeletePassword_Call {
+func (_e *MockStorage_Expecter) DeletePassword(ctx any, email any) *MockStorage_DeletePassword_Call {
 	return &MockStorage_DeletePassword_Call{Call: _e.mock.On("DeletePassword", ctx, email)}
 }
 
@@ -972,7 +972,7 @@ type MockStorage_DeleteRefresh_Call struct {
 // DeleteRefresh is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id string
-func (_e *MockStorage_Expecter) DeleteRefresh(ctx interface{}, id interface{}) *MockStorage_DeleteRefresh_Call {
+func (_e *MockStorage_Expecter) DeleteRefresh(ctx any, id any) *MockStorage_DeleteRefresh_Call {
 	return &MockStorage_DeleteRefresh_Call{Call: _e.mock.On("DeleteRefresh", ctx, id)}
 }
 
@@ -1038,7 +1038,7 @@ type MockStorage_GarbageCollect_Call struct {
 // GarbageCollect is a helper method to define mock.On call
 //   - ctx context.Context
 //   - now time.Time
-func (_e *MockStorage_Expecter) GarbageCollect(ctx interface{}, now interface{}) *MockStorage_GarbageCollect_Call {
+func (_e *MockStorage_Expecter) GarbageCollect(ctx any, now any) *MockStorage_GarbageCollect_Call {
 	return &MockStorage_GarbageCollect_Call{Call: _e.mock.On("GarbageCollect", ctx, now)}
 }
 
@@ -1104,7 +1104,7 @@ type MockStorage_GetAuthCode_Call struct {
 // GetAuthCode is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id string
-func (_e *MockStorage_Expecter) GetAuthCode(ctx interface{}, id interface{}) *MockStorage_GetAuthCode_Call {
+func (_e *MockStorage_Expecter) GetAuthCode(ctx any, id any) *MockStorage_GetAuthCode_Call {
 	return &MockStorage_GetAuthCode_Call{Call: _e.mock.On("GetAuthCode", ctx, id)}
 }
 
@@ -1170,7 +1170,7 @@ type MockStorage_GetAuthRequest_Call struct {
 // GetAuthRequest is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id string
-func (_e *MockStorage_Expecter) GetAuthRequest(ctx interface{}, id interface{}) *MockStorage_GetAuthRequest_Call {
+func (_e *MockStorage_Expecter) GetAuthRequest(ctx any, id any) *MockStorage_GetAuthRequest_Call {
 	return &MockStorage_GetAuthRequest_Call{Call: _e.mock.On("GetAuthRequest", ctx, id)}
 }
 
@@ -1236,7 +1236,7 @@ type MockStorage_GetClient_Call struct {
 // GetClient is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id string
-func (_e *MockStorage_Expecter) GetClient(ctx interface{}, id interface{}) *MockStorage_GetClient_Call {
+func (_e *MockStorage_Expecter) GetClient(ctx any, id any) *MockStorage_GetClient_Call {
 	return &MockStorage_GetClient_Call{Call: _e.mock.On("GetClient", ctx, id)}
 }
 
@@ -1302,7 +1302,7 @@ type MockStorage_GetConnector_Call struct {
 // GetConnector is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id string
-func (_e *MockStorage_Expecter) GetConnector(ctx interface{}, id interface{}) *MockStorage_GetConnector_Call {
+func (_e *MockStorage_Expecter) GetConnector(ctx any, id any) *MockStorage_GetConnector_Call {
 	return &MockStorage_GetConnector_Call{Call: _e.mock.On("GetConnector", ctx, id)}
 }
 
@@ -1368,7 +1368,7 @@ type MockStorage_GetDeviceRequest_Call struct {
 // GetDeviceRequest is a helper method to define mock.On call
 //   - ctx context.Context
 //   - userCode string
-func (_e *MockStorage_Expecter) GetDeviceRequest(ctx interface{}, userCode interface{}) *MockStorage_GetDeviceRequest_Call {
+func (_e *MockStorage_Expecter) GetDeviceRequest(ctx any, userCode any) *MockStorage_GetDeviceRequest_Call {
 	return &MockStorage_GetDeviceRequest_Call{Call: _e.mock.On("GetDeviceRequest", ctx, userCode)}
 }
 
@@ -1434,7 +1434,7 @@ type MockStorage_GetDeviceToken_Call struct {
 // GetDeviceToken is a helper method to define mock.On call
 //   - ctx context.Context
 //   - deviceCode string
-func (_e *MockStorage_Expecter) GetDeviceToken(ctx interface{}, deviceCode interface{}) *MockStorage_GetDeviceToken_Call {
+func (_e *MockStorage_Expecter) GetDeviceToken(ctx any, deviceCode any) *MockStorage_GetDeviceToken_Call {
 	return &MockStorage_GetDeviceToken_Call{Call: _e.mock.On("GetDeviceToken", ctx, deviceCode)}
 }
 
@@ -1499,7 +1499,7 @@ type MockStorage_GetKeys_Call struct {
 
 // GetKeys is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockStorage_Expecter) GetKeys(ctx interface{}) *MockStorage_GetKeys_Call {
+func (_e *MockStorage_Expecter) GetKeys(ctx any) *MockStorage_GetKeys_Call {
 	return &MockStorage_GetKeys_Call{Call: _e.mock.On("GetKeys", ctx)}
 }
 
@@ -1561,7 +1561,7 @@ type MockStorage_GetOfflineSessions_Call struct {
 //   - ctx context.Context
 //   - userID string
 //   - connID string
-func (_e *MockStorage_Expecter) GetOfflineSessions(ctx interface{}, userID interface{}, connID interface{}) *MockStorage_GetOfflineSessions_Call {
+func (_e *MockStorage_Expecter) GetOfflineSessions(ctx any, userID any, connID any) *MockStorage_GetOfflineSessions_Call {
 	return &MockStorage_GetOfflineSessions_Call{Call: _e.mock.On("GetOfflineSessions", ctx, userID, connID)}
 }
 
@@ -1632,7 +1632,7 @@ type MockStorage_GetPassword_Call struct {
 // GetPassword is a helper method to define mock.On call
 //   - ctx context.Context
 //   - email string
-func (_e *MockStorage_Expecter) GetPassword(ctx interface{}, email interface{}) *MockStorage_GetPassword_Call {
+func (_e *MockStorage_Expecter) GetPassword(ctx any, email any) *MockStorage_GetPassword_Call {
 	return &MockStorage_GetPassword_Call{Call: _e.mock.On("GetPassword", ctx, email)}
 }
 
@@ -1698,7 +1698,7 @@ type MockStorage_GetRefresh_Call struct {
 // GetRefresh is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id string
-func (_e *MockStorage_Expecter) GetRefresh(ctx interface{}, id interface{}) *MockStorage_GetRefresh_Call {
+func (_e *MockStorage_Expecter) GetRefresh(ctx any, id any) *MockStorage_GetRefresh_Call {
 	return &MockStorage_GetRefresh_Call{Call: _e.mock.On("GetRefresh", ctx, id)}
 }
 
@@ -1765,7 +1765,7 @@ type MockStorage_ListClients_Call struct {
 
 // ListClients is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockStorage_Expecter) ListClients(ctx interface{}) *MockStorage_ListClients_Call {
+func (_e *MockStorage_Expecter) ListClients(ctx any) *MockStorage_ListClients_Call {
 	return &MockStorage_ListClients_Call{Call: _e.mock.On("ListClients", ctx)}
 }
 
@@ -1827,7 +1827,7 @@ type MockStorage_ListConnectors_Call struct {
 
 // ListConnectors is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockStorage_Expecter) ListConnectors(ctx interface{}) *MockStorage_ListConnectors_Call {
+func (_e *MockStorage_Expecter) ListConnectors(ctx any) *MockStorage_ListConnectors_Call {
 	return &MockStorage_ListConnectors_Call{Call: _e.mock.On("ListConnectors", ctx)}
 }
 
@@ -1889,7 +1889,7 @@ type MockStorage_ListPasswords_Call struct {
 
 // ListPasswords is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockStorage_Expecter) ListPasswords(ctx interface{}) *MockStorage_ListPasswords_Call {
+func (_e *MockStorage_Expecter) ListPasswords(ctx any) *MockStorage_ListPasswords_Call {
 	return &MockStorage_ListPasswords_Call{Call: _e.mock.On("ListPasswords", ctx)}
 }
 
@@ -1951,7 +1951,7 @@ type MockStorage_ListRefreshTokens_Call struct {
 
 // ListRefreshTokens is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockStorage_Expecter) ListRefreshTokens(ctx interface{}) *MockStorage_ListRefreshTokens_Call {
+func (_e *MockStorage_Expecter) ListRefreshTokens(ctx any) *MockStorage_ListRefreshTokens_Call {
 	return &MockStorage_ListRefreshTokens_Call{Call: _e.mock.On("ListRefreshTokens", ctx)}
 }
 
@@ -2004,7 +2004,7 @@ type MockStorage_UpdateAuthRequest_Call struct {
 //   - ctx context.Context
 //   - id string
 //   - updater func(a storage.AuthRequest) (storage.AuthRequest, error)
-func (_e *MockStorage_Expecter) UpdateAuthRequest(ctx interface{}, id interface{}, updater interface{}) *MockStorage_UpdateAuthRequest_Call {
+func (_e *MockStorage_Expecter) UpdateAuthRequest(ctx any, id any, updater any) *MockStorage_UpdateAuthRequest_Call {
 	return &MockStorage_UpdateAuthRequest_Call{Call: _e.mock.On("UpdateAuthRequest", ctx, id, updater)}
 }
 
@@ -2067,7 +2067,7 @@ type MockStorage_UpdateClient_Call struct {
 //   - ctx context.Context
 //   - id string
 //   - updater func(old storage.Client) (storage.Client, error)
-func (_e *MockStorage_Expecter) UpdateClient(ctx interface{}, id interface{}, updater interface{}) *MockStorage_UpdateClient_Call {
+func (_e *MockStorage_Expecter) UpdateClient(ctx any, id any, updater any) *MockStorage_UpdateClient_Call {
 	return &MockStorage_UpdateClient_Call{Call: _e.mock.On("UpdateClient", ctx, id, updater)}
 }
 
@@ -2130,7 +2130,7 @@ type MockStorage_UpdateConnector_Call struct {
 //   - ctx context.Context
 //   - id string
 //   - updater func(c storage.Connector) (storage.Connector, error)
-func (_e *MockStorage_Expecter) UpdateConnector(ctx interface{}, id interface{}, updater interface{}) *MockStorage_UpdateConnector_Call {
+func (_e *MockStorage_Expecter) UpdateConnector(ctx any, id any, updater any) *MockStorage_UpdateConnector_Call {
 	return &MockStorage_UpdateConnector_Call{Call: _e.mock.On("UpdateConnector", ctx, id, updater)}
 }
 
@@ -2193,7 +2193,7 @@ type MockStorage_UpdateDeviceToken_Call struct {
 //   - ctx context.Context
 //   - deviceCode string
 //   - updater func(t storage.DeviceToken) (storage.DeviceToken, error)
-func (_e *MockStorage_Expecter) UpdateDeviceToken(ctx interface{}, deviceCode interface{}, updater interface{}) *MockStorage_UpdateDeviceToken_Call {
+func (_e *MockStorage_Expecter) UpdateDeviceToken(ctx any, deviceCode any, updater any) *MockStorage_UpdateDeviceToken_Call {
 	return &MockStorage_UpdateDeviceToken_Call{Call: _e.mock.On("UpdateDeviceToken", ctx, deviceCode, updater)}
 }
 
@@ -2255,7 +2255,7 @@ type MockStorage_UpdateKeys_Call struct {
 // UpdateKeys is a helper method to define mock.On call
 //   - ctx context.Context
 //   - updater func(old storage.Keys) (storage.Keys, error)
-func (_e *MockStorage_Expecter) UpdateKeys(ctx interface{}, updater interface{}) *MockStorage_UpdateKeys_Call {
+func (_e *MockStorage_Expecter) UpdateKeys(ctx any, updater any) *MockStorage_UpdateKeys_Call {
 	return &MockStorage_UpdateKeys_Call{Call: _e.mock.On("UpdateKeys", ctx, updater)}
 }
 
@@ -2314,7 +2314,7 @@ type MockStorage_UpdateOfflineSessions_Call struct {
 //   - userID string
 //   - connID string
 //   - updater func(s storage.OfflineSessions) (storage.OfflineSessions, error)
-func (_e *MockStorage_Expecter) UpdateOfflineSessions(ctx interface{}, userID interface{}, connID interface{}, updater interface{}) *MockStorage_UpdateOfflineSessions_Call {
+func (_e *MockStorage_Expecter) UpdateOfflineSessions(ctx any, userID any, connID any, updater any) *MockStorage_UpdateOfflineSessions_Call {
 	return &MockStorage_UpdateOfflineSessions_Call{Call: _e.mock.On("UpdateOfflineSessions", ctx, userID, connID, updater)}
 }
 
@@ -2382,7 +2382,7 @@ type MockStorage_UpdatePassword_Call struct {
 //   - ctx context.Context
 //   - email string
 //   - updater func(p storage.Password) (storage.Password, error)
-func (_e *MockStorage_Expecter) UpdatePassword(ctx interface{}, email interface{}, updater interface{}) *MockStorage_UpdatePassword_Call {
+func (_e *MockStorage_Expecter) UpdatePassword(ctx any, email any, updater any) *MockStorage_UpdatePassword_Call {
 	return &MockStorage_UpdatePassword_Call{Call: _e.mock.On("UpdatePassword", ctx, email, updater)}
 }
 
@@ -2445,7 +2445,7 @@ type MockStorage_UpdateRefreshToken_Call struct {
 //   - ctx context.Context
 //   - id string
 //   - updater func(r storage.RefreshToken) (storage.RefreshToken, error)
-func (_e *MockStorage_Expecter) UpdateRefreshToken(ctx interface{}, id interface{}, updater interface{}) *MockStorage_UpdateRefreshToken_Call {
+func (_e *MockStorage_Expecter) UpdateRefreshToken(ctx any, id any, updater any) *MockStorage_UpdateRefreshToken_Call {
 	return &MockStorage_UpdateRefreshToken_Call{Call: _e.mock.On("UpdateRefreshToken", ctx, id, updater)}
 }
 
