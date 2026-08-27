@@ -246,7 +246,11 @@ func (r *PluginPresetReconciler) resolvePluginRefByName(
 		"name", ref.Name,
 		"expression", ref.Expression)
 
-	celObject := buildCELObjectFromPlugin(plugin)
+	celObject, err := buildCELObjectFromPlugin(plugin)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build CEL object for Plugin %s: %w", plugin.Name, err)
+	}
+
 	value, err := evaluateCELWithObject(ref.Expression, celObject)
 	if err != nil {
 		return nil, fmt.Errorf("failed to evaluate reference expression: %w", err)
@@ -287,7 +291,10 @@ func (r *PluginPresetReconciler) resolvePluginRefBySelector(
 	results := make([]any, 0, len(pluginList.Items))
 	for i := range pluginList.Items {
 		plugin := &pluginList.Items[i]
-		celObject := buildCELObjectFromPlugin(plugin)
+		celObject, err := buildCELObjectFromPlugin(plugin)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build CEL object for Plugin %s: %w", plugin.Name, err)
+		}
 		value, err := evaluateCELWithObject(ref.Expression, celObject)
 		if err != nil {
 			return nil, fmt.Errorf("failed to evaluate reference expression for Plugin %s: %w", plugin.Name, err)
@@ -299,7 +306,7 @@ func (r *PluginPresetReconciler) resolvePluginRefBySelector(
 
 // buildCELObjectFromPlugin creates a CEL-friendly object from a Plugin's spec.
 // No expression resolution needed — Plugins don't have expressions.
-func buildCELObjectFromPlugin(plugin *greenhousev1alpha1.Plugin) map[string]any {
+func buildCELObjectFromPlugin(plugin *greenhousev1alpha1.Plugin) (map[string]any, error) {
 	celOptionValues := make([]map[string]any, 0, len(plugin.Spec.OptionValues))
 	for _, ov := range plugin.Spec.OptionValues {
 		item := map[string]any{
@@ -307,9 +314,10 @@ func buildCELObjectFromPlugin(plugin *greenhousev1alpha1.Plugin) map[string]any 
 		}
 		if ov.Value != nil && len(ov.Value.Raw) > 0 {
 			var val any
-			if err := json.Unmarshal(ov.Value.Raw, &val); err == nil {
-				item["value"] = val
+			if err := json.Unmarshal(ov.Value.Raw, &val); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal option value %q in Plugin %s: %w", ov.Name, plugin.Name, err)
 			}
+			item["value"] = val
 		}
 		celOptionValues = append(celOptionValues, item)
 	}
@@ -324,7 +332,7 @@ func buildCELObjectFromPlugin(plugin *greenhousev1alpha1.Plugin) map[string]any 
 			"clusterName":  plugin.Spec.ClusterName,
 			"releaseName":  plugin.Spec.ReleaseName,
 		},
-	}
+	}, nil
 }
 
 // resolvePluginPresetRef resolves a reference to PluginPreset(s).
@@ -368,7 +376,10 @@ func (r *PluginPresetReconciler) resolvePluginPresetRefByName(
 	if err != nil {
 		return nil, err
 	}
-	celObject := buildCELObject(refPreset.Name, refPreset.Namespace, resolvedRefValues)
+	celObject, err := buildCELObject(refPreset.Name, refPreset.Namespace, resolvedRefValues)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build CEL object for PluginPreset %s: %w", refPreset.Name, err)
+	}
 
 	value, err := evaluateCELWithObject(ref.Expression, celObject)
 	if err != nil {
@@ -417,7 +428,10 @@ func (r *PluginPresetReconciler) resolvePluginPresetRefBySelector(
 		if err != nil {
 			return nil, err
 		}
-		celObject := buildCELObject(refPreset.Name, refPreset.Namespace, resolvedRefValues)
+		celObject, err := buildCELObject(refPreset.Name, refPreset.Namespace, resolvedRefValues)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build CEL object for PluginPreset %s: %w", refPreset.Name, err)
+		}
 
 		value, err := evaluateCELWithObject(ref.Expression, celObject)
 		if err != nil {
@@ -453,7 +467,7 @@ func (r *PluginPresetReconciler) resolveReferencedPresetValues(
 }
 
 // buildCELObject creates a CEL-friendly object structure from option values.
-func buildCELObject(name, namespace string, optionValues []greenhousev1alpha1.PluginOptionValue) map[string]any {
+func buildCELObject(name, namespace string, optionValues []greenhousev1alpha1.PluginOptionValue) (map[string]any, error) {
 	celOptionValues := make([]map[string]any, 0, len(optionValues))
 	for _, ov := range optionValues {
 		item := map[string]any{
@@ -461,9 +475,10 @@ func buildCELObject(name, namespace string, optionValues []greenhousev1alpha1.Pl
 		}
 		if ov.Value != nil && len(ov.Value.Raw) > 0 {
 			var val any
-			if err := json.Unmarshal(ov.Value.Raw, &val); err == nil {
-				item["value"] = val
+			if err := json.Unmarshal(ov.Value.Raw, &val); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal option value %q: %w", ov.Name, err)
 			}
+			item["value"] = val
 		}
 		celOptionValues = append(celOptionValues, item)
 	}
@@ -476,7 +491,7 @@ func buildCELObject(name, namespace string, optionValues []greenhousev1alpha1.Pl
 		"spec": map[string]any{
 			"optionValues": celOptionValues,
 		},
-	}
+	}, nil
 }
 
 // appendToResults appends a value to results, flattening slices to avoid nested arrays.
