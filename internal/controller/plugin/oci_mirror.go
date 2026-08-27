@@ -16,6 +16,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/ocimirror"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 // createRegistryMirrorPostRenderer handles the full OCI mirroring flow.
@@ -135,7 +136,13 @@ func buildPostRenderer(mirror *ocimirror.ImageMirror, manifestSets ...string) *h
 // On failure it flags HelmReleaseCreatedCondition with ImageReplicationFailedReason and keeps
 // the previous status.ImageReplication list intact, so transient errors dont wipe history.
 func ensureImageReplication(ctx context.Context, mirror *ocimirror.ImageMirror, plugin *greenhousev1alpha1.Plugin, manifestSets ...string) error {
-	replicated, err := mirror.ReplicateOCIArtifacts(ctx, plugin.Status.ImageReplication, manifestSets...)
+	alreadyReplicated := plugin.Status.ImageReplication
+	// The reconcile annotation forces a re-replication, in case the mirror evicted the images.
+	if _, requested := lifecycle.ReconcileAnnotationValue(plugin); requested {
+		alreadyReplicated = nil
+	}
+
+	replicated, err := mirror.ReplicateOCIArtifacts(ctx, alreadyReplicated, manifestSets...)
 	if err != nil {
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.HelmReleaseCreatedCondition,
