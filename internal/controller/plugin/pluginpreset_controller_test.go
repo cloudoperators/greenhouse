@@ -2385,6 +2385,223 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, sourcePreset)
 	})
 
+	It("should only enqueue presets that reference the changed preset by name", func() {
+		reconciler := &PluginPresetReconciler{
+			Client:             test.K8sClient,
+			IntegrationEnabled: true,
+		}
+
+		By("creating source PluginPreset")
+		sourcePreset := test.NewPluginPreset("enqueue-source", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPresetPluginSpec(greenhousev1alpha1.PluginPresetPluginSpec{
+				PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+					Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					Name: pluginPresetDefinitionName,
+				},
+				ReleaseName:      "enqueue-source",
+				ReleaseNamespace: releaseNamespace,
+				OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+					{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
+					{Name: "source.output", Value: test.MustReturnJSONFor("value")},
+				},
+			}),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{"cluster": clusterA},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, sourcePreset)).To(Succeed())
+
+		By("creating consumer that references source by name")
+		consumerPreset := test.NewPluginPreset("enqueue-consumer", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPresetPluginSpec(greenhousev1alpha1.PluginPresetPluginSpec{
+				PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+					Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					Name: pluginPresetDefinitionName,
+				},
+				ReleaseName:      "enqueue-consumer",
+				ReleaseNamespace: releaseNamespace,
+				OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+					{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
+					{
+						Name: "consumer.value",
+						ValueFrom: &greenhousev1alpha1.PluginPresetPluginValueFromSource{
+							Ref: &greenhousev1alpha1.ExternalValueSource{
+								Kind:       greenhousev1alpha1.PluginPresetKind,
+								Name:       "enqueue-source",
+								Expression: `spec.optionValues[0].value`,
+							},
+						},
+					},
+				},
+			}),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{"cluster": clusterA},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, consumerPreset)).To(Succeed())
+
+		By("creating unrelated preset with no references")
+		unrelatedPreset := test.NewPluginPreset("enqueue-unrelated", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPresetPluginSpec(greenhousev1alpha1.PluginPresetPluginSpec{
+				PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+					Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					Name: pluginPresetDefinitionName,
+				},
+				ReleaseName:      "enqueue-unrelated",
+				ReleaseNamespace: releaseNamespace,
+				OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+					{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
+				},
+			}),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{"cluster": clusterA},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, unrelatedPreset)).To(Succeed())
+
+		By("verifying only the consumer is enqueued")
+		requests := reconciler.enqueueReferencingPluginPresets(test.Ctx, sourcePreset)
+		Expect(requests).To(HaveLen(1))
+		Expect(requests[0].Name).To(Equal("enqueue-consumer"))
+
+		By("cleaning up")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, consumerPreset)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, unrelatedPreset)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, sourcePreset)
+	})
+
+	It("should only enqueue presets that reference the changed preset by selector", func() {
+		reconciler := &PluginPresetReconciler{
+			Client:             test.K8sClient,
+			IntegrationEnabled: true,
+		}
+
+		By("creating source PluginPreset with a label")
+		sourcePreset := test.NewPluginPreset("enqueue-sel-source", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetLabel("source-group", "my-sources"),
+			test.WithPresetPluginSpec(greenhousev1alpha1.PluginPresetPluginSpec{
+				PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+					Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					Name: pluginPresetDefinitionName,
+				},
+				ReleaseName:      "enqueue-sel-source",
+				ReleaseNamespace: releaseNamespace,
+				OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+					{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
+				},
+			}),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{"cluster": clusterA},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, sourcePreset)).To(Succeed())
+
+		By("creating consumer that references source by selector")
+		consumerPreset := test.NewPluginPreset("enqueue-sel-consumer", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPresetPluginSpec(greenhousev1alpha1.PluginPresetPluginSpec{
+				PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+					Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					Name: pluginPresetDefinitionName,
+				},
+				ReleaseName:      "enqueue-sel-consumer",
+				ReleaseNamespace: releaseNamespace,
+				OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+					{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
+					{
+						Name: "consumer.value",
+						ValueFrom: &greenhousev1alpha1.PluginPresetPluginValueFromSource{
+							Ref: &greenhousev1alpha1.ExternalValueSource{
+								Kind: greenhousev1alpha1.PluginPresetKind,
+								Selector: &metav1.LabelSelector{
+									MatchLabels: map[string]string{"source-group": "my-sources"},
+								},
+								Expression: `spec.optionValues[0].value`,
+							},
+						},
+					},
+				},
+			}),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{"cluster": clusterA},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, consumerPreset)).To(Succeed())
+
+		By("creating unrelated preset")
+		unrelatedPreset := test.NewPluginPreset("enqueue-sel-unrelated", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPresetPluginSpec(greenhousev1alpha1.PluginPresetPluginSpec{
+				PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+					Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					Name: pluginPresetDefinitionName,
+				},
+				ReleaseName:      "enqueue-sel-unrelated",
+				ReleaseNamespace: releaseNamespace,
+				OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+					{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
+				},
+			}),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{"cluster": clusterA},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, unrelatedPreset)).To(Succeed())
+
+		By("verifying only the selector consumer is enqueued")
+		requests := reconciler.enqueueReferencingPluginPresets(test.Ctx, sourcePreset)
+		Expect(requests).To(HaveLen(1))
+		Expect(requests[0].Name).To(Equal("enqueue-sel-consumer"))
+
+		By("cleaning up")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, consumerPreset)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, unrelatedPreset)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, sourcePreset)
+	})
+
+	It("should not enqueue when IntegrationEnabled is false", func() {
+		reconciler := &PluginPresetReconciler{
+			Client:             test.K8sClient,
+			IntegrationEnabled: false,
+		}
+		sourcePreset := &greenhousev1alpha1.PluginPreset{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "disabled-source",
+				Namespace: test.TestNamespace,
+			},
+		}
+		requests := reconciler.enqueueReferencingPluginPresets(test.Ctx, sourcePreset)
+		Expect(requests).To(BeNil())
+	})
+
+	It("should return empty when no presets reference the changed one", func() {
+		reconciler := &PluginPresetReconciler{
+			Client:             test.K8sClient,
+			IntegrationEnabled: true,
+		}
+
+		sourcePreset := test.NewPluginPreset("enqueue-no-refs-source", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPresetPluginSpec(greenhousev1alpha1.PluginPresetPluginSpec{
+				PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+					Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					Name: pluginPresetDefinitionName,
+				},
+				ReleaseName:      "enqueue-no-refs-source",
+				ReleaseNamespace: releaseNamespace,
+				OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+					{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
+				},
+			}),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{"cluster": clusterA},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, sourcePreset)).To(Succeed())
+
+		requests := reconciler.enqueueReferencingPluginPresets(test.Ctx, sourcePreset)
+		Expect(requests).To(BeEmpty())
+
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, sourcePreset)
+	})
+
 	It("should resolve valueFrom.ref returning boolean value", func() {
 		By("creating source PluginPreset with boolean value")
 		sourcePluginPresetSpec := greenhousev1alpha1.PluginPresetPluginSpec{

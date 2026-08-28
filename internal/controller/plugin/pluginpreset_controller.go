@@ -13,6 +13,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -492,14 +493,77 @@ func (r *PluginPresetReconciler) enqueuePluginPresetsForClusterPluginDefinition(
 	)
 }
 
-// enqueueReferencingPluginPresets enqueues all PluginPresets in the same namespace
-// when a PluginPreset changes, so that consumers with valueFrom.ref references
-// pick up changes in referenced presets.
+// enqueueReferencingPluginPresets enqueues only PluginPresets that reference
+// the changed PluginPreset via valueFrom.ref (by name or label selector),
+// so that consumers pick up changes in referenced presets.
 func (r *PluginPresetReconciler) enqueueReferencingPluginPresets(ctx context.Context, obj client.Object) []ctrl.Request {
 	if !r.IntegrationEnabled {
 		return nil
 	}
-	return listPluginPresetAsReconcileRequests(ctx, r.Client, client.InNamespace(obj.GetNamespace()))
+
+	logger := ctrl.LoggerFrom(ctx)
+	changedPreset := obj.(*greenhousev1alpha1.PluginPreset)
+
+	allPresets := &greenhousev1alpha1.PluginPresetList{}
+	if err := r.List(ctx, allPresets, client.InNamespace(obj.GetNamespace())); err != nil {
+		logger.Error(err, "failed to list PluginPresets for reference matching")
+		return nil
+	}
+
+	var requests []ctrl.Request
+	for i := range allPresets.Items {
+		preset := &allPresets.Items[i]
+		// Skip the changed preset itself
+		if preset.Name == changedPreset.Name {
+			continue
+		}
+		matches, err := presetReferences(preset, changedPreset)
+		if err != nil {
+			logger.Error(err, "failed to check references", "consumer", preset.Name, "target", changedPreset.Name)
+			continue
+		}
+		if matches {
+			requests = append(requests, ctrl.Request{
+				NamespacedName: client.ObjectKeyFromObject(preset),
+			})
+		}
+	}
+
+	return requests
+}
+
+// presetReferences returns true if the consumer preset references the target preset
+// via valueFrom.ref (either by name or by label selector).
+func presetReferences(consumer, target *greenhousev1alpha1.PluginPreset) (bool, error) {
+	for _, ov := range consumer.Spec.Plugin.OptionValues {
+		if ov.ValueFrom == nil || ov.ValueFrom.Ref == nil {
+			continue
+		}
+
+		ref := ov.ValueFrom.Ref
+		refKind := ref.Kind
+		if refKind == "" {
+			refKind = greenhousev1alpha1.PluginPresetKind
+		}
+		if refKind != greenhousev1alpha1.PluginPresetKind {
+			continue
+		}
+
+		if ref.Name != "" && ref.Name == target.Name {
+			return true, nil
+		}
+
+		if ref.Selector != nil {
+			selector, err := metav1.LabelSelectorAsSelector(ref.Selector)
+			if err != nil {
+				return false, fmt.Errorf("failed to parse selector in PluginPreset %s: %w", consumer.Name, err)
+			}
+			if selector.Matches(labels.Set(target.GetLabels())) {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }
 
 // listPluginPresetsAsReconcileRequests returns a list of reconcile requests for all PluginPresets that match the given list options.
