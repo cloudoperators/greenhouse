@@ -232,6 +232,15 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 			return err
 		}
 
+		// Resolve values before CreateOrUpdate so errors can be collected per cluster
+		presetWithOverrides := applyOverridesToPreset(preset, cluster.GetName())
+		resolvedValues, err := r.resolvePluginOptionValuesForPreset(ctx, presetWithOverrides, &cluster)
+		if err != nil {
+			failedPlugins = append(failedPlugins, plugin.Name+": "+err.Error())
+			allErrs = append(allErrs, err)
+			continue
+		}
+
 		_, err = controllerutil.CreateOrUpdate(ctx, r.Client, plugin, func() error {
 			// Label the plugin with the managed resource label to identify it as managed by the PluginPreset.
 			// Keep any existing labels.
@@ -247,14 +256,6 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 			}
 
 			releaseName := getReleaseName(plugin, preset)
-
-			// Apply overrides first, then resolve expressions
-			presetWithOverrides := applyOverridesToPreset(preset, cluster.GetName())
-
-			resolvedValues, err := r.resolvePluginOptionValuesForPreset(ctx, presetWithOverrides, &cluster)
-			if err != nil {
-				return fmt.Errorf("failed to resolve option values for plugin %s: %w", plugin.Name, err)
-			}
 
 			plugin.Spec = pluginSpecFromPluginPreset(preset, cluster.GetName())
 			plugin.Spec.OptionValues = resolvedValues
