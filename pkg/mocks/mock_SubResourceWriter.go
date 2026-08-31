@@ -45,11 +45,11 @@ func (_m *MockSubResourceWriter) EXPECT() *MockSubResourceWriter_Expecter {
 // Apply provides a mock function for the type MockSubResourceWriter
 func (_mock *MockSubResourceWriter) Apply(ctx context.Context, obj runtime.ApplyConfiguration, opts ...client.SubResourceApplyOption) error {
 	// client.SubResourceApplyOption
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, obj)
 	_ca = append(_ca, _va...)
 	ret := _mock.Called(_ca...)
@@ -76,9 +76,9 @@ type MockSubResourceWriter_Apply_Call struct {
 //   - ctx context.Context
 //   - obj runtime.ApplyConfiguration
 //   - opts ...client.SubResourceApplyOption
-func (_e *MockSubResourceWriter_Expecter) Apply(ctx interface{}, obj interface{}, opts ...interface{}) *MockSubResourceWriter_Apply_Call {
+func (_e *MockSubResourceWriter_Expecter) Apply(ctx any, obj any, opts ...any) *MockSubResourceWriter_Apply_Call {
 	return &MockSubResourceWriter_Apply_Call{Call: _e.mock.On("Apply",
-		append([]interface{}{ctx, obj}, opts...)...)}
+		append([]any{ctx, obj}, opts...)...)}
 }
 
 func (_c *MockSubResourceWriter_Apply_Call) Run(run func(ctx context.Context, obj runtime.ApplyConfiguration, opts ...client.SubResourceApplyOption)) *MockSubResourceWriter_Apply_Call {
@@ -121,11 +121,11 @@ func (_c *MockSubResourceWriter_Apply_Call) RunAndReturn(run func(ctx context.Co
 // Create provides a mock function for the type MockSubResourceWriter
 func (_mock *MockSubResourceWriter) Create(ctx context.Context, obj client.Object, subResource client.Object, opts ...client.SubResourceCreateOption) error {
 	// client.SubResourceCreateOption
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, obj, subResource)
 	_ca = append(_ca, _va...)
 	ret := _mock.Called(_ca...)
@@ -153,9 +153,9 @@ type MockSubResourceWriter_Create_Call struct {
 //   - obj client.Object
 //   - subResource client.Object
 //   - opts ...client.SubResourceCreateOption
-func (_e *MockSubResourceWriter_Expecter) Create(ctx interface{}, obj interface{}, subResource interface{}, opts ...interface{}) *MockSubResourceWriter_Create_Call {
+func (_e *MockSubResourceWriter_Expecter) Create(ctx any, obj any, subResource any, opts ...any) *MockSubResourceWriter_Create_Call {
 	return &MockSubResourceWriter_Create_Call{Call: _e.mock.On("Create",
-		append([]interface{}{ctx, obj, subResource}, opts...)...)}
+		append([]any{ctx, obj, subResource}, opts...)...)}
 }
 
 func (_c *MockSubResourceWriter_Create_Call) Run(run func(ctx context.Context, obj client.Object, subResource client.Object, opts ...client.SubResourceCreateOption)) *MockSubResourceWriter_Create_Call {
@@ -203,11 +203,11 @@ func (_c *MockSubResourceWriter_Create_Call) RunAndReturn(run func(ctx context.C
 // Patch provides a mock function for the type MockSubResourceWriter
 func (_mock *MockSubResourceWriter) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.SubResourcePatchOption) error {
 	// client.SubResourcePatchOption
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, obj, patch)
 	_ca = append(_ca, _va...)
 	ret := _mock.Called(_ca...)
@@ -235,9 +235,9 @@ type MockSubResourceWriter_Patch_Call struct {
 //   - obj client.Object
 //   - patch client.Patch
 //   - opts ...client.SubResourcePatchOption
-func (_e *MockSubResourceWriter_Expecter) Patch(ctx interface{}, obj interface{}, patch interface{}, opts ...interface{}) *MockSubResourceWriter_Patch_Call {
+func (_e *MockSubResourceWriter_Expecter) Patch(ctx any, obj any, patch any, opts ...any) *MockSubResourceWriter_Patch_Call {
 	return &MockSubResourceWriter_Patch_Call{Call: _e.mock.On("Patch",
-		append([]interface{}{ctx, obj, patch}, opts...)...)}
+		append([]any{ctx, obj, patch}, opts...)...)}
 }
 
 func (_c *MockSubResourceWriter_Patch_Call) Run(run func(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.SubResourcePatchOption)) *MockSubResourceWriter_Patch_Call {
@@ -285,11 +285,11 @@ func (_c *MockSubResourceWriter_Patch_Call) RunAndReturn(run func(ctx context.Co
 // Update provides a mock function for the type MockSubResourceWriter
 func (_mock *MockSubResourceWriter) Update(ctx context.Context, obj client.Object, opts ...client.SubResourceUpdateOption) error {
 	// client.SubResourceUpdateOption
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, obj)
 	_ca = append(_ca, _va...)
 	ret := _mock.Called(_ca...)
@@ -316,9 +316,9 @@ type MockSubResourceWriter_Update_Call struct {
 //   - ctx context.Context
 //   - obj client.Object
 //   - opts ...client.SubResourceUpdateOption
-func (_e *MockSubResourceWriter_Expecter) Update(ctx interface{}, obj interface{}, opts ...interface{}) *MockSubResourceWriter_Update_Call {
+func (_e *MockSubResourceWriter_Expecter) Update(ctx any, obj any, opts ...any) *MockSubResourceWriter_Update_Call {
 	return &MockSubResourceWriter_Update_Call{Call: _e.mock.On("Update",
-		append([]interface{}{ctx, obj}, opts...)...)}
+		append([]any{ctx, obj}, opts...)...)}
 }
 
 func (_c *MockSubResourceWriter_Update_Call) Run(run func(ctx context.Context, obj client.Object, opts ...client.SubResourceUpdateOption)) *MockSubResourceWriter_Update_Call {

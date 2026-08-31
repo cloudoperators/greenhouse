@@ -6,7 +6,7 @@ package helm
 import (
 	"context"
 	"encoding/json"
-	"sort"
+	"slices"
 	"strings"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -18,72 +18,48 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/common"
 )
 
+var excludedGreenhouseValues = []string{
+	"global.greenhouse.clusterNames",
+	"global.greenhouse.teamNames",
+}
+
 func GetPluginOptionValuesForPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
 	pluginDefinitionSpec, err := common.GetPluginDefinitionSpec(ctx, c, plugin.Spec.PluginDefinitionRef, plugin.GetNamespace())
 	if err != nil {
 		return nil, err
 	}
 
-	values := MergePluginAndPluginOptionValueSlice(pluginDefinitionSpec.Options, plugin.Spec.OptionValues)
+	// Clone, as the merge writes through to its input when the PluginDefinition declares no options.
+	values := MergePluginAndPluginOptionValueSlice(pluginDefinitionSpec.Options, slices.Clone(plugin.Spec.OptionValues))
 	// Enrich with default greenhouse values.
 	greenhouseValues, err := GetGreenhouseValues(ctx, c, *plugin)
 	if err != nil {
 		return nil, err
 	}
 	values = MergePluginOptionValues(values, greenhouseValues)
-	return values, nil
+	return StripExcludedGreenhouseValues(values), nil
 }
 
-// GetGreenhouseValues generate values for greenhouse core resources in the form:
+// StripExcludedGreenhouseValues drops the values Greenhouse no longer injects.
+// It clones, as the input may alias a Plugin's OptionValues.
+func StripExcludedGreenhouseValues(values []greenhousev1alpha1.PluginOptionValue) []greenhousev1alpha1.PluginOptionValue {
+	return slices.DeleteFunc(slices.Clone(values), func(v greenhousev1alpha1.PluginOptionValue) bool {
+		return slices.Contains(excludedGreenhouseValues, v.Name)
+	})
+}
+
+// GetGreenhouseValues generates values for greenhouse core resources in the form:
 //
 //	global:
 //	  greenhouse:
-//	    clusterNames:
-//		  - <name>
-//		teams:
-//		  - <name>
+//	    organizationName: <name>
+//	    clusterName: <name>
+//	    baseDomain: <domain>
+//	    ownedBy: <team>
+//	    metadata:
+//	      <key>: <value>
 func GetGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
 	greenhouseValues := make([]greenhousev1alpha1.PluginOptionValue, 0)
-	var clusterList = new(greenhousev1alpha1.ClusterList)
-	if err := c.List(ctx, clusterList, &client.ListOptions{Namespace: p.GetNamespace()}); err != nil {
-		return nil, err
-	}
-	clusterNames := make([]string, len(clusterList.Items))
-	for idx, cluster := range clusterList.Items {
-		clusterNames[idx] = cluster.Name
-	}
-
-	clusterNamesVal, err := stringSliceToHelmValue(clusterNames)
-	if err != nil {
-		return nil, err
-	}
-
-	greenhouseValues = append(greenhouseValues, greenhousev1alpha1.PluginOptionValue{
-		Name:      "global.greenhouse.clusterNames",
-		Value:     clusterNamesVal,
-		ValueFrom: nil,
-	})
-
-	// Teams within the organization.
-	var teamList = new(greenhousev1alpha1.TeamList)
-	if err := c.List(ctx, teamList, client.InNamespace(p.GetNamespace())); err != nil {
-		return nil, err
-	}
-	teamNames := make([]string, len(teamList.Items))
-	for idx, team := range teamList.Items {
-		teamNames[idx] = team.Name
-	}
-
-	teamNamesVal, err := stringSliceToHelmValue(teamNames)
-	if err != nil {
-		return nil, err
-	}
-
-	greenhouseValues = append(greenhouseValues, greenhousev1alpha1.PluginOptionValue{
-		Name:      "global.greenhouse.teamNames",
-		Value:     teamNamesVal,
-		ValueFrom: nil,
-	})
 
 	// append orgName
 	orgNameVal, err := json.Marshal(p.GetNamespace())
@@ -165,17 +141,6 @@ func setOrAppendNameValue(valueSlice []greenhousev1alpha1.PluginOptionValue, val
 		}
 	}
 	return append(valueSlice, valueToSetOrAppend)
-}
-
-// stringSliceToHelmValue sorts theSlice, marshals it to JSON and returns an apiextensionsv1.JSON object.
-func stringSliceToHelmValue(theSlice []string) (*apiextensionsv1.JSON, error) {
-	sort.Strings(theSlice)
-
-	raw, err := json.Marshal(theSlice)
-	if err != nil {
-		return nil, err
-	}
-	return &apiextensionsv1.JSON{Raw: raw}, nil
 }
 
 // extractMetadataKey extracts the metadata key from cluster labels with the pattern "metadata.greenhouse.sap/<key>".

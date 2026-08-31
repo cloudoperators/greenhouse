@@ -5,30 +5,26 @@ package cluster
 
 import (
 	"context"
-	"fmt"
 	"time"
 
-	rbacv1 "k8s.io/api/rbac/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	"github.com/cloudoperators/greenhouse/internal/controller/cluster/utils"
-	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
-
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
+	corev1 "k8s.io/api/core/v1"
+
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	clusterphases "github.com/cloudoperators/greenhouse/internal/controller/cluster/phases"
+	"github.com/cloudoperators/greenhouse/internal/util"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 // RemoteClusterReconciler reconciles a Cluster object with accessMode=direct set.
@@ -58,7 +54,6 @@ func (r *RemoteClusterReconciler) SetupWithManager(name string, mgr ctrl.Manager
 		For(&greenhousev1alpha1.Cluster{}, builder.WithPredicates(
 			clientutil.PredicateClusterByAccessMode(greenhousev1alpha1.ClusterAccessModeDirect),
 		)).
-		// Watch the secret owned by this cluster.
 		Watches(&corev1.Secret{}, handler.EnqueueRequestForOwner(mgr.GetScheme(), mgr.GetRESTMapper(), &greenhousev1alpha1.Cluster{})).
 		WithOptions(controller.Options{MaxConcurrentReconciles: 5}).
 		Complete(r)
@@ -68,324 +63,134 @@ func (r *RemoteClusterReconciler) GetEventRecorder() events.EventRecorder {
 	return r.recorder
 }
 
+func (r *RemoteClusterReconciler) computeReady(ctx context.Context, resource lifecycle.RuntimeObject) {
+	cluster := resource.(*greenhousev1alpha1.Cluster)
+
+	kubeConfigValid := cluster.Status.GetConditionByType(greenhousev1alpha1.KubeConfigValid)
+	if kubeConfigValid != nil && kubeConfigValid.IsFalse() {
+		cluster.Status.DiscoveryCache = nil
+		cluster.Status.Nodes = nil
+		cluster.SetCondition(greenhousemetav1alpha1.UnknownCondition(
+			greenhousev1alpha1.AllNodesReady, "", "kubeconfig not valid - cannot know node status",
+		))
+		cluster.SetCondition(greenhousemetav1alpha1.UnknownCondition(
+			greenhousev1alpha1.PermissionsVerified, "", "kubeconfig not valid - cannot validate cluster access",
+		))
+		cluster.SetCondition(greenhousemetav1alpha1.FalseCondition(
+			greenhousev1alpha1.PayloadSchedulable, "", "kubeconfig not valid - payloads cannot be scheduled",
+		))
+	}
+
+	conditionsToAggregate := []greenhousemetav1alpha1.ConditionType{
+		greenhousev1alpha1.KubeConfigValid,
+		greenhousev1alpha1.PermissionsVerified,
+	}
+	switch cluster.Annotations[greenhouseapis.ClusterConnectivityAnnotation] {
+	case greenhouseapis.ClusterConnectivityOIDC:
+		cluster.RemoveCondition(greenhousev1alpha1.ManagedResourcesDeployed) // no managed resources for OIDC clusters
+	default:
+		conditionsToAggregate = append(conditionsToAggregate, greenhousev1alpha1.ManagedResourcesDeployed)
+	}
+
+	ready := greenhousemetav1alpha1.UnknownCondition(greenhousemetav1alpha1.ReadyCondition, "", "")
+	allSet := true
+	for _, ct := range conditionsToAggregate {
+		c := cluster.Status.GetConditionByType(ct)
+		if c == nil {
+			allSet = false
+			continue
+		}
+		if c.IsFalse() {
+			ready.Status = metav1.ConditionFalse
+			ready.Message = c.Message
+			if ready.Message == "" {
+				ready.Message = "cannot access cluster"
+			}
+			break
+		}
+	}
+	if ready.Status != metav1.ConditionFalse && allSet {
+		ready.Status = metav1.ConditionTrue
+	}
+	cluster.SetCondition(ready)
+
+	ownerLabelCondition := util.ComputeOwnerLabelCondition(ctx, r.Client, cluster)
+	cluster.SetCondition(ownerLabelCondition)
+	util.UpdateOwnedByLabelMissingMetric(cluster, ownerLabelCondition.IsFalse())
+}
+
 func (r *RemoteClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.Cluster{}, r, r.setConditions())
+	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.Cluster{}, r, r.computeReady)
 }
 
 func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	cluster := resource.(*greenhousev1alpha1.Cluster)
-	if cluster.Spec.AccessMode != greenhousev1alpha1.ClusterAccessModeDirect {
-		return ctrl.Result{}, lifecycle.Failed, nil
-	}
 	defer UpdateClusterMetrics(cluster)
+
 	clusterSecret := &corev1.Secret{}
 	if err := r.Get(ctx, types.NamespacedName{Name: cluster.GetSecretName(), Namespace: cluster.GetNamespace()}, clusterSecret); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	restClientGetter, err := clientutil.NewRestClientGetterFromSecret(clusterSecret, cluster.Namespace)
+	restClientGetter, remoteClient, err := clusterphases.CreateRemoteClient(clusterSecret, cluster.GetNamespace())
 	if err != nil {
+		cluster.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.KubeConfigValid, "", err.Error()))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	remoteClient, err := clientutil.NewK8sClientFromRestClientGetter(restClientGetter)
-	if err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-
-	// check token validity and renew if needed
-	// for OIDC kubeconfig this needs to be done first before any other operations for OIDC clusters
-	if clusterSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
-		if err := r.reconcileServiceAccountToken(ctx, restClientGetter, remoteClient, cluster, clusterSecret); err != nil {
-			return ctrl.Result{}, lifecycle.Failed, err
-		}
-	}
-
-	var crb *rbacv1.ClusterRoleBinding
-	if clusterSecret.Type != greenhouseapis.SecretTypeOIDCConfig {
-		// Create ClusterRoleBinding first so it can be added as an owner to namespace
-		var err error
-		crb, err = r.reconcileClusterRoleBindingInRemoteCluster(ctx, remoteClient, cluster)
-		if err != nil {
-			return ctrl.Result{}, lifecycle.Failed, err
-		}
-	}
-
-	// Create the namespace in the remote cluster
-	if err := r.reconcileNamespaceInRemoteCluster(ctx, remoteClient, cluster); err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-
-	// Create greenhouse service account in managed namespace only for non-OIDC clusters
-	// use crb as owner reference if applicable
-	if clusterSecret.Type != greenhouseapis.SecretTypeOIDCConfig {
-		if err := r.reconcileServiceAccountInRemoteCluster(ctx, remoteClient, crb, cluster); err != nil {
-			return ctrl.Result{}, lifecycle.Failed, err
-		}
-	}
-	// reconcile the service account token in the remote cluster
-	// for OIDC this will early exit as it is already done above
-	if err := r.reconcileServiceAccountToken(ctx, restClientGetter, remoteClient, cluster, clusterSecret); err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-	return ctrl.Result{RequeueAfter: utils.DefaultRequeueInterval}, lifecycle.Success, nil
-}
-
-// reconcileClusterRoleBindingInRemoteCluster - creates or updates the cluster role binding in the remote cluster
-func (r *RemoteClusterReconciler) reconcileClusterRoleBindingInRemoteCluster(ctx context.Context, k8sClient client.Client, cluster *greenhousev1alpha1.Cluster) (*rbacv1.ClusterRoleBinding, error) {
-	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: utils.ServiceAccountName,
-		},
-		Subjects: []rbacv1.Subject{
-			{
-				Kind:      rbacv1.ServiceAccountKind,
-				Name:      utils.ServiceAccountName,
-				Namespace: cluster.GetNamespace(),
-			},
-		},
-		RoleRef: rbacv1.RoleRef{
-			Kind:     utils.CRoleKind,
-			Name:     utils.CRoleRef,
-			APIGroup: rbacv1.GroupName,
-		},
-	}
-
-	result, err := clientutil.CreateOrPatch(ctx, k8sClient, clusterRoleBinding, func() error {
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	switch result {
-	// TODO: emit event on cluster
-	case clientutil.OperationResultCreated:
-		log.FromContext(ctx).Info("created clusterRoleBinding", "cluster", clusterRoleBinding.Name)
-	// TODO: emit event on cluster
-	case clientutil.OperationResultUpdated:
-		log.FromContext(ctx).Info("updated clusterRoleBinding", "cluster", clusterRoleBinding.Name)
-	}
-	return clusterRoleBinding, nil
-}
-
-// reconcileNamespaceInRemoteCluster - creates or updates the namespace in the remote cluster
-func (r *RemoteClusterReconciler) reconcileNamespaceInRemoteCluster(ctx context.Context, k8sClient client.Client, cluster *greenhousev1alpha1.Cluster) error {
-	var namespace = new(corev1.Namespace)
-	namespace.Name = cluster.GetNamespace()
-	result, err := clientutil.CreateOrPatch(ctx, k8sClient, namespace, func() error {
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	switch result {
-	case clientutil.OperationResultCreated:
-		log.FromContext(ctx).Info("created namespace", "cluster", cluster.Name, "namespace", namespace.Name)
-		// TODO: emit event on cluster
-	case clientutil.OperationResultUpdated:
-		log.FromContext(ctx).Info("updated namespace", "cluster", cluster.Name, "namespace", namespace.Name)
-		// TODO: emit event on cluster
-	}
-	return nil
-}
-
-// reconcileServiceAccountInRemoteCluster - creates or updates the service account in the remote cluster
-func (r *RemoteClusterReconciler) reconcileServiceAccountInRemoteCluster(ctx context.Context, k8sClient client.Client, crb *rbacv1.ClusterRoleBinding, cluster *greenhousev1alpha1.Cluster) error {
-	serviceAccount := utils.NewServiceAccount(utils.ServiceAccountName, cluster.GetNamespace())
-	result, err := clientutil.CreateOrPatch(ctx, k8sClient, serviceAccount, func() error {
-		if crb != nil {
-			return controllerutil.SetOwnerReference(crb, serviceAccount, k8sClient.Scheme())
-		}
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	switch result {
-	case clientutil.OperationResultCreated:
-		log.FromContext(ctx).Info("created serviceAccount", "cluster", serviceAccount.Name)
-		// TODO: emit event on cluster
-	case clientutil.OperationResultUpdated:
-		log.FromContext(ctx).Info("updated serviceAccount", "cluster", serviceAccount.Name)
-		// TODO: emit event on cluster
-	}
-	return nil
-}
-
-func (r *RemoteClusterReconciler) reconcileServiceAccountToken(
-	ctx context.Context,
-	restClientGetter *clientutil.RestClientGetter,
-	remoteClient client.Client,
-	cluster *greenhousev1alpha1.Cluster,
-	clusterSecret *corev1.Secret,
-) error {
-
-	cluster.SetDefaultTokenValidityIfNeeded()
-	t := &utils.TokenHelper{
-		InClusterClient:                    r.Client,
-		RemoteClusterClient:                remoteClient,
-		RemoteClusterBearerTokenValidity:   time.Duration(cluster.Spec.KubeConfig.MaxTokenValidity) * time.Hour,
+	p := &clusterphases.Phase{
+		Client:                             r.Client,
+		Recorder:                           r.recorder,
+		RemoteClusterBearerTokenValidity:   r.RemoteClusterBearerTokenValidity,
 		RenewRemoteClusterBearerTokenAfter: r.RenewRemoteClusterBearerTokenAfter,
-		SecretType:                         clusterSecret.Type,
-	}
-	tokenRequest, err := t.GenerateTokenRequest(ctx, restClientGetter, cluster, clusterSecret)
-	if err != nil {
-		log.FromContext(ctx).Error(err, "failed to generate token", "cluster", cluster.Name)
-		return err
-	}
-	if tokenRequest == nil {
-		// early return as the token is still valid and no new token is needed
-		return nil
-	}
-	var generatedKubeConfig []byte
-	switch cluster.Spec.AccessMode {
-	case greenhousev1alpha1.ClusterAccessModeDirect:
-		generatedKubeConfig, err = utils.GenerateNewClientKubeConfig(restClientGetter, tokenRequest.Status.Token, cluster)
-		if err != nil {
-			return err
-		}
-	default:
-		return fmt.Errorf("unknown access mode %s", cluster.Spec.AccessMode)
+		ClusterSecret:                      clusterSecret,
+		RestClientGetter:                   restClientGetter,
+		RemoteClient:                       remoteClient,
 	}
 
-	kubeConfigSecret := &corev1.Secret{}
-	if err := t.InClusterClient.Get(ctx, types.NamespacedName{Namespace: cluster.GetNamespace(), Name: cluster.GetName()}, kubeConfigSecret); err != nil {
-		return err
-	}
-	result, err := clientutil.CreateOrPatch(ctx, t.InClusterClient, kubeConfigSecret, func() error {
-		if clusterSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
-			kubeConfigSecret.Annotations[greenhouseapis.SecretOIDCConfigGeneratedOnAnnotation] = metav1.Now().Format(time.DateTime)
-		}
-		kubeConfigSecret.Data[greenhouseapis.GreenHouseKubeConfigKey] = generatedKubeConfig
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	switch result {
-	case clientutil.OperationResultCreated:
-		log.FromContext(ctx).Info("created secret", "namespace", kubeConfigSecret.GetNamespace(), "name", kubeConfigSecret.GetName())
-		// TODO: emit event on cluster
-	case clientutil.OperationResultUpdated:
-		log.FromContext(ctx).Info("updated secret", "namespace", kubeConfigSecret.GetNamespace(), "name", kubeConfigSecret.GetName())
-		// TODO: emit event on cluster
-	}
-	cluster.Status.BearerTokenExpirationTimestamp = tokenRequest.Status.ExpirationTimestamp
-
-	return nil
+	return lifecycle.ExecuteSubRoutine(ctx, p.EnsureCreatePhases(cluster))
 }
 
-func (r *RemoteClusterReconciler) ensureFinalizerAndMetricsCleanup(ctx context.Context, cluster *greenhousev1alpha1.Cluster, secret *corev1.Secret) error {
-	deleteClusterMetrics(cluster)
-	if controllerutil.ContainsFinalizer(secret, secretFinalizer) {
-		controllerutil.RemoveFinalizer(secret, secretFinalizer)
-		err := r.Update(ctx, secret)
-		if err != nil {
-			log.FromContext(ctx).Error(err, "failed to remove finalizer")
-			return err
-		}
-	}
-	return nil
-}
-
-// EnsureDeleted - handles the deletion / cleanup of cluster resource
+// EnsureDeleted handles the deletion / cleanup of cluster resource.
 func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	cluster := resource.(*greenhousev1alpha1.Cluster)
+
 	c := cluster.Status.GetConditionByType(greenhousev1alpha1.KubeConfigValid)
 	if c != nil && c.IsFalse() {
 		deleteClusterMetrics(cluster)
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
-	// delete all plugins that are bound to this cluster
-	deletionCount, err := deletePlugins(ctx, r.Client, cluster)
-	if err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-	if deletionCount > 0 {
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, lifecycle.Pending, nil
-	}
 
-	kubeConfigSecret := &corev1.Secret{}
-	if err := r.Get(ctx, types.NamespacedName{Namespace: cluster.GetNamespace(), Name: cluster.GetSecretName()}, kubeConfigSecret); err != nil {
+	clusterSecret := &corev1.Secret{}
+	if err := r.Get(ctx, types.NamespacedName{Namespace: cluster.GetNamespace(), Name: cluster.GetSecretName()}, clusterSecret); err != nil {
 		if client.IgnoreNotFound(err) == nil {
-			// Secret already missing. This means a parallel call to remove Cluster already removed its finalizer,
-			// which is only possible if that parallel call succeeded.
 			deleteClusterMetrics(cluster)
 			return ctrl.Result{}, lifecycle.Success, nil
 		}
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	// early return if the cluster connectivity is via OIDC
-	if kubeConfigSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
-		log.FromContext(ctx).Info("no resources to clean up", "secretType", kubeConfigSecret.Type, "cluster", cluster.Name)
-		if err := r.ensureFinalizerAndMetricsCleanup(ctx, cluster, kubeConfigSecret); err != nil {
+
+	p := &clusterphases.Phase{
+		Client:        r.Client,
+		ClusterSecret: clusterSecret,
+	}
+
+	if clusterSecret.Type != greenhouseapis.SecretTypeOIDCConfig {
+		restClientGetter, remoteClient, err := clusterphases.CreateRemoteClient(clusterSecret, cluster.GetNamespace())
+		if err != nil {
 			return ctrl.Result{}, lifecycle.Failed, err
 		}
-		return ctrl.Result{}, lifecycle.Success, nil
-	}
-	restClientGetter, err := clientutil.NewRestClientGetterFromSecret(kubeConfigSecret, cluster.Namespace)
-	if err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-	remoteClient, err := clientutil.NewK8sClientFromRestClientGetter(restClientGetter)
-	if err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
+		p.RestClientGetter = restClientGetter
+		p.RemoteClient = remoteClient
 	}
 
-	// deleting the cluster role binding in the remote cluster will delete
-	// greenhouse service account and namespace due to owner reference
-	if err := r.deleteClusterRoleBindingInRemoteCluster(ctx, remoteClient); err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
+	result, reconcileResult, err := lifecycle.ExecuteSubRoutine(ctx, p.EnsureDeletePhases(cluster))
+	if reconcileResult == lifecycle.Success {
+		deleteClusterMetrics(cluster)
 	}
-
-	if err := r.ensureFinalizerAndMetricsCleanup(ctx, cluster, kubeConfigSecret); err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-	return ctrl.Result{}, lifecycle.Success, nil
+	return result, reconcileResult, err
 }
 
 func (r *RemoteClusterReconciler) EnsureSuspended(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, error) {
 	return ctrl.Result{}, nil
-}
-
-// deleteClusterRoleBindingInRemoteCluster - deletes the cluster role binding in the remote cluster
-func (r *RemoteClusterReconciler) deleteClusterRoleBindingInRemoteCluster(ctx context.Context, k8sClient client.Client) error {
-	crb := &rbacv1.ClusterRoleBinding{}
-	err := k8sClient.Get(ctx, client.ObjectKey{Name: utils.ServiceAccountName}, crb)
-	if err != nil {
-		if apierrors.IsUnauthorized(err) || apierrors.IsNotFound(err) || apierrors.IsForbidden(err) {
-			return nil
-		}
-		ctrl.LoggerFrom(ctx).V(5).Error(err, "err getting clusterRoleBinding")
-		return err
-	}
-	err = k8sClient.Delete(ctx, crb)
-	// ignore not found and forbidden errors
-	if err != nil {
-		if !apierrors.IsUnauthorized(err) && !apierrors.IsNotFound(err) && !apierrors.IsForbidden(err) {
-			return err
-		}
-		ctrl.LoggerFrom(ctx).V(5).Error(err, "err deleting clusterRoleBinding")
-	}
-	return nil
-}
-
-func deletePlugins(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster) (count int, err error) {
-	pluginList := &greenhousev1alpha1.PluginList{}
-	err = c.List(
-		ctx,
-		pluginList,
-		client.InNamespace(cluster.GetNamespace()),
-		client.MatchingLabels{greenhouseapis.LabelKeyCluster: cluster.GetName()},
-	)
-	if err != nil {
-		return
-	}
-	for _, plugin := range pluginList.Items {
-		if err = c.Delete(ctx, &plugin); client.IgnoreNotFound(err) != nil {
-			return
-		}
-		count++
-	}
-	return
 }

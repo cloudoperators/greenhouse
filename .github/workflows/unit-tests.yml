@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'internal/**'
+      - 'pkg/**'
       - 'cmd/**'
       - 'Dockerfile*'
       - 'go.mod'

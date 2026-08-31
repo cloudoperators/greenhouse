@@ -756,3 +756,85 @@ func FluxControllerPluginDeletePolicyRetain(ctx context.Context, adminClient cli
 		g.Expect(err).NotTo(HaveOccurred(), "should be able to uninstall the helm release for the plugin")
 	}).Should(Succeed(), "the retained Helm release should eventually be uninstalled from the remote cluster")
 }
+
+// FluxControllerClusterDeletePolicyRetain tests that the helm release is left behind when deleting the Cluster.
+func FluxControllerClusterDeletePolicyRetain(ctx context.Context, adminClient client.Client, env *shared.TestEnv, remoteClusterName, teamName string) {
+	By("Creating plugin definition")
+	testPluginDefinition := fixtures.PreparePodInfoClusterPluginDefinition(env.TestNamespace, "6.9.0")
+	err := adminClient.Create(ctx, testPluginDefinition)
+	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
+
+	By("Checking the test plugin definition is ready")
+	Eventually(func(g Gomega) {
+		err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPluginDefinition), testPluginDefinition)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(testPluginDefinition.Status.IsReadyTrue()).To(BeTrue(), "the plugin definition should be ready")
+	}).Should(Succeed())
+
+	By("Prepare the plugin spec for presets")
+	testPluginSpec := fixtures.PreparePlugin("test-podinfo-plugin", env.TestNamespace,
+		test.WithClusterPluginDefinition(testPluginDefinition.Name),
+		test.WithReleaseName("test-podinfo-plugin"),
+		test.WithReleaseNamespace(env.TestNamespace),
+		test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}),
+	).Spec
+
+	By("Add labels to remote cluster and set DeletionPolicy on it")
+	remoteCluster := &greenhousev1alpha1.Cluster{}
+	err = adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterName, Namespace: env.TestNamespace}, remoteCluster)
+	Expect(err).ToNot(HaveOccurred())
+	remoteCluster.Labels = map[string]string{
+		"app": "test-cluster",
+	}
+	remoteCluster.Annotations[greenhouseapis.AnnotationKeyDeletionPolicy] = greenhouseapis.DeletionPolicyRetain
+	err = adminClient.Update(ctx, remoteCluster)
+	Expect(err).ToNot(HaveOccurred())
+
+	pluginPresetName := "test-plugin-preset"
+
+	By("Creating PluginPreset")
+	pluginPreset := test.NewPluginPreset(pluginPresetName, env.TestNamespace,
+		test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamName),
+		test.WithPluginPresetPluginSpec(testPluginSpec),
+		test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"app": "test-cluster"}}),
+		test.WithPluginPresetDeletionPolicy(greenhouseapis.DeletionPolicyRetain),
+	)
+	err = adminClient.Create(ctx, pluginPreset)
+	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
+
+	pluginNamespacedName := types.NamespacedName{Name: pluginPreset.Name + "-" + remoteClusterName, Namespace: env.TestNamespace}
+
+	By("Checking the plugin is successfully deployed")
+	plugin := &greenhousev1alpha1.Plugin{}
+	Eventually(func(g Gomega) {
+		err = adminClient.Get(ctx, pluginNamespacedName, plugin)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(plugin.Status.IsReadyTrue()).To(BeTrue(), "the plugin should be ready")
+	}).Should(Succeed(), "the plugin should eventually be created and ready")
+
+	By("Deleting the cluster")
+	test.EventuallyDeleted(ctx, adminClient, remoteCluster)
+
+	By("Verifying the Plugin is removed")
+	Eventually(func(g Gomega) {
+		removedPlugin := &greenhousev1alpha1.Plugin{}
+		err = adminClient.Get(ctx, pluginNamespacedName, removedPlugin)
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "the plugin should be removed from the admin cluster")
+	}).Should(Succeed(), "the plugin should be remove after the cluster is deleted")
+
+	By("Verifying the HelmReleases is retained in the remote cluster and the flux helm release is removed")
+	Eventually(func(g Gomega) {
+		actHelmRelease := &helmv2.HelmRelease{}
+		err = adminClient.Get(ctx, pluginNamespacedName, actHelmRelease)
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "there should be a not found error getting the flux HelmRelease in the admin cluster")
+		rel, err := helm.GetReleaseForHelmChartFromPlugin(ctx, env.RemoteRestClientGetter, plugin)
+		g.Expect(err).NotTo(HaveOccurred(), "should be able to get the helm release for the plugin")
+		g.Expect(rel.Info.Status).To(Equal(release.StatusDeployed), "the helm release should still be deployed in the remote cluster")
+	}).Should(Succeed(), "the flux HelmReleases should eventually be deleted but the Helm release retained")
+
+	By("Cleaning up the retained Helm release in the remote cluster")
+	Eventually(func(g Gomega) {
+		_, err := helm.UninstallHelmRelease(ctx, env.RemoteRestClientGetter, plugin)
+		g.Expect(err).NotTo(HaveOccurred(), "should be able to uninstall the helm release for the plugin")
+	}).Should(Succeed(), "the retained Helm release should eventually be uninstalled from the remote cluster")
+}

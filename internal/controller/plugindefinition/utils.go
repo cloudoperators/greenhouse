@@ -171,6 +171,9 @@ func (h *helmer) createUpdateHelmChart(ctx context.Context, helmRepo *sourcev1.H
 			},
 			Version: pluginDefSpec.HelmChart.Version,
 		}
+		// Trigger an immediate Flux reconcile instead of waiting for the sync interval.
+		requestedAt, _ := lifecycle.ReconcileAnnotationValue(h.pluginDef)
+		common.EnsureAnnotation(helmChart, fluxmeta.ReconcileRequestAnnotation, requestedAt)
 		return controllerutil.SetControllerReference(h.pluginDef, helmChart, h.k8sClient.Scheme())
 	})
 	if err != nil {
@@ -231,6 +234,20 @@ func (h *helmer) deleteOrphanedHelmCharts(ctx context.Context) error {
 	return nil
 }
 
+// shouldSkipChartReplication reports whether this chart version is already replicated.
+// The reconcile annotation forces a re-fetch in case the mirror cleaned up the artifact.
+func shouldSkipChartReplication(pluginDef common.GenericPluginDefinition, registry, chartName, version string) bool {
+	if _, requested := lifecycle.ReconcileAnnotationValue(pluginDef); requested {
+		return false
+	}
+	artifact := pluginDef.GetLastSyncedArtifact()
+	return artifact != nil &&
+		artifact.Registry == registry &&
+		artifact.ChartName == chartName &&
+		artifact.Version == version &&
+		artifact.ReplicationStatus == greenhousev1alpha1.ReplicationStatusReplicated
+}
+
 // ensureChartReplication triggers replication for the Helm chart OCI artifact to the configured mirror registry.
 func (h *helmer) ensureChartReplication(ctx context.Context) error {
 	if !h.ociMirroringEnabled {
@@ -281,11 +298,7 @@ func (h *helmer) ensureChartReplication(ctx context.Context) error {
 	version := helmChart.Version
 
 	// Skip replication if the current chart version was already replicated (idempotency).
-	if artifact := h.pluginDef.GetLastSyncedArtifact(); artifact != nil &&
-		artifact.Registry == registry &&
-		artifact.ChartName == chartName &&
-		artifact.Version == version &&
-		artifact.ReplicationStatus == greenhousev1alpha1.ReplicationStatusReplicated {
+	if shouldSkipChartReplication(h.pluginDef, registry, chartName, version) {
 		logger.V(1).Info("chart already replicated, skipping", "registry", registry, "chart", chartName, "version", version)
 		return nil
 	}

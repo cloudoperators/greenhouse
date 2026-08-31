@@ -32,10 +32,6 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
-const (
-	secretFinalizer = "greenhouse.sap/finalizer"
-)
-
 type BootstrapReconciler struct {
 	client.Client
 	recorder events.EventRecorder
@@ -70,26 +66,20 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	if kubeConfigSecret.DeletionTimestamp.IsZero() {
-		if !controllerutil.ContainsFinalizer(kubeConfigSecret, secretFinalizer) {
-			controllerutil.AddFinalizer(kubeConfigSecret, secretFinalizer)
+		if controllerutil.AddFinalizer(kubeConfigSecret, lifecycle.CommonCleanupFinalizer) {
 			if err := r.Update(ctx, kubeConfigSecret); err != nil {
 				return ctrl.Result{}, err
 			}
 			return ctrl.Result{RequeueAfter: time.Second}, nil
 		}
 	} else {
-		// the secret is being deleted
-		if controllerutil.ContainsFinalizer(kubeConfigSecret, secretFinalizer) {
-			// we have finalizer, so delete cluster if one can be found
+		if controllerutil.ContainsFinalizer(kubeConfigSecret, lifecycle.CommonCleanupFinalizer) {
 			cluster := greenhousev1alpha1.Cluster{}
 			if err := r.Get(ctx, req.NamespacedName, &cluster); err != nil {
 				if client.IgnoreNotFound(err) == nil {
-					// cluster not found - remove finalizer
-					if controllerutil.ContainsFinalizer(kubeConfigSecret, secretFinalizer) {
-						controllerutil.RemoveFinalizer(kubeConfigSecret, secretFinalizer)
-						if err := r.Update(ctx, kubeConfigSecret); err != nil {
-							return ctrl.Result{}, err
-						}
+					controllerutil.RemoveFinalizer(kubeConfigSecret, lifecycle.CommonCleanupFinalizer)
+					if err := r.Update(ctx, kubeConfigSecret); err != nil {
+						return ctrl.Result{}, err
 					}
 				}
 				return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -109,7 +99,7 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		genTime, genTimeAvail := kubeConfigSecret.Annotations[greenhouseapis.SecretOIDCConfigGeneratedOnAnnotation]
 		if !genTimeAvail || !clientutil.IsSecretContainsKey(kubeConfigSecret, greenhouseapis.GreenHouseKubeConfigKey) {
 			sa := utils.NewServiceAccount(kubeConfigSecret.GetName(), kubeConfigSecret.GetNamespace())
-			_, err := clientutil.CreateOrPatch(ctx, r.Client, sa, func() error {
+			_, err := controllerutil.CreateOrPatch(ctx, r.Client, sa, func() error {
 				return controllerutil.SetOwnerReference(kubeConfigSecret, sa, r.Scheme())
 			})
 			if err != nil {
@@ -243,7 +233,7 @@ func (r *BootstrapReconciler) ensureOwnerReferences(ctx context.Context, kubeCon
 	if cluster.DeletionTimestamp != nil {
 		return nil
 	}
-	_, err := clientutil.CreateOrPatch(ctx, r.Client, kubeConfigSecret, func() error {
+	_, err := controllerutil.CreateOrPatch(ctx, r.Client, kubeConfigSecret, func() error {
 		return controllerutil.SetOwnerReference(cluster, kubeConfigSecret, r.Scheme())
 	})
 	return err

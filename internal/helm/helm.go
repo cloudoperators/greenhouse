@@ -405,14 +405,6 @@ func CalculatePluginOptionChecksum(ctx context.Context, c client.Client, plugin 
 		case v.Value != nil:
 			buf = append(buf, v.Value.Raw...)
 
-		case v.Expression != nil:
-			buf = append(buf, []byte(*v.Expression)...)
-
-		case v.ValueFrom != nil && v.ValueFrom.Ref != nil:
-			buf = append(buf, []byte(v.ValueFrom.Ref.Name)...)
-			buf = append(buf, []byte(v.ValueFrom.Ref.Kind)...)
-			buf = append(buf, []byte(v.ValueFrom.Ref.Expression)...)
-
 		default:
 			continue
 		}

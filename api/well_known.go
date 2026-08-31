@@ -75,12 +75,8 @@ const (
 
 	// LabelKeyPluginExposedServices is used to identify Plugins that expose services.
 	LabelKeyPluginExposedServices = "greenhouse.sap/plugin-exposed-services"
-	// LabelKeyPluginIntegration is used to identify resources that are part of plugin-plugin integration scenarios.
-	LabelKeyPluginIntegration = "greenhouse.sap/integration"
 	// LabelValuePluginIntegration will be used as list selector value to identify resources that are part of plugin-plugin integration scenarios.
 	LabelValuePluginIntegration = "true"
-	// AnnotationKeyPluginTackingID is used to identify the resources that are resolving values from the tracked plugin.
-	AnnotationKeyPluginTackingID = "greenhouse.sap/tracking-id"
 
 	FluxReconcileRequestAnnotation = "reconcile.fluxcd.io/requestedAt"
 )
@@ -116,6 +112,8 @@ const (
 
 // Deletion Policies
 const (
+	AnnotationKeyDeletionPolicy = "greenhouse.sap/plugin-deletion"
+
 	// DeletionPolicyRetain means owned resources will be retained on deletion.
 	DeletionPolicyRetain = "Retain"
 	// DeletionPolicyDelete means owned resources will be deleted on deletion.
