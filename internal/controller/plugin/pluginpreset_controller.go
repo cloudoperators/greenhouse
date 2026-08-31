@@ -87,6 +87,9 @@ func (r *PluginPresetReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 		Watches(&greenhousev1alpha1.PluginPreset{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueReferencingPluginPresets),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		Watches(&greenhousev1alpha1.Plugin{},
+			handler.EnqueueRequestsFromMapFunc(r.enqueueReferencingPluginPresetsForPlugin),
+			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(r)
 }
 
@@ -491,6 +494,72 @@ func (r *PluginPresetReconciler) enqueuePluginPresetsForClusterPluginDefinition(
 	return listPluginPresetAsReconcileRequests(ctx, r.Client,
 		client.MatchingLabels{greenhouseapis.LabelKeyClusterPluginDefinition: obj.GetName()},
 	)
+}
+
+// enqueueReferencingPluginPresetsForPlugin enqueues PluginPresets that reference
+// the changed Plugin via valueFrom.ref (by name or label selector).
+func (r *PluginPresetReconciler) enqueueReferencingPluginPresetsForPlugin(ctx context.Context, obj client.Object) []ctrl.Request {
+	if !r.IntegrationEnabled {
+		return nil
+	}
+
+	logger := ctrl.LoggerFrom(ctx)
+	changedPlugin := obj.(*greenhousev1alpha1.Plugin)
+
+	allPresets := &greenhousev1alpha1.PluginPresetList{}
+	if err := r.List(ctx, allPresets, client.InNamespace(obj.GetNamespace())); err != nil {
+		logger.Error(err, "failed to list PluginPresets for Plugin reference matching")
+		return nil
+	}
+
+	var requests []ctrl.Request
+	for i := range allPresets.Items {
+		preset := &allPresets.Items[i]
+		matches, err := presetReferencesPlugin(preset, changedPlugin)
+		if err != nil {
+			logger.Error(err, "failed to check Plugin references", "preset", preset.Name, "plugin", changedPlugin.Name)
+			continue
+		}
+		if matches {
+			requests = append(requests, ctrl.Request{
+				NamespacedName: client.ObjectKeyFromObject(preset),
+			})
+		}
+	}
+	return requests
+}
+
+// presetReferencesPlugin returns true if the preset references the target Plugin
+// via valueFrom.ref (either by name or by label selector).
+func presetReferencesPlugin(preset *greenhousev1alpha1.PluginPreset, target *greenhousev1alpha1.Plugin) (bool, error) {
+	for _, ov := range preset.Spec.Plugin.OptionValues {
+		if ov.ValueFrom == nil || ov.ValueFrom.Ref == nil {
+			continue
+		}
+		ref := ov.ValueFrom.Ref
+		refKind := ref.Kind
+		if refKind == "" {
+			refKind = greenhousev1alpha1.PluginPresetKind
+		}
+		if refKind != greenhousev1alpha1.PluginKind {
+			continue
+		}
+
+		if ref.Name != "" && ref.Name == target.Name {
+			return true, nil
+		}
+
+		if ref.Selector != nil {
+			selector, err := metav1.LabelSelectorAsSelector(ref.Selector)
+			if err != nil {
+				return false, fmt.Errorf("failed to parse selector in PluginPreset %s: %w", preset.Name, err)
+			}
+			if selector.Matches(labels.Set(target.GetLabels())) {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }
 
 // enqueueReferencingPluginPresets enqueues only PluginPresets that reference

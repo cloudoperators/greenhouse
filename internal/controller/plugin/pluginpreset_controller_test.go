@@ -2112,6 +2112,233 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}
 	})
 
+	It("should enqueue presets that reference the changed Plugin by name", func() {
+		reconciler := &PluginPresetReconciler{
+			Client:             test.K8sClient,
+			IntegrationEnabled: true,
+		}
+
+		By("creating a Plugin that will be referenced")
+		referencedPlugin := &greenhousev1alpha1.Plugin{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "watched-plugin",
+				Namespace: test.TestNamespace,
+			},
+			Spec: greenhousev1alpha1.PluginSpec{
+				PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+					Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					Name: pluginPresetDefinitionName,
+				},
+				ClusterName:      clusterA,
+				ReleaseName:      "watched-plugin",
+				ReleaseNamespace: releaseNamespace,
+				OptionValues: []greenhousev1alpha1.PluginOptionValue{
+					{Name: "myRequiredOption", Value: test.MustReturnJSONFor("someValue")},
+					{Name: "endpoint", Value: test.MustReturnJSONFor("https://my-service.example.com")},
+				},
+			},
+		}
+		Expect(test.K8sClient.Create(test.Ctx, referencedPlugin)).To(Succeed())
+
+		By("creating a PluginPreset that references the Plugin by name")
+		consumerPreset := test.NewPluginPreset("plugin-watcher-consumer", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPresetPluginSpec(greenhousev1alpha1.PluginPresetPluginSpec{
+				PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+					Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					Name: pluginPresetDefinitionName,
+				},
+				ReleaseName:      "plugin-watcher-consumer",
+				ReleaseNamespace: releaseNamespace,
+				OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+					{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
+					{
+						Name: "resolved.endpoint",
+						ValueFrom: &greenhousev1alpha1.PluginPresetPluginValueFromSource{
+							Ref: &greenhousev1alpha1.ExternalValueSource{
+								Kind:       greenhousev1alpha1.PluginKind,
+								Name:       "watched-plugin",
+								Expression: `spec.optionValues.filter(v, v.name == "endpoint")[0].value`,
+							},
+						},
+					},
+				},
+			}),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{"cluster": clusterA},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, consumerPreset)).To(Succeed())
+
+		By("creating an unrelated PluginPreset")
+		unrelatedPreset := test.NewPluginPreset("plugin-watcher-unrelated", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPresetPluginSpec(greenhousev1alpha1.PluginPresetPluginSpec{
+				PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+					Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					Name: pluginPresetDefinitionName,
+				},
+				ReleaseName:      "plugin-watcher-unrelated",
+				ReleaseNamespace: releaseNamespace,
+				OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+					{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
+				},
+			}),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{"cluster": clusterA},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, unrelatedPreset)).To(Succeed())
+
+		By("verifying only the consumer preset is enqueued")
+		requests := reconciler.enqueueReferencingPluginPresetsForPlugin(test.Ctx, referencedPlugin)
+		Expect(requests).To(HaveLen(1))
+		Expect(requests[0].Name).To(Equal("plugin-watcher-consumer"))
+
+		By("cleaning up")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, consumerPreset)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, unrelatedPreset)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, referencedPlugin)
+	})
+
+	It("should enqueue presets that reference the changed Plugin by selector", func() {
+		reconciler := &PluginPresetReconciler{
+			Client:             test.K8sClient,
+			IntegrationEnabled: true,
+		}
+
+		By("creating a Plugin with labels")
+		referencedPlugin := &greenhousev1alpha1.Plugin{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "watched-sel-plugin",
+				Namespace: test.TestNamespace,
+				Labels: map[string]string{
+					greenhouseapis.LabelKeyOwnedBy: testTeam.Name,
+					"plugin-group":                 "my-plugins",
+				},
+			},
+			Spec: greenhousev1alpha1.PluginSpec{
+				PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+					Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					Name: pluginPresetDefinitionName,
+				},
+				ClusterName:      clusterA,
+				ReleaseName:      "watched-sel-plugin",
+				ReleaseNamespace: releaseNamespace,
+				OptionValues: []greenhousev1alpha1.PluginOptionValue{
+					{Name: "myRequiredOption", Value: test.MustReturnJSONFor("someValue")},
+					{Name: "endpoint", Value: test.MustReturnJSONFor("https://my-service.example.com")},
+				},
+			},
+		}
+		Expect(test.K8sClient.Create(test.Ctx, referencedPlugin)).To(Succeed())
+
+		By("creating a PluginPreset that references Plugins by selector")
+		consumerPreset := test.NewPluginPreset("plugin-sel-watcher-consumer", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPresetPluginSpec(greenhousev1alpha1.PluginPresetPluginSpec{
+				PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+					Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					Name: pluginPresetDefinitionName,
+				},
+				ReleaseName:      "plugin-sel-watcher-consumer",
+				ReleaseNamespace: releaseNamespace,
+				OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+					{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
+					{
+						Name: "resolved.endpoints",
+						ValueFrom: &greenhousev1alpha1.PluginPresetPluginValueFromSource{
+							Ref: &greenhousev1alpha1.ExternalValueSource{
+								Kind: greenhousev1alpha1.PluginKind,
+								Selector: &metav1.LabelSelector{
+									MatchLabels: map[string]string{"plugin-group": "my-plugins"},
+								},
+								Expression: `spec.optionValues.filter(v, v.name == "endpoint")[0].value`,
+							},
+						},
+					},
+				},
+			}),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{"cluster": clusterA},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, consumerPreset)).To(Succeed())
+
+		By("creating an unrelated PluginPreset")
+		unrelatedPreset := test.NewPluginPreset("plugin-sel-watcher-unrelated", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPresetPluginSpec(greenhousev1alpha1.PluginPresetPluginSpec{
+				PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+					Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					Name: pluginPresetDefinitionName,
+				},
+				ReleaseName:      "plugin-sel-watcher-unrelated",
+				ReleaseNamespace: releaseNamespace,
+				OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+					{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
+				},
+			}),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{"cluster": clusterA},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, unrelatedPreset)).To(Succeed())
+
+		By("verifying only the selector consumer is enqueued")
+		requests := reconciler.enqueueReferencingPluginPresetsForPlugin(test.Ctx, referencedPlugin)
+		Expect(requests).To(HaveLen(1))
+		Expect(requests[0].Name).To(Equal("plugin-sel-watcher-consumer"))
+
+		By("cleaning up")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, consumerPreset)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, unrelatedPreset)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, referencedPlugin)
+	})
+
+	It("should not enqueue for Plugin changes when IntegrationEnabled is false", func() {
+		reconciler := &PluginPresetReconciler{
+			Client:             test.K8sClient,
+			IntegrationEnabled: false,
+		}
+		plugin := &greenhousev1alpha1.Plugin{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "disabled-plugin",
+				Namespace: test.TestNamespace,
+			},
+		}
+		requests := reconciler.enqueueReferencingPluginPresetsForPlugin(test.Ctx, plugin)
+		Expect(requests).To(BeNil())
+	})
+
+	It("should return empty when no presets reference the changed Plugin", func() {
+		reconciler := &PluginPresetReconciler{
+			Client:             test.K8sClient,
+			IntegrationEnabled: true,
+		}
+
+		plugin := &greenhousev1alpha1.Plugin{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "unreferenced-plugin",
+				Namespace: test.TestNamespace,
+			},
+			Spec: greenhousev1alpha1.PluginSpec{
+				PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+					Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					Name: pluginPresetDefinitionName,
+				},
+				ClusterName:      clusterA,
+				ReleaseName:      "unreferenced-plugin",
+				ReleaseNamespace: releaseNamespace,
+				OptionValues: []greenhousev1alpha1.PluginOptionValue{
+					{Name: "myRequiredOption", Value: test.MustReturnJSONFor("someValue")},
+				},
+			},
+		}
+		Expect(test.K8sClient.Create(test.Ctx, plugin)).To(Succeed())
+
+		requests := reconciler.enqueueReferencingPluginPresetsForPlugin(test.Ctx, plugin)
+		Expect(requests).To(BeEmpty())
+
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, plugin)
+	})
+
 	It("should resolve valueFrom.ref with kind Plugin by name", func() {
 		referencedPlugin := &greenhousev1alpha1.Plugin{
 			ObjectMeta: metav1.ObjectMeta{
