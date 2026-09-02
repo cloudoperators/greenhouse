@@ -39,6 +39,15 @@ patches:
         path: /spec/template/spec/containers/0/args/-
         value: --feature-gates=ExternalArtifact=true
 
+  # reach OIDC-onboarded clusters without a static kubeconfig
+  - target:
+      kind: Deployment
+      name: helm-controller
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: --feature-gates=ObjectLevelWorkloadIdentity=true
+
   - target:
       kind: Deployment
       name: (image-automation-controller|image-reflector-controller)
