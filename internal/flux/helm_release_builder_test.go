@@ -190,3 +190,34 @@ func TestHelmReleaseBuilder_WithKubeConfigFromSecret(t *testing.T) {
 	assert.Equal(t, "kubeconfig-secret", spec.KubeConfig.SecretRef.Name)
 	assert.Equal(t, "kubeconfig", spec.KubeConfig.SecretRef.Key)
 }
+
+func TestHelmReleaseBuilder_WithKubeConfigFromConfigMap(t *testing.T) {
+	builder := NewHelmReleaseSpecBuilder().
+		WithHelmChartRef(&helmv2.CrossNamespaceSourceReference{
+			Kind:      "HelmChart",
+			Name:      "nginx",
+			Namespace: "flux-system",
+		}).
+		WithKubeConfigFromConfigMap("my-cluster")
+
+	spec, err := builder.Build()
+	assert.NoError(t, err)
+	assert.NotNil(t, spec.KubeConfig)
+	assert.NotNil(t, spec.KubeConfig.ConfigMapRef)
+	assert.Equal(t, "my-cluster", spec.KubeConfig.ConfigMapRef.Name)
+	assert.Nil(t, spec.KubeConfig.SecretRef)
+}
+
+func TestHelmReleaseBuilder_WithKubeConfigFromConfigMapEmptyIgnored(t *testing.T) {
+	builder := NewHelmReleaseSpecBuilder().
+		WithHelmChartRef(&helmv2.CrossNamespaceSourceReference{
+			Kind:      "HelmChart",
+			Name:      "nginx",
+			Namespace: "flux-system",
+		}).
+		WithKubeConfigFromConfigMap("")
+
+	spec, err := builder.Build()
+	assert.NoError(t, err)
+	assert.Nil(t, spec.KubeConfig)
+}
