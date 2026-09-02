@@ -68,6 +68,7 @@ func (p *Phase) EnsureDeletePhases(cluster *greenhousev1alpha1.Cluster) []lifecy
 func (p *Phase) EnsureCreatePhases(cluster *greenhousev1alpha1.Cluster) []lifecycle.SubRoutine {
 	if p.ClusterSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
 		return []lifecycle.SubRoutine{
+			p.ensureFluxAccess(cluster),
 			p.ensureServiceAccountToken(cluster),
 			p.ensureConnectivity(cluster),
 			p.ensurePermissions(cluster),
