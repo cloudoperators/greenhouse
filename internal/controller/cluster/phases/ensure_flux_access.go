@@ -8,25 +8,19 @@ import (
 	"encoding/base64"
 	"fmt"
 
+	fluxmeta "github.com/fluxcd/pkg/apis/meta"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
-const (
-	fluxAccessProviderKey           = "provider"
-	fluxAccessAddressKey            = "address"
-	fluxAccessAudiencesKey          = "audiences"
-	fluxAccessServiceAccountNameKey = "serviceAccountName"
-	fluxAccessCAKey                 = "ca.crt"
-
-	fluxAccessProviderGeneric = "generic"
-)
+const fluxAccessProviderGeneric = "generic"
 
 func buildFluxAccessData(clusterSecret *corev1.Secret) (map[string]string, error) {
 	apiServerURL := clusterSecret.GetAnnotations()[greenhouseapis.SecretAPIServerURLAnnotation]
@@ -43,11 +37,11 @@ func buildFluxAccessData(clusterSecret *corev1.Secret) (map[string]string, error
 	}
 
 	return map[string]string{
-		fluxAccessProviderKey:           fluxAccessProviderGeneric,
-		fluxAccessAddressKey:            apiServerURL,
-		fluxAccessAudiencesKey:          greenhouseapis.OIDCAudience,
-		fluxAccessServiceAccountNameKey: clusterSecret.GetName(),
-		fluxAccessCAKey:                 string(caPEM),
+		fluxmeta.KubeConfigKeyProvider:           fluxAccessProviderGeneric,
+		fluxmeta.KubeConfigKeyAddress:            apiServerURL,
+		fluxmeta.KubeConfigKeyAudiences:          greenhouseapis.OIDCAudience,
+		fluxmeta.KubeConfigKeyServiceAccountName: clusterSecret.GetName(),
+		fluxmeta.KubeConfigKeyCACert:             string(caPEM),
 	}, nil
 }
 
@@ -56,6 +50,8 @@ func (p *Phase) ensureFluxAccess(cluster *greenhousev1alpha1.Cluster) lifecycle.
 	return func(ctx context.Context) (lifecycle.Result, error) {
 		data, err := buildFluxAccessData(p.ClusterSecret)
 		if err != nil {
+			cluster.SetCondition(greenhousemetav1alpha1.FalseCondition(
+				greenhousev1alpha1.FluxAccessReady, "", err.Error()))
 			return lifecycle.Break(), err
 		}
 
@@ -67,6 +63,8 @@ func (p *Phase) ensureFluxAccess(cluster *greenhousev1alpha1.Cluster) lifecycle.
 			return controllerutil.SetOwnerReference(cluster, configMap, p.Client.Scheme())
 		})
 		if err != nil {
+			cluster.SetCondition(greenhousemetav1alpha1.FalseCondition(
+				greenhousev1alpha1.FluxAccessReady, "", err.Error()))
 			return lifecycle.Break(), err
 		}
 		switch result {
@@ -75,6 +73,9 @@ func (p *Phase) ensureFluxAccess(cluster *greenhousev1alpha1.Cluster) lifecycle.
 		case controllerutil.OperationResultUpdated:
 			log.FromContext(ctx).Info("updated flux access configmap", "namespace", configMap.GetNamespace(), "name", configMap.GetName())
 		}
+
+		cluster.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.FluxAccessReady, "", "Flux can reach the cluster via the access ConfigMap"))
 		return lifecycle.Continue(), nil
 	}
 }
