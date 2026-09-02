@@ -54,6 +54,9 @@ const (
 	// ManagedResourcesDeployed reflects whether the resources were created on the cluster.
 	ManagedResourcesDeployed greenhousemetav1alpha1.ConditionType = "ManagedResourcesDeployed"
 
+	// FluxAccessReady reflects whether Flux can reach the cluster via ObjectLevelWorkloadIdentity.
+	FluxAccessReady greenhousemetav1alpha1.ConditionType = "FluxAccessReady"
+
 	// MaxTokenValidity contains maximum bearer token validity duration. It is also default value.
 	MaxTokenValidity = 72
 
