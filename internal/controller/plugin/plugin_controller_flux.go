@@ -174,6 +174,13 @@ func (r *PluginReconciler) ensureHelmRelease(
 		return err
 	}
 
+	useConfigMap, err := useFluxAccessConfigMap(ctx, r.Client, plugin)
+	if err != nil {
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
+			greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.ClusterAccessFailedReason, err.Error()))
+		return fmt.Errorf("failed to determine cluster access mode for Plugin %s: %w", plugin.Name, err)
+	}
+
 	result, err := controllerutil.CreateOrPatch(ctx, r.Client, release, func() error {
 		builder := flux.NewHelmReleaseSpecBuilder().
 			WithHelmChartRef(&helmv2.CrossNamespaceSourceReference{
@@ -202,15 +209,20 @@ func (r *PluginReconciler) ensureHelmRelease(
 			}).
 			WithDriftDetection(configureDriftDetection(plugin.Spec.IgnoreDifferences)).
 			WithSuspend(false).
-			WithKubeConfig(&fluxmeta.SecretKeyReference{
-				Name: plugin.Spec.ClusterName,
-				Key:  greenhouseapis.GreenHouseKubeConfigKey,
-			}).
 			WithDependsOn(resolvePluginDependencies(plugin.Spec.WaitFor, plugin.Spec.ClusterName)).
 			WithValues(values).
 			WithValuesFrom(addValueReferences(plugin)).
 			WithStorageNamespace(plugin.Spec.ReleaseNamespace).
 			WithTargetNamespace(plugin.Spec.ReleaseNamespace)
+
+		if useConfigMap {
+			builder = builder.WithKubeConfigFromConfigMap(plugin.Spec.ClusterName)
+		} else {
+			builder = builder.WithKubeConfig(&fluxmeta.SecretKeyReference{
+				Name: plugin.Spec.ClusterName,
+				Key:  greenhouseapis.GreenHouseKubeConfigKey,
+			})
+		}
 
 		if postRenderer != nil {
 			builder = builder.WithPostRenderers([]helmv2.PostRenderer{*postRenderer})
