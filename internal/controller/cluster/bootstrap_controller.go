@@ -210,6 +210,11 @@ func (r *BootstrapReconciler) createOrUpdateCluster(
 	result, err := controllerutil.CreateOrUpdate(ctx, r.Client, cluster, func() error {
 		cluster.SetAnnotations(annotations)
 		cluster.Spec.AccessMode = accessMode
+		if kubeConfigSecret.Annotations[greenhouseapis.ClusterWorkerlessAnnotation] == "true" {
+			cluster.Spec.Mode = greenhousev1alpha1.ClusterModeWorkerless
+		} else {
+			cluster.Spec.Mode = greenhousev1alpha1.ClusterModeDefault
+		}
 		// Transport KubeConfigSecret labels to Cluster
 		cluster = (lifecycle.NewPropagator(kubeConfigSecret, cluster).Apply()).(*greenhousev1alpha1.Cluster)
 		return nil
