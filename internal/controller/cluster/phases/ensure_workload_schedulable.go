@@ -13,6 +13,14 @@ import (
 
 func (p *Phase) ensureWorkloadSchedulable(cluster *greenhousev1alpha1.Cluster) lifecycle.SubRoutine {
 	return func(_ context.Context) (lifecycle.Result, error) {
+		if cluster.Spec.Mode == greenhousev1alpha1.ClusterModeWorkerless {
+			cluster.SetCondition(greenhousemetav1alpha1.FalseCondition(
+				greenhousev1alpha1.PayloadSchedulable, "WorkerlessCluster",
+				"cluster has no worker nodes - plugin workloads cannot be scheduled",
+			))
+			return lifecycle.Continue(), nil
+		}
+
 		kubeConfigValid := cluster.Status.GetConditionByType(greenhousev1alpha1.KubeConfigValid)
 		if kubeConfigValid != nil && kubeConfigValid.IsFalse() {
 			cluster.SetCondition(greenhousemetav1alpha1.FalseCondition(
