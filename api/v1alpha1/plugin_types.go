@@ -168,6 +168,9 @@ const (
 	// ClusterAccessFailedReason is set when the controller cannot access the target cluster.
 	ClusterAccessFailedReason greenhousemetav1alpha1.ConditionReason = "ClusterAccessFailed"
 
+	// ClusterPayloadNotSchedulableReason is set when the target cluster's PayloadSchedulable condition is False.
+	ClusterPayloadNotSchedulableReason greenhousemetav1alpha1.ConditionReason = "ClusterPayloadNotSchedulable"
+
 	// ImageReplicationFailedReason is set on HelmReleaseCreatedCondition when container image
 	// pre-replication to the configured mirror registry has failed.
 	ImageReplicationFailedReason greenhousemetav1alpha1.ConditionReason = "ImageReplicationFailed"

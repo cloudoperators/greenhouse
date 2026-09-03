@@ -107,6 +107,14 @@ func initClientGetter(
 		return nil, nil, err
 	}
 
+	payloadSchedulable := cluster.Status.GetConditionByType(greenhousev1alpha1.PayloadSchedulable)
+	if payloadSchedulable != nil && payloadSchedulable.IsFalse() {
+		err = fmt.Errorf("cluster %s payload is not schedulable: %s", plugin.Spec.ClusterName, payloadSchedulable.Message)
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
+			greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.ClusterPayloadNotSchedulableReason, err.Error()))
+		return nil, nil, err
+	}
+
 	secret := corev1.Secret{}
 	err = k8sClient.Get(ctx, types.NamespacedName{Namespace: plugin.Namespace, Name: plugin.Spec.ClusterName}, &secret)
 	if err != nil {
