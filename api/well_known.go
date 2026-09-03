@@ -131,6 +131,11 @@ const (
 	ClusterConnectivityAnnotation = "greenhouse.sap/cluster-connectivity"
 	ClusterConnectivityKubeconfig = "kubeconfig"
 	ClusterConnectivityOIDC       = "oidc"
+
+	// ClusterWorkerlessAnnotation is set to "true" on the cluster secret by shoot-grafter
+	// when a Gardener shoot has no worker nodes (.spec.provider.workers is empty).
+	// The bootstrap controller reads this annotation and sets Cluster.spec.mode accordingly.
+	ClusterWorkerlessAnnotation = "greenhouse.sap/workerless"
 )
 
 const (
