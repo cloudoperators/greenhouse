@@ -225,6 +225,17 @@ func (b *HelmReleaseBuilder) WithKubeConfig(kc *fluxmeta.SecretKeyReference) *He
 	return b
 }
 
+// WithKubeConfigFromConfigMap sets the kubeconfig reference to a ConfigMap. It is mutually exclusive with WithKubeConfig.
+func (b *HelmReleaseBuilder) WithKubeConfigFromConfigMap(name string) *HelmReleaseBuilder {
+	if name == "" {
+		return b
+	}
+	b.spec.KubeConfig = &fluxmeta.KubeConfigReference{
+		ConfigMapRef: &fluxmeta.LocalObjectReference{Name: name},
+	}
+	return b
+}
+
 // WithPostRenderers sets the post renderers for the Helm release.
 func (b *HelmReleaseBuilder) WithPostRenderers(postRenderers []helmv2.PostRenderer) *HelmReleaseBuilder {
 	if len(postRenderers) == 0 {
