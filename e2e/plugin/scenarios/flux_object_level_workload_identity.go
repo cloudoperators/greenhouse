@@ -33,6 +33,12 @@ func FluxObjectLevelWorkloadIdentity(ctx context.Context, adminClient client.Cli
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the remote REST config")
 	remoteCA := make([]byte, base64.StdEncoding.EncodedLen(len(restConfig.CAData)))
 	base64.StdEncoding.Encode(remoteCA, restConfig.CAData)
+
+	By("granting the greenhouse identity admin rights on the remote cluster")
+	remoteClient, err := clientutil.NewK8sClientFromRestClientGetter(restClientGetter)
+	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the remote client")
+	shared.SetupOIDCClusterRoleBinding(ctx, remoteClient, oidcClusterName+"-oidc-admin", oidcClusterName, env.TestNamespace)
+
 	shared.OnboardRemoteOIDCCluster(ctx, adminClient, remoteCA, restConfig.Host, oidcClusterName, env.TestNamespace, teamName)
 
 	By("checking the cluster resource is created and marked as OIDC")
