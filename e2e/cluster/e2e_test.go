@@ -169,7 +169,7 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 	Context("Cluster OIDC Happy Path 🤖", Ordered, func() {
 		It("should setup role binding for OIDC on remote cluster", func() {
 			By("setting up cluster role binding for OIDC on remote cluster")
-			expect.SetupOIDCClusterRoleBinding(ctx, remoteClient, remoteOIDCClusterRoleBindingName, remoteOIDCClusterHName, env.TestNamespace)
+			shared.SetupOIDCClusterRoleBinding(ctx, remoteClient, remoteOIDCClusterRoleBindingName, remoteOIDCClusterHName, env.TestNamespace)
 		})
 		It("should onboard remote cluster with OIDC", func() {
 			By("onboarding remote cluster with OIDC")
@@ -209,7 +209,7 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 	Context("Cluster OIDC CA Update 🤖", Ordered, func() {
 		It("should setup role binding for OIDC on remote cluster", func() {
 			By("setting up cluster role binding for OIDC on remote cluster")
-			expect.SetupOIDCClusterRoleBinding(ctx, remoteClient, remoteOIDCClusterRoleBindingName, remoteOIDCClusterCName, env.TestNamespace)
+			shared.SetupOIDCClusterRoleBinding(ctx, remoteClient, remoteOIDCClusterRoleBindingName, remoteOIDCClusterCName, env.TestNamespace)
 		})
 
 		It("should onboard remote cluster with OIDC", func() {
