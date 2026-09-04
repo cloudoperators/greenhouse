@@ -26,7 +26,7 @@ import (
 
 // FluxObjectLevelWorkloadIdentity checks that an OIDC-onboarded cluster gets a Flux access
 // ConfigMap and that its Plugin installs through it.
-func FluxObjectLevelWorkloadIdentity(ctx context.Context, adminClient client.Client, env *shared.TestEnv, oidcClusterName, teamName string) {
+func FluxObjectLevelWorkloadIdentity(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, oidcClusterName, teamName string) {
 	By("onboarding a remote cluster via OIDC")
 	restClientGetter := clientutil.NewRestClientGetterFromBytes(env.RemoteKubeConfigBytes, env.TestNamespace)
 	restConfig, err := restClientGetter.ToRESTConfig()
@@ -35,8 +35,6 @@ func FluxObjectLevelWorkloadIdentity(ctx context.Context, adminClient client.Cli
 	base64.StdEncoding.Encode(remoteCA, restConfig.CAData)
 
 	By("granting the greenhouse identity admin rights on the remote cluster")
-	remoteClient, err := clientutil.NewK8sClientFromRestClientGetter(restClientGetter)
-	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the remote client")
 	shared.SetupOIDCClusterRoleBinding(ctx, remoteClient, oidcClusterName+"-oidc-admin", oidcClusterName, env.TestNamespace)
 
 	shared.OnboardRemoteOIDCCluster(ctx, adminClient, remoteCA, restConfig.Host, oidcClusterName, env.TestNamespace, teamName)

@@ -126,7 +126,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 	})
 
 	It("should reach an OIDC-onboarded cluster via the flux access ConfigMap", func() {
-		scenarios.FluxObjectLevelWorkloadIdentity(ctx, adminClient, env, remoteOIDCClusterName, team.Name)
+		scenarios.FluxObjectLevelWorkloadIdentity(ctx, adminClient, remoteClient, env, remoteOIDCClusterName, team.Name)
 	})
 
 	It("should retain the helm release when Cluster annotated with DeletionPolicy set to `Retain` is deleted", func() {
