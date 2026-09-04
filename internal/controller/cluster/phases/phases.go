@@ -73,8 +73,8 @@ func (p *Phase) EnsureCreatePhases(cluster *greenhousev1alpha1.Cluster) []lifecy
 			p.ensurePermissions(cluster),
 			p.ensureNodesReady(cluster),
 			p.ensureWorkloadSchedulable(cluster),
-			p.ensureDiscoveryCache(cluster),
 			p.ensureFluxAccess(cluster),
+			p.ensureDiscoveryCache(cluster),
 		}
 	}
 	return []lifecycle.SubRoutine{
