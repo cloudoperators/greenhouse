@@ -6,6 +6,10 @@ package phases
 import (
 	"context"
 	"encoding/base64"
+	"reflect"
+	goruntime "runtime"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -20,6 +24,7 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 const testPEM = `-----BEGIN CERTIFICATE-----
@@ -144,20 +149,23 @@ func TestEnsureFluxAccess_WritesNothingWhenSecretIncomplete(t *testing.T) {
 	assert.Empty(t, list.Items)
 }
 
-func TestEnsureCreatePhases_OIDCClusterRunsFluxAccessLast(t *testing.T) {
+func phaseIndex(t *testing.T, phases []lifecycle.SubRoutine, name string) int {
+	t.Helper()
+	index := slices.IndexFunc(phases, func(phase lifecycle.SubRoutine) bool {
+		return strings.Contains(goruntime.FuncForPC(reflect.ValueOf(phase).Pointer()).Name(), name)
+	})
+	require.NotEqual(t, -1, index, "%s should be part of the phases", name)
+	return index
+}
+
+func TestEnsureCreatePhases_OIDCClusterRunsFluxAccessBeforeDiscoveryCache(t *testing.T) {
 	cluster := testCluster()
 	p := fluxAccessTestPhase(t, oidcClusterSecret(), cluster)
 
 	phases := p.EnsureCreatePhases(cluster)
-	require.NotEmpty(t, phases)
 
-	_, err := phases[len(phases)-1](context.Background())
-	require.NoError(t, err)
-
-	cm := &corev1.ConfigMap{}
-	require.NoError(t, p.Client.Get(context.Background(),
-		types.NamespacedName{Name: "my-cluster", Namespace: "my-org"}, cm))
-	assert.Equal(t, "generic", cm.Data[fluxmeta.KubeConfigKeyProvider])
+	// ensureDiscoveryCache always requeues, which ends the chain, so anything behind it never runs.
+	assert.Less(t, phaseIndex(t, phases, "ensureFluxAccess"), phaseIndex(t, phases, "ensureDiscoveryCache"))
 }
 
 func TestEnsureFluxAccess_SetsTrueConditionOnSuccess(t *testing.T) {
