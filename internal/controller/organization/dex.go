@@ -113,15 +113,24 @@ func (r *OrganizationReconciler) reconcileDexConnector(ctx context.Context, org 
 	if err != nil {
 		return err
 	}
+	var userIDClaim = "login_name"
+	var skipEmailVerified = false
+	if org.Spec.Authentication.OIDCConfig.ExtraConfig != nil {
+		if org.Spec.Authentication.OIDCConfig.ExtraConfig.UserIDClaim != "" {
+			userIDClaim = org.Spec.Authentication.OIDCConfig.ExtraConfig.UserIDClaim
+		}
+		skipEmailVerified = org.Spec.Authentication.OIDCConfig.ExtraConfig.InsecureSkipEmailVerified
+	}
 	oidcConfig := &oidc.Config{
-		Issuer:               org.Spec.Authentication.OIDCConfig.Issuer,
-		ClientID:             clientID,
-		ClientSecret:         clientSecret,
-		RedirectURI:          redirectURL,
-		UserNameKey:          "login_name",
-		UserIDKey:            "login_name",
-		InsecureSkipVerify:   true,
-		InsecureEnableGroups: true,
+		Issuer:                    org.Spec.Authentication.OIDCConfig.Issuer,
+		ClientID:                  clientID,
+		ClientSecret:              clientSecret,
+		RedirectURI:               redirectURL,
+		UserNameKey:               userIDClaim,
+		UserIDKey:                 userIDClaim,
+		InsecureSkipEmailVerified: skipEmailVerified,
+		InsecureSkipVerify:        true,
+		InsecureEnableGroups:      true,
 	}
 	configByte, err := json.Marshal(oidcConfig)
 	if err != nil {
