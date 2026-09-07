@@ -64,6 +64,9 @@ const (
 	// PayloadSchedulable reflects whether workloads can be scheduled on the cluster.
 	PayloadSchedulable greenhousemetav1alpha1.ConditionType = "PayloadSchedulable"
 
+	// WorkerlessClusterReason is set on PayloadSchedulable when the cluster has no worker nodes.
+	WorkerlessClusterReason greenhousemetav1alpha1.ConditionReason = "WorkerlessCluster"
+
 	// KubeConfigValid reflects the validity of the kubeconfig of a cluster.
 	KubeConfigValid greenhousemetav1alpha1.ConditionType = "KubeConfigValid"
 

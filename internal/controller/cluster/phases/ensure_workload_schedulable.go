@@ -15,7 +15,7 @@ func (p *Phase) ensureWorkloadSchedulable(cluster *greenhousev1alpha1.Cluster) l
 	return func(_ context.Context) (lifecycle.Result, error) {
 		if cluster.Spec.Mode == greenhousev1alpha1.ClusterModeWorkerless {
 			cluster.SetCondition(greenhousemetav1alpha1.FalseCondition(
-				greenhousev1alpha1.PayloadSchedulable, "WorkerlessCluster",
+				greenhousev1alpha1.PayloadSchedulable, greenhousev1alpha1.WorkerlessClusterReason,
 				"cluster has no worker nodes - plugin workloads cannot be scheduled",
 			))
 			return lifecycle.Continue(), nil
