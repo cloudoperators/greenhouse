@@ -177,7 +177,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 	useConfigMap, err := useFluxAccessConfigMap(ctx, r.Client, plugin)
 	if err != nil {
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
-			greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.ClusterAccessFailedReason, err.Error()))
+			greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.ClusterAccessUndeterminedReason, err.Error()))
 		return fmt.Errorf("failed to determine cluster access mode for Plugin %s: %w", plugin.Name, err)
 	}
 
