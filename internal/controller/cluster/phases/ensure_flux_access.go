@@ -22,7 +22,7 @@ import (
 
 const fluxAccessProviderGeneric = "generic"
 
-func buildFluxAccessData(clusterSecret *corev1.Secret) (map[string]string, error) {
+func buildFluxAccessData(clusterSecret *corev1.Secret, serviceAccountName string) (map[string]string, error) {
 	apiServerURL := clusterSecret.GetAnnotations()[greenhouseapis.SecretAPIServerURLAnnotation]
 	if apiServerURL == "" {
 		return nil, fmt.Errorf("secret %s/%s is missing the %s annotation",
@@ -40,7 +40,7 @@ func buildFluxAccessData(clusterSecret *corev1.Secret) (map[string]string, error
 		fluxmeta.KubeConfigKeyProvider:           fluxAccessProviderGeneric,
 		fluxmeta.KubeConfigKeyAddress:            apiServerURL,
 		fluxmeta.KubeConfigKeyAudiences:          greenhouseapis.OIDCAudience,
-		fluxmeta.KubeConfigKeyServiceAccountName: clusterSecret.GetName(),
+		fluxmeta.KubeConfigKeyServiceAccountName: serviceAccountName,
 		fluxmeta.KubeConfigKeyCACert:             string(caPEM),
 	}, nil
 }
@@ -48,7 +48,7 @@ func buildFluxAccessData(clusterSecret *corev1.Secret) (map[string]string, error
 // ensureFluxAccess renders the ConfigMap Flux uses to reach an OIDC-onboarded cluster.
 func (p *Phase) ensureFluxAccess(cluster *greenhousev1alpha1.Cluster) lifecycle.SubRoutine {
 	return func(ctx context.Context) (lifecycle.Result, error) {
-		data, err := buildFluxAccessData(p.ClusterSecret)
+		data, err := buildFluxAccessData(p.ClusterSecret, cluster.GetName())
 		if err != nil {
 			cluster.SetCondition(greenhousemetav1alpha1.FalseCondition(
 				greenhousev1alpha1.FluxAccessReady, "", err.Error()))
@@ -60,7 +60,7 @@ func (p *Phase) ensureFluxAccess(cluster *greenhousev1alpha1.Cluster) lifecycle.
 		}
 		result, err := controllerutil.CreateOrUpdate(ctx, p.Client, configMap, func() error {
 			configMap.Data = data
-			return controllerutil.SetOwnerReference(cluster, configMap, p.Client.Scheme())
+			return controllerutil.SetControllerReference(cluster, configMap, p.Client.Scheme())
 		})
 		if err != nil {
 			cluster.SetCondition(greenhousemetav1alpha1.FalseCondition(

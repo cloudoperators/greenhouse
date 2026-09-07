@@ -56,6 +56,7 @@ func (r *RemoteClusterReconciler) SetupWithManager(name string, mgr ctrl.Manager
 			clientutil.PredicateClusterByAccessMode(greenhousev1alpha1.ClusterAccessModeDirect),
 		)).
 		Watches(&corev1.Secret{}, handler.EnqueueRequestForOwner(mgr.GetScheme(), mgr.GetRESTMapper(), &greenhousev1alpha1.Cluster{})).
+		Owns(&corev1.ConfigMap{}).
 		WithOptions(controller.Options{MaxConcurrentReconciles: 5}).
 		Complete(r)
 }

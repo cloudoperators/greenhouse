@@ -65,7 +65,7 @@ func fluxAccessTestPhase(t *testing.T, secret *corev1.Secret, cluster *greenhous
 }
 
 func TestBuildFluxAccessData_ContainsAllKeysFluxRequires(t *testing.T) {
-	data, err := buildFluxAccessData(oidcClusterSecret())
+	data, err := buildFluxAccessData(oidcClusterSecret(), "my-cluster")
 
 	require.NoError(t, err)
 	assert.Equal(t, "generic", data[fluxmeta.KubeConfigKeyProvider])
@@ -75,7 +75,7 @@ func TestBuildFluxAccessData_ContainsAllKeysFluxRequires(t *testing.T) {
 }
 
 func TestBuildFluxAccessData_DecodesCACertificateToPEM(t *testing.T) {
-	data, err := buildFluxAccessData(oidcClusterSecret())
+	data, err := buildFluxAccessData(oidcClusterSecret(), "my-cluster")
 
 	require.NoError(t, err)
 	assert.Equal(t, testPEM, data[fluxmeta.KubeConfigKeyCACert])
@@ -85,7 +85,7 @@ func TestBuildFluxAccessData_ErrorsWhenAPIServerURLAnnotationMissing(t *testing.
 	secret := oidcClusterSecret()
 	delete(secret.Annotations, greenhouseapis.SecretAPIServerURLAnnotation)
 
-	_, err := buildFluxAccessData(secret)
+	_, err := buildFluxAccessData(secret, "my-cluster")
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), greenhouseapis.SecretAPIServerURLAnnotation)
@@ -95,7 +95,7 @@ func TestBuildFluxAccessData_ErrorsWhenCACertificateNotBase64(t *testing.T) {
 	secret := oidcClusterSecret()
 	secret.Data[greenhouseapis.SecretAPIServerCAKey] = []byte("not-base64!!!")
 
-	_, err := buildFluxAccessData(secret)
+	_, err := buildFluxAccessData(secret, "my-cluster")
 
 	require.Error(t, err)
 }
@@ -115,6 +115,24 @@ func TestEnsureFluxAccess_CreatesConfigMapOwnedByCluster(t *testing.T) {
 	require.Len(t, cm.OwnerReferences, 1)
 	assert.Equal(t, "Cluster", cm.OwnerReferences[0].Kind)
 	assert.Equal(t, "my-cluster", cm.OwnerReferences[0].Name)
+	controller := metav1.GetControllerOf(cm)
+	require.NotNil(t, controller, "the owner reference must be a controller reference so Owns() enqueues the cluster")
+	assert.Equal(t, "my-cluster", controller.Name)
+}
+
+func TestEnsureFluxAccess_NamesTheServiceAccountAfterTheCluster(t *testing.T) {
+	secret := oidcClusterSecret()
+	secret.Name = "some-other-secret"
+	cluster := testCluster()
+	p := fluxAccessTestPhase(t, secret, cluster)
+
+	_, err := p.ensureFluxAccess(cluster)(context.Background())
+	require.NoError(t, err)
+
+	cm := &corev1.ConfigMap{}
+	require.NoError(t, p.Client.Get(context.Background(),
+		types.NamespacedName{Name: "my-cluster", Namespace: "my-org"}, cm))
+	assert.Equal(t, "my-cluster", cm.Data[fluxmeta.KubeConfigKeyServiceAccountName])
 }
 
 func TestEnsureFluxAccess_IsIdempotentAndReflectsSecretChanges(t *testing.T) {
