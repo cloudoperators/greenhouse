@@ -196,27 +196,44 @@ func Test_PluginPresetFeatures(t *testing.T) {
 		configMapData                map[string]string
 		getError                     error
 		expectedExpressionEvaluation bool
+		expectedIntegrationEnabled   bool
 	}
 	testCases := []testCase{
 		{
 			name:                         "it should return true when expressionEvaluationEnabled is true",
 			configMapData:                map[string]string{PluginPresetFeatureKey: "expressionEvaluationEnabled: true\n"},
 			expectedExpressionEvaluation: true,
+			expectedIntegrationEnabled:   false,
 		},
 		{
 			name:                         "it should return false when expressionEvaluationEnabled is false",
 			configMapData:                map[string]string{PluginPresetFeatureKey: "expressionEvaluationEnabled: false\n"},
 			expectedExpressionEvaluation: false,
+			expectedIntegrationEnabled:   false,
+		},
+		{
+			name:                         "it should return both values when both are set",
+			configMapData:                map[string]string{PluginPresetFeatureKey: "expressionEvaluationEnabled: true\nintegrationEnabled: true\n"},
+			expectedExpressionEvaluation: true,
+			expectedIntegrationEnabled:   true,
+		},
+		{
+			name:                         "it should return false when pluginPreset key is not found",
+			configMapData:                map[string]string{"someOtherKey": "value\n"},
+			expectedExpressionEvaluation: false,
+			expectedIntegrationEnabled:   false,
 		},
 		{
 			name:                         "it should return false when feature-flags cm is not found",
 			getError:                     apierrors.NewNotFound(schema.GroupResource{}, "configmap not found"),
 			expectedExpressionEvaluation: false,
+			expectedIntegrationEnabled:   false,
 		},
 		{
-			name:                         "it should return false when flag is malformed in feature-flags cm",
-			configMapData:                map[string]string{PluginPresetFeatureKey: "expressionEvaluationEnabled:: invalid_yaml"},
+			name:                         "it should return false when flag is malformed",
+			configMapData:                map[string]string{PluginPresetFeatureKey: "integrationEnabled:: invalid_yaml"},
 			expectedExpressionEvaluation: false,
+			expectedIntegrationEnabled:   false,
 		},
 	}
 	for _, tc := range testCases {
@@ -241,25 +258,24 @@ func Test_PluginPresetFeatures(t *testing.T) {
 				}).Return(nil)
 			}
 
-			// Create Features instance
 			featuresInstance, err := NewFeatures(ctx, mockK8sClient, clientutil.GetEnvOrDefault("FEATURE_FLAGS", "greenhouse-feature-flags"), clientutil.GetEnvOrDefault("POD_NAMESPACE", "greenhouse"))
 
 			if tc.getError != nil && client.IgnoreNotFound(tc.getError) == nil {
 				assert.NoError(t, client.IgnoreNotFound(err))
-				assert.Nil(t, featuresInstance, "Expected nil when ConfigMap is missing")
-				presetExpressionValue := featuresInstance.IsPresetExpressionEvaluationEnabled()
-				assert.Equal(t, tc.expectedExpressionEvaluation, presetExpressionValue)
+				assert.Nil(t, featuresInstance)
+				presetExprValue := featuresInstance.IsPresetExpressionEvaluationEnabled()
+				presetIntValue := featuresInstance.IsPresetIntegrationEnabled()
+				assert.Equal(t, tc.expectedExpressionEvaluation, presetExprValue)
+				assert.Equal(t, tc.expectedIntegrationEnabled, presetIntValue)
 				mockK8sClient.AssertExpectations(t)
 				return
 			}
 
 			assert.NoError(t, err)
-
-			presetExpressionValue := featuresInstance.IsPresetExpressionEvaluationEnabled()
-
-			// Assert expected values
-			assert.Equal(t, tc.expectedExpressionEvaluation, presetExpressionValue)
-
+			presetExprValue := featuresInstance.IsPresetExpressionEvaluationEnabled()
+			presetIntValue := featuresInstance.IsPresetIntegrationEnabled()
+			assert.Equal(t, tc.expectedExpressionEvaluation, presetExprValue)
+			assert.Equal(t, tc.expectedIntegrationEnabled, presetIntValue)
 			mockK8sClient.AssertExpectations(t)
 		})
 	}

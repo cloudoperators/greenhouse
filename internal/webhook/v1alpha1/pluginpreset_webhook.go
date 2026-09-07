@@ -137,7 +137,7 @@ func convertPresetToPluginOptionValues(presetValues []greenhousev1alpha1.PluginP
 			Name:  pv.Name,
 			Value: pv.Value,
 		}
-		if pv.ValueFrom != nil {
+		if pv.ValueFrom != nil && pv.ValueFrom.Secret != nil {
 			ov.ValueFrom = &greenhousev1alpha1.PluginValueFromSource{
 				Secret: pv.ValueFrom.Secret,
 			}

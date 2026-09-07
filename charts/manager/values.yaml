@@ -23,7 +23,7 @@ controllerManager:
       cpu: 10m
       memory: 128Mi
 
-  args: []
+  args: {}
   env: []
   replicas: 3
   serviceAccount:
