@@ -195,8 +195,8 @@ func TestEnsureClusterDeleted(t *testing.T) {
 			name:       "it should delete the cluster and block finalizer removal with a requeue when present",
 			getErr:     nil,
 			wantDelete: true,
-			wantResult: lifecycle.RequeueAfter(30 * time.Second),
-			wantErr:    true,
+			wantResult: lifecycle.RequeueAfter(10 * time.Second),
+			wantErr:    false,
 		},
 	}
 

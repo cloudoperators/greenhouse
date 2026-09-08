@@ -197,7 +197,7 @@ func (p *BootstrapPhase) ensureClusterDeleted() lifecycle.SubRoutine {
 		if err := client.IgnoreNotFound(p.Client.Delete(ctx, cluster)); err != nil {
 			return lifecycle.Break(), err
 		}
-		return lifecycle.RequeueAfter(30 * time.Second), errors.Errorf("waiting for cluster %s to be deleted", client.ObjectKeyFromObject(p.Secret).String())
+		return lifecycle.RequeueAfter(10 * time.Second), nil
 	}
 }
 
