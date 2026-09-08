@@ -39,6 +39,7 @@ const (
 	remoteOIDCClusterHName           = "remote-int-oidc-h-cluster"
 	remoteOIDCClusterCName           = "remote-int-oidc-c-cluster"
 	remoteOIDCClusterFName           = "remote-int-oidc-f-cluster"
+	remoteOIDCClusterWName           = "remote-int-oidc-w-cluster"
 	remoteOIDCClusterRoleBindingName = "greenhouse-odic-cluster-role-binding"
 )
 
@@ -83,6 +84,7 @@ var _ = AfterSuite(func() {
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterHName, env.TestNamespace)
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterFName, env.TestNamespace)
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterCName, env.TestNamespace)
+	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterWName, env.TestNamespace)
 	test.EventuallyDeleted(ctx, adminClient, team)
 	env.GenerateGreenhouseControllerLogs(ctx, testStartTime)
 })
@@ -283,7 +285,7 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 		})
 	})
 
-	Context("Cluster removal by config secret removal Path 🤖", Ordered, func() {
+	Context("Cluster removal by secret removal 🤖", Ordered, func() {
 		It("should onboard remote cluster", func() {
 			By("onboarding remote cluster")
 			shared.OnboardRemoteCluster(ctx, adminClient, env.RemoteKubeConfigBytes, remoteClusterHName, env.TestNamespace, team.Name)
@@ -315,6 +317,45 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 				err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterHName, Namespace: env.TestNamespace}, cluster)
 				g.Expect(err).To(HaveOccurred())
 			}).Should(Succeed(), "cluster resource should be deleted")
+		})
+	})
+
+	Context("Cluster OIDC Workload Identity 🤖", Ordered, func() {
+		It("should setup role binding for OIDC on remote cluster", func() {
+			By("setting up cluster role binding for OIDC on remote cluster")
+			shared.SetupOIDCClusterRoleBinding(ctx, remoteClient, remoteOIDCClusterRoleBindingName, remoteOIDCClusterWName, env.TestNamespace)
+		})
+
+		It("should enable the workloadIdentity feature flag", func() {
+			By("enabling the workloadIdentity feature flag via the feature flags config map")
+			shared.EnableWorkloadIdentityFeature(ctx, adminClient)
+		})
+
+		It("should onboard remote cluster with OIDC under workload identity", func() {
+			By("onboarding remote cluster with OIDC")
+			restClient := clientutil.NewRestClientGetterFromBytes(env.RemoteKubeConfigBytes, env.TestNamespace)
+			restConfig, err := restClient.ToRESTConfig()
+			Expect(err).NotTo(HaveOccurred(), "there should be no error creating the remote REST config")
+			remoteAPIServerURL := restConfig.Host
+			remoteCA := make([]byte, base64.StdEncoding.EncodedLen(len(restConfig.CAData)))
+			base64.StdEncoding.Encode(remoteCA, restConfig.CAData)
+			shared.OnboardRemoteOIDCCluster(ctx, adminClient, remoteCA, remoteAPIServerURL, remoteOIDCClusterWName, env.TestNamespace, team.Name)
+
+			By("verifying the workload identity config map is written and no static kubeconfig is generated")
+			expect.VerifyWorkloadIdentityConfigMap(ctx, adminClient, remoteOIDCClusterWName, env.TestNamespace)
+
+			By("verifying the cluster status is ready")
+			shared.ClusterIsReady(ctx, adminClient, remoteOIDCClusterWName, env.TestNamespace)
+
+			By("verifying the remote cluster version")
+			expect.VerifyClusterVersion(ctx, adminClient, remoteRestClient, remoteOIDCClusterWName, env.TestNamespace)
+		})
+
+		It("should successfully off-board remote oidc cluster", func() {
+			shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterWName, env.TestNamespace)
+			sa := &corev1.ServiceAccount{}
+			err := adminClient.Get(ctx, client.ObjectKey{Name: remoteOIDCClusterWName, Namespace: env.TestNamespace}, sa)
+			Expect(apierrors.IsNotFound(err)).To(BeTrue(), "the service account should not exist")
 		})
 	})
 })

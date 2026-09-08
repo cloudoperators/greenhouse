@@ -11,6 +11,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	"github.com/cloudoperators/greenhouse/internal/features"
 	"github.com/cloudoperators/greenhouse/internal/test"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 
@@ -132,4 +133,20 @@ func ClusterIsReady(ctx context.Context, adminClient client.Client, clusterName,
 		g.Expect(readyCondition.IsTrue()).To(BeTrue(), "cluster should be ready")
 		g.Expect(cluster.Status.KubernetesVersion).ToNot(BeEmpty(), "cluster should have kubernetes version")
 	}).Should(Succeed(), "cluster should be ready")
+}
+
+func EnableWorkloadIdentityFeature(ctx context.Context, adminClient client.Client) {
+	By("enabling the workloadIdentity feature flag")
+	Eventually(func(g Gomega) {
+		configMaps := &corev1.ConfigMapList{}
+		err := adminClient.List(ctx, configMaps, client.MatchingLabels{greenhouseapis.LabelKeyFeatureFlags: "true"})
+		g.Expect(err).NotTo(HaveOccurred(), "there should be no error listing the feature flags config map")
+		g.Expect(configMaps.Items).ToNot(BeEmpty(), "there should be a feature flags config map")
+		configMap := &configMaps.Items[0]
+		if configMap.Data == nil {
+			configMap.Data = map[string]string{}
+		}
+		configMap.Data[features.WorkloadIdentityFeatureKey] = "enabled: true"
+		g.Expect(adminClient.Update(ctx, configMap)).To(Succeed(), "there should be no error updating the feature flags config map")
+	}).Should(Succeed(), "workloadIdentity feature flag should be enabled")
 }
