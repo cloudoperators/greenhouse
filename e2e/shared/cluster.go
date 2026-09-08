@@ -85,24 +85,27 @@ func SetupOIDCClusterRoleBinding(ctx context.Context, remoteClient client.Client
 }
 
 func OffBoardRemoteCluster(ctx context.Context, adminClient, remoteClient client.Client, testStartTime time.Time, name, namespace string) {
-	cluster := &greenhousev1alpha1.Cluster{}
-	err := adminClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, cluster)
+	secret := &corev1.Secret{}
+	err := adminClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, secret)
 	if apierrors.IsNotFound(err) {
 		return
 	}
 	Expect(err).NotTo(HaveOccurred())
 
-	By("removing the cluster resource")
-	err = adminClient.Delete(ctx, cluster)
+	By("removing the cluster secret")
+	err = adminClient.Delete(ctx, secret)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("checking the cluster resource is eventually deleted")
 	Eventually(func(g Gomega) {
+		cluster := &greenhousev1alpha1.Cluster{}
 		err := adminClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, cluster)
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "cluster resource should be deleted")
 		secret := &corev1.Secret{}
 		err = adminClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, secret)
-		GinkgoWriter.Printf("secret err: %v\n", err)
+		if err != nil {
+			GinkgoWriter.Printf("secret err: %v\n", err)
+		}
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "cluster secret should be deleted")
 	}).Should(Succeed(), "cluster resource & secret should be deleted")
 
