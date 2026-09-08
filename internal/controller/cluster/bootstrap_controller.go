@@ -103,9 +103,5 @@ func enqueueSecretForCluster(_ context.Context, o client.Object) []ctrl.Request 
 	if !ok {
 		return nil
 	}
-	// Ignore clusters being deleted currently.
-	if cluster.DeletionTimestamp != nil {
-		return nil
-	}
 	return []ctrl.Request{{NamespacedName: types.NamespacedName{Namespace: cluster.GetNamespace(), Name: cluster.GetSecretName()}}}
 }
