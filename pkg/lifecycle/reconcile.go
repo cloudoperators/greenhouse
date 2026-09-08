@@ -270,6 +270,50 @@ func resolveFinalizerName(reconciler Reconciler) string {
 	return CommonCleanupFinalizer
 }
 
+// ObjectReconciler is a simpler interface for controllers that reconcile plain client.Object resources
+// (e.g. Secret) which have no status conditions.
+type ObjectReconciler interface {
+	EnsureCreated(context.Context, client.Object) (ctrl.Result, error)
+	EnsureDeleted(context.Context, client.Object) (ctrl.Result, error)
+}
+
+// ReconcileObject - is a variant of Reconcile for resources that do not implement RuntimeObject (no status conditions).
+// It standardizes the reconciliation loop providing finalizer management and create/delete routing without status patching.
+// The finalizer is removed only after EnsureDeleted returns nil — return an error to block removal while waiting for dependent resources.
+func ReconcileObject(ctx context.Context, kubeClient client.Client, namespacedName types.NamespacedName, obj client.Object, reconciler ObjectReconciler) (ctrl.Result, error) {
+	if err := kubeClient.Get(ctx, namespacedName, obj); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	finalizerName := CommonCleanupFinalizer
+	if fn, ok := reconciler.(FinalizerNamer); ok {
+		finalizerName = fn.GetFinalizerName()
+	}
+
+	shouldBeDeleted := obj.GetDeletionTimestamp() != nil
+	hasFinalizer := controllerutil.ContainsFinalizer(obj, finalizerName)
+
+	if !shouldBeDeleted && !hasFinalizer {
+		return ctrl.Result{}, ensureFinalizer(ctx, kubeClient, obj, finalizerName)
+	}
+
+	if shouldBeDeleted {
+		if !hasFinalizer {
+			return ctrl.Result{}, nil
+		}
+		result, err := reconciler.EnsureDeleted(ctx, obj)
+		if err != nil {
+			return result, err
+		}
+		if result.RequeueAfter > 0 {
+			return result, nil
+		}
+		return result, removeFinalizer(ctx, kubeClient, obj, finalizerName)
+	}
+
+	return reconciler.EnsureCreated(ctx, obj)
+}
+
 // ensureFinalizer - ensures a finalizer is present on the object. Returns an error on failure.
 func ensureFinalizer(ctx context.Context, c client.Client, o client.Object, finalizer string) error {
 	if controllerutil.AddFinalizer(o, finalizer) {
