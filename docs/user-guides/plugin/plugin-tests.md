@@ -143,8 +143,9 @@ helm test <Release name>
 
 Some Plugins require other Plugins to be installed in the Cluster for their tests to run successfully. To support this, each Plugin can declare required dependencies using a `test-dependencies.yaml` file.
 
-> [!NOTE]  
->The `test-dependencies.yaml` file is required if other Plugins need to be installed in the Kind Cluster created by the GitHub Actions workflow before running tests during a Pull Request for the Plugin.
+{{< hint info >}}
+The `test-dependencies.yaml` file is required if other Plugins need to be installed in the Kind Cluster created by the GitHub Actions workflow before running tests during a Pull Request for the Plugin.
+{{< /hint >}}
 
 
 ### How It Works

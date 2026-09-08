@@ -44,8 +44,9 @@ This handy CLI tool will help you to setup your development environment in no ti
 
 Build `greenhousectl` from source by running the following command: `make cli`
 
-> [!NOTE]  
-> The CLI binary will be available in the `bin` folder
+{{< hint info >}}
+The CLI binary will be available in the `bin` folder
+{{< /hint >}}
 
 ## Setting up the development environment
 
@@ -62,13 +63,14 @@ Use `kubectl config use-context kind-greenhouse-remote` to switch to `greenhouse
 If you do not have the contexts of the created cluster(s) in `~/.kube/config` file then you can extract it from the
 operating system's `tmp` folder, where the CLI will write `kubeconfig` of the created `KinD` clusters.
 
-> [!NOTE]
-> `linux / macOS`: in `unix` like systems you can find the `kubeconfig` at `$TMPDIR/greenhouse/<clusterName>.kubeconfig`
->
-> `windows`: in `windows` many tmp folders exist so the CLI can write the `kubeconfig` to the first non-empty value from
+{{< hint info >}}
+`linux / macOS`: in `unix` like systems you can find the `kubeconfig` at `$TMPDIR/greenhouse/<clusterName>.kubeconfig`
+
+`windows`: in `windows` many tmp folders exist so the CLI can write the `kubeconfig` to the first non-empty value from
 `%TMP%`, `%TEMP%`, `%USERPROFILE%`
->
-> The path where the `kubeconfig` is written will be displayed in the terminal after the command is executed by the CLI
+
+The path where the `kubeconfig` is written will be displayed in the terminal after the command is executed by the CLI
+{{< /hint >}}
 
 use `kubectl --kubeconfig=<path to admin / remote kubeconfig>` to interact with the local `greenhouse` clusters
 
@@ -89,10 +91,11 @@ make setup
 make setup-controller-dev
 ```
 
-> [!NOTE]
-> set the environment variable `CONTROLLERS_ONLY=true` in your debugger configuration
->
-> If no environment variable is set, the webhook server will error out due to the missing certs
+{{< hint info >}}
+set the environment variable `CONTROLLERS_ONLY=true` in your debugger configuration
+
+If no environment variable is set, the webhook server will error out due to the missing certs
+{{< /hint >}}
 
 ### Develop Admission Webhook server locally
 
@@ -100,9 +103,10 @@ make setup-controller-dev
 make setup-webhook-dev
 ```
 
-> [!NOTE]
-> set the environment variable `WEBHOOK_ONLY=true` in your debugger configuration if you only want to run the webhook
-> server
+{{< hint info >}}
+set the environment variable `WEBHOOK_ONLY=true` in your debugger configuration if you only want to run the webhook
+server
+{{< /hint >}}
 
 ### Develop Controllers and Admission Webhook server locally
 
@@ -119,10 +123,11 @@ Now you can run the webhook server and the controllers locally
 Since both need to be run locally no `CONTROLLERS_ONLY` or `WEBHOOK_ONLY` environment variables are needed in your
 debugger configuration
 
-> [!NOTE]
-> The dev setup will modify the webhook configurations to have 30s timeout for the webhook requests, but
-> when break points are used to debug webhook requests, it can result into timeouts.
-> In such cases, modify the CR with a dummy annotation to re-trigger the webhook request and reconciliation
+{{< hint info >}}
+The dev setup will modify the webhook configurations to have 30s timeout for the webhook requests, but
+when break points are used to debug webhook requests, it can result into timeouts.
+In such cases, modify the CR with a dummy annotation to re-trigger the webhook request and reconciliation
+{{< /hint >}}
 
 ### Running Greenhouse Dashboard in-cluster
 
@@ -130,10 +135,11 @@ debugger configuration
 make setup-dashboard
 ```
 
-> [!NOTE]
-> You will need to port-forward the cors-proxy service and the dashboard service to access the dashboard
->
-> Information on how to access the dashboard is displayed after the command is executed
+{{< hint info >}}
+You will need to port-forward the cors-proxy service and the dashboard service to access the dashboard
+
+Information on how to access the dashboard is displayed after the command is executed
+{{< /hint >}}
 
 ### Run Greenhouse Core for UI development
 
@@ -152,8 +158,9 @@ The Greenhouse UI consists of a [Juno application](https://github.com/cloudopera
 
 ### Test Plugin / Greenhouse Extension charts locally (Deprecated)
 
-> [!NOTE]
-> This setup is deprecated and will be removed in the future. Please refer to [Test Greenhouse Extensions with local OCI registry](#test-greenhouse-extensions-with-local-oci-registry)
+{{< hint info >}}
+This setup is deprecated and will be removed in the future. Please refer to [Test Greenhouse Extensions with local OCI registry](#test-greenhouse-extensions-with-local-oci-registry)
+{{< /hint >}}
 
 ```shell
 PLUGIN_DIR=<absolute-path-to-charts-dir> make setup
@@ -223,8 +230,9 @@ export PKG=$(helm package $PWD/perses/charts -d ./bin | awk '{print $NF}')
 export OCI=oci://localhost:5000/cloudoperators/greenhouse-extensions/charts
 ```
 
-> [!NOTE]
-> The bin folder is ignored by git, so it is safe to temporarily store the packaged chart
+{{< hint info >}}
+The bin folder is ignored by git, so it is safe to temporarily store the packaged chart
+{{< /hint >}}
 
 ### Push Package to Local Registry
 
@@ -232,8 +240,9 @@ export OCI=oci://localhost:5000/cloudoperators/greenhouse-extensions/charts
 helm push $PKG $OCI
 ```
 
-> [!NOTE]
-> You can see the charts in browser at http://localhost:5000/home
+{{< hint info >}}
+You can see the charts in browser at http://localhost:5000/home
+{{< /hint >}}
 
 ### Apply Perses PluginDefinition
 
@@ -250,8 +259,9 @@ Apply the PluginDefinition to the admin cluster
 kubectl --context=kind-greenhouse-admin apply -f bin/perses.yaml -n demo
 ```
 
-> [!NOTE]
-> demo is the organization namespace in Greenhouse local setup.
+{{< hint info >}}
+demo is the organization namespace in Greenhouse local setup.
+{{< /hint >}}
 
 ### Verify PluginDefinition is `Ready`
 
