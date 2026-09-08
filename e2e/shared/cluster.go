@@ -5,6 +5,7 @@ package shared
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -17,6 +18,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
@@ -54,6 +56,31 @@ func OnboardRemoteOIDCCluster(ctx context.Context, k8sClient client.Client, caCe
 		err = k8sClient.Update(ctx, secret)
 	}
 	Expect(err).NotTo(HaveOccurred())
+}
+
+func SetupOIDCClusterRoleBinding(ctx context.Context, remoteClient client.Client, clusterRoleBindingName, clusterName, namespace string) {
+	crb := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: clusterRoleBindingName,
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:     rbacv1.UserKind,
+				APIGroup: rbacv1.GroupName,
+				Name:     fmt.Sprintf("greenhouse:system:serviceaccount:%s:%s", namespace, clusterName),
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: rbacv1.GroupName,
+			Kind:     "ClusterRole",
+			Name:     "cluster-admin",
+		},
+	}
+	err := remoteClient.Create(ctx, crb)
+	if apierrors.IsAlreadyExists(err) {
+		err = remoteClient.Update(ctx, crb)
+	}
+	Expect(err).NotTo(HaveOccurred(), "there should be no error creating the oidc cluster role binding")
 }
 
 func OffBoardRemoteCluster(ctx context.Context, adminClient, remoteClient client.Client, testStartTime time.Time, name, namespace string) {

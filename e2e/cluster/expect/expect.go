@@ -5,7 +5,6 @@ package expect
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -25,31 +24,6 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
-
-func SetupOIDCClusterRoleBinding(ctx context.Context, remoteClient client.Client, clusterRoleBindingName, clusterName, namespace string) {
-	crb := &rbacv1.ClusterRoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: clusterRoleBindingName,
-		},
-		Subjects: []rbacv1.Subject{
-			{
-				Kind:     rbacv1.UserKind,
-				APIGroup: rbacv1.GroupName,
-				Name:     fmt.Sprintf("greenhouse:system:serviceaccount:%s:%s", namespace, clusterName),
-			},
-		},
-		RoleRef: rbacv1.RoleRef{
-			APIGroup: rbacv1.GroupName,
-			Kind:     "ClusterRole",
-			Name:     "cluster-admin",
-		},
-	}
-	err := remoteClient.Create(ctx, crb)
-	if apierrors.IsAlreadyExists(err) {
-		err = remoteClient.Update(ctx, crb)
-	}
-	Expect(err).NotTo(HaveOccurred(), "there should be no error creating the oidc cluster role binding")
-}
 
 func VerifyClusterVersion(ctx context.Context, adminClient client.Client, remoteRestClient *clientutil.RestClientGetter, name, namespace string) {
 	cluster := &greenhousev1alpha1.Cluster{}
