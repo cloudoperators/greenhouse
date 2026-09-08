@@ -7,111 +7,109 @@ import (
 	"context"
 	"testing"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
-func TestPhases(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Cluster Phases Suite")
-}
+func TestEnsureNodesReady(t *testing.T) {
+	tests := []struct {
+		name          string
+		mode          greenhousev1alpha1.ClusterMode
+		wantCondition bool
+		wantNodes     bool
+	}{
+		{
+			name:          "workerless removes AllNodesReady condition and nodes",
+			mode:          greenhousev1alpha1.ClusterModeWorkerless,
+			wantCondition: false,
+			wantNodes:     false,
+		},
+	}
 
-var _ = Describe("ensureNodesReady", func() {
-	var (
-		p       *Phase
-		cluster *greenhousev1alpha1.Cluster
-	)
-
-	BeforeEach(func() {
-		p = &Phase{}
-		cluster = &greenhousev1alpha1.Cluster{}
-	})
-
-	Context("when cluster mode is Workerless", func() {
-		BeforeEach(func() {
-			cluster.Spec.Mode = greenhousev1alpha1.ClusterModeWorkerless
-			// pre-set a stale AllNodesReady condition to verify it gets removed
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cluster := &greenhousev1alpha1.Cluster{}
+			cluster.Spec.Mode = tc.mode
 			cluster.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.AllNodesReady, "", ""))
 			cluster.Status.Nodes = &greenhousev1alpha1.Nodes{Total: 3}
+
+			p := &Phase{}
+			if _, err := p.ensureNodesReady(cluster)(context.Background()); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			hasCond := cluster.Status.GetConditionByType(greenhousev1alpha1.AllNodesReady) != nil
+			if hasCond != tc.wantCondition {
+				t.Errorf("AllNodesReady condition present=%v, want %v", hasCond, tc.wantCondition)
+			}
+			hasNodes := cluster.Status.Nodes != nil
+			if hasNodes != tc.wantNodes {
+				t.Errorf("Status.Nodes present=%v, want %v", hasNodes, tc.wantNodes)
+			}
 		})
+	}
+}
 
-		It("should remove the AllNodesReady condition", func() {
-			_, err := p.ensureNodesReady(cluster)(context.Background())
-			Expect(err).ToNot(HaveOccurred())
-			Expect(cluster.Status.GetConditionByType(greenhousev1alpha1.AllNodesReady)).To(BeNil())
-		})
+func TestEnsureWorkloadSchedulable(t *testing.T) {
+	tests := []struct {
+		name          string
+		mode          greenhousev1alpha1.ClusterMode
+		preconditions []greenhousemetav1alpha1.Condition
+		wantStatus    metav1.ConditionStatus
+		wantReason    greenhousemetav1alpha1.ConditionReason
+	}{
+		{
+			name:       "workerless sets PayloadSchedulable=False with WorkerlessCluster reason",
+			mode:       greenhousev1alpha1.ClusterModeWorkerless,
+			wantStatus: metav1.ConditionFalse,
+			wantReason: greenhousev1alpha1.WorkerlessClusterReason,
+		},
+		{
+			name:       "workerless ignores missing KubeConfigValid and AllNodesReady",
+			mode:       greenhousev1alpha1.ClusterModeWorkerless,
+			wantStatus: metav1.ConditionFalse,
+			wantReason: greenhousev1alpha1.WorkerlessClusterReason,
+		},
+		{
+			name:       "default with all conditions passing sets PayloadSchedulable=True",
+			mode:       greenhousev1alpha1.ClusterModeDefault,
+			wantStatus: metav1.ConditionTrue,
+		},
+		{
+			name: "default with KubeConfigValid=False sets PayloadSchedulable=False",
+			mode: greenhousev1alpha1.ClusterModeDefault,
+			preconditions: []greenhousemetav1alpha1.Condition{
+				greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.KubeConfigValid, "", "cert expired"),
+			},
+			wantStatus: metav1.ConditionFalse,
+		},
+	}
 
-		It("should nil out Status.Nodes", func() {
-			_, err := p.ensureNodesReady(cluster)(context.Background())
-			Expect(err).ToNot(HaveOccurred())
-			Expect(cluster.Status.Nodes).To(BeNil())
-		})
-	})
-})
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cluster := &greenhousev1alpha1.Cluster{}
+			cluster.Spec.Mode = tc.mode
+			for _, cond := range tc.preconditions {
+				cluster.SetCondition(cond)
+			}
 
-var _ = Describe("ensureWorkloadSchedulable", func() {
-	var (
-		p       *Phase
-		cluster *greenhousev1alpha1.Cluster
-	)
-
-	BeforeEach(func() {
-		p = &Phase{}
-		cluster = &greenhousev1alpha1.Cluster{}
-	})
-
-	Context("when cluster mode is Workerless", func() {
-		BeforeEach(func() {
-			cluster.Spec.Mode = greenhousev1alpha1.ClusterModeWorkerless
-		})
-
-		It("should set PayloadSchedulable=False with reason WorkerlessCluster", func() {
-			_, err := p.ensureWorkloadSchedulable(cluster)(context.Background())
-			Expect(err).ToNot(HaveOccurred())
+			p := &Phase{}
+			if _, err := p.ensureWorkloadSchedulable(cluster)(context.Background()); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 
 			cond := cluster.Status.GetConditionByType(greenhousev1alpha1.PayloadSchedulable)
-			Expect(cond).ToNot(BeNil())
-			Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-			Expect(cond.Reason).To(Equal(greenhousev1alpha1.WorkerlessClusterReason))
+			if cond == nil {
+				t.Fatal("expected PayloadSchedulable condition to be set")
+			}
+			if cond.Status != tc.wantStatus {
+				t.Errorf("PayloadSchedulable status=%v, want %v", cond.Status, tc.wantStatus)
+			}
+			if tc.wantReason != "" && cond.Reason != tc.wantReason {
+				t.Errorf("PayloadSchedulable reason=%v, want %v", cond.Reason, tc.wantReason)
+			}
 		})
-
-		It("should not consult KubeConfigValid or AllNodesReady", func() {
-			// both conditions absent — normal Default logic would set True; workerless must not reach that
-			_, err := p.ensureWorkloadSchedulable(cluster)(context.Background())
-			Expect(err).ToNot(HaveOccurred())
-
-			cond := cluster.Status.GetConditionByType(greenhousev1alpha1.PayloadSchedulable)
-			Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-		})
-	})
-
-	Context("when cluster mode is Default", func() {
-		BeforeEach(func() {
-			cluster.Spec.Mode = greenhousev1alpha1.ClusterModeDefault
-		})
-
-		It("should set PayloadSchedulable=True when all conditions pass", func() {
-			_, err := p.ensureWorkloadSchedulable(cluster)(context.Background())
-			Expect(err).ToNot(HaveOccurred())
-
-			cond := cluster.Status.GetConditionByType(greenhousev1alpha1.PayloadSchedulable)
-			Expect(cond).ToNot(BeNil())
-			Expect(cond.Status).To(Equal(metav1.ConditionTrue))
-		})
-
-		It("should set PayloadSchedulable=False when KubeConfigValid is False", func() {
-			cluster.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.KubeConfigValid, "", "cert expired"))
-
-			_, err := p.ensureWorkloadSchedulable(cluster)(context.Background())
-			Expect(err).ToNot(HaveOccurred())
-
-			cond := cluster.Status.GetConditionByType(greenhousev1alpha1.PayloadSchedulable)
-			Expect(cond).ToNot(BeNil())
-			Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-		})
-	})
-})
+	}
+}

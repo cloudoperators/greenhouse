@@ -35,7 +35,7 @@ type ClusterSpec struct {
 	KubeConfig ClusterKubeConfig `json:"kubeConfig,omitempty"`
 
 	// Mode indicates the operational mode of the cluster.
-	// Workerless clusters (e.g. Gardener etcd-only shoots) have no worker nodes and will not have plugin workloads scheduled.
+	// Workerless clusters (e.g. Gardener etcd-only shoots) have no worker nodes and cannot schedule workloads.
 	// +kubebuilder:default:=Default
 	// +optional
 	Mode ClusterMode `json:"mode,omitempty"`

@@ -10,10 +10,9 @@ package mocks
 import (
 	"context"
 
-	mock "github.com/stretchr/testify/mock"
-	controllerruntime "sigs.k8s.io/controller-runtime"
-
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
+	mock "github.com/stretchr/testify/mock"
+	"sigs.k8s.io/controller-runtime"
 )
 
 // NewMockReconciler creates a new instance of MockReconciler. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
