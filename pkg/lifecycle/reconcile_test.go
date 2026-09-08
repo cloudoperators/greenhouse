@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/mock"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -34,13 +35,14 @@ var _ = Describe("Reconcile", func() {
 		suspensionFailedCondition = greenhousemetav1alpha1.FalseCondition(greenhousemetav1alpha1.SuspendedCondition, greenhousemetav1alpha1.ResourceSuspensionFailedReason, "failed to suspend resource: suspension error")
 	)
 	var (
-		mockClient      *mocks.MockClient
-		mockReconciler  *mocks.MockReconciler
-		statusWriter    *mocks.MockSubResourceWriter
-		ctx             context.Context
-		namespacedName  types.NamespacedName
-		resourceForTest *fixtures.Dummy
-		deletionTime    metav1.Time
+		mockClient       *mocks.MockClient
+		mockReconciler   *mocks.MockReconciler
+		objectReconciler *mocks.MockObjectReconciler
+		statusWriter     *mocks.MockSubResourceWriter
+		ctx              context.Context
+		namespacedName   types.NamespacedName
+		resourceForTest  *fixtures.Dummy
+		deletionTime     metav1.Time
 	)
 
 	BeforeEach(func() {
@@ -53,6 +55,7 @@ var _ = Describe("Reconcile", func() {
 		mockClient.On("Status").Return(statusWriter)
 
 		mockReconciler = &mocks.MockReconciler{}
+		objectReconciler = &mocks.MockObjectReconciler{}
 
 		ctx = context.Background()
 		namespacedName = types.NamespacedName{Name: "DummyResource", Namespace: "Dummy"}
@@ -390,6 +393,52 @@ var _ = Describe("Reconcile", func() {
 			finalizerNamer.AssertCalled(GinkgoT(), "GetFinalizerName")
 			Expect(resourceForTest.GetFinalizers()).To(ContainElement(customFinalizer))
 			Expect(resourceForTest.GetFinalizers()).NotTo(ContainElement(lifecycle.CommonCleanupFinalizer))
+		})
+	})
+
+	Context("ReconcileObject finalizer handling", func() {
+		newDeletingSecret := func() *corev1.Secret {
+			return &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "DummyResource",
+					Namespace:         "default",
+					CreationTimestamp: metav1.NewTime(time.Now()),
+					DeletionTimestamp: &deletionTime,
+					Finalizers:        []string{lifecycle.CommonCleanupFinalizer},
+				},
+			}
+		}
+
+		It("should retain the finalizer when EnsureDeleted requests a requeue", func() {
+			objectReconciler.On(ensureDeleted, mock.Anything, mock.Anything).Return(ctrl.Result{RequeueAfter: 10 * time.Second}, nil)
+			secret := newDeletingSecret()
+
+			result, err := lifecycle.ReconcileObject(ctx, mockClient, namespacedName, secret, objectReconciler)
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.RequeueAfter).To(Equal(10 * time.Second))
+			Expect(secret.GetFinalizers()).To(ContainElement(lifecycle.CommonCleanupFinalizer))
+		})
+
+		It("should remove the finalizer when EnsureDeleted succeeds without a requeue", func() {
+			objectReconciler.On(ensureDeleted, mock.Anything, mock.Anything).Return(ctrl.Result{}, nil)
+			secret := newDeletingSecret()
+
+			_, err := lifecycle.ReconcileObject(ctx, mockClient, namespacedName, secret, objectReconciler)
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(secret.GetFinalizers()).NotTo(ContainElement(lifecycle.CommonCleanupFinalizer))
+		})
+
+		It("should retain the finalizer when EnsureDeleted returns an error", func() {
+			deleteErr := errors.New("delete failed")
+			objectReconciler.On(ensureDeleted, mock.Anything, mock.Anything).Return(ctrl.Result{}, deleteErr)
+			secret := newDeletingSecret()
+
+			_, err := lifecycle.ReconcileObject(ctx, mockClient, namespacedName, secret, objectReconciler)
+
+			Expect(err).To(Equal(deleteErr))
+			Expect(secret.GetFinalizers()).To(ContainElement(lifecycle.CommonCleanupFinalizer))
 		})
 	})
 })
