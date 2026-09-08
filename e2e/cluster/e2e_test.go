@@ -18,6 +18,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
@@ -28,6 +29,7 @@ import (
 	"github.com/cloudoperators/greenhouse/e2e/shared"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 const (
@@ -280,6 +282,41 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 
 			By("verifying the cluster payload is schedulable again")
 			expect.ReconcileAndWaitForPayloadSchedulable(ctx, adminClient, remoteClusterNodeName, env.TestNamespace, true)
+		})
+	})
+
+	Context("Cluster removal by secret removal 🤖", Ordered, func() {
+		It("should onboard remote cluster", func() {
+			By("onboarding remote cluster")
+			shared.OnboardRemoteCluster(ctx, adminClient, env.RemoteKubeConfigBytes, remoteClusterHName, env.TestNamespace, team.Name)
+		})
+		It("should have a cluster resource created", func() {
+			By("verifying if the cluster resource is created")
+			Eventually(func(g Gomega) {
+				err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterHName, Namespace: env.TestNamespace}, &greenhousev1alpha1.Cluster{})
+				g.Expect(err).ToNot(HaveOccurred())
+			}).Should(Succeed(), "cluster resource should be created")
+
+			By("verifying the cluster status is ready")
+			shared.ClusterIsReady(ctx, adminClient, remoteClusterHName, env.TestNamespace)
+		})
+		It("should remove cluster on secret deletion", func() {
+			By("getting cluster secret")
+			secret := &corev1.Secret{}
+			err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterHName, Namespace: env.TestNamespace}, secret)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(controllerutil.ContainsFinalizer(secret, lifecycle.CommonCleanupFinalizer)).To(BeTrue(), "secret should have finalizer")
+
+			By("removing the secret resource")
+			err = adminClient.Delete(ctx, secret)
+			Expect(err).NotTo(HaveOccurred(), "cluster secret should be scheduled for deletion")
+
+			By("checking the cluster resource is eventually deleted")
+			cluster := &greenhousev1alpha1.Cluster{}
+			Eventually(func(g Gomega) {
+				err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterHName, Namespace: env.TestNamespace}, cluster)
+				g.Expect(err).To(HaveOccurred())
+			}).Should(Succeed(), "cluster resource should be deleted")
 		})
 	})
 
