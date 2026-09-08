@@ -83,7 +83,8 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 	})
 
 	AfterAll(func() {
-		test.MustDeleteCluster(test.Ctx, test.K8sClient, &cluster)
+		clusterSecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: clusterName, Namespace: setup.Namespace()}}
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, clusterSecret)
 		Expect(test.K8sClient.Delete(test.Ctx, oidcSecret)).To(Succeed())
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
 	})
