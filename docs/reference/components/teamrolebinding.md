@@ -61,8 +61,9 @@ The subjects list on the remote cluster is the union of the IDP groups from all 
 
 ### `.spec.teamRef` (deprecated)
 
-> [!WARNING]
-> `spec.teamRef` is **deprecated**. Use `spec.teamRefs` instead.
+{{< hint danger >}}
+`spec.teamRef` is **deprecated**. Use `spec.teamRefs` instead.
+{{< /hint >}}
 
 The singular `teamRef` field accepts a single team name for backwards compatibility. The mutating webhook automatically merges `teamRef` into `teamRefs` on every create or update, so existing resources are migrated lazily without any manual intervention required.
 
@@ -114,8 +115,9 @@ spec:
     - logging
 ```
 
-> [!NOTE]
-> The scope of a TeamRoleBinding (cluster-scoped vs. namespace-scoped) is determined at creation time and cannot be changed afterwards. A cluster-scoped binding cannot gain namespaces, and a namespace-scoped binding cannot be made cluster-scoped, without deleting and re-creating the resource.
+{{< hint info >}}
+The scope of a TeamRoleBinding (cluster-scoped vs. namespace-scoped) is determined at creation time and cannot be changed afterwards. A cluster-scoped binding cannot gain namespaces, and a namespace-scoped binding cannot be made cluster-scoped, without deleting and re-creating the resource.
+{{< /hint >}}
 
 ### `.spec.createNamespaces`
 
