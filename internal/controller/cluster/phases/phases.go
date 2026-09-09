@@ -14,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
@@ -31,15 +32,21 @@ type Phase struct {
 	crb                                *rbacv1.ClusterRoleBinding
 }
 
+// breakInvalidKubeConfig reports the failure, otherwise the last known status survives and the cluster stays Ready.
+func breakInvalidKubeConfig(cluster *greenhousev1alpha1.Cluster, err error) (lifecycle.Result, error) {
+	cluster.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.KubeConfigValid, "", err.Error()))
+	return lifecycle.Break(), err
+}
+
 func (p *Phase) createRemoteClient(cluster *greenhousev1alpha1.Cluster) lifecycle.SubRoutine {
 	return func(_ context.Context) (lifecycle.Result, error) {
 		rcg, err := clientutil.NewRestClientGetterFromSecret(p.ClusterSecret, cluster.GetNamespace())
 		if err != nil {
-			return lifecycle.Break(), fmt.Errorf("error building rest client getter: %w", err)
+			return breakInvalidKubeConfig(cluster, fmt.Errorf("error building rest client getter: %w", err))
 		}
 		rc, err := clientutil.NewK8sClientFromRestClientGetter(rcg)
 		if err != nil {
-			return lifecycle.Break(), fmt.Errorf("error building remote k8s client: %w", err)
+			return breakInvalidKubeConfig(cluster, fmt.Errorf("error building remote k8s client: %w", err))
 		}
 		p.RestClientGetter = rcg
 		p.RemoteClient = rc
@@ -51,11 +58,11 @@ func (p *Phase) createWorkloadIdentityClient(cluster *greenhousev1alpha1.Cluster
 	return func(ctx context.Context) (lifecycle.Result, error) {
 		rcg, err := clientutil.NewRestClientGetterForWI(ctx, p.Client, p.ClusterSecret, cluster.GetNamespace())
 		if err != nil {
-			return lifecycle.Break(), fmt.Errorf("error building workload identity rest client getter: %w", err)
+			return breakInvalidKubeConfig(cluster, fmt.Errorf("error building workload identity rest client getter: %w", err))
 		}
 		rc, err := clientutil.NewK8sClientFromRestClientGetter(rcg)
 		if err != nil {
-			return lifecycle.Break(), fmt.Errorf("error building workload identity remote k8s client: %w", err)
+			return breakInvalidKubeConfig(cluster, fmt.Errorf("error building workload identity remote k8s client: %w", err))
 		}
 		p.RestClientGetter = rcg
 		p.RemoteClient = rc
