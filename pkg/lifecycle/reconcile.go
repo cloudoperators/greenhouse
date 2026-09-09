@@ -284,17 +284,11 @@ func ReconcileObject(ctx context.Context, kubeClient client.Client, namespacedNa
 	if err := kubeClient.Get(ctx, namespacedName, obj); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-
-	finalizerName := CommonCleanupFinalizer
-	if fn, ok := reconciler.(FinalizerNamer); ok {
-		finalizerName = fn.GetFinalizerName()
-	}
-
 	shouldBeDeleted := obj.GetDeletionTimestamp() != nil
-	hasFinalizer := controllerutil.ContainsFinalizer(obj, finalizerName)
 
+	hasFinalizer := controllerutil.ContainsFinalizer(obj, CommonCleanupFinalizer)
 	if !shouldBeDeleted && !hasFinalizer {
-		return ctrl.Result{}, ensureFinalizer(ctx, kubeClient, obj, finalizerName)
+		return ctrl.Result{}, ensureFinalizer(ctx, kubeClient, obj, CommonCleanupFinalizer)
 	}
 
 	if shouldBeDeleted {
@@ -308,7 +302,7 @@ func ReconcileObject(ctx context.Context, kubeClient client.Client, namespacedNa
 		if result.RequeueAfter > 0 {
 			return result, nil
 		}
-		return result, removeFinalizer(ctx, kubeClient, obj, finalizerName)
+		return result, removeFinalizer(ctx, kubeClient, obj, CommonCleanupFinalizer)
 	}
 
 	return reconciler.EnsureCreated(ctx, obj)

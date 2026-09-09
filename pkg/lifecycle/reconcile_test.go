@@ -397,6 +397,15 @@ var _ = Describe("Reconcile", func() {
 	})
 
 	Context("ReconcileObject finalizer handling", func() {
+		newSecret := func() *corev1.Secret {
+			return &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "some-secret",
+					Namespace:         "default",
+					CreationTimestamp: metav1.NewTime(time.Now()),
+				},
+			}
+		}
 		newDeletingSecret := func() *corev1.Secret {
 			return &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
@@ -408,6 +417,16 @@ var _ = Describe("Reconcile", func() {
 				},
 			}
 		}
+
+		It("should add the finalizer when the resource has none", func() {
+			objectReconciler.On(ensureCreated, mock.Anything, mock.Anything).Return(ctrl.Result{}, nil)
+			secret := newSecret()
+
+			_, err := lifecycle.ReconcileObject(ctx, mockClient, namespacedName, secret, objectReconciler)
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(secret.GetFinalizers()).To(ContainElement(lifecycle.CommonCleanupFinalizer))
+		})
 
 		It("should retain the finalizer when EnsureDeleted requests a requeue", func() {
 			objectReconciler.On(ensureDeleted, mock.Anything, mock.Anything).Return(ctrl.Result{RequeueAfter: 10 * time.Second}, nil)
