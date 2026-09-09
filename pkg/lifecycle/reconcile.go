@@ -277,9 +277,9 @@ type ObjectReconciler interface {
 	EnsureDeleted(context.Context, client.Object) (ctrl.Result, error)
 }
 
-// ReconcileObject - is a variant of Reconcile for resources that do not implement RuntimeObject (no status conditions).
+// ReconcileObject is a variant of Reconcile for resources that do not implement lifecycle.RuntimeObject
+// (i.e. they don't expose lifecycle-managed status conditions).
 // It standardizes the reconciliation loop providing finalizer management and create/delete routing without status patching.
-// The finalizer is removed only after EnsureDeleted returns nil — return an error to block removal while waiting for dependent resources.
 func ReconcileObject(ctx context.Context, kubeClient client.Client, namespacedName types.NamespacedName, obj client.Object, reconciler ObjectReconciler) (ctrl.Result, error) {
 	if err := kubeClient.Get(ctx, namespacedName, obj); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
