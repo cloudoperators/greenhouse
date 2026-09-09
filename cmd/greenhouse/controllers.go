@@ -127,6 +127,8 @@ func startClusterReconciler(name string, mgr ctrl.Manager) error {
 func startBootstrapReconciler(name string, mgr ctrl.Manager) error {
 	return (&clustercontrollers.BootstrapReconciler{
 		WorkloadIdentityEnabled: featureFlags.IsWorkloadIdentityEnabled(),
+		FeatureFlagsName:        clientutil.GetEnvOrDefault(featureFlagsEnv, defaultFeatureFlagConfigMapName),
+		FeatureFlagsNamespace:   clientutil.GetEnvOrDefault(podNamespaceEnv, defaultPodNamespace),
 	}).SetupWithManager(name, mgr)
 }
 
