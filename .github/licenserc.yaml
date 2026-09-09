@@ -45,6 +45,7 @@ header:
     - 'charts/**/templates/**/*.yaml' # license headers on helm templates are causing issues
     - '.mockery.yaml'     # Mockery config file
     - 'internal/mocks/**'    # Mockery generated files
+    - 'pkg/mocks/**'    # Mockery generated files
     - 'config/flux/**'  #Flux CD files
     - 'config/manifest/**'  #Flux CD files
 
