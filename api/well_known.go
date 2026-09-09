@@ -70,6 +70,9 @@ const (
 	// LabelKeyCatalogSource is used to identify the source of the owning catalog resource of (Cluster)PluginDefinitions.
 	LabelKeyCatalogSource = "greenhouse.sap/catalog-source"
 
+	// LabelKeyFeatureFlags identifies the feature flags ConfigMap watched by controllers for live reload.
+	LabelKeyFeatureFlags = "greenhouse.sap/feature-flags"
+
 	// LabelKeyUIPlugin is used to identify Plugins that have a UI component.
 	LabelKeyUIPlugin = "greenhouse.sap/ui-plugin"
 
