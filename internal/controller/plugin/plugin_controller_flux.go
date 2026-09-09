@@ -153,7 +153,7 @@ func (r *PluginReconciler) EnsureFluxSuspended(ctx context.Context, plugin *gree
 // useWorkloadIdentity reports whether the HelmRelease reaches the cluster through the
 // workload identity ConfigMap rather than the kubeconfig Secret.
 func (r *PluginReconciler) useWorkloadIdentity(ctx context.Context, plugin *greenhousev1alpha1.Plugin) (bool, error) {
-	if !r.WorkloadIdentityEnabled || plugin.Spec.ClusterName == "" {
+	if !r.workloadIdentityEnabled.Load() || plugin.Spec.ClusterName == "" {
 		return false, nil
 	}
 	cluster := &greenhousev1alpha1.Cluster{}
@@ -271,7 +271,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 func (r *PluginReconciler) computeReadyConditionFlux(ctx context.Context, plugin *greenhousev1alpha1.Plugin) greenhousemetav1alpha1.Condition {
 	readyCondition := *plugin.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 
-	restClientGetter, cluster, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, plugin, r.WorkloadIdentityEnabled)
+	restClientGetter, cluster, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, plugin, r.workloadIdentityEnabled.Load())
 	if err != nil {
 		readyCondition.Status = metav1.ConditionFalse
 		readyCondition.Message = "cluster access not ready"

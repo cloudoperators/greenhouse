@@ -27,6 +27,9 @@ import (
 // FluxObjectLevelWorkloadIdentity checks that an OIDC-onboarded cluster gets a Flux access
 // ConfigMap and that its Plugin installs through it.
 func FluxObjectLevelWorkloadIdentity(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, oidcClusterName, teamName string) {
+	By("enabling the workloadIdentity feature flag")
+	shared.EnableWorkloadIdentityFeature(ctx, adminClient)
+
 	By("onboarding a remote cluster via OIDC")
 	restClientGetter := clientutil.NewRestClientGetterFromBytes(env.RemoteKubeConfigBytes, env.TestNamespace)
 	restConfig, err := restClientGetter.ToRESTConfig()

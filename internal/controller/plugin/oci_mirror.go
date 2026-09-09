@@ -53,7 +53,7 @@ func (r *PluginReconciler) createRegistryMirrorPostRenderer(
 		return nil, nil
 	}
 
-	restClientGetter, _, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, plugin, r.WorkloadIdentityEnabled)
+	restClientGetter, _, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, plugin, r.workloadIdentityEnabled.Load())
 	if err != nil {
 		return nil, fmt.Errorf("failed to init client getter for Plugin %s: %w", plugin.Name, err)
 	}
