@@ -74,10 +74,24 @@ func (r *RemoteClusterReconciler) SetupWithManager(name string, mgr ctrl.Manager
 func (r *RemoteClusterReconciler) reloadFeatureFlags(ctx context.Context, _ client.Object) []ctrl.Request {
 	featureFlags, err := features.NewFeatures(ctx, r.Client, r.FeatureFlagsName, r.FeatureFlagsNamespace)
 	if err != nil {
+		ctrl.LoggerFrom(ctx).Error(err, "failed reloading feature flags")
 		return nil
 	}
 	r.workloadIdentityEnabled.Store(featureFlags.IsWorkloadIdentityEnabled())
-	return nil
+
+	clusters := &greenhousev1alpha1.ClusterList{}
+	if err := r.List(ctx, clusters); err != nil {
+		ctrl.LoggerFrom(ctx).Error(err, "failed listing clusters after a feature flag change")
+		return nil
+	}
+	requests := make([]ctrl.Request, 0, len(clusters.Items))
+	for _, cluster := range clusters.Items {
+		if cluster.Annotations[greenhouseapis.ClusterConnectivityAnnotation] != greenhouseapis.ClusterConnectivityOIDC {
+			continue
+		}
+		requests = append(requests, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(&cluster)})
+	}
+	return requests
 }
 
 func (r *RemoteClusterReconciler) GetEventRecorder() events.EventRecorder {

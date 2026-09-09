@@ -66,10 +66,24 @@ func (r *BootstrapReconciler) SetupWithManager(name string, mgr ctrl.Manager) er
 func (r *BootstrapReconciler) reloadFeatureFlags(ctx context.Context, _ client.Object) []ctrl.Request {
 	featureFlags, err := features.NewFeatures(ctx, r.Client, r.FeatureFlagsName, r.FeatureFlagsNamespace)
 	if err != nil {
+		ctrl.LoggerFrom(ctx).Error(err, "failed reloading feature flags")
 		return nil
 	}
 	r.workloadIdentityEnabled.Store(featureFlags.IsWorkloadIdentityEnabled())
-	return nil
+
+	secrets := &corev1.SecretList{}
+	if err := r.List(ctx, secrets); err != nil {
+		ctrl.LoggerFrom(ctx).Error(err, "failed listing cluster secrets after a feature flag change")
+		return nil
+	}
+	requests := make([]ctrl.Request, 0, len(secrets.Items))
+	for _, secret := range secrets.Items {
+		if secret.Type != greenhouseapis.SecretTypeOIDCConfig {
+			continue
+		}
+		requests = append(requests, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(&secret)})
+	}
+	return requests
 }
 
 func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
