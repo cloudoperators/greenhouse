@@ -83,10 +83,11 @@ func startOrganizationReconciler(name string, mgr ctrl.Manager) error {
 // startPluginReconciler initializes the plugin reconciler.
 func startPluginReconciler(name string, mgr ctrl.Manager) error {
 	return (&plugincontrollers.PluginReconciler{
-		KubeRuntimeOpts:     kubeClientOpts,
-		OCIMirroringEnabled: featureFlags.IsOCIMirroringEnabled(),
-		StoragePath:         artifactStoragePath,
-		HTTPRetry:           artifactRetries,
+		KubeRuntimeOpts:         kubeClientOpts,
+		OCIMirroringEnabled:     featureFlags.IsOCIMirroringEnabled(),
+		StoragePath:             artifactStoragePath,
+		HTTPRetry:               artifactRetries,
+		WorkloadIdentityEnabled: featureFlags.IsWorkloadIdentityEnabled(),
 	}).SetupWithManager(name, mgr)
 }
 
@@ -126,8 +127,6 @@ func startClusterReconciler(name string, mgr ctrl.Manager) error {
 func startBootstrapReconciler(name string, mgr ctrl.Manager) error {
 	return (&clustercontrollers.BootstrapReconciler{
 		WorkloadIdentityEnabled: featureFlags.IsWorkloadIdentityEnabled(),
-		FeatureFlagsName:        clientutil.GetEnvOrDefault(featureFlagsEnv, defaultFeatureFlagConfigMapName),
-		FeatureFlagsNamespace:   clientutil.GetEnvOrDefault(podNamespaceEnv, defaultPodNamespace),
 	}).SetupWithManager(name, mgr)
 }
 

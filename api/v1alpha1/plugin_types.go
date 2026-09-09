@@ -168,11 +168,6 @@ const (
 	// ClusterAccessFailedReason is set when the controller cannot access the target cluster.
 	ClusterAccessFailedReason greenhousemetav1alpha1.ConditionReason = "ClusterAccessFailed"
 
-	// ClusterAccessUndeterminedReason is set when the controller cannot tell how to reach the
-	// target cluster. It is deliberately distinct from ClusterAccessFailedReason, which
-	// initClientGetter clears once it can build a client of its own.
-	ClusterAccessUndeterminedReason greenhousemetav1alpha1.ConditionReason = "ClusterAccessUndetermined"
-
 	// ImageReplicationFailedReason is set on HelmReleaseCreatedCondition when container image
 	// pre-replication to the configured mirror registry has failed.
 	ImageReplicationFailedReason greenhousemetav1alpha1.ConditionReason = "ImageReplicationFailed"
