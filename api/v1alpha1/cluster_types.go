@@ -14,7 +14,6 @@ import (
 )
 
 // ClusterMode configures the operational mode of the cluster.
-// +kubebuilder:validation:Enum=Default;Workerless
 type ClusterMode string
 
 const (
@@ -36,6 +35,7 @@ type ClusterSpec struct {
 
 	// Mode indicates the operational mode of the cluster.
 	// Workerless clusters (e.g. Gardener etcd-only shoots) have no worker nodes and cannot schedule workloads.
+	// +kubebuilder:validation:Enum=Default;Workerless
 	// +kubebuilder:default:=Default
 	// +optional
 	Mode ClusterMode `json:"mode,omitempty"`
