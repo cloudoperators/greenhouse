@@ -42,7 +42,7 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	"clusterPluginDefinition": startClusterPluginDefinitionReconciler,
 
 	// Cluster controllers
-	"bootstrap":  (&clustercontrollers.BootstrapReconciler{}).SetupWithManager,
+	"bootstrap":  startBootstrapReconciler,
 	"cluster":    startClusterReconciler,
 	"kubeconfig": (&clustercontrollers.KubeconfigReconciler{}).SetupWithManager,
 }
@@ -117,6 +117,17 @@ func startClusterReconciler(name string, mgr ctrl.Manager) error {
 	return (&clustercontrollers.RemoteClusterReconciler{
 		RemoteClusterBearerTokenValidity:   remoteClusterBearerTokenValidity,
 		RenewRemoteClusterBearerTokenAfter: renewRemoteClusterBearerTokenAfter,
+		WorkloadIdentityEnabled:            featureFlags.IsWorkloadIdentityEnabled(),
+		FeatureFlagsName:                   clientutil.GetEnvOrDefault(featureFlagsEnv, defaultFeatureFlagConfigMapName),
+		FeatureFlagsNamespace:              clientutil.GetEnvOrDefault(podNamespaceEnv, defaultPodNamespace),
+	}).SetupWithManager(name, mgr)
+}
+
+func startBootstrapReconciler(name string, mgr ctrl.Manager) error {
+	return (&clustercontrollers.BootstrapReconciler{
+		WorkloadIdentityEnabled: featureFlags.IsWorkloadIdentityEnabled(),
+		FeatureFlagsName:        clientutil.GetEnvOrDefault(featureFlagsEnv, defaultFeatureFlagConfigMapName),
+		FeatureFlagsNamespace:   clientutil.GetEnvOrDefault(podNamespaceEnv, defaultPodNamespace),
 	}).SetupWithManager(name, mgr)
 }
 
