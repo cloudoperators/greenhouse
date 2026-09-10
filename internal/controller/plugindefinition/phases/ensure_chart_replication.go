@@ -9,12 +9,13 @@ import (
 	"fmt"
 	"strings"
 
+	"sigs.k8s.io/controller-runtime/pkg/log"
+
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/ocimirror"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // ensureChartReplication triggers replication for the Helm chart OCI artifact to the configured mirror registry.

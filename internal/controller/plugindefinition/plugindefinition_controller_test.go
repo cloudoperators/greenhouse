@@ -19,6 +19,7 @@ import (
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/controller/plugindefinition/phases"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/test"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
@@ -403,7 +404,7 @@ var _ = Describe("chart replication", func() {
 			func(mutate func(*greenhousev1alpha1.PluginDefinition), expectSkip bool) {
 				pluginDef := replicatedPluginDefinition()
 				mutate(pluginDef)
-				Expect(shouldSkipChartReplication(pluginDef, testRegistry, testChartName, testVersion)).To(Equal(expectSkip))
+				Expect(phases.ShouldSkipChartReplication(pluginDef, testRegistry, testChartName, testVersion)).To(Equal(expectSkip))
 			},
 			Entry("skips when the recorded artifact matches the desired chart",
 				func(*greenhousev1alpha1.PluginDefinition) {}, true),
@@ -433,14 +434,14 @@ var _ = Describe("chart replication", func() {
 					Version:    testVersion,
 				}
 
-				h := &helmer{
-					k8sClient:     fake.NewClientBuilder().WithScheme(replicationTestScheme()).WithObjects(pluginDef).Build(),
-					recorder:      noopRecorder{},
-					pluginDef:     pluginDef,
-					namespaceName: pluginDef.Namespace,
+				h := &phases.Phase{
+					Client:        fake.NewClientBuilder().WithScheme(replicationTestScheme()).WithObjects(pluginDef).Build(),
+					Recorder:      noopRecorder{},
+					PluginDef:     pluginDef,
+					NamespaceName: pluginDef.Namespace,
 				}
 
-				helmChart, err := h.createUpdateHelmChart(context.Background(), &sourcev1.HelmRepository{
+				helmChart, err := h.CreateUpdateHelmChart(context.Background(), &sourcev1.HelmRepository{
 					ObjectMeta: metav1.ObjectMeta{Name: "keppel-repo", Namespace: pluginDef.Namespace},
 				})
 				Expect(err).ToNot(HaveOccurred())
