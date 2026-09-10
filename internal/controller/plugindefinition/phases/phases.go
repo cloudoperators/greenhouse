@@ -30,12 +30,11 @@ func (p *Phase) EnsureCreatePhases() []lifecycle.SubRoutine {
 		p.ensureHelmRepository(),
 		p.ensureChartReplication(),
 		p.ensureHelmChart(),
+		p.ensureOrphanedHelmChartsDeleted(),
 	}
 }
 
 // EnsureDeletePhases returns the ordered subroutines for a delete reconcile.
 func (p *Phase) EnsureDeletePhases() []lifecycle.SubRoutine {
-	return []lifecycle.SubRoutine{
-		p.ensureOrphanedHelmChartsDeleted(),
-	}
+	return []lifecycle.SubRoutine{}
 }
