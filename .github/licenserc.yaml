@@ -48,6 +48,7 @@ header:
     - 'pkg/mocks/**'    # Mockery generated files
     - 'config/flux/**'  #Flux CD files
     - 'config/manifest/**'  #Flux CD files
+    - 'website/static/CNAME'
 
   comment: on-failure
   
