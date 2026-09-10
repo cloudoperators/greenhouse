@@ -5,6 +5,7 @@ package cluster
 
 import (
 	"context"
+	"sync/atomic"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,6 +24,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	clusterphases "github.com/cloudoperators/greenhouse/internal/controller/cluster/phases"
+	"github.com/cloudoperators/greenhouse/internal/features"
 	"github.com/cloudoperators/greenhouse/internal/util"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
@@ -33,6 +35,10 @@ type RemoteClusterReconciler struct {
 	recorder                           events.EventRecorder
 	RemoteClusterBearerTokenValidity   time.Duration
 	RenewRemoteClusterBearerTokenAfter time.Duration
+	WorkloadIdentityEnabled            bool
+	FeatureFlagsName                   string
+	FeatureFlagsNamespace              string
+	workloadIdentityEnabled            atomic.Bool
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=clusters,verbs=get;list;watch;create;update;patch;delete
@@ -43,11 +49,13 @@ type RemoteClusterReconciler struct {
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;update;patch;create;delete
 //+kubebuilder:rbac:groups="events.k8s.io",resources=events,verbs=get;list;watch;update;patch
 //+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterrolebindings,verbs=get;list;watch;update;patch;create
+//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *RemoteClusterReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
 	r.recorder = mgr.GetEventRecorder(name)
+	r.workloadIdentityEnabled.Store(r.WorkloadIdentityEnabled)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
@@ -55,8 +63,35 @@ func (r *RemoteClusterReconciler) SetupWithManager(name string, mgr ctrl.Manager
 			clientutil.PredicateClusterByAccessMode(greenhousev1alpha1.ClusterAccessModeDirect),
 		)).
 		Watches(&corev1.Secret{}, handler.EnqueueRequestForOwner(mgr.GetScheme(), mgr.GetRESTMapper(), &greenhousev1alpha1.Cluster{})).
+		// Watch the feature flags ConfigMap to hot-reload the workload identity feature gate.
+		Watches(&corev1.ConfigMap{}, handler.EnqueueRequestsFromMapFunc(r.reloadFeatureFlags), builder.WithPredicates(
+			clientutil.PredicateHasLabelWithValue(greenhouseapis.LabelKeyFeatureFlags, "true"),
+		)).
 		WithOptions(controller.Options{MaxConcurrentReconciles: 5}).
 		Complete(r)
+}
+
+func (r *RemoteClusterReconciler) reloadFeatureFlags(ctx context.Context, _ client.Object) []ctrl.Request {
+	featureFlags, err := features.NewFeatures(ctx, r.Client, r.FeatureFlagsName, r.FeatureFlagsNamespace)
+	if err != nil {
+		ctrl.LoggerFrom(ctx).Error(err, "failed reloading feature flags")
+		return nil
+	}
+	r.workloadIdentityEnabled.Store(featureFlags.IsWorkloadIdentityEnabled())
+
+	clusters := &greenhousev1alpha1.ClusterList{}
+	if err := r.List(ctx, clusters); err != nil {
+		ctrl.LoggerFrom(ctx).Error(err, "failed listing clusters after a feature flag change")
+		return nil
+	}
+	requests := make([]ctrl.Request, 0, len(clusters.Items))
+	for _, cluster := range clusters.Items {
+		if cluster.Annotations[greenhouseapis.ClusterConnectivityAnnotation] != greenhouseapis.ClusterConnectivityOIDC {
+			continue
+		}
+		requests = append(requests, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(&cluster)})
+	}
+	return requests
 }
 
 func (r *RemoteClusterReconciler) GetEventRecorder() events.EventRecorder {
@@ -132,20 +167,13 @@ func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource li
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	restClientGetter, remoteClient, err := clusterphases.CreateRemoteClient(clusterSecret, cluster.GetNamespace())
-	if err != nil {
-		cluster.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.KubeConfigValid, "", err.Error()))
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-
 	p := &clusterphases.Phase{
 		Client:                             r.Client,
 		Recorder:                           r.recorder,
 		RemoteClusterBearerTokenValidity:   r.RemoteClusterBearerTokenValidity,
 		RenewRemoteClusterBearerTokenAfter: r.RenewRemoteClusterBearerTokenAfter,
 		ClusterSecret:                      clusterSecret,
-		RestClientGetter:                   restClientGetter,
-		RemoteClient:                       remoteClient,
+		WorkloadIdentityEnabled:            r.workloadIdentityEnabled.Load(),
 	}
 
 	return lifecycle.ExecuteSubRoutine(ctx, p.EnsureCreatePhases(cluster))
@@ -173,15 +201,6 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 	p := &clusterphases.Phase{
 		Client:        r.Client,
 		ClusterSecret: clusterSecret,
-	}
-
-	if clusterSecret.Type != greenhouseapis.SecretTypeOIDCConfig {
-		restClientGetter, remoteClient, err := clusterphases.CreateRemoteClient(clusterSecret, cluster.GetNamespace())
-		if err != nil {
-			return ctrl.Result{}, lifecycle.Failed, err
-		}
-		p.RestClientGetter = restClientGetter
-		p.RemoteClient = remoteClient
 	}
 
 	result, reconcileResult, err := lifecycle.ExecuteSubRoutine(ctx, p.EnsureDeletePhases(cluster))
