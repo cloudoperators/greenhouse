@@ -150,6 +150,19 @@ func (r *PluginReconciler) EnsureFluxSuspended(ctx context.Context, plugin *gree
 	return ctrl.Result{}, nil
 }
 
+// useWorkloadIdentity reports whether the HelmRelease reaches the cluster through the
+// workload identity ConfigMap rather than the kubeconfig Secret.
+func (r *PluginReconciler) useWorkloadIdentity(ctx context.Context, plugin *greenhousev1alpha1.Plugin) (bool, error) {
+	if !r.workloadIdentityEnabled.Load() || plugin.Spec.ClusterName == "" {
+		return false, nil
+	}
+	cluster := &greenhousev1alpha1.Cluster{}
+	if err := r.Get(ctx, types.NamespacedName{Name: plugin.Spec.ClusterName, Namespace: plugin.Namespace}, cluster); err != nil {
+		return false, err
+	}
+	return cluster.Annotations[greenhouseapis.ClusterConnectivityAnnotation] == greenhouseapis.ClusterConnectivityOIDC, nil
+}
+
 func (r *PluginReconciler) ensureHelmRelease(
 	ctx context.Context,
 	plugin *greenhousev1alpha1.Plugin,
@@ -172,6 +185,13 @@ func (r *PluginReconciler) ensureHelmRelease(
 	postRenderer, err := r.createRegistryMirrorPostRenderer(ctx, plugin, pluginDefinitionSpec, helmChart, optionValues)
 	if err != nil {
 		return err
+	}
+
+	useWorkloadIdentity, err := r.useWorkloadIdentity(ctx, plugin)
+	if err != nil {
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
+			greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.ClusterAccessFailedReason, err.Error()))
+		return fmt.Errorf("failed to determine cluster access mode for Plugin %s: %w", plugin.Name, err)
 	}
 
 	result, err := controllerutil.CreateOrPatch(ctx, r.Client, release, func() error {
@@ -202,15 +222,20 @@ func (r *PluginReconciler) ensureHelmRelease(
 			}).
 			WithDriftDetection(configureDriftDetection(plugin.Spec.IgnoreDifferences)).
 			WithSuspend(false).
-			WithKubeConfig(&fluxmeta.SecretKeyReference{
-				Name: plugin.Spec.ClusterName,
-				Key:  greenhouseapis.GreenHouseKubeConfigKey,
-			}).
 			WithDependsOn(resolvePluginDependencies(plugin.Spec.WaitFor, plugin.Spec.ClusterName)).
 			WithValues(values).
 			WithValuesFrom(addValueReferences(plugin)).
 			WithStorageNamespace(plugin.Spec.ReleaseNamespace).
 			WithTargetNamespace(plugin.Spec.ReleaseNamespace)
+
+		if useWorkloadIdentity {
+			builder = builder.WithKubeConfigFromConfigMap(plugin.Spec.ClusterName)
+		} else {
+			builder = builder.WithKubeConfig(&fluxmeta.SecretKeyReference{
+				Name: plugin.Spec.ClusterName,
+				Key:  greenhouseapis.GreenHouseKubeConfigKey,
+			})
+		}
 
 		if postRenderer != nil {
 			builder = builder.WithPostRenderers([]helmv2.PostRenderer{*postRenderer})
@@ -246,7 +271,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 func (r *PluginReconciler) computeReadyConditionFlux(ctx context.Context, plugin *greenhousev1alpha1.Plugin) greenhousemetav1alpha1.Condition {
 	readyCondition := *plugin.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 
-	restClientGetter, cluster, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, plugin)
+	restClientGetter, cluster, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, plugin, r.workloadIdentityEnabled.Load())
 	if err != nil {
 		readyCondition.Status = metav1.ConditionFalse
 		readyCondition.Message = "cluster access not ready"
