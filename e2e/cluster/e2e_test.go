@@ -365,6 +365,9 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 				g.Expect(err).ToNot(HaveOccurred())
 			}).Should(Succeed(), "cluster resource should be created")
 
+			By("waiting for the cluster to be fully ready so remote RBAC is provisioned")
+			shared.ClusterIsReady(ctx, adminClient, remoteWorkerlessClusterName, env.TestNamespace)
+
 			expect.VerifyWorkerlessClusterPayloadNotSchedulable(ctx, adminClient, remoteWorkerlessClusterName, env.TestNamespace)
 		})
 	})

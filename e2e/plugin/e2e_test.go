@@ -138,6 +138,8 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 	It("should block plugin deployment when cluster is workerless", func() {
 		By("onboarding a workerless cluster")
 		shared.OnboardWorkerlessCluster(ctx, adminClient, env.RemoteKubeConfigBytes, remoteWorkerlessClusterName, env.TestNamespace, team.Name)
+		By("waiting for the workerless cluster to be ready")
+		shared.ClusterIsReady(ctx, adminClient, remoteWorkerlessClusterName, env.TestNamespace)
 		By("verifying plugin is blocked on workerless cluster")
 		scenarios.WorkerlessClusterBlocksPlugin(ctx, adminClient, env, remoteWorkerlessClusterName, team.Name)
 	})
