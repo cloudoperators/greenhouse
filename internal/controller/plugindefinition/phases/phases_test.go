@@ -17,7 +17,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
-	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/flux"
@@ -142,7 +141,7 @@ func TestEnsureChartReplication(t *testing.T) {
 			require.Equal(t, lifecycle.Continue(), res)
 			condition := pd.Status.GetConditionByType(greenhousev1alpha1.OCIReplicationReadyCondition)
 			require.NotNil(t, condition)
-			require.Equal(t, greenhousemetav1alpha1.ConditionReason(greenhousev1alpha1.OCIReplicationNotConfiguredReason), condition.Reason)
+			require.Equal(t, greenhousev1alpha1.OCIReplicationNotConfiguredReason, condition.Reason)
 		})
 	}
 }
