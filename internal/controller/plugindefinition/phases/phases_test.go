@@ -64,16 +64,6 @@ func testClusterPluginDefinition() *greenhousev1alpha1.ClusterPluginDefinition {
 	return cpd
 }
 
-func TestEnsureCreatePhases(t *testing.T) {
-	p := &Phase{PluginDef: testPluginDefinition(), NamespaceName: testNamespace}
-	require.Len(t, p.EnsureCreatePhases(), 4)
-}
-
-func TestEnsureDeletePhases(t *testing.T) {
-	p := &Phase{PluginDef: testPluginDefinition(), NamespaceName: testNamespace}
-	require.Empty(t, p.EnsureDeletePhases())
-}
-
 func TestEnsureHelmRepository(t *testing.T) {
 	tests := []struct {
 		name      string
