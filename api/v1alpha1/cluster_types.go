@@ -13,6 +13,18 @@ import (
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 )
 
+// ClusterMode configures the operational mode of the cluster.
+type ClusterMode string
+
+const (
+	// ClusterModeDefault is the standard mode for clusters with worker nodes.
+	ClusterModeDefault ClusterMode = "Default"
+
+	// ClusterModeWorkerless is set for clusters that have no worker nodes (e.g. Gardener etcd-only shoots).
+	// Plugin workloads will not be scheduled onto workerless clusters.
+	ClusterModeWorkerless ClusterMode = "Workerless"
+)
+
 // ClusterSpec defines the desired state of the Cluster.
 type ClusterSpec struct {
 	// AccessMode configures how the cluster is accessed from the Greenhouse operator.
@@ -20,6 +32,13 @@ type ClusterSpec struct {
 
 	// KubeConfig contains specific values for `KubeConfig` for the cluster.
 	KubeConfig ClusterKubeConfig `json:"kubeConfig,omitempty"`
+
+	// Mode indicates the operational mode of the cluster.
+	// Workerless clusters (e.g. Gardener etcd-only shoots) have no worker nodes and cannot schedule workloads.
+	// +kubebuilder:validation:Enum=Default;Workerless
+	// +kubebuilder:default:=Default
+	// +optional
+	Mode ClusterMode `json:"mode,omitempty"`
 }
 
 // ClusterAccessMode configures the access mode to the customer cluster.
@@ -44,6 +63,9 @@ const (
 
 	// PayloadSchedulable reflects whether workloads can be scheduled on the cluster.
 	PayloadSchedulable greenhousemetav1alpha1.ConditionType = "PayloadSchedulable"
+
+	// WorkerlessClusterReason is set on PayloadSchedulable when the cluster has no worker nodes.
+	WorkerlessClusterReason greenhousemetav1alpha1.ConditionReason = "WorkerlessCluster"
 
 	// KubeConfigValid reflects the validity of the kubeconfig of a cluster.
 	KubeConfigValid greenhousemetav1alpha1.ConditionType = "KubeConfigValid"

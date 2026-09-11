@@ -580,6 +580,15 @@ components:
                   minimum: 24
                   type: integer
               type: object
+            mode:
+              default: Default
+              description: |-
+                Mode indicates the operational mode of the cluster.
+                Workerless clusters (e.g. Gardener etcd-only shoots) have no worker nodes and cannot schedule workloads.
+              enum:
+                - Default
+                - Workerless
+              type: string
           required:
             - accessMode
           type: object

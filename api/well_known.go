@@ -134,6 +134,8 @@ const (
 	ClusterConnectivityAnnotation = "greenhouse.sap/cluster-connectivity"
 	ClusterConnectivityKubeconfig = "kubeconfig"
 	ClusterConnectivityOIDC       = "oidc"
+
+	ClusterWorkerlessAnnotation = "greenhouse.sap/workerless"
 )
 
 const (

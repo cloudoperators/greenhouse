@@ -8,12 +8,16 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
 var _ = Describe("validate utility functions", Ordered, func() {
@@ -287,6 +291,95 @@ var _ = Describe("validate utility functions", Ordered, func() {
 						},
 					), "the dependencies should be transformed to plugin names")
 			})
+		})
+	})
+})
+
+var _ = Describe("initClientGetter", func() {
+	const (
+		namespace   = "greenhouse"
+		clusterName = "test-cluster-payload"
+	)
+
+	newClusterWithConditions := func(readyStatus metav1.ConditionStatus, payloadStatus metav1.ConditionStatus, payloadReason greenhousemetav1alpha1.ConditionReason) *greenhousev1alpha1.Cluster {
+		cluster := test.NewCluster(test.Ctx, clusterName, namespace,
+			test.WithAccessMode(greenhousev1alpha1.ClusterAccessModeDirect),
+		)
+		cluster.Status.SetConditions(
+			greenhousemetav1alpha1.NewCondition(greenhousemetav1alpha1.ReadyCondition, readyStatus, "", ""),
+			greenhousemetav1alpha1.NewCondition(greenhousev1alpha1.PayloadSchedulable, payloadStatus, payloadReason, ""),
+		)
+		return cluster
+	}
+
+	newSecret := func() *corev1.Secret {
+		return &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: clusterName, Namespace: namespace},
+			Type:       greenhouseapis.SecretTypeKubeConfig,
+		}
+	}
+
+	newPlugin := func() *greenhousev1alpha1.Plugin {
+		return test.NewPlugin(test.Ctx, "test-plugin-payload", namespace,
+			test.WithCluster(clusterName),
+		)
+	}
+
+	Context("when cluster is not ready", func() {
+		It("should return an error and set HelmReleaseCreatedCondition=False with ClusterAccessFailedReason", func() {
+			cluster := newClusterWithConditions(metav1.ConditionFalse, metav1.ConditionFalse, greenhousev1alpha1.WorkerlessClusterReason)
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(test.GreenhouseV1Alpha1Scheme()).
+				WithObjects(cluster).
+				WithStatusSubresource(cluster).
+				Build()
+
+			plugin := newPlugin()
+			_, _, err := initClientGetter(test.Ctx, fakeClient, nil, plugin, false)
+			Expect(err).To(HaveOccurred())
+			cond := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
+			Expect(cond).ToNot(BeNil())
+			Expect(cond.Status).To(Equal(metav1.ConditionFalse))
+			Expect(cond.Reason).To(Equal(greenhousev1alpha1.ClusterAccessFailedReason))
+		})
+	})
+
+	Context("when cluster is ready but PayloadSchedulable is False", func() {
+		It("should return an error and set HelmReleaseCreatedCondition=False with ClusterPayloadNotSchedulableReason", func() {
+			cluster := newClusterWithConditions(metav1.ConditionTrue, metav1.ConditionFalse, greenhousev1alpha1.WorkerlessClusterReason)
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(test.GreenhouseV1Alpha1Scheme()).
+				WithObjects(cluster).
+				WithStatusSubresource(cluster).
+				Build()
+
+			plugin := newPlugin()
+			_, _, err := initClientGetter(test.Ctx, fakeClient, nil, plugin, false)
+			Expect(err).To(HaveOccurred())
+			cond := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
+			Expect(cond).ToNot(BeNil())
+			Expect(cond.Status).To(Equal(metav1.ConditionFalse))
+			Expect(cond.Reason).To(Equal(greenhousev1alpha1.ClusterPayloadNotSchedulableReason))
+		})
+	})
+
+	Context("when cluster is ready and PayloadSchedulable is True", func() {
+		It("should proceed past the PayloadSchedulable check and not set ClusterPayloadNotSchedulableReason", func() {
+			cluster := newClusterWithConditions(metav1.ConditionTrue, metav1.ConditionTrue, "")
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(test.GreenhouseV1Alpha1Scheme()).
+				WithObjects(cluster, newSecret()).
+				WithStatusSubresource(cluster).
+				Build()
+
+			plugin := newPlugin()
+			// initClientGetter will fail trying to build a REST client from the empty secret,
+			// but the reason must not be ClusterPayloadNotSchedulable
+			_, _, err := initClientGetter(test.Ctx, fakeClient, nil, plugin, false)
+			cond := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
+			if err != nil && cond != nil {
+				Expect(cond.Reason).NotTo(Equal(greenhousev1alpha1.ClusterPayloadNotSchedulableReason))
+			}
 		})
 	})
 })

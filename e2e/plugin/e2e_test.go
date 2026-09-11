@@ -25,8 +25,9 @@ import (
 )
 
 const (
-	remoteClusterName     = "remote-plugin-cluster"
-	remoteOIDCClusterName = "remote-plugin-oidc-cluster"
+	remoteClusterName           = "remote-plugin-cluster"
+	remoteOIDCClusterName       = "remote-plugin-oidc-cluster"
+	remoteWorkerlessClusterName = "remote-plugin-workerless-cluster"
 )
 
 var (
@@ -64,6 +65,7 @@ var _ = BeforeSuite(func() {
 var _ = AfterSuite(func() {
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterName, env.TestNamespace)
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterName, env.TestNamespace)
+	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteWorkerlessClusterName, env.TestNamespace)
 	test.EventuallyDeleted(ctx, adminClient, team)
 	env.GenerateGreenhouseControllerLogs(ctx, testStartTime)
 	env.GenerateFluxControllerLogs(ctx, "helm-controller", testStartTime)
@@ -131,5 +133,14 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 
 	It("should retain the helm release when Cluster annotated with DeletionPolicy set to `Retain` is deleted", func() {
 		scenarios.FluxControllerClusterDeletePolicyRetain(ctx, adminClient, env, remoteClusterName, team.Name)
+	})
+
+	It("should block plugin deployment when cluster is workerless", func() {
+		By("onboarding a workerless cluster")
+		shared.OnboardWorkerlessCluster(ctx, adminClient, env.RemoteKubeConfigBytes, remoteWorkerlessClusterName, env.TestNamespace, team.Name)
+		By("waiting for the workerless cluster to be ready")
+		shared.ClusterIsReady(ctx, adminClient, remoteWorkerlessClusterName, env.TestNamespace)
+		By("verifying plugin is blocked on workerless cluster")
+		scenarios.WorkerlessClusterBlocksPlugin(ctx, adminClient, env, remoteWorkerlessClusterName, team.Name)
 	})
 })

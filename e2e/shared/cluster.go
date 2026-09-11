@@ -42,6 +42,23 @@ func OnboardRemoteCluster(ctx context.Context, k8sClient client.Client, kubeConf
 	Expect(err).NotTo(HaveOccurred())
 }
 
+func OnboardWorkerlessCluster(ctx context.Context, k8sClient client.Client, kubeConfigBytes []byte, name, namespace, supportGroupTeamName string) {
+	By("applying remote cluster kubeconfig as greenhouse secret with workerless annotation")
+	secret := test.NewSecret(name, namespace, test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
+		test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: kubeConfigBytes}),
+		test.WithSecretLabel(greenhouseapis.LabelKeyOwnedBy, supportGroupTeamName),
+		test.WithSecretAnnotations(map[string]string{
+			lifecycle.PropagateLabelsAnnotation:        greenhouseapis.LabelKeyOwnedBy,
+			greenhouseapis.ClusterWorkerlessAnnotation: "true",
+		}),
+	)
+	err := k8sClient.Create(ctx, secret)
+	if apierrors.IsAlreadyExists(err) {
+		err = k8sClient.Update(ctx, secret)
+	}
+	Expect(err).NotTo(HaveOccurred())
+}
+
 func OnboardRemoteOIDCCluster(ctx context.Context, k8sClient client.Client, caCert []byte, apiServerURL, name, namespace, supportGroupTeamName string) {
 	By("applying remote cluster OIDC configuration as greenhouse secret")
 	secret := test.NewSecret(name, namespace, test.WithSecretType(greenhouseapis.SecretTypeOIDCConfig),
