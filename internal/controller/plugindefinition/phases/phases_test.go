@@ -7,15 +7,16 @@ import (
 	"context"
 	"testing"
 
+	fluxmeta "github.com/fluxcd/pkg/apis/meta"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	"github.com/stretchr/testify/require"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	fluxmeta "github.com/fluxcd/pkg/apis/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/flux"
@@ -51,6 +52,16 @@ func testPluginDefinition() *greenhousev1alpha1.PluginDefinition {
 		Version:    testChartVersion,
 	}
 	return pd
+}
+func testClusterPluginDefinition() *greenhousev1alpha1.ClusterPluginDefinition {
+	cpd := &greenhousev1alpha1.ClusterPluginDefinition{}
+	cpd.Name = "test-cluster-plugin"
+	cpd.Spec.HelmChart = &greenhousev1alpha1.HelmChartReference{
+		Name:       testHelmChart,
+		Repository: testHelmRepo,
+		Version:    testChartVersion,
+	}
+	return cpd
 }
 
 func TestEnsureCreatePhases(t *testing.T) {
@@ -239,4 +250,75 @@ func TestEnsureHelmChart(t *testing.T) {
 	require.NoError(t, c.Get(ctx, client.ObjectKey{Name: pd.FluxHelmChartResourceName(), Namespace: testNamespace}, helmChart))
 	require.Equal(t, testHelmChart, helmChart.Spec.Chart)
 	require.Equal(t, testChartVersion, helmChart.Spec.Version)
+
+	// Without Flux source-controller, HelmChart has no Ready condition — status should be Unknown.
+	condition := pd.Status.GetConditionByType(greenhousev1alpha1.HelmChartReadyCondition)
+	require.NotNil(t, condition)
+	require.Equal(t, metav1.ConditionUnknown, condition.Status)
+}
+
+func TestEnsureOrphanedHelmChartsDeletedPluginDefinition(t *testing.T) {
+	ctx := context.Background()
+	pd := testPluginDefinition()
+	isController := true
+
+	// The orphaned chart has the old version name; the current chart has the new version name.
+	orphanedChart := &sourcev1.HelmChart{}
+	orphanedChart.Name = pd.Name + "-0.9.0"
+	orphanedChart.Namespace = testNamespace
+	orphanedChart.Labels = map[string]string{greenhouseapis.LabelKeyPluginDefinition: pd.Name}
+	orphanedChart.OwnerReferences = []metav1.OwnerReference{{UID: pd.UID, Controller: &isController}}
+
+	currentChart := &sourcev1.HelmChart{}
+	currentChart.Name = pd.FluxHelmChartResourceName()
+	currentChart.Namespace = testNamespace
+	currentChart.Labels = map[string]string{greenhouseapis.LabelKeyPluginDefinition: pd.Name}
+	currentChart.OwnerReferences = []metav1.OwnerReference{{UID: pd.UID, Controller: &isController}}
+
+	c := fake.NewClientBuilder().WithScheme(testScheme(t)).WithObjects(pd, orphanedChart, currentChart).Build()
+	p := &Phase{Client: c, PluginDef: pd, NamespaceName: testNamespace, Recorder: noopRecorder{}}
+
+	res, err := p.ensureOrphanedHelmChartsDeleted()(ctx)
+
+	require.NoError(t, err)
+	require.Equal(t, lifecycle.Continue(), res)
+
+	// Orphaned chart should be gone.
+	err = c.Get(ctx, client.ObjectKey{Name: orphanedChart.Name, Namespace: testNamespace}, &sourcev1.HelmChart{})
+	require.True(t, apierrors.IsNotFound(err), "orphaned HelmChart should be deleted")
+
+	// Current chart should still exist.
+	require.NoError(t, c.Get(ctx, client.ObjectKey{Name: currentChart.Name, Namespace: testNamespace}, &sourcev1.HelmChart{}))
+}
+
+func TestEnsureOrphanedHelmChartsDeletedClusterPluginDefinition(t *testing.T) {
+	ctx := context.Background()
+	cpd := testClusterPluginDefinition()
+	ns := flux.HelmRepositoryDefaultNamespace
+	isController := true
+
+	orphanedChart := &sourcev1.HelmChart{}
+	orphanedChart.Name = cpd.Name + "-0.9.0"
+	orphanedChart.Namespace = ns
+	orphanedChart.Labels = map[string]string{greenhouseapis.LabelKeyPluginDefinition: cpd.Name}
+	orphanedChart.OwnerReferences = []metav1.OwnerReference{{UID: cpd.UID, Controller: &isController}}
+
+	currentChart := &sourcev1.HelmChart{}
+	currentChart.Name = cpd.FluxHelmChartResourceName()
+	currentChart.Namespace = ns
+	currentChart.Labels = map[string]string{greenhouseapis.LabelKeyPluginDefinition: cpd.Name}
+	currentChart.OwnerReferences = []metav1.OwnerReference{{UID: cpd.UID, Controller: &isController}}
+
+	c := fake.NewClientBuilder().WithScheme(testScheme(t)).WithObjects(cpd, orphanedChart, currentChart).Build()
+	p := &Phase{Client: c, PluginDef: cpd, NamespaceName: ns, Recorder: noopRecorder{}}
+
+	res, err := p.ensureOrphanedHelmChartsDeleted()(ctx)
+
+	require.NoError(t, err)
+	require.Equal(t, lifecycle.Continue(), res)
+
+	err = c.Get(ctx, client.ObjectKey{Name: orphanedChart.Name, Namespace: ns}, &sourcev1.HelmChart{})
+	require.True(t, apierrors.IsNotFound(err), "orphaned HelmChart should be deleted")
+
+	require.NoError(t, c.Get(ctx, client.ObjectKey{Name: currentChart.Name, Namespace: ns}, &sourcev1.HelmChart{}))
 }
