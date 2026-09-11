@@ -77,3 +77,23 @@ func TestEnsureHelmRepository(t *testing.T) {
 	// helmRepo field on Phase is populated for the next subroutine.
 	require.NotNil(t, p.helmRepo)
 }
+
+func TestEnsureHelmChart(t *testing.T) {
+	ctx := context.Background()
+	pd := testPluginDefinition()
+	c := fake.NewClientBuilder().WithScheme(testScheme(t)).WithObjects(pd).Build()
+	repo := &sourcev1.HelmRepository{}
+	repo.Name = flux.ChartURLToName(testHelmRepo)
+	repo.Namespace = testNamespace
+	p := &Phase{Client: c, PluginDef: pd, NamespaceName: testNamespace, Recorder: noopRecorder{}, helmRepo: repo}
+
+	res, err := p.ensureHelmChart()(ctx)
+
+	require.NoError(t, err)
+	require.Equal(t, lifecycle.Continue(), res)
+
+	helmChart := &sourcev1.HelmChart{}
+	require.NoError(t, c.Get(ctx, client.ObjectKey{Name: pd.FluxHelmChartResourceName(), Namespace: testNamespace}, helmChart))
+	require.Equal(t, testHelmChart, helmChart.Spec.Chart)
+	require.Equal(t, testChartVersion, helmChart.Spec.Version)
+}
