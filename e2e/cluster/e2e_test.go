@@ -40,6 +40,7 @@ const (
 	remoteOIDCClusterCName           = "remote-int-oidc-c-cluster"
 	remoteOIDCClusterFName           = "remote-int-oidc-f-cluster"
 	remoteOIDCClusterWName           = "remote-int-oidc-w-cluster"
+	remoteWorkerlessClusterName      = "remote-int-workerless-cluster"
 	remoteOIDCClusterRoleBindingName = "greenhouse-odic-cluster-role-binding"
 )
 
@@ -85,6 +86,7 @@ var _ = AfterSuite(func() {
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterFName, env.TestNamespace)
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterCName, env.TestNamespace)
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterWName, env.TestNamespace)
+	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteWorkerlessClusterName, env.TestNamespace)
 	test.EventuallyDeleted(ctx, adminClient, team)
 	env.GenerateGreenhouseControllerLogs(ctx, testStartTime)
 })
@@ -349,6 +351,21 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 
 			By("verifying the remote cluster version")
 			expect.VerifyClusterVersion(ctx, adminClient, remoteRestClient, remoteOIDCClusterWName, env.TestNamespace)
+		})
+	})
+
+	Context("Workerless Cluster 🤖", Ordered, func() {
+		It("should onboard workerless cluster", func() {
+			shared.OnboardWorkerlessCluster(ctx, adminClient, env.RemoteKubeConfigBytes, remoteWorkerlessClusterName, env.TestNamespace, team.Name)
+		})
+		It("should have a cluster resource created with PayloadSchedulable=False", func() {
+			By("verifying the cluster resource is created")
+			Eventually(func(g Gomega) {
+				err := adminClient.Get(ctx, client.ObjectKey{Name: remoteWorkerlessClusterName, Namespace: env.TestNamespace}, &greenhousev1alpha1.Cluster{})
+				g.Expect(err).ToNot(HaveOccurred())
+			}).Should(Succeed(), "cluster resource should be created")
+
+			expect.VerifyWorkerlessClusterPayloadNotSchedulable(ctx, adminClient, remoteWorkerlessClusterName, env.TestNamespace)
 		})
 	})
 })

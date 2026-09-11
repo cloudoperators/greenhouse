@@ -137,6 +137,21 @@ func VerifyWorkloadIdentityConfigMap(ctx context.Context, adminClient client.Cli
 	}).Should(Succeed(), "static kubeconfig should not be written under workload identity")
 }
 
+func VerifyWorkerlessClusterPayloadNotSchedulable(ctx context.Context, adminClient client.Client, clusterName, namespace string) {
+	By("verifying the workerless cluster has PayloadSchedulable=False with WorkerlessCluster reason")
+	Eventually(func(g Gomega) {
+		cluster := &greenhousev1alpha1.Cluster{}
+		g.Expect(adminClient.Get(ctx, client.ObjectKey{Name: clusterName, Namespace: namespace}, cluster)).To(Succeed())
+		g.Expect(cluster.Spec.Mode).To(Equal(greenhousev1alpha1.ClusterModeWorkerless), "cluster mode should be Workerless")
+		payloadCondition := cluster.Status.GetConditionByType(greenhousev1alpha1.PayloadSchedulable)
+		g.Expect(payloadCondition).ToNot(BeNil(), "cluster should have PayloadSchedulable condition")
+		g.Expect(payloadCondition.IsFalse()).To(BeTrue(), "PayloadSchedulable should be false for a workerless cluster")
+		g.Expect(payloadCondition.Reason).To(Equal(string(greenhousev1alpha1.WorkerlessClusterReason)), "reason should be WorkerlessCluster")
+		allNodesReady := cluster.Status.GetConditionByType(greenhousev1alpha1.AllNodesReady)
+		g.Expect(allNodesReady).To(BeNil(), "workerless cluster should not have AllNodesReady condition")
+	}).Should(Succeed(), "workerless cluster should have PayloadSchedulable=False")
+}
+
 func CordonRemoteNodes(ctx context.Context, remoteClient client.Client) {
 	nodes := &corev1.NodeList{}
 	err := remoteClient.List(ctx, nodes)
