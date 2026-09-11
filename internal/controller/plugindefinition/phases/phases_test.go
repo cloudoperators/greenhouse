@@ -19,6 +19,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
@@ -75,22 +76,41 @@ func TestEnsureDeletePhases(t *testing.T) {
 }
 
 func TestEnsureHelmRepository(t *testing.T) {
-	ctx := context.Background()
-	pd := testPluginDefinition()
-	c := fake.NewClientBuilder().WithScheme(testScheme(t)).WithObjects(pd).Build()
-	p := &Phase{Client: c, PluginDef: pd, NamespaceName: testNamespace, Recorder: noopRecorder{}}
+	tests := []struct {
+		name      string
+		pluginDef func() common.GenericPluginDefinition
+		namespace string
+	}{
+		{
+			name:      "PluginDefinition",
+			pluginDef: func() common.GenericPluginDefinition { return testPluginDefinition() },
+			namespace: testNamespace,
+		},
+		{
+			name:      "ClusterPluginDefinition",
+			pluginDef: func() common.GenericPluginDefinition { return testClusterPluginDefinition() },
+			namespace: flux.HelmRepositoryDefaultNamespace,
+		},
+	}
 
-	res, err := p.ensureHelmRepository()(ctx)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			pd := tt.pluginDef()
+			c := fake.NewClientBuilder().WithScheme(testScheme(t)).WithObjects(pd).Build()
+			p := &Phase{Client: c, PluginDef: pd, NamespaceName: tt.namespace, Recorder: noopRecorder{}}
 
-	require.NoError(t, err)
-	require.Equal(t, lifecycle.Continue(), res)
+			res, err := p.ensureHelmRepository()(ctx)
 
-	// HelmRepository should exist with the right URL.
-	repo := &sourcev1.HelmRepository{}
-	require.NoError(t, c.Get(ctx, client.ObjectKey{Name: flux.ChartURLToName(testHelmRepo), Namespace: testNamespace}, repo))
-	require.Equal(t, testHelmRepo, repo.Spec.URL)
-	// helmRepo field on Phase is populated for the next subroutine.
-	require.NotNil(t, p.helmRepo)
+			require.NoError(t, err)
+			require.Equal(t, lifecycle.Continue(), res)
+
+			repo := &sourcev1.HelmRepository{}
+			require.NoError(t, c.Get(ctx, client.ObjectKey{Name: flux.ChartURLToName(testHelmRepo), Namespace: tt.namespace}, repo))
+			require.Equal(t, testHelmRepo, repo.Spec.URL)
+			require.NotNil(t, p.helmRepo)
+		})
+	}
 }
 
 func TestEnsureChartReplication(t *testing.T) {
@@ -233,28 +253,50 @@ func TestCreateUpdateHelmChart(t *testing.T) {
 }
 
 func TestEnsureHelmChart(t *testing.T) {
-	ctx := context.Background()
-	pd := testPluginDefinition()
-	c := fake.NewClientBuilder().WithScheme(testScheme(t)).WithObjects(pd).Build()
-	repo := &sourcev1.HelmRepository{}
-	repo.Name = flux.ChartURLToName(testHelmRepo)
-	repo.Namespace = testNamespace
-	p := &Phase{Client: c, PluginDef: pd, NamespaceName: testNamespace, Recorder: noopRecorder{}, helmRepo: repo}
+	tests := []struct {
+		name      string
+		pluginDef func() common.GenericPluginDefinition
+		namespace string
+	}{
+		{
+			name:      "PluginDefinition",
+			pluginDef: func() common.GenericPluginDefinition { return testPluginDefinition() },
+			namespace: testNamespace,
+		},
+		{
+			name:      "ClusterPluginDefinition",
+			pluginDef: func() common.GenericPluginDefinition { return testClusterPluginDefinition() },
+			namespace: flux.HelmRepositoryDefaultNamespace,
+		},
+	}
 
-	res, err := p.ensureHelmChart()(ctx)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			pd := tt.pluginDef()
+			c := fake.NewClientBuilder().WithScheme(testScheme(t)).WithObjects(pd).Build()
+			repo := &sourcev1.HelmRepository{}
+			repo.Name = flux.ChartURLToName(testHelmRepo)
+			repo.Namespace = tt.namespace
+			p := &Phase{Client: c, PluginDef: pd, NamespaceName: tt.namespace, Recorder: noopRecorder{}, helmRepo: repo}
 
-	require.NoError(t, err)
-	require.Equal(t, lifecycle.Continue(), res)
+			res, err := p.ensureHelmChart()(ctx)
 
-	helmChart := &sourcev1.HelmChart{}
-	require.NoError(t, c.Get(ctx, client.ObjectKey{Name: pd.FluxHelmChartResourceName(), Namespace: testNamespace}, helmChart))
-	require.Equal(t, testHelmChart, helmChart.Spec.Chart)
-	require.Equal(t, testChartVersion, helmChart.Spec.Version)
+			require.NoError(t, err)
+			require.Equal(t, lifecycle.Continue(), res)
 
-	// Without Flux source-controller, HelmChart has no Ready condition — status should be Unknown.
-	condition := pd.Status.GetConditionByType(greenhousev1alpha1.HelmChartReadyCondition)
-	require.NotNil(t, condition)
-	require.Equal(t, metav1.ConditionUnknown, condition.Status)
+			helmChart := &sourcev1.HelmChart{}
+			require.NoError(t, c.Get(ctx, client.ObjectKey{Name: pd.FluxHelmChartResourceName(), Namespace: tt.namespace}, helmChart))
+			require.Equal(t, testHelmChart, helmChart.Spec.Chart)
+			require.Equal(t, testChartVersion, helmChart.Spec.Version)
+
+			// Without Flux source-controller, HelmChart has no Ready condition — status should be Unknown.
+			conditions := pd.GetConditions()
+			condition := conditions.GetConditionByType(greenhousev1alpha1.HelmChartReadyCondition)
+			require.NotNil(t, condition)
+			require.Equal(t, metav1.ConditionUnknown, condition.Status)
+		})
+	}
 }
 
 func TestEnsureOrphanedHelmChartsDeletedPluginDefinition(t *testing.T) {
