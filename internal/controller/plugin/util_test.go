@@ -335,7 +335,7 @@ var _ = Describe("initClientGetter", func() {
 				Build()
 
 			plugin := newPlugin()
-			_, _, err := initClientGetter(test.Ctx, fakeClient, nil, plugin)
+			_, _, err := initClientGetter(test.Ctx, fakeClient, nil, plugin, false)
 			Expect(err).To(HaveOccurred())
 			cond := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
 			Expect(cond).ToNot(BeNil())
@@ -354,7 +354,7 @@ var _ = Describe("initClientGetter", func() {
 				Build()
 
 			plugin := newPlugin()
-			_, _, err := initClientGetter(test.Ctx, fakeClient, nil, plugin)
+			_, _, err := initClientGetter(test.Ctx, fakeClient, nil, plugin, false)
 			Expect(err).To(HaveOccurred())
 			cond := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
 			Expect(cond).ToNot(BeNil())
@@ -375,7 +375,7 @@ var _ = Describe("initClientGetter", func() {
 			plugin := newPlugin()
 			// initClientGetter will fail trying to build a REST client from the empty secret,
 			// but the reason must not be ClusterPayloadNotSchedulable
-			_, _, err := initClientGetter(test.Ctx, fakeClient, nil, plugin)
+			_, _, err := initClientGetter(test.Ctx, fakeClient, nil, plugin, false)
 			cond := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
 			if err != nil && cond != nil {
 				Expect(cond.Reason).NotTo(Equal(greenhousev1alpha1.ClusterPayloadNotSchedulableReason))
