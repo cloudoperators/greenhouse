@@ -47,7 +47,7 @@ func WorkerlessClusterBlocksPlugin(ctx context.Context, adminClient client.Clien
 		helmReleaseCreated := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
 		g.Expect(helmReleaseCreated).ToNot(BeNil(), "Plugin HelmReleaseCreated condition must be set")
 		g.Expect(helmReleaseCreated.Status).To(Equal(metav1.ConditionFalse), "Plugin HelmReleaseCreated condition must be false")
-		g.Expect(helmReleaseCreated.Reason).To(Equal(string(greenhousev1alpha1.ClusterPayloadNotSchedulableReason)),
+		g.Expect(helmReleaseCreated.Reason).To(Equal(greenhousev1alpha1.ClusterPayloadNotSchedulableReason),
 			"Plugin HelmReleaseCreated reason must be ClusterPayloadNotSchedulable")
 	}).Should(Succeed(), "Plugin should report HelmReleaseCreated=False/ClusterPayloadNotSchedulable")
 

@@ -146,7 +146,7 @@ func VerifyWorkerlessClusterPayloadNotSchedulable(ctx context.Context, adminClie
 		payloadCondition := cluster.Status.GetConditionByType(greenhousev1alpha1.PayloadSchedulable)
 		g.Expect(payloadCondition).ToNot(BeNil(), "cluster should have PayloadSchedulable condition")
 		g.Expect(payloadCondition.IsFalse()).To(BeTrue(), "PayloadSchedulable should be false for a workerless cluster")
-		g.Expect(payloadCondition.Reason).To(Equal(string(greenhousev1alpha1.WorkerlessClusterReason)), "reason should be WorkerlessCluster")
+		g.Expect(payloadCondition.Reason).To(Equal(greenhousev1alpha1.WorkerlessClusterReason), "reason should be WorkerlessCluster")
 		allNodesReady := cluster.Status.GetConditionByType(greenhousev1alpha1.AllNodesReady)
 		g.Expect(allNodesReady).To(BeNil(), "workerless cluster should not have AllNodesReady condition")
 	}).Should(Succeed(), "workerless cluster should have PayloadSchedulable=False")
