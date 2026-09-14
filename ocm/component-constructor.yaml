@@ -1,0 +1,171 @@
+# yaml-language-server: $schema=https://ocm.software/latest/schemas/bindings/go/constructor/schema-2020-12.json
+#
+# OCM Component Descriptor for Greenhouse
+#
+# Variables (set via env or make):
+#   GREENHOUSE_VERSION        - greenhouse app version, e.g. v0.16.1
+#   GREENHOUSE_CHART_VERSION  - helm chart version, e.g. 0.23.0
+#   GREENHOUSE_IMAGE_REF      - full image ref, e.g. ghcr.io/cloudoperators/greenhouse:v0.16.1
+#   CERT_MANAGER_VERSION      - e.g. v1.16.1
+#   FLUX_VERSION              - e.g. 2.15.0
+#   KRO_VERSION               - e.g. 0.9.4
+#   OCM_CONTROLLER_VERSION    - e.g. v0.8.0
+#
+# Workflow:
+#   make package   # helm package → charts/greenhouse-<CHART_VERSION>.tgz
+#   make build     # ocm add componentversions → greenhouse-bundle.ctf
+#   make push      # ocm transfer → OCM_REGISTRY
+#
+# Prerequisites bundled as componentReferences:
+#   cert-manager, flux, kro, ocm-controller
+#
+# Core components (single image ghcr.io/cloudoperators/greenhouse):
+#   controller-manager, idproxy, cors-proxy, authz
+
+components:
+
+  # -------------------------------------------------------------------------
+  # Prerequisite: cert-manager
+  # -------------------------------------------------------------------------
+  - name: github.com/cloudoperators/greenhouse/prerequisites/cert-manager
+    version: ${CERT_MANAGER_VERSION}
+    provider:
+      name: cloudoperators
+    labels:
+      - name: github.com/cloudoperators/greenhouse/role
+        value: prerequisite
+    resources:
+      - name: cert-manager-chart
+        type: helmChart
+        version: ${CERT_MANAGER_VERSION}
+        input:
+          type: helm
+          path: cert-manager
+          helmRepository: https://charts.jetstack.io
+          version: ${CERT_MANAGER_VERSION}
+
+  # -------------------------------------------------------------------------
+  # Prerequisite: flux2
+  # -------------------------------------------------------------------------
+  - name: github.com/cloudoperators/greenhouse/prerequisites/flux
+    version: ${FLUX_VERSION}
+    provider:
+      name: cloudoperators
+    labels:
+      - name: github.com/cloudoperators/greenhouse/role
+        value: prerequisite
+    resources:
+      - name: flux2-chart
+        type: helmChart
+        version: ${FLUX_VERSION}
+        input:
+          type: helm
+          path: flux2
+          helmRepository: https://fluxcd-community.github.io/helm-charts
+          version: ${FLUX_VERSION}
+
+  # -------------------------------------------------------------------------
+  # Prerequisite: kro (Kubernetes Resource Orchestrator)
+  # -------------------------------------------------------------------------
+  - name: github.com/cloudoperators/greenhouse/prerequisites/kro
+    version: ${KRO_VERSION}
+    provider:
+      name: cloudoperators
+    labels:
+      - name: github.com/cloudoperators/greenhouse/role
+        value: prerequisite
+    resources:
+      - name: kro-chart
+        type: helmChart
+        version: ${KRO_VERSION}
+        input:
+          type: helm
+          path: kro
+          helmRepository: oci://registry.k8s.io/kro/charts
+          version: ${KRO_VERSION}
+
+  # -------------------------------------------------------------------------
+  # Prerequisite: ocm-controller
+  # -------------------------------------------------------------------------
+  - name: github.com/cloudoperators/greenhouse/prerequisites/ocm-controller
+    version: ${OCM_CONTROLLER_VERSION}
+    provider:
+      name: cloudoperators
+    labels:
+      - name: github.com/cloudoperators/greenhouse/role
+        value: prerequisite
+    resources:
+      - name: ocm-controller-chart
+        type: helmChart
+        version: ${OCM_CONTROLLER_VERSION}
+        input:
+          type: file
+          path: charts/ocm-controller-v${OCM_CONTROLLER_VERSION}.tgz
+          mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+          compress: false
+
+  # -------------------------------------------------------------------------
+  # Greenhouse core (chart + image)
+  # Run `make package` first to produce charts/greenhouse-<CHART_VERSION>.tgz
+  # GREENHOUSE_CHART_VERSION is the helm chart version (0.23.0)
+  # GREENHOUSE_VERSION is the app/image version (v0.16.1)
+  # GREENHOUSE_IMAGE_REF is the full OCI image reference
+  # -------------------------------------------------------------------------
+  - name: github.com/cloudoperators/greenhouse/core
+    version: ${GREENHOUSE_VERSION}
+    provider:
+      name: cloudoperators
+    labels:
+      - name: github.com/cloudoperators/greenhouse/role
+        value: core
+      - name: github.com/cloudoperators/greenhouse/version
+        value: ${GREENHOUSE_VERSION}
+        signing: true
+    resources:
+
+      # Greenhouse umbrella chart (bundles manager, idproxy, cors-proxy, authz, dashboard subcharts)
+      - name: greenhouse-chart
+        type: helmChart
+        version: ${GREENHOUSE_CHART_VERSION}
+        input:
+          type: file
+          path: charts/greenhouse-${GREENHOUSE_CHART_VERSION}.tgz
+          mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+          compress: false
+
+      # Single image used by controller-manager, idproxy, cors-proxy, and authz subcharts
+      # Pass GREENHOUSE_IMAGE_REF=ghcr.io/cloudoperators/greenhouse:v0.16.1
+      - name: greenhouse-image
+        type: ociImage
+        version: ${GREENHOUSE_VERSION}
+        access:
+          type: OCIImage/v1
+          imageReference: ${GREENHOUSE_IMAGE_REF}
+
+  # -------------------------------------------------------------------------
+  # Top-level product component — references core + all prerequisites
+  # -------------------------------------------------------------------------
+  - name: github.com/cloudoperators/greenhouse
+    version: ${GREENHOUSE_VERSION}
+    provider:
+      name: cloudoperators
+    labels:
+      - name: github.com/cloudoperators/greenhouse/version
+        value: ${GREENHOUSE_VERSION}
+        signing: true
+    componentReferences:
+      - name: core
+        componentName: github.com/cloudoperators/greenhouse/core
+        version: ${GREENHOUSE_VERSION}
+      - name: cert-manager
+        componentName: github.com/cloudoperators/greenhouse/prerequisites/cert-manager
+        version: ${CERT_MANAGER_VERSION}
+      - name: flux
+        componentName: github.com/cloudoperators/greenhouse/prerequisites/flux
+        version: ${FLUX_VERSION}
+      - name: kro
+        componentName: github.com/cloudoperators/greenhouse/prerequisites/kro
+        version: ${KRO_VERSION}
+      - name: ocm-controller
+        componentName: github.com/cloudoperators/greenhouse/prerequisites/ocm-controller
+        version: ${OCM_CONTROLLER_VERSION}

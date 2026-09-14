@@ -58,3 +58,6 @@ gen-crd-api-reference-docs
 public
 .hugo_build.lock
 *.drawio.bkp
+# OCM build artifacts
+ocm/charts/
+ocm/greenhouse-bundle.ctf

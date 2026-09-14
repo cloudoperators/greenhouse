@@ -1,0 +1,98 @@
+GREENHOUSE_VERSION        ?= v0.16.1
+GREENHOUSE_CHART_VERSION  ?= 0.23.0
+GREENHOUSE_IMAGE_REF      ?= ghcr.io/cloudoperators/greenhouse:$(GREENHOUSE_VERSION)
+CERT_MANAGER_VERSION      ?= v1.16.1
+FLUX_VERSION              ?= 2.15.0
+KRO_VERSION               ?= 0.9.4
+OCM_CONTROLLER_VERSION    ?= 0.33.0
+
+# OCM registry target — override with your air-gapped registry
+OCM_REGISTRY ?= ghcr.io/cloudoperators/ocm
+
+GREENHOUSE_SRC ?= ..
+CHARTS_DIR     := charts
+
+.PHONY: all help package build push verify clean
+
+all: help
+
+help:
+	@echo "Greenhouse OCM bundle targets:"
+	@echo "  make package   - package greenhouse helm chart (requires helm)"
+	@echo "  make build     - build OCM component archive (greenhouse-bundle.ctf)"
+	@echo "  make push      - push OCM components to OCM_REGISTRY=$(OCM_REGISTRY)"
+	@echo "  make verify    - inspect all component versions in the local archive"
+	@echo "  make clean     - remove generated charts and archive"
+	@echo ""
+	@echo "Versions:"
+	@echo "  GREENHOUSE_VERSION=$(GREENHOUSE_VERSION)  (app/image tag)"
+	@echo "  GREENHOUSE_CHART_VERSION=$(GREENHOUSE_CHART_VERSION)  (helm chart version)"
+	@echo "  GREENHOUSE_IMAGE_REF=$(GREENHOUSE_IMAGE_REF)"
+	@echo "  CERT_MANAGER_VERSION=$(CERT_MANAGER_VERSION)"
+	@echo "  FLUX_VERSION=$(FLUX_VERSION)"
+	@echo "  KRO_VERSION=$(KRO_VERSION)"
+	@echo "  OCM_CONTROLLER_VERSION=$(OCM_CONTROLLER_VERSION)"
+
+# -----------------------------------------------------------------------
+# Step 1: package the greenhouse helm chart (resolves file:// deps + OCI)
+# -----------------------------------------------------------------------
+package: $(CHARTS_DIR)
+	helm dependency update $(GREENHOUSE_SRC)/charts/greenhouse
+	helm package $(GREENHOUSE_SRC)/charts/greenhouse \
+	  --version $(GREENHOUSE_CHART_VERSION) \
+	  --destination $(CHARTS_DIR)/
+
+# Fetch prerequisite charts that use OCI tags with v-prefix (not fetched via OCM helm input)
+fetch-prereqs: $(CHARTS_DIR)
+	helm pull oci://ghcr.io/open-component-model/helm/ocm-controller \
+	  --version v$(OCM_CONTROLLER_VERSION) \
+	  --destination $(CHARTS_DIR)/
+
+$(CHARTS_DIR):
+	mkdir -p $(CHARTS_DIR)
+
+# -----------------------------------------------------------------------
+# Step 2: build the OCM component transport archive (.ctf)
+# -----------------------------------------------------------------------
+build: $(CHARTS_DIR)/greenhouse-$(GREENHOUSE_CHART_VERSION).tgz
+	ocm add componentversions \
+	  --addenv \
+	  --file greenhouse-bundle.ctf \
+	  --create \
+	  component-constructor.yaml \
+	  GREENHOUSE_VERSION=$(GREENHOUSE_VERSION) \
+	  GREENHOUSE_CHART_VERSION=$(GREENHOUSE_CHART_VERSION) \
+	  "GREENHOUSE_IMAGE_REF=$(GREENHOUSE_IMAGE_REF)" \
+	  CERT_MANAGER_VERSION=$(CERT_MANAGER_VERSION) \
+	  FLUX_VERSION=$(FLUX_VERSION) \
+	  KRO_VERSION=$(KRO_VERSION) \
+	  OCM_CONTROLLER_VERSION=$(OCM_CONTROLLER_VERSION)
+
+$(CHARTS_DIR)/greenhouse-$(GREENHOUSE_CHART_VERSION).tgz:
+	$(MAKE) package
+
+# -----------------------------------------------------------------------
+# Step 3: push to OCM registry
+# -----------------------------------------------------------------------
+push: greenhouse-bundle.ctf
+	ocm transfer componentarchive \
+	  greenhouse-bundle.ctf \
+	  $(OCM_REGISTRY)
+
+# Verify all component versions are present in the local archive
+verify: greenhouse-bundle.ctf
+	ocm get componentversion --repo greenhouse-bundle.ctf \
+	  github.com/cloudoperators/greenhouse:$(GREENHOUSE_VERSION)
+	ocm get componentversion --repo greenhouse-bundle.ctf \
+	  github.com/cloudoperators/greenhouse/core:$(GREENHOUSE_VERSION)
+	ocm get componentversion --repo greenhouse-bundle.ctf \
+	  github.com/cloudoperators/greenhouse/prerequisites/cert-manager:$(CERT_MANAGER_VERSION)
+	ocm get componentversion --repo greenhouse-bundle.ctf \
+	  github.com/cloudoperators/greenhouse/prerequisites/flux:$(FLUX_VERSION)
+	ocm get componentversion --repo greenhouse-bundle.ctf \
+	  github.com/cloudoperators/greenhouse/prerequisites/kro:$(KRO_VERSION)
+	ocm get componentversion --repo greenhouse-bundle.ctf \
+	  github.com/cloudoperators/greenhouse/prerequisites/ocm-controller:$(OCM_CONTROLLER_VERSION)
+
+clean:
+	rm -rf $(CHARTS_DIR) greenhouse-bundle.ctf
