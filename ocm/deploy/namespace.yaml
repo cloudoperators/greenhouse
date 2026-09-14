@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: greenhouse
+---
+# Secret with credentials for the OCM OCI registry (ghcr.io/cloudoperators/ocm).
+# Create this before applying other manifests:
+#
+#   kubectl create secret docker-registry greenhouse-ocm-registry-creds \
+#     --namespace greenhouse \
+#     --docker-server=ghcr.io \
+#     --docker-username=<github-user> \
+#     --docker-password=<github-pat>
+#
+# The Secret must exist; ComponentVersion reconciliation will not proceed without it.

@@ -1,0 +1,21 @@
+# ComponentVersion watches the OCM registry for the greenhouse product component.
+# It resolves the version constraint and makes all bundled components accessible
+# to Resource objects via referencePath navigation.
+#
+# Prerequisites:
+#   - Secret: greenhouse-ocm-registry-creds (see namespace.yaml)
+#   - OCM bundle pushed: make -f ocm/Makefile.ocm push OCM_REGISTRY=ghcr.io/cloudoperators/ocm
+apiVersion: delivery.ocm.software/v1alpha1
+kind: ComponentVersion
+metadata:
+  name: greenhouse
+  namespace: greenhouse
+spec:
+  interval: 10m
+  component: github.com/cloudoperators/greenhouse
+  version:
+    semver: ">=0.16.1"
+  repository:
+    url: ghcr.io/cloudoperators/ocm
+    secretRef:
+      name: greenhouse-ocm-registry-creds

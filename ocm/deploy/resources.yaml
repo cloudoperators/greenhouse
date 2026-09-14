@@ -1,0 +1,96 @@
+# Resource objects extract individual Helm charts from the greenhouse OCM bundle.
+# The OCM controller creates a Snapshot OCI artifact for each Resource, which
+# FluxDeployer then uses as the chart source.
+#
+# referencePath navigates the componentReference tree:
+#   greenhouse (top-level)
+#     └─ core          → greenhouse-chart, greenhouse-image
+#     └─ cert-manager  → cert-manager-chart
+#     └─ flux          → flux2-chart
+#     └─ kro           → kro-chart
+#     └─ ocm-controller → ocm-controller-chart
+
+# ---- cert-manager ----
+apiVersion: delivery.ocm.software/v1alpha1
+kind: Resource
+metadata:
+  name: cert-manager-chart
+  namespace: greenhouse
+spec:
+  interval: 10m
+  sourceRef:
+    kind: ComponentVersion
+    name: greenhouse
+    namespace: greenhouse
+    resourceRef:
+      name: cert-manager-chart
+      referencePath:
+        - name: cert-manager
+---
+# ---- flux2 ----
+apiVersion: delivery.ocm.software/v1alpha1
+kind: Resource
+metadata:
+  name: flux2-chart
+  namespace: greenhouse
+spec:
+  interval: 10m
+  sourceRef:
+    kind: ComponentVersion
+    name: greenhouse
+    namespace: greenhouse
+    resourceRef:
+      name: flux2-chart
+      referencePath:
+        - name: flux
+---
+# ---- kro ----
+apiVersion: delivery.ocm.software/v1alpha1
+kind: Resource
+metadata:
+  name: kro-chart
+  namespace: greenhouse
+spec:
+  interval: 10m
+  sourceRef:
+    kind: ComponentVersion
+    name: greenhouse
+    namespace: greenhouse
+    resourceRef:
+      name: kro-chart
+      referencePath:
+        - name: kro
+---
+# ---- ocm-controller ----
+apiVersion: delivery.ocm.software/v1alpha1
+kind: Resource
+metadata:
+  name: ocm-controller-chart
+  namespace: greenhouse
+spec:
+  interval: 10m
+  sourceRef:
+    kind: ComponentVersion
+    name: greenhouse
+    namespace: greenhouse
+    resourceRef:
+      name: ocm-controller-chart
+      referencePath:
+        - name: ocm-controller
+---
+# ---- greenhouse core ----
+apiVersion: delivery.ocm.software/v1alpha1
+kind: Resource
+metadata:
+  name: greenhouse-chart
+  namespace: greenhouse
+spec:
+  interval: 10m
+  sourceRef:
+    kind: ComponentVersion
+    name: greenhouse
+    namespace: greenhouse
+    resourceRef:
+      name: greenhouse-chart
+      referencePath:
+        - name: core
