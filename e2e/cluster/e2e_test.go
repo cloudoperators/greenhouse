@@ -86,7 +86,7 @@ var _ = AfterSuite(func() {
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterFName, env.TestNamespace)
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterCName, env.TestNamespace)
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterWName, env.TestNamespace)
-	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteWorkerlessClusterName, env.TestNamespace)
+	shared.OffBoardWorkerlessCluster(ctx, adminClient, remoteWorkerlessClusterName, env.TestNamespace)
 	test.EventuallyDeleted(ctx, adminClient, team)
 	env.GenerateGreenhouseControllerLogs(ctx, testStartTime)
 })

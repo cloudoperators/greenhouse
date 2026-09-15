@@ -59,6 +59,36 @@ func OnboardWorkerlessCluster(ctx context.Context, k8sClient client.Client, kube
 	Expect(err).NotTo(HaveOccurred())
 }
 
+// OffBoardWorkerlessCluster removes a workerless cluster and waits for the Cluster and Secret
+// resources to be gone from the admin cluster. It does not verify remote RBAC because the
+// cluster controller cannot clean up the remote CRB after the secret is deleted (it needs the
+// secret to build the remote client).
+func OffBoardWorkerlessCluster(ctx context.Context, adminClient client.Client, name, namespace string) {
+	secret := &corev1.Secret{}
+	err := adminClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, secret)
+	if apierrors.IsNotFound(err) {
+		return
+	}
+	Expect(err).NotTo(HaveOccurred())
+
+	By("removing the workerless cluster secret")
+	err = adminClient.Delete(ctx, secret)
+	Expect(err).NotTo(HaveOccurred())
+
+	By("checking the workerless cluster resource is eventually deleted")
+	Eventually(func(g Gomega) {
+		cluster := &greenhousev1alpha1.Cluster{}
+		err := adminClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, cluster)
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "cluster resource should be deleted")
+		s := &corev1.Secret{}
+		err = adminClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, s)
+		if err != nil {
+			GinkgoWriter.Printf("secret err: %v\n", err)
+		}
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "cluster secret should be deleted")
+	}).Should(Succeed(), "workerless cluster resource & secret should be deleted")
+}
+
 func OnboardRemoteOIDCCluster(ctx context.Context, k8sClient client.Client, caCert []byte, apiServerURL, name, namespace, supportGroupTeamName string) {
 	By("applying remote cluster OIDC configuration as greenhouse secret")
 	secret := test.NewSecret(name, namespace, test.WithSecretType(greenhouseapis.SecretTypeOIDCConfig),
