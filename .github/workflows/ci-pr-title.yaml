@@ -64,6 +64,7 @@ jobs:
             docs
             e2e
             greenhouse
+            lifecycle
             greenhousectl
             dev-env
             actions

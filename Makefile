@@ -378,11 +378,9 @@ prepare-e2e:
 list-scenarios:
 	find $(shell pwd)/e2e -type f -name 'e2e_test.go' -exec dirname {} \; | xargs -n 1 basename | jq -R -s -c 'split("\n")[:-1]'
 
-# Download and install mockery locally via `brew install mockery`
-MOCKERY := $(shell which mockery)
 mockery:
 	# will look into .mockery.yaml for configuration
-	$(MOCKERY)
+	docker run -v $(shell pwd):/src -w /src vektra/mockery:3
 
 .PHONY: cert-manager
 cert-manager: kustomize

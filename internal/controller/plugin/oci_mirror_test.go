@@ -14,6 +14,7 @@ import (
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/ocimirror"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 func newTestMirror(config *ocimirror.RegistryMirrorConfig) *ocimirror.ImageMirror {
@@ -243,6 +244,26 @@ var _ = Describe("ensureImageReplication", func() {
 		err := ensureImageReplication(context.Background(), mirror, plugin, manifests)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(fetchCount).To(Equal(0))
+	})
+
+	It("should re-replicate already replicated images when a reconcile is requested", func() {
+		fetchCount := 0
+		mirror = ocimirror.NewImageMirrorForTest(&ocimirror.RegistryMirrorConfig{
+			RegistryMirrors: map[string]ocimirror.RegistryMirror{
+				"ghcr.io": {BaseDomain: "mirror.example.com", SubPath: "ghcr-mirror"},
+			},
+		}, authn.Anonymous, func(ref string, opts ...crane.Option) ([]byte, error) {
+			fetchCount++
+			return []byte("{}"), nil
+		})
+
+		plugin.SetAnnotations(map[string]string{lifecycle.ReconcileAnnotation: "2026-08-25T13:34:13Z"})
+		plugin.Status.ImageReplication = []string{"ghcr.io/cloudoperators/greenhouse:main"}
+		manifests := "image: ghcr.io/cloudoperators/greenhouse:main"
+		err := ensureImageReplication(context.Background(), mirror, plugin, manifests)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(fetchCount).To(Equal(1))
+		Expect(plugin.Status.ImageReplication).To(ContainElement("ghcr.io/cloudoperators/greenhouse:main"))
 	})
 
 	It("should return error and set condition on replication failure", func() {

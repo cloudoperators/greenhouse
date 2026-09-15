@@ -32,6 +32,7 @@ import (
 var pluginsAllowedInCentralCluster = []string{
 	"alerts",
 	"doop",
+	"gatekeeper",
 	"heureka",
 	"kube-monitoring",
 	"kubeconfig-generator",

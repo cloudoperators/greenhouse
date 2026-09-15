@@ -10,6 +10,8 @@ global:
   pluginPreset:
     expressionEvaluationEnabled: true
     integrationEnabled: true
+  workloadIdentity:
+    enabled: false
 alerts:
   enabled: false
 controllerManager:

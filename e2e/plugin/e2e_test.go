@@ -25,7 +25,8 @@ import (
 )
 
 const (
-	remoteClusterName = "remote-plugin-cluster"
+	remoteClusterName     = "remote-plugin-cluster"
+	remoteOIDCClusterName = "remote-plugin-oidc-cluster"
 )
 
 var (
@@ -62,6 +63,7 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterName, env.TestNamespace)
+	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterName, env.TestNamespace)
 	test.EventuallyDeleted(ctx, adminClient, team)
 	env.GenerateGreenhouseControllerLogs(ctx, testStartTime)
 	env.GenerateFluxControllerLogs(ctx, "helm-controller", testStartTime)
@@ -121,6 +123,10 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		It("should block HelmRelease creation when image replication fails", func() {
 			scenarios.PluginImageReplicationFailure(ctx, adminClient, env, remoteClusterName)
 		})
+	})
+
+	It("should reach an OIDC-onboarded cluster via the flux access ConfigMap", func() {
+		scenarios.FluxObjectLevelWorkloadIdentity(ctx, adminClient, remoteClient, env, remoteOIDCClusterName, team.Name)
 	})
 
 	It("should retain the helm release when Cluster annotated with DeletionPolicy set to `Retain` is deleted", func() {

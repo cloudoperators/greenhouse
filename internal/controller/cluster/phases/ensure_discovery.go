@@ -26,16 +26,16 @@ func (p *Phase) ensureDiscoveryCache(cluster *greenhousev1alpha1.Cluster) lifecy
 			return lifecycle.RequeueAfter(10 * time.Minute), nil
 		}
 
-		groups, err := dc.ServerGroups()
+		preferredResources, err := dc.ServerPreferredResources()
 		if err != nil {
 			log.FromContext(ctx).Error(err, "failed to get server groups")
 			cluster.Status.DiscoveryCache = nil
 			return lifecycle.RequeueAfter(10 * time.Minute), nil
 		}
 
-		names := make([]string, 0, len(groups.Groups))
-		for _, g := range groups.Groups {
-			names = append(names, g.Name)
+		names := make([]string, 0, len(preferredResources))
+		for _, g := range preferredResources {
+			names = append(names, g.GroupVersion)
 		}
 		sort.Strings(names)
 

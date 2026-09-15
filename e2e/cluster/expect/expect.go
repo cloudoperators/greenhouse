@@ -5,9 +5,11 @@ package expect
 
 import (
 	"context"
-	"fmt"
+	"crypto/x509"
+	"encoding/pem"
 	"time"
 
+	fluxmeta "github.com/fluxcd/pkg/apis/meta"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/client-go/rest"
 
@@ -25,31 +27,6 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
-
-func SetupOIDCClusterRoleBinding(ctx context.Context, remoteClient client.Client, clusterRoleBindingName, clusterName, namespace string) {
-	crb := &rbacv1.ClusterRoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: clusterRoleBindingName,
-		},
-		Subjects: []rbacv1.Subject{
-			{
-				Kind:     rbacv1.UserKind,
-				APIGroup: rbacv1.GroupName,
-				Name:     fmt.Sprintf("greenhouse:system:serviceaccount:%s:%s", namespace, clusterName),
-			},
-		},
-		RoleRef: rbacv1.RoleRef{
-			APIGroup: rbacv1.GroupName,
-			Kind:     "ClusterRole",
-			Name:     "cluster-admin",
-		},
-	}
-	err := remoteClient.Create(ctx, crb)
-	if apierrors.IsAlreadyExists(err) {
-		err = remoteClient.Update(ctx, crb)
-	}
-	Expect(err).NotTo(HaveOccurred(), "there should be no error creating the oidc cluster role binding")
-}
 
 func VerifyClusterVersion(ctx context.Context, adminClient client.Client, remoteRestClient *clientutil.RestClientGetter, name, namespace string) {
 	cluster := &greenhousev1alpha1.Cluster{}
@@ -131,6 +108,33 @@ func GetRestConfig(restClientGetter *clientutil.RestClientGetter) *rest.Config {
 	restConfig, err := restClientGetter.ToRESTConfig()
 	Expect(err).NotTo(HaveOccurred(), "there should be no error creating the remote REST config")
 	return restConfig
+}
+
+func VerifyWorkloadIdentityConfigMap(ctx context.Context, adminClient client.Client, clusterName, namespace string) {
+	By("verifying the workload identity config map is written for the oidc cluster")
+	Eventually(func(g Gomega) {
+		configMap := &corev1.ConfigMap{}
+		err := adminClient.Get(ctx, client.ObjectKey{Name: clusterName, Namespace: namespace}, configMap)
+		g.Expect(err).NotTo(HaveOccurred(), "there should be no error getting the workload identity config map")
+		g.Expect(configMap.Data).To(HaveKeyWithValue(fluxmeta.KubeConfigKeyAddress, Not(BeEmpty())), "config map should have the api server address")
+		g.Expect(configMap.Data).To(HaveKeyWithValue(fluxmeta.KubeConfigKeyAudiences, greenhouseapis.OIDCAudience), "config map should have the oidc audience")
+		g.Expect(configMap.Data).To(HaveKeyWithValue(fluxmeta.KubeConfigKeyServiceAccountName, clusterName), "config map should have the service account name")
+		g.Expect(configMap.Data).To(HaveKeyWithValue(fluxmeta.KubeConfigKeyProvider, "generic"), "config map should have the generic provider")
+		g.Expect(configMap.Data).To(HaveKey(fluxmeta.KubeConfigKeyCACert), "config map should have the ca certificate")
+		block, _ := pem.Decode([]byte(configMap.Data[fluxmeta.KubeConfigKeyCACert]))
+		g.Expect(block).ToNot(BeNil(), "ca certificate should be a valid pem block")
+		g.Expect(block.Type).To(Equal("CERTIFICATE"), "ca certificate pem block should be of type CERTIFICATE")
+		_, err = x509.ParseCertificate(block.Bytes)
+		g.Expect(err).NotTo(HaveOccurred(), "ca certificate should be a parseable x509 certificate")
+	}).Should(Succeed(), "workload identity config map should be written")
+
+	By("verifying the static kubeconfig is not written to the cluster secret")
+	Eventually(func(g Gomega) {
+		secret := &corev1.Secret{}
+		err := adminClient.Get(ctx, client.ObjectKey{Name: clusterName, Namespace: namespace}, secret)
+		g.Expect(err).NotTo(HaveOccurred(), "there should be no error getting the cluster secret")
+		g.Expect(clientutil.IsSecretContainsKey(secret, greenhouseapis.GreenHouseKubeConfigKey)).To(BeFalse(), "secret should not contain the greenhouse kubeconfig key")
+	}).Should(Succeed(), "static kubeconfig should not be written under workload identity")
 }
 
 func CordonRemoteNodes(ctx context.Context, remoteClient client.Client) {

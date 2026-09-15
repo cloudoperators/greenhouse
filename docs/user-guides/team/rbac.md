@@ -259,8 +259,9 @@ spec:
 
 ### Migrating from the deprecated teamRef field
 
-> [!WARNING]
-> `spec.teamRef` (singular) is **deprecated**. Use `spec.teamRefs` (plural list) instead.
+{{< hint danger >}}
+`spec.teamRef` (singular) is **deprecated**. Use `spec.teamRefs` (plural list) instead.
+{{< /hint >}}
 
 Existing TeamRoleBindings that still use the singular `teamRef` field are migrated automatically and lazily by the mutating webhook: the first time such a resource is created or updated, the webhook appends the value of `spec.teamRef` to `spec.teamRefs` (deduplicating if needed) and clears `spec.teamRef`. No manual migration is required for existing resources—they are migrated in-place on the next write.
 
@@ -293,8 +294,9 @@ spec:
     clusterName: my-cluster
 ```
 
-> [!NOTE]
-> If both `teamRef` and `teamRefs` are set on a resource, the webhook merges `teamRef` into `teamRefs` and deduplicates the list. `teamRefs` always takes precedence.
+{{< hint info >}}
+If both `teamRef` and `teamRefs` are set on a resource, the webhook merges `teamRef` into `teamRefs` and deduplicates the list. `teamRefs` always takes precedence.
+{{< /hint >}}
 
 ## Updating TeamRoleBindings
 

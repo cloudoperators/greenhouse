@@ -118,3 +118,7 @@ Define postgresql helpers
 {{- define "pluginPreset.integrationEnabled" -}}
   {{- printf "%t" (required "global.pluginPreset.integrationEnabled missing" .Values.global.pluginPreset.integrationEnabled) }}
 {{- end }}
+{{/* Render the workloadIdentity enabled flag */}}
+{{- define "workloadIdentity.enabled" -}}
+  {{- printf "%t" (required "global.workloadIdentity.enabled missing" .Values.global.workloadIdentity.enabled) }}
+{{- end }}

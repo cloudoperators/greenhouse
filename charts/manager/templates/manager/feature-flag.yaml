@@ -2,6 +2,8 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ include "manager.fullname" . }}-feature-flags
+  labels:
+    greenhouse.sap/feature-flags: "true"
 data:
   _example: |
     ################################
@@ -27,6 +29,11 @@ data:
     pluginPreset: |
       expressionEvaluationEnabled: false / true
       integrationEnabled: false / true
+    # enable workloadIdentity features
+    # enabled allows you to use Flux ObjectLevelWorkloadIdentity for OIDC clusters
+    # when enabled, the bootstrap controller writes a workload identity ConfigMap instead of a static kubeconfig
+    workloadIdentity: |
+      enabled: false / true
   dex: |
     storage: {{ include "dex.backend" $ }}
   plugin: |
@@ -34,3 +41,5 @@ data:
   pluginPreset: |
     expressionEvaluationEnabled: {{ include "pluginPreset.expressionEvaluationEnabled" $ }}
     integrationEnabled: {{ include "pluginPreset.integrationEnabled" $ }}
+  workloadIdentity: |
+    enabled: {{ include "workloadIdentity.enabled" $ }}

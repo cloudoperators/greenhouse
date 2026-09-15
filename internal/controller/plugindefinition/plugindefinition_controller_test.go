@@ -4,18 +4,24 @@
 package plugindefinition
 
 import (
+	"context"
+
+	fluxmeta "github.com/fluxcd/pkg/apis/meta"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	cl "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 const (
@@ -356,5 +362,94 @@ var _ = Describe("PluginDefinition controller", func() {
 				g.Expect(string(helmChartCondition.Status)).To(Equal(string(metav1.ConditionUnknown)))
 			}).Should(Succeed())
 		})
+	})
+})
+
+const (
+	testRegistry  = "keppel.eu-de-1.cloud.sap"
+	testChartName = "ccloud-ghcr-io-mirror/cloudoperators/greenhouse-extensions/charts/audit-logs"
+	testVersion   = "0.0.21"
+)
+
+func replicatedPluginDefinition() *greenhousev1alpha1.PluginDefinition {
+	return &greenhousev1alpha1.PluginDefinition{
+		ObjectMeta: metav1.ObjectMeta{Name: "audit-logs-compute", Namespace: "sci"},
+		Status: greenhousev1alpha1.PluginDefinitionStatus{
+			LastSyncedArtifact: &greenhousev1alpha1.LastSyncedArtifact{
+				Registry:          testRegistry,
+				ChartName:         testChartName,
+				Version:           testVersion,
+				ReplicationStatus: greenhousev1alpha1.ReplicationStatusReplicated,
+			},
+		},
+	}
+}
+
+type noopRecorder struct{}
+
+func (noopRecorder) Eventf(_, _ runtime.Object, _, _, _, _ string, _ ...any) {}
+
+func replicationTestScheme() *runtime.Scheme {
+	GinkgoHelper()
+	scheme := runtime.NewScheme()
+	Expect(greenhousev1alpha1.AddToScheme(scheme)).To(Succeed())
+	Expect(sourcev1.AddToScheme(scheme)).To(Succeed())
+	return scheme
+}
+
+var _ = Describe("chart replication", func() {
+	Context("shouldSkipChartReplication", func() {
+		DescribeTable("deciding whether to skip an already-recorded chart",
+			func(mutate func(*greenhousev1alpha1.PluginDefinition), expectSkip bool) {
+				pluginDef := replicatedPluginDefinition()
+				mutate(pluginDef)
+				Expect(shouldSkipChartReplication(pluginDef, testRegistry, testChartName, testVersion)).To(Equal(expectSkip))
+			},
+			Entry("skips when the recorded artifact matches the desired chart",
+				func(*greenhousev1alpha1.PluginDefinition) {}, true),
+			Entry("replicates when nothing was recorded yet",
+				func(pd *greenhousev1alpha1.PluginDefinition) { pd.Status.LastSyncedArtifact = nil }, false),
+			Entry("replicates when the recorded version differs",
+				func(pd *greenhousev1alpha1.PluginDefinition) { pd.Status.LastSyncedArtifact.Version = "0.0.20" }, false),
+			Entry("replicates when a reconcile is requested via annotation",
+				func(pd *greenhousev1alpha1.PluginDefinition) {
+					pd.SetAnnotations(map[string]string{lifecycle.ReconcileAnnotation: "2026-08-25T13:34:13Z"})
+				}, false),
+			Entry("skips again once the annotation is removed",
+				func(pd *greenhousev1alpha1.PluginDefinition) {
+					pd.SetAnnotations(map[string]string{"unrelated": "value"})
+				}, true),
+		)
+	})
+
+	Context("createUpdateHelmChart", func() {
+		DescribeTable("propagating the reconcile request to the HelmChart",
+			func(annotations map[string]string, expectValue string) {
+				pluginDef := replicatedPluginDefinition()
+				pluginDef.SetAnnotations(annotations)
+				pluginDef.Spec.HelmChart = &greenhousev1alpha1.HelmChartReference{
+					Name:       "audit-logs",
+					Repository: "oci://" + testRegistry + "/ccloud-ghcr-io-mirror/cloudoperators/greenhouse-extensions/charts",
+					Version:    testVersion,
+				}
+
+				h := &helmer{
+					k8sClient:     fake.NewClientBuilder().WithScheme(replicationTestScheme()).WithObjects(pluginDef).Build(),
+					recorder:      noopRecorder{},
+					pluginDef:     pluginDef,
+					namespaceName: pluginDef.Namespace,
+				}
+
+				helmChart, err := h.createUpdateHelmChart(context.Background(), &sourcev1.HelmRepository{
+					ObjectMeta: metav1.ObjectMeta{Name: "keppel-repo", Namespace: pluginDef.Namespace},
+				})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(helmChart.GetAnnotations()[fluxmeta.ReconcileRequestAnnotation]).To(Equal(expectValue))
+			},
+			Entry("propagates the reconcile request value to the HelmChart",
+				map[string]string{lifecycle.ReconcileAnnotation: "2026-08-25T13:34:13Z"}, "2026-08-25T13:34:13Z"),
+			Entry("leaves the HelmChart untouched when no reconcile was requested",
+				nil, ""),
+		)
 	})
 })

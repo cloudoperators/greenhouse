@@ -4,18 +4,26 @@
 package clientutil
 
 import (
+	"context"
+	"encoding/base64"
 	"fmt"
 	"sync"
 
 	"github.com/spf13/pflag"
+	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 )
 
 // Implements the genericclioptions.RESTClientGetter interface and additionally allows to access the KubeConfig from Bytes/Secret.
@@ -133,6 +141,38 @@ func NewRestClientGetterForInCluster(namespace string, opts ...KubeClientOption)
 		opt(g)
 	}
 	return g, nil
+}
+
+func NewRestClientGetterForWI(ctx context.Context, inClusterClient client.Client, secret *corev1.Secret, namespace string, opts ...KubeClientOption) (*RestClientGetter, error) {
+	certDecoded, err := base64.StdEncoding.DecodeString(string(secret.Data[greenhouseapis.SecretAPIServerCAKey]))
+	if err != nil {
+		return nil, fmt.Errorf("failed decoding certificate data: %w", err)
+	}
+
+	serviceAccount := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secret.GetName(),
+			Namespace: secret.GetNamespace(),
+		},
+	}
+	tokenRequest := &authenticationv1.TokenRequest{
+		Spec: authenticationv1.TokenRequestSpec{
+			Audiences:         []string{greenhouseapis.OIDCAudience},
+			ExpirationSeconds: ptr.To[int64](600),
+		},
+	}
+	if err := inClusterClient.SubResource("token").Create(ctx, serviceAccount, tokenRequest); err != nil {
+		return nil, fmt.Errorf("failed creating token request for workload identity: %w", err)
+	}
+
+	cfg := &rest.Config{
+		Host:        secret.Annotations[greenhouseapis.SecretAPIServerURLAnnotation],
+		BearerToken: tokenRequest.Status.Token,
+		TLSClientConfig: rest.TLSClientConfig{
+			CAData: certDecoded,
+		},
+	}
+	return NewRestClientGetterFromRestConfig(cfg, namespace, opts...), nil
 }
 
 // NewRestClientGetterFromSecret returns a RestClientGetter from a secret containing a Kube Config.

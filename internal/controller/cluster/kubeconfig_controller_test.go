@@ -83,7 +83,8 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 	})
 
 	AfterAll(func() {
-		test.MustDeleteCluster(test.Ctx, test.K8sClient, &cluster)
+		clusterSecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: clusterName, Namespace: setup.Namespace()}}
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, clusterSecret)
 		Expect(test.K8sClient.Delete(test.Ctx, oidcSecret)).To(Succeed())
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
 	})
@@ -149,27 +150,12 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 
 	It("should update ClusterKubeconfig when cluster secret data changes", func() {
 
-		nextKubeconfig := []byte(`
-apiVersion: v1
-clusters:
-- cluster:
-    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCkEKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
-    server: https://updated:9090
-  name: updated-cluster
-contexts:
-- context:
-    cluster: updated-cluster
-    user: updated-user
-  name: updated-context
-current-context: updated-context
-kind: Config
-preferences: {}
-users:
-- name: updated-user
-  user:
-    client-certificate-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCkEKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
-    client-key-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCkEKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
-`)
+		baseCfg, err := clientcmd.Load(test.KubeConfig)
+		Expect(err).NotTo(HaveOccurred())
+		baseCluster := baseCfg.Clusters[baseCfg.Contexts[baseCfg.CurrentContext].Cluster]
+		baseCluster.Server = "https://updated:9090"
+		nextKubeconfig, err := clientcmd.Write(*baseCfg)
+		Expect(err).NotTo(HaveOccurred())
 
 		cfg, err := clientcmd.Load(nextKubeconfig)
 		Expect(err).NotTo(HaveOccurred())
