@@ -40,6 +40,7 @@ type pluginFeatures struct {
 
 type pluginPresetFeatures struct {
 	ExpressionEvaluationEnabled bool `yaml:"expressionEvaluationEnabled"`
+	IntegrationEnabled          bool `yaml:"integrationEnabled"`
 }
 
 type workloadIdentityFeatures struct {
@@ -130,6 +131,24 @@ func (f *Features) IsPresetExpressionEvaluationEnabled() bool {
 		return false
 	}
 	return f.pluginPreset.ExpressionEvaluationEnabled
+}
+
+// IsPresetIntegrationEnabled returns whether ValueFrom.Ref resolution
+// is enabled in the PluginPreset controller.
+// Returns false as default.
+func (f *Features) IsPresetIntegrationEnabled() bool {
+	if f == nil {
+		return false
+	}
+
+	if f.pluginPreset != nil {
+		return f.pluginPreset.IntegrationEnabled
+	}
+	if err := f.resolvePluginPresetFeatures(); err != nil {
+		ctrl.LoggerFrom(context.Background()).Error(err, "failed to resolve pluginPreset features")
+		return false
+	}
+	return f.pluginPreset.IntegrationEnabled
 }
 
 // IsOCIMirroringEnabled returns whether OCI mirroring is enabled.
