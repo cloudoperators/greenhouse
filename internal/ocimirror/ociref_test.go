@@ -72,6 +72,123 @@ mappings:
 `
 			Expect(ExtractUniqueOCIRefs(manifests)).To(BeEmpty())
 		})
+
+		It("should ignore `image` fields outside of containers", func() {
+			manifests := `
+---
+# Source: gpu-operator/templates/clusterpolicy.yaml
+apiVersion: nvidia.com/v1
+kind: ClusterPolicy
+metadata:
+  name: cluster-policy
+spec:
+  toolkit:
+    repository: keppel.global.cloud.sap/ccloud-nvcr-io-mirror/nvidia/k8s
+    image: container-toolkit
+    version: v1.20.0
+---
+# Source: monitoring/templates/prometheus.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: prometheus
+spec:
+  image: quay.io/prometheus/prometheus:v3.0.0
+---
+# Source: gpu-operator/templates/operator.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-operator
+spec:
+  template:
+    spec:
+      containers:
+      - name: gpu-operator
+        image: nvcr.io/nvidia/gpu-operator:v26.7.0
+`
+			Expect(ExtractUniqueOCIRefs(manifests)).To(Equal([]string{"nvcr.io/nvidia/gpu-operator:v26.7.0"}))
+		})
+
+		It("should extract images from initContainers of nested pod templates", func() {
+			manifests := `
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cleanup
+spec:
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          initContainers:
+          - name: init
+            image: docker.io/library/busybox:1.36
+          containers:
+          - name: cleanup
+            image: ghcr.io/cloudoperators/greenhouse:main
+`
+			Expect(ExtractUniqueOCIRefs(manifests)).To(ConsistOf(
+				"docker.io/library/busybox:1.36",
+				"ghcr.io/cloudoperators/greenhouse:main",
+			))
+		})
+
+		It("should extract images from documents with only initContainers", func() {
+			manifests := `
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: prometheus
+spec:
+  initContainers:
+  - name: init-config-reloader
+    image: quay.io/prometheus-operator/prometheus-config-reloader:v0.80.0
+`
+			Expect(ExtractUniqueOCIRefs(manifests)).To(Equal([]string{"quay.io/prometheus-operator/prometheus-config-reloader:v0.80.0"}))
+		})
+
+		It("should ignore containers without an image", func() {
+			manifests := `
+apiVersion: monitoring.coreos.com/v1
+kind: ThanosRuler
+metadata:
+  name: thanos-ruler
+spec:
+  containers:
+  - name: thanos-ruler
+    volumeMounts:
+    - mountPath: /etc/thanos/secrets
+      name: alertmanager-sso-cert
+  initContainers:
+  - name: init
+    image: ""
+`
+			Expect(ExtractUniqueOCIRefs(manifests)).To(BeEmpty())
+		})
+
+		It("should ignore CustomResourceDefinitions", func() {
+			manifests := `
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: runners.example.com
+spec:
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            default:
+              containers:
+              - name: runner
+                image: docker.io/library/busybox:1.36
+`
+			Expect(ExtractUniqueOCIRefs(manifests)).To(BeEmpty())
+		})
 	})
 
 	Describe("SplitOCIRef", func() {
