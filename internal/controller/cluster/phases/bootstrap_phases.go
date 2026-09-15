@@ -270,6 +270,10 @@ func (p *BootstrapPhase) createOrUpdateCluster(ctx context.Context, cluster *gre
 		}
 		cluster.SetAnnotations(annotations)
 		cluster.Spec.AccessMode = greenhousev1alpha1.ClusterAccessModeDirect
+		cluster.Spec.Mode = greenhousev1alpha1.ClusterModeDefault
+		if p.Secret.Annotations[greenhouseapis.ClusterWorkerlessAnnotation] == "true" {
+			cluster.Spec.Mode = greenhousev1alpha1.ClusterModeWorkerless
+		}
 		// Transport KubeConfigSecret labels to Cluster
 		cluster = (lifecycle.NewPropagator(p.Secret, cluster).Apply()).(*greenhousev1alpha1.Cluster)
 		return nil
