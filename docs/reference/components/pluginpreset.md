@@ -337,6 +337,39 @@ spec:
       "endpoint-b.kind-greenhouse-remote.example.com"]
 ```
 
+### Reference a Plugin
+
+Set `ref.kind` to `Plugin` to read the option values of an existing Plugin instead of a PluginPreset. Name and label selector work the same way as above.
+
+The Plugins created by a PluginPreset carry the label `greenhouse.sap/pluginpreset: <preset name>`, so a selector on that label collects one value per cluster the source preset rolls out to.
+
+```yaml
+# Consumer PluginPreset - collects one host per cluster of the source preset
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginPreset
+metadata:
+  name: thanos-central
+spec:
+  plugin:
+    pluginDefinitionRef:
+      name: thanos
+    optionValues:
+      - name: thanos.query.stores
+        valueFrom:
+          ref:
+            kind: Plugin
+            selector:
+              matchLabels:
+                greenhouse.sap/pluginpreset: thanos-regional
+            expression: |
+              ${spec.optionValues.filter(v, v.name == "thanos.query.grpc.host")[0].value}
+  clusterSelector:
+    matchLabels:
+      env: production
+```
+
+Next to `metadata` and `spec.optionValues`, an expression on a Plugin reference can also read `spec.clusterName` and `spec.releaseName`.
+
 ### CEL Expression Syntax for References
 The expression field in valueFrom.ref supports multiple syntax styles:
 
@@ -350,7 +383,7 @@ The expression field in valueFrom.ref supports multiple syntax styles:
 `expression: object.spec.optionValues.filter(v, v.name == "my.value")[0].value`
 
 
-> :warning: ValueFrom references in PluginPresets only support referencing other PluginPresets (kind: PluginPreset). Referencing standalone Plugins is not supported.
+> :warning: `ref.kind` accepts `PluginPreset` and `Plugin` only, and defaults to `PluginPreset` when left empty. Any other kind fails the resolution.
 
 ### Feature Flags
 Expression evaluation and ValueFrom.Ref resolution in PluginPresets are controlled by feature flags:
