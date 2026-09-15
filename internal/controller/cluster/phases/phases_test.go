@@ -70,12 +70,6 @@ func TestEnsureWorkloadSchedulable(t *testing.T) {
 			wantReason: greenhousev1alpha1.WorkerlessClusterReason,
 		},
 		{
-			name:       "workerless ignores missing KubeConfigValid and AllNodesReady",
-			mode:       greenhousev1alpha1.ClusterModeWorkerless,
-			wantStatus: metav1.ConditionFalse,
-			wantReason: greenhousev1alpha1.WorkerlessClusterReason,
-		},
-		{
 			name:       "default with all conditions passing sets PayloadSchedulable=True",
 			mode:       greenhousev1alpha1.ClusterModeDefault,
 			wantStatus: metav1.ConditionTrue,

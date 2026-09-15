@@ -376,8 +376,9 @@ var _ = Describe("initClientGetter", func() {
 			// initClientGetter will fail trying to build a REST client from the empty secret,
 			// but the reason must not be ClusterPayloadNotSchedulable
 			_, _, err := initClientGetter(test.Ctx, fakeClient, nil, plugin, false)
-			cond := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
-			if err != nil && cond != nil {
+			if err != nil {
+				cond := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
+				Expect(cond).NotTo(BeNil())
 				Expect(cond.Reason).NotTo(Equal(greenhousev1alpha1.ClusterPayloadNotSchedulableReason))
 			}
 		})
