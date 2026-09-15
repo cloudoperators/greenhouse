@@ -122,6 +122,7 @@ Fields:
 ### Image Transformation
 
 When deploying plugins, image references are automatically rewritten to use the configured mirror registries.
+Only images of `containers` and `initContainers` are rewritten and replicated. Image fields of custom resources, such as an operator configuration, are left unchanged.
 
 **Example: GitHub Container Registry**
 
