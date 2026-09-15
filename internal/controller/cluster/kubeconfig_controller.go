@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -112,13 +113,20 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// Sync labels from cluster on every reconcile, independent of OIDC/secret availability.
 	if _, err := clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
 		kubeconfig.Labels = cluster.GetLabels()
-		if cluster.Status.KubernetesVersion != "" {
+		// Always delete the version key first so a stale value from the Cluster's own
+		// metadata labels cannot survive when Status.KubernetesVersion is empty.
+		delete(kubeconfig.Labels, greenhouseapis.LabelKeyKubernetesVersion)
+		if v := cluster.Status.KubernetesVersion; v != "" {
 			if kubeconfig.Labels == nil {
 				kubeconfig.Labels = make(map[string]string)
 			}
-			kubeconfig.Labels[greenhouseapis.LabelKeyKubernetesVersion] = cluster.Status.KubernetesVersion
-		} else {
-			delete(kubeconfig.Labels, greenhouseapis.LabelKeyKubernetesVersion)
+			// Kubernetes label values must be ≤63 chars and must not contain '+'.
+			// Replace '+' with '-' to preserve build metadata readably (e.g. v1.31.4+k3s1 → v1.31.4-k3s1).
+			safe := strings.ReplaceAll(v, "+", "-")
+			if len(safe) > 63 {
+				safe = safe[:63]
+			}
+			kubeconfig.Labels[greenhouseapis.LabelKeyKubernetesVersion] = safe
 		}
 		return nil
 	}); err != nil {

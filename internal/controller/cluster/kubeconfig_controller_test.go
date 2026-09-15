@@ -5,6 +5,7 @@ package cluster_test
 
 import (
 	"fmt"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -156,13 +157,32 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 			return clusterWithVersion.Status.KubernetesVersion
 		}).ShouldNot(BeEmpty())
 
-		// The kubeconfig controller must mirror whatever version the cluster controller wrote.
-		expectedVersion := clusterWithVersion.Status.KubernetesVersion
+		// The kubeconfig controller must mirror the version in label-safe form (+→-).
+		expectedLabel := strings.ReplaceAll(clusterWithVersion.Status.KubernetesVersion, "+", "-")
 		Eventually(func(g Gomega) string {
 			ck := v1alpha1.ClusterKubeconfig{}
 			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &ck)).To(Succeed())
 			return ck.Labels[greenhouseapis.LabelKeyKubernetesVersion]
-		}).Should(Equal(expectedVersion))
+		}).Should(Equal(expectedLabel))
+
+		// Verify stale-value removal: if the Cluster metadata already carries the
+		// version key, the kubeconfig controller must not simply mirror that stale
+		// value — it must always reflect Status.KubernetesVersion (normalized).
+		// Inject a stale value directly on the ClusterKubeconfig and confirm the
+		// controller reconciles it back to the correct value.
+		Eventually(func(g Gomega) {
+			ck := v1alpha1.ClusterKubeconfig{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &ck)).To(Succeed())
+			ck.Labels[greenhouseapis.LabelKeyKubernetesVersion] = "stale-value"
+			g.Expect(test.K8sClient.Update(test.Ctx, &ck)).To(Succeed())
+		}).Should(Succeed())
+
+		// Controller must reconcile it back to the correct normalized value.
+		Eventually(func(g Gomega) string {
+			ck := v1alpha1.ClusterKubeconfig{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &ck)).To(Succeed())
+			return ck.Labels[greenhouseapis.LabelKeyKubernetesVersion]
+		}).Should(Equal(expectedLabel))
 	})
 
 	It("should update ClusterKubeconfig when cluster secret data changes", func() {
