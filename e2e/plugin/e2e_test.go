@@ -65,7 +65,8 @@ var _ = BeforeSuite(func() {
 var _ = AfterSuite(func() {
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterName, env.TestNamespace)
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterName, env.TestNamespace)
-	shared.OffBoardWorkerlessCluster(ctx, adminClient, remoteWorkerlessClusterName, env.TestNamespace)
+	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteWorkerlessClusterName, env.TestNamespace)
+	shared.VerifyRemoteRBACDeleted(ctx, remoteClient, env.TestNamespace)
 	test.EventuallyDeleted(ctx, adminClient, team)
 	env.GenerateGreenhouseControllerLogs(ctx, testStartTime)
 	env.GenerateFluxControllerLogs(ctx, "helm-controller", testStartTime)
