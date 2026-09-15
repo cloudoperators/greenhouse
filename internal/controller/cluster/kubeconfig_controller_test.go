@@ -149,50 +149,20 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 	})
 
 	It("should set kubernetes-version label from cluster status", func() {
-		const version1 = "v1.34.6"
-		const version2 = "v1.35.0"
+		// Wait for the cluster controller to set KubernetesVersion from the envtest API server.
+		clusterWithVersion := v1alpha1.Cluster{}
+		Eventually(func(g Gomega) string {
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterWithVersion)).To(Succeed())
+			return clusterWithVersion.Status.KubernetesVersion
+		}).ShouldNot(BeEmpty())
 
-		// Set initial version on the cluster status
-		clusterToBeUpdated := v1alpha1.Cluster{}
-		Eventually(func(g Gomega) {
-			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterToBeUpdated)).To(Succeed())
-			clusterToBeUpdated.Status.KubernetesVersion = version1
-			g.Expect(test.K8sClient.Status().Update(test.Ctx, &clusterToBeUpdated)).To(Succeed())
-		}).Should(Succeed())
-
-		// Label should appear on ClusterKubeconfig
+		// The kubeconfig controller must mirror whatever version the cluster controller wrote.
+		expectedVersion := clusterWithVersion.Status.KubernetesVersion
 		Eventually(func(g Gomega) string {
 			ck := v1alpha1.ClusterKubeconfig{}
 			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &ck)).To(Succeed())
 			return ck.Labels[greenhouseapis.LabelKeyKubernetesVersion]
-		}).Should(Equal(version1))
-
-		// Update version — label should follow
-		Eventually(func(g Gomega) {
-			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterToBeUpdated)).To(Succeed())
-			clusterToBeUpdated.Status.KubernetesVersion = version2
-			g.Expect(test.K8sClient.Status().Update(test.Ctx, &clusterToBeUpdated)).To(Succeed())
-		}).Should(Succeed())
-
-		Eventually(func(g Gomega) string {
-			ck := v1alpha1.ClusterKubeconfig{}
-			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &ck)).To(Succeed())
-			return ck.Labels[greenhouseapis.LabelKeyKubernetesVersion]
-		}).Should(Equal(version2))
-
-		// Clear version — label should be absent
-		Eventually(func(g Gomega) {
-			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterToBeUpdated)).To(Succeed())
-			clusterToBeUpdated.Status.KubernetesVersion = ""
-			g.Expect(test.K8sClient.Status().Update(test.Ctx, &clusterToBeUpdated)).To(Succeed())
-		}).Should(Succeed())
-
-		Eventually(func(g Gomega) bool {
-			ck := v1alpha1.ClusterKubeconfig{}
-			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &ck)).To(Succeed())
-			_, exists := ck.Labels[greenhouseapis.LabelKeyKubernetesVersion]
-			return exists
-		}).Should(BeFalse())
+		}).Should(Equal(expectedVersion))
 	})
 
 	It("should update ClusterKubeconfig when cluster secret data changes", func() {

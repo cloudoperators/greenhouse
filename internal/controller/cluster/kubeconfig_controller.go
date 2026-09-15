@@ -109,6 +109,23 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 	}
 
+	// Sync labels from cluster on every reconcile, independent of OIDC/secret availability.
+	if _, err := clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
+		kubeconfig.Labels = cluster.GetLabels()
+		if cluster.Status.KubernetesVersion != "" {
+			if kubeconfig.Labels == nil {
+				kubeconfig.Labels = make(map[string]string)
+			}
+			kubeconfig.Labels[greenhouseapis.LabelKeyKubernetesVersion] = cluster.Status.KubernetesVersion
+		} else {
+			delete(kubeconfig.Labels, greenhouseapis.LabelKeyKubernetesVersion)
+		}
+		return nil
+	}); err != nil {
+		l.Error(err, "failed to sync labels on ClusterKubeconfig")
+		return ctrl.Result{}, err
+	}
+
 	// get oidc info from organization
 	oidc, err := r.getOIDCInfo(ctx, cluster.Namespace, &cluster)
 	if err != nil {
@@ -206,15 +223,6 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// collect oidc data and update kubeconfig
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
-		// Mirror the cluster's labels
-		kubeconfig.Labels = cluster.GetLabels()
-		if cluster.Status.KubernetesVersion != "" {
-			if kubeconfig.Labels == nil {
-				kubeconfig.Labels = make(map[string]string)
-			}
-			kubeconfig.Labels[greenhouseapis.LabelKeyKubernetesVersion] = cluster.Status.KubernetesVersion
-		}
-
 		kubeconfig.Spec.Kubeconfig.Clusters = []v1alpha1.ClusterKubeconfigClusterItem{
 			{
 				Name: cluster.Name,
