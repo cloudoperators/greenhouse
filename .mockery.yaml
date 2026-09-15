@@ -28,3 +28,6 @@ packages:
       SubResourceWriter:
         config:
           filename: "mock_{{.InterfaceName}}.go"
+      SubResourceClient:
+        config:
+          filename: "mock_{{.InterfaceName}}.go"
