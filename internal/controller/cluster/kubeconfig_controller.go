@@ -208,6 +208,12 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
 		// Mirror the cluster's labels
 		kubeconfig.Labels = cluster.GetLabels()
+		if cluster.Status.KubernetesVersion != "" {
+			if kubeconfig.Labels == nil {
+				kubeconfig.Labels = make(map[string]string)
+			}
+			kubeconfig.Labels[greenhouseapis.LabelKeyKubernetesVersion] = cluster.Status.KubernetesVersion
+		}
 
 		kubeconfig.Spec.Kubeconfig.Clusters = []v1alpha1.ClusterKubeconfigClusterItem{
 			{
