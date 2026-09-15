@@ -251,18 +251,23 @@ func (p *BootstrapPhase) createOrUpdateCluster(ctx context.Context, cluster *gre
 	cluster.SetName(p.Secret.Name)
 	cluster.SetNamespace(p.Secret.Namespace)
 
-	annotations := cluster.GetAnnotations()
-	if annotations == nil {
-		annotations = make(map[string]string, 1)
-	}
-	switch p.Secret.Type {
-	case greenhouseapis.SecretTypeKubeConfig:
-		annotations[greenhouseapis.ClusterConnectivityAnnotation] = greenhouseapis.ClusterConnectivityKubeconfig
-	case greenhouseapis.SecretTypeOIDCConfig:
-		annotations[greenhouseapis.ClusterConnectivityAnnotation] = greenhouseapis.ClusterConnectivityOIDC
-	}
-
 	result, err := controllerutil.CreateOrUpdate(ctx, p.Client, cluster, func() error {
+		annotations := cluster.GetAnnotations()
+		if annotations == nil {
+			annotations = make(map[string]string, 1)
+		}
+		switch p.Secret.Type {
+		case greenhouseapis.SecretTypeKubeConfig:
+			annotations[greenhouseapis.ClusterConnectivityAnnotation] = greenhouseapis.ClusterConnectivityKubeconfig
+			delete(annotations, greenhouseapis.ClusterWorkloadIdentityAnnotation)
+		case greenhouseapis.SecretTypeOIDCConfig:
+			annotations[greenhouseapis.ClusterConnectivityAnnotation] = greenhouseapis.ClusterConnectivityOIDC
+			if p.WorkloadIdentityEnabled {
+				annotations[greenhouseapis.ClusterWorkloadIdentityAnnotation] = greenhouseapis.ClusterWorkloadIdentityEnabled
+			} else {
+				delete(annotations, greenhouseapis.ClusterWorkloadIdentityAnnotation)
+			}
+		}
 		cluster.SetAnnotations(annotations)
 		cluster.Spec.AccessMode = greenhousev1alpha1.ClusterAccessModeDirect
 		cluster.Spec.Mode = greenhousev1alpha1.ClusterModeDefault

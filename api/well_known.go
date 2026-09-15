@@ -131,9 +131,11 @@ const (
 
 // cluster annotations
 const (
-	ClusterConnectivityAnnotation = "greenhouse.sap/cluster-connectivity"
-	ClusterConnectivityKubeconfig = "kubeconfig"
-	ClusterConnectivityOIDC       = "oidc"
+	ClusterConnectivityAnnotation     = "greenhouse.sap/cluster-connectivity"
+	ClusterConnectivityKubeconfig     = "kubeconfig"
+	ClusterConnectivityOIDC           = "oidc"
+	ClusterWorkloadIdentityAnnotation = "greenhouse.sap/workload-identity"
+	ClusterWorkloadIdentityEnabled    = "true"
 
 	ClusterWorkerlessAnnotation = "greenhouse.sap/workerless"
 )
