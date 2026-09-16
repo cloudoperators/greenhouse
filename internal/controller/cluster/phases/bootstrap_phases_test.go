@@ -107,6 +107,64 @@ func TestBootstrapEnsureDeletePhases(t *testing.T) {
 	require.Len(t, p.EnsureDeletePhases(), 1)
 }
 
+func TestEnsureCluster(t *testing.T) {
+	tests := []struct {
+		name                 string
+		secretType           corev1.SecretType
+		workloadID           bool
+		wantConnectivity     string
+		wantWorkloadIdentity bool
+	}{
+		{
+			name:             "it should create the cluster for a kubeconfig secret",
+			secretType:       greenhouseapis.SecretTypeKubeConfig,
+			workloadID:       false,
+			wantConnectivity: greenhouseapis.ClusterConnectivityKubeconfig,
+		},
+		{
+			name:                 "it should create the cluster for an OIDC secret with workload identity",
+			secretType:           greenhouseapis.SecretTypeOIDCConfig,
+			workloadID:           true,
+			wantConnectivity:     greenhouseapis.ClusterConnectivityOIDC,
+			wantWorkloadIdentity: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			scheme := testScheme(t)
+			secret := oidcSecret()
+			secret.Type = tt.secretType
+
+			c := &mocks.MockClient{}
+			c.On("Scheme").Return(scheme)
+			c.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(notFound())
+
+			var createdCluster *greenhousev1alpha1.Cluster
+			c.On("Create", mock.Anything, mock.Anything, mock.Anything).
+				Return(func(_ context.Context, obj client.Object, _ ...client.CreateOption) error {
+					createdCluster = obj.(*greenhousev1alpha1.Cluster)
+					return nil
+				})
+
+			p := &BootstrapPhase{Client: c, Scheme: scheme, Secret: secret, WorkloadIdentityEnabled: tt.workloadID}
+			res, err := p.ensureCluster()(ctx)
+
+			require.NoError(t, err)
+			require.Equal(t, lifecycle.Continue(), res)
+			require.NotNil(t, createdCluster)
+			require.Equal(t, greenhousev1alpha1.ClusterAccessModeDirect, createdCluster.Spec.AccessMode)
+			require.Equal(t, tt.wantConnectivity, createdCluster.GetAnnotations()[greenhouseapis.ClusterConnectivityAnnotation])
+			if tt.wantWorkloadIdentity {
+				require.Equal(t, greenhouseapis.ClusterWorkloadIdentityEnabled, createdCluster.GetAnnotations()[greenhouseapis.ClusterWorkloadIdentityAnnotation])
+			} else {
+				require.NotContains(t, createdCluster.GetAnnotations(), greenhouseapis.ClusterWorkloadIdentityAnnotation)
+			}
+		})
+	}
+}
+
 // TestEnsureWorkloadIdentityConfigMap asserts the WI subroutine creates the SA, writes the
 // Flux ConfigMap with the expected keys, and never mints a token.
 func TestEnsureWorkloadIdentityConfigMap(t *testing.T) {
@@ -116,17 +174,16 @@ func TestEnsureWorkloadIdentityConfigMap(t *testing.T) {
 
 	c := &mocks.MockClient{}
 	c.On("Scheme").Return(scheme)
-	// CreateOrPatch on the SA: Get returns NotFound -> Create.
-	c.On("Get", mock.Anything, mock.Anything, mock.AnythingOfType("*v1.ServiceAccount"), mock.Anything).Return(notFound())
-	c.On("Create", mock.Anything, mock.AnythingOfType("*v1.ServiceAccount"), mock.Anything).Return(nil)
+	c.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(notFound())
 
-	// CreateOrUpdate on the ConfigMap: Get returns NotFound -> Create. Capture the written object.
 	var writtenCM *corev1.ConfigMap
-	c.On("Get", mock.Anything, mock.Anything, mock.AnythingOfType("*v1.ConfigMap"), mock.Anything).Return(notFound())
-	c.On("Create", mock.Anything, mock.AnythingOfType("*v1.ConfigMap"), mock.Anything).
-		Run(func(args mock.Arguments) {
-			writtenCM = args.Get(1).(*corev1.ConfigMap)
-		}).Return(nil)
+	c.On("Create", mock.Anything, mock.Anything, mock.Anything).
+		Return(func(_ context.Context, obj client.Object, _ ...client.CreateOption) error {
+			if cm, ok := obj.(*corev1.ConfigMap); ok {
+				writtenCM = cm
+			}
+			return nil
+		})
 
 	p := &BootstrapPhase{Client: c, Scheme: scheme, Secret: secret, WorkloadIdentityEnabled: true}
 	res, err := p.ensureWorkloadIdentityConfigMap()(ctx)
@@ -144,7 +201,7 @@ func TestEnsureWorkloadIdentityConfigMap(t *testing.T) {
 }
 
 // TestEnsureWorkloadIdentityConfigMapDropsStaleKubeConfig asserts migration cleanup: a
-// pre-existing greenhousekubeconfig key and its generated-on annotation are removed.
+// pre-existing greenhousekubeconfig key and its generated timestamp annotation are removed.
 func TestEnsureWorkloadIdentityConfigMapDropsStaleKubeConfig(t *testing.T) {
 	ctx := context.Background()
 	scheme := testScheme(t)
@@ -154,16 +211,17 @@ func TestEnsureWorkloadIdentityConfigMapDropsStaleKubeConfig(t *testing.T) {
 
 	c := &mocks.MockClient{}
 	c.On("Scheme").Return(scheme)
-	c.On("Get", mock.Anything, mock.Anything, mock.AnythingOfType("*v1.ServiceAccount"), mock.Anything).Return(notFound())
-	c.On("Create", mock.Anything, mock.AnythingOfType("*v1.ServiceAccount"), mock.Anything).Return(nil)
-	c.On("Get", mock.Anything, mock.Anything, mock.AnythingOfType("*v1.ConfigMap"), mock.Anything).Return(notFound())
-	c.On("Create", mock.Anything, mock.AnythingOfType("*v1.ConfigMap"), mock.Anything).Return(nil)
+	c.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(notFound())
+	c.On("Create", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	var updatedSecret *corev1.Secret
-	c.On("Update", mock.Anything, mock.AnythingOfType("*v1.Secret"), mock.Anything).
-		Run(func(args mock.Arguments) {
-			updatedSecret = args.Get(1).(*corev1.Secret)
-		}).Return(nil)
+	c.On("Update", mock.Anything, mock.Anything, mock.Anything).
+		Return(func(_ context.Context, obj client.Object, _ ...client.UpdateOption) error {
+			if s, ok := obj.(*corev1.Secret); ok {
+				updatedSecret = s
+			}
+			return nil
+		})
 
 	p := &BootstrapPhase{Client: c, Scheme: scheme, Secret: secret, WorkloadIdentityEnabled: true}
 	res, err := p.ensureWorkloadIdentityConfigMap()(ctx)
@@ -175,28 +233,25 @@ func TestEnsureWorkloadIdentityConfigMapDropsStaleKubeConfig(t *testing.T) {
 	require.NotContains(t, updatedSecret.Annotations, greenhouseapis.SecretOIDCConfigGeneratedOnAnnotation)
 }
 
-// TestEnsureClusterDeleted covers both the cluster-gone and cluster-present branches.
+// TestEnsureClusterDeleted covers cluster already gone and cluster available to be deleted flows
 func TestEnsureClusterDeleted(t *testing.T) {
 	tests := []struct {
 		name       string
 		getErr     error
 		wantDelete bool
 		wantResult lifecycle.Result
-		wantErr    bool
 	}{
 		{
 			name:       "it should continue without delete when the cluster is already gone",
 			getErr:     notFound(),
 			wantDelete: false,
 			wantResult: lifecycle.Continue(),
-			wantErr:    false,
 		},
 		{
 			name:       "it should delete the cluster and block finalizer removal with a requeue when present",
 			getErr:     nil,
 			wantDelete: true,
 			wantResult: lifecycle.RequeueAfter(10 * time.Second),
-			wantErr:    false,
 		},
 	}
 
@@ -205,23 +260,21 @@ func TestEnsureClusterDeleted(t *testing.T) {
 			ctx := context.Background()
 			secret := oidcSecret()
 			c := &mocks.MockClient{}
-			c.On("Get", mock.Anything, mock.Anything, mock.AnythingOfType("*v1alpha1.Cluster"), mock.Anything).Return(tt.getErr)
-			deleteCalled := false
+			c.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(tt.getErr)
 			if tt.wantDelete {
-				c.On("Delete", mock.Anything, mock.AnythingOfType("*v1alpha1.Cluster"), mock.Anything).
-					Run(func(mock.Arguments) { deleteCalled = true }).Return(nil)
+				c.EXPECT().Delete(mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			}
 
 			p := &BootstrapPhase{Client: c, Scheme: testScheme(t), Secret: secret}
 			res, err := p.ensureClusterDeleted()(ctx)
 
-			if tt.wantErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-			}
+			require.NoError(t, err)
 			require.Equal(t, tt.wantResult, res)
-			require.Equal(t, tt.wantDelete, deleteCalled)
+			if tt.wantDelete {
+				c.AssertCalled(t, "Delete", mock.Anything, mock.Anything, mock.Anything)
+			} else {
+				c.AssertNotCalled(t, "Delete", mock.Anything, mock.Anything, mock.Anything)
+			}
 		})
 	}
 }
@@ -234,18 +287,18 @@ func TestRequeue(t *testing.T) {
 	require.Equal(t, lifecycle.RequeueAfter(utils.DefaultRequeueInterval), res)
 }
 
-// TestEnsureOwnerReferences skips setting the owner reference while the Cluster is being deleted.
+// TestEnsureOwnerReferencesSkipsWhenClusterDeleting skips setting the owner reference while the Cluster is being deleted.
 func TestEnsureOwnerReferencesSkipsWhenClusterDeleting(t *testing.T) {
 	ctx := context.Background()
 	secret := oidcSecret()
 	now := metav1.Now()
 
 	c := &mocks.MockClient{}
-	c.On("Get", mock.Anything, mock.Anything, mock.AnythingOfType("*v1alpha1.Cluster"), mock.Anything).
-		Run(func(args mock.Arguments) {
-			cluster := args.Get(2).(*greenhousev1alpha1.Cluster)
-			cluster.DeletionTimestamp = &now
-		}).Return(nil)
+	c.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(func(_ context.Context, _ client.ObjectKey, obj client.Object, _ ...client.GetOption) error {
+			obj.(*greenhousev1alpha1.Cluster).DeletionTimestamp = &now
+			return nil
+		})
 
 	p := &BootstrapPhase{Client: c, Scheme: testScheme(t), Secret: secret}
 	res, err := p.ensureOwnerReferences()(ctx)
@@ -253,7 +306,7 @@ func TestEnsureOwnerReferencesSkipsWhenClusterDeleting(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, lifecycle.Continue(), res)
 	// owner reference is not patched onto the secret while the cluster is terminating
-	c.AssertNotCalled(t, "Patch", mock.Anything, mock.AnythingOfType("*v1.Secret"), mock.Anything, mock.Anything)
+	c.AssertNotCalled(t, "Patch", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 }
 
 var _ client.Client = (*mocks.MockClient)(nil)
