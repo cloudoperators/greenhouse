@@ -24,6 +24,9 @@ global:
   # PluginPreset configuration for Greenhouse.
   pluginPreset:
     expressionEvaluationEnabled: false
+  # WorkloadIdentity configuration for Greenhouse.
+  workloadIdentity:
+    enabled: false
 
 postgresqlng:
   enabled: true

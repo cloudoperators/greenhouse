@@ -5,11 +5,13 @@ package shared
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	"github.com/cloudoperators/greenhouse/internal/features"
 	"github.com/cloudoperators/greenhouse/internal/test"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 
@@ -17,6 +19,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
@@ -56,25 +59,53 @@ func OnboardRemoteOIDCCluster(ctx context.Context, k8sClient client.Client, caCe
 	Expect(err).NotTo(HaveOccurred())
 }
 
+func SetupOIDCClusterRoleBinding(ctx context.Context, remoteClient client.Client, clusterRoleBindingName, clusterName, namespace string) {
+	crb := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: clusterRoleBindingName,
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:     rbacv1.UserKind,
+				APIGroup: rbacv1.GroupName,
+				Name:     fmt.Sprintf("greenhouse:system:serviceaccount:%s:%s", namespace, clusterName),
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: rbacv1.GroupName,
+			Kind:     "ClusterRole",
+			Name:     "cluster-admin",
+		},
+	}
+	err := remoteClient.Create(ctx, crb)
+	if apierrors.IsAlreadyExists(err) {
+		err = remoteClient.Update(ctx, crb)
+	}
+	Expect(err).NotTo(HaveOccurred(), "there should be no error creating the oidc cluster role binding")
+}
+
 func OffBoardRemoteCluster(ctx context.Context, adminClient, remoteClient client.Client, testStartTime time.Time, name, namespace string) {
-	cluster := &greenhousev1alpha1.Cluster{}
-	err := adminClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, cluster)
+	secret := &corev1.Secret{}
+	err := adminClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, secret)
 	if apierrors.IsNotFound(err) {
 		return
 	}
 	Expect(err).NotTo(HaveOccurred())
 
-	By("removing the cluster resource")
-	err = adminClient.Delete(ctx, cluster)
+	By("removing the cluster secret")
+	err = adminClient.Delete(ctx, secret)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("checking the cluster resource is eventually deleted")
 	Eventually(func(g Gomega) {
+		cluster := &greenhousev1alpha1.Cluster{}
 		err := adminClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, cluster)
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "cluster resource should be deleted")
 		secret := &corev1.Secret{}
 		err = adminClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, secret)
-		GinkgoWriter.Printf("secret err: %v\n", err)
+		if err != nil {
+			GinkgoWriter.Printf("secret err: %v\n", err)
+		}
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "cluster secret should be deleted")
 	}).Should(Succeed(), "cluster resource & secret should be deleted")
 
@@ -105,4 +136,20 @@ func ClusterIsReady(ctx context.Context, adminClient client.Client, clusterName,
 		g.Expect(readyCondition.IsTrue()).To(BeTrue(), "cluster should be ready")
 		g.Expect(cluster.Status.KubernetesVersion).ToNot(BeEmpty(), "cluster should have kubernetes version")
 	}).Should(Succeed(), "cluster should be ready")
+}
+
+func EnableWorkloadIdentityFeature(ctx context.Context, adminClient client.Client) {
+	By("enabling the workloadIdentity feature flag")
+	Eventually(func(g Gomega) {
+		configMaps := &corev1.ConfigMapList{}
+		err := adminClient.List(ctx, configMaps, client.MatchingLabels{greenhouseapis.LabelKeyFeatureFlags: "true"})
+		g.Expect(err).NotTo(HaveOccurred(), "there should be no error listing the feature flags config map")
+		g.Expect(configMaps.Items).ToNot(BeEmpty(), "there should be a feature flags config map")
+		configMap := &configMaps.Items[0]
+		if configMap.Data == nil {
+			configMap.Data = map[string]string{}
+		}
+		configMap.Data[features.WorkloadIdentityFeatureKey] = "enabled: true"
+		g.Expect(adminClient.Update(ctx, configMap)).To(Succeed(), "there should be no error updating the feature flags config map")
+	}).Should(Succeed(), "workloadIdentity feature flag should be enabled")
 }

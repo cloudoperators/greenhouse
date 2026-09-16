@@ -45,6 +45,9 @@ const (
 	// LabelKeyCluster is used to identify corresponding Cluster for the resource.
 	LabelKeyCluster = "greenhouse.sap/cluster"
 
+	// LabelKeyKubernetesVersion is the Kubernetes version of the cluster, written by the clusterkubeconfig controller.
+	LabelKeyKubernetesVersion = "greenhouse.sap/kubernetes-version"
+
 	// AnnotationKeyExpose marks services and ingresses for exposure via Plugin status.
 	// For services: set to "true" or specify a named port to be exposed via service-proxy.
 	// For ingresses: set to "true" to expose the ingress URL directly.
@@ -69,6 +72,9 @@ const (
 
 	// LabelKeyCatalogSource is used to identify the source of the owning catalog resource of (Cluster)PluginDefinitions.
 	LabelKeyCatalogSource = "greenhouse.sap/catalog-source"
+
+	// LabelKeyFeatureFlags identifies the feature flags ConfigMap watched by controllers for live reload.
+	LabelKeyFeatureFlags = "greenhouse.sap/feature-flags"
 
 	// LabelKeyUIPlugin is used to identify Plugins that have a UI component.
 	LabelKeyUIPlugin = "greenhouse.sap/ui-plugin"
@@ -128,9 +134,11 @@ const (
 
 // cluster annotations
 const (
-	ClusterConnectivityAnnotation = "greenhouse.sap/cluster-connectivity"
-	ClusterConnectivityKubeconfig = "kubeconfig"
-	ClusterConnectivityOIDC       = "oidc"
+	ClusterConnectivityAnnotation     = "greenhouse.sap/cluster-connectivity"
+	ClusterConnectivityKubeconfig     = "kubeconfig"
+	ClusterConnectivityOIDC           = "oidc"
+	ClusterWorkloadIdentityAnnotation = "greenhouse.sap/workload-identity"
+	ClusterWorkloadIdentityEnabled    = "true"
 )
 
 const (

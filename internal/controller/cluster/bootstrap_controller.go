@@ -5,36 +5,31 @@ package cluster
 
 import (
 	"context"
-	"encoding/base64"
-	"fmt"
-	"strings"
-	"time"
+	"sync/atomic"
 
-	"github.com/pkg/errors"
-	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/events"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
-	"github.com/cloudoperators/greenhouse/internal/controller/cluster/utils"
+	clusterphases "github.com/cloudoperators/greenhouse/internal/controller/cluster/phases"
+	"github.com/cloudoperators/greenhouse/internal/features"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 type BootstrapReconciler struct {
 	client.Client
-	recorder events.EventRecorder
+	recorder                events.EventRecorder
+	WorkloadIdentityEnabled bool
+	FeatureFlagsName        string
+	FeatureFlagsNamespace   string
+	workloadIdentityEnabled atomic.Bool
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=clusters,verbs=get;list;watch;create;update;patch;delete
@@ -42,11 +37,15 @@ type BootstrapReconciler struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=clusters/finalizers,verbs=update
 //+kubebuilder:rbac:groups="events.k8s.io",resources=events,verbs=get;list;watch;update;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;update;patch;create
+//+kubebuilder:rbac:groups="",resources=serviceaccounts/token,verbs=create
+//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;update;patch;create
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *BootstrapReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
 	r.recorder = mgr.GetEventRecorder(name)
+	r.workloadIdentityEnabled.Store(r.WorkloadIdentityEnabled)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
@@ -55,194 +54,62 @@ func (r *BootstrapReconciler) SetupWithManager(name string, mgr ctrl.Manager) er
 		)).
 		// Watch clusters and enqueue its secret.
 		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(enqueueSecretForCluster)).
+		// Watch the feature flags ConfigMap to hot-reload the workload identity feature gate.
+		Watches(&corev1.ConfigMap{}, handler.EnqueueRequestsFromMapFunc(r.reloadFeatureFlags), builder.WithPredicates(
+			clientutil.PredicateHasLabelWithValue(greenhouseapis.LabelKeyFeatureFlags, "true"),
+		)).
+		// (WI feature gate) Owns the workload identity ConfigMap rendered for OIDC clusters.
+		Owns(&corev1.ConfigMap{}).
 		Complete(r)
 }
 
-// BootstrapController is not refactored to use the lifecycle package, because the Secret resource does not implement lifecycle.RuntimeObject.
+func (r *BootstrapReconciler) reloadFeatureFlags(ctx context.Context, _ client.Object) []ctrl.Request {
+	featureFlags, err := features.NewFeatures(ctx, r.Client, r.FeatureFlagsName, r.FeatureFlagsNamespace)
+	if err != nil {
+		ctrl.LoggerFrom(ctx).Error(err, "failed reloading feature flags")
+		return nil
+	}
+	r.workloadIdentityEnabled.Store(featureFlags.IsWorkloadIdentityEnabled())
+
+	secrets := &corev1.SecretList{}
+	if err := r.List(ctx, secrets); err != nil {
+		ctrl.LoggerFrom(ctx).Error(err, "failed listing cluster secrets after a feature flag change")
+		return nil
+	}
+	requests := make([]ctrl.Request, 0, len(secrets.Items))
+	for _, secret := range secrets.Items {
+		if secret.Type != greenhouseapis.SecretTypeOIDCConfig {
+			continue
+		}
+		requests = append(requests, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(&secret)})
+	}
+	return requests
+}
 
 func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	var kubeConfigSecret = new(corev1.Secret)
-	if err := r.Get(ctx, req.NamespacedName, kubeConfigSecret); err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
-	if kubeConfigSecret.DeletionTimestamp.IsZero() {
-		if controllerutil.AddFinalizer(kubeConfigSecret, lifecycle.CommonCleanupFinalizer) {
-			if err := r.Update(ctx, kubeConfigSecret); err != nil {
-				return ctrl.Result{}, err
-			}
-			return ctrl.Result{RequeueAfter: time.Second}, nil
-		}
-	} else {
-		if controllerutil.ContainsFinalizer(kubeConfigSecret, lifecycle.CommonCleanupFinalizer) {
-			cluster := greenhousev1alpha1.Cluster{}
-			if err := r.Get(ctx, req.NamespacedName, &cluster); err != nil {
-				if client.IgnoreNotFound(err) == nil {
-					controllerutil.RemoveFinalizer(kubeConfigSecret, lifecycle.CommonCleanupFinalizer)
-					if err := r.Update(ctx, kubeConfigSecret); err != nil {
-						return ctrl.Result{}, err
-					}
-				}
-				return ctrl.Result{}, client.IgnoreNotFound(err)
-			}
-			log.FromContext(ctx).Info(
-				"Cluster secret is being deleted, requesting Cluster deletion",
-				"cluster", req.String(),
-			)
-			return ctrl.Result{}, client.IgnoreNotFound(r.Delete(ctx, &cluster))
-		}
-		return ctrl.Result{}, nil
-	}
-
-	if kubeConfigSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
-		// if secret type is oidc we check if a kubeconfig was already generated,
-		// and we also check if the greenhousekubeconfig key is present and the value is not empty
-		genTime, genTimeAvail := kubeConfigSecret.Annotations[greenhouseapis.SecretOIDCConfigGeneratedOnAnnotation]
-		if !genTimeAvail || !clientutil.IsSecretContainsKey(kubeConfigSecret, greenhouseapis.GreenHouseKubeConfigKey) {
-			sa := utils.NewServiceAccount(kubeConfigSecret.GetName(), kubeConfigSecret.GetNamespace())
-			_, err := controllerutil.CreateOrPatch(ctx, r.Client, sa, func() error {
-				return controllerutil.SetOwnerReference(kubeConfigSecret, sa, r.Scheme())
-			})
-			if err != nil {
-				return ctrl.Result{}, errors.Wrap(err, "failed creating service account for OIDC config")
-			}
-			log.FromContext(ctx).Info("OIDC config generated", "date", genTime, "namespace", kubeConfigSecret.GetNamespace(), "name", kubeConfigSecret.GetName())
-			return ctrl.Result{}, r.createKubeConfigKey(ctx, kubeConfigSecret)
-		}
-		equality, err := compareCAWithKubeConfigCA(kubeConfigSecret)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to create rest client from secret")
-		}
-		if !equality {
-			log.FromContext(ctx).Info("KubeConfig CA does not match with secret CA, updating kubeconfig", "namespace", kubeConfigSecret.GetNamespace(), "name", kubeConfigSecret.GetName())
-			return ctrl.Result{}, r.createKubeConfigKey(ctx, kubeConfigSecret)
-		}
-	}
-
-	if err := r.reconcileCluster(ctx, kubeConfigSecret); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	if err := r.ensureOwnerReferences(ctx, kubeConfigSecret); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	return ctrl.Result{RequeueAfter: utils.DefaultRequeueInterval}, nil
+	return lifecycle.ReconcileObject(ctx, r.Client, req.NamespacedName, &corev1.Secret{}, r)
 }
 
-func (r *BootstrapReconciler) createKubeConfigKey(ctx context.Context, secret *corev1.Secret) error {
-	// get the api-server-url from annotation
-	// get the certificate from the secret
-	annotations := secret.GetAnnotations()
-	remoteAPIServerURL := annotations[greenhouseapis.SecretAPIServerURLAnnotation]
-	certData := secret.Data[greenhouseapis.SecretAPIServerCAKey]
-	certDecoded, err := base64.StdEncoding.DecodeString(string(certData))
-	if err != nil {
-		return errors.Wrap(err, "failed decoding certificate data")
+func (r *BootstrapReconciler) EnsureCreated(ctx context.Context, obj client.Object) (ctrl.Result, error) {
+	p := &clusterphases.BootstrapPhase{
+		Client:                  r.Client,
+		Scheme:                  r.Scheme(),
+		Secret:                  obj.(*corev1.Secret),
+		WorkloadIdentityEnabled: r.workloadIdentityEnabled.Load(),
 	}
-
-	// create token request from SA with audience
-	clusterResourceSA := utils.NewServiceAccount(secret.GetName(), secret.GetNamespace())
-	tokenRequest := &authenticationv1.TokenRequest{
-		Spec: authenticationv1.TokenRequestSpec{
-			Audiences:         []string{greenhouseapis.OIDCAudience},
-			ExpirationSeconds: ptr.To[int64](600),
-		},
-	}
-	if err := r.Client.SubResource("token").Create(ctx, clusterResourceSA, tokenRequest); err != nil {
-		return errors.Wrap(err, "failed creating token request for OIDC config")
-	}
-
-	// generate kubeconfig with oidc token
-	generator := &utils.KubeConfigHelper{
-		Host:        remoteAPIServerURL,
-		CAData:      certDecoded,
-		BearerToken: tokenRequest.Status.Token,
-		Username:    fmt.Sprintf("system:serviceaccount:%s:%s", clusterResourceSA.GetNamespace(), clusterResourceSA.GetName()),
-		Namespace:   clusterResourceSA.GetNamespace(),
-	}
-	kubeconfigByte, err := clientcmd.Write(generator.RestConfigToAPIConfig(secret.GetName()))
-	if err != nil {
-		return errors.Wrapf(err, "failed to generate kubeconfig for cluster %s", secret.GetName())
-	}
-	// update secret with kubeconfig directly on greenhousekubeconfig key and update oidc generated on annotation
-	secret.Data[greenhouseapis.GreenHouseKubeConfigKey] = kubeconfigByte
-	annotations[greenhouseapis.SecretOIDCConfigGeneratedOnAnnotation] = metav1.Now().Format(time.DateTime)
-	secret.Annotations = annotations
-	return r.Update(ctx, secret)
+	result, _, err := lifecycle.ExecuteSubRoutine(ctx, p.EnsureCreatePhases())
+	return result, err
 }
 
-func (r *BootstrapReconciler) reconcileCluster(ctx context.Context, kubeConfigSecret *corev1.Secret) error {
-	cluster, err := r.getCluster(ctx, kubeConfigSecret)
-	// Anything other than an IsNotFound error is reflected in the status to ensure the cluster resource is created in any case.
-	if err != nil {
-		log.FromContext(ctx).Error(err, "failed to get cluster", "namespace", kubeConfigSecret.GetNamespace(), "name", kubeConfigSecret.GetName())
-		return err
+func (r *BootstrapReconciler) EnsureDeleted(ctx context.Context, obj client.Object) (ctrl.Result, error) {
+	p := &clusterphases.BootstrapPhase{
+		Client:                  r.Client,
+		Scheme:                  r.Scheme(),
+		Secret:                  obj.(*corev1.Secret),
+		WorkloadIdentityEnabled: r.workloadIdentityEnabled.Load(),
 	}
-	return r.createOrUpdateCluster(ctx, cluster, kubeConfigSecret)
-}
-
-// createOrUpdateCluster creates or updates the cluster resource and persists input err in the cluster.status.message.
-func (r *BootstrapReconciler) createOrUpdateCluster(
-	ctx context.Context,
-	cluster *greenhousev1alpha1.Cluster,
-	kubeConfigSecret *corev1.Secret,
-) error {
-	// Ignore clusters about to be deleted.
-	if !cluster.DeletionTimestamp.IsZero() {
-		return nil
-	}
-	accessMode := greenhousev1alpha1.ClusterAccessModeDirect
-
-	cluster.SetName(kubeConfigSecret.Name)
-	cluster.SetNamespace(kubeConfigSecret.Namespace)
-
-	annotations := cluster.GetAnnotations()
-	if annotations == nil {
-		annotations = make(map[string]string, 1)
-	}
-	switch kubeConfigSecret.Type {
-	case greenhouseapis.SecretTypeKubeConfig:
-		annotations[greenhouseapis.ClusterConnectivityAnnotation] = greenhouseapis.ClusterConnectivityKubeconfig
-	case greenhouseapis.SecretTypeOIDCConfig:
-		annotations[greenhouseapis.ClusterConnectivityAnnotation] = greenhouseapis.ClusterConnectivityOIDC
-	}
-
-	result, err := controllerutil.CreateOrUpdate(ctx, r.Client, cluster, func() error {
-		cluster.SetAnnotations(annotations)
-		cluster.Spec.AccessMode = accessMode
-		// Transport KubeConfigSecret labels to Cluster
-		cluster = (lifecycle.NewPropagator(kubeConfigSecret, cluster).Apply()).(*greenhousev1alpha1.Cluster)
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	if result != controllerutil.OperationResultNone {
-		logMessage := fmt.Sprintf("%s cluster", result)
-		log.FromContext(ctx).Info(logMessage, "namespace", cluster.Namespace, "name", cluster.Name)
-	}
-	return nil
-}
-
-// ensureOwnerReferences adds the ownerReference to the secret containing the kubeconfig, so that it is garbage collected on cluster deletion.
-func (r *BootstrapReconciler) ensureOwnerReferences(ctx context.Context, kubeConfigSecret *corev1.Secret) error {
-	cluster := &greenhousev1alpha1.Cluster{}
-	if err := r.Get(ctx, types.NamespacedName{Namespace: kubeConfigSecret.GetNamespace(), Name: kubeConfigSecret.GetName()}, cluster); err != nil {
-		return err
-	}
-	if cluster.DeletionTimestamp != nil {
-		return nil
-	}
-	_, err := controllerutil.CreateOrPatch(ctx, r.Client, kubeConfigSecret, func() error {
-		return controllerutil.SetOwnerReference(cluster, kubeConfigSecret, r.Scheme())
-	})
-	return err
-}
-
-func (r *BootstrapReconciler) getCluster(ctx context.Context, kubeConfigSecret *corev1.Secret) (cluster *greenhousev1alpha1.Cluster, err error) {
-	cluster = new(greenhousev1alpha1.Cluster)
-	err = r.Get(ctx, client.ObjectKeyFromObject(kubeConfigSecret), cluster)
-	return cluster, client.IgnoreNotFound(err)
+	result, _, err := lifecycle.ExecuteSubRoutine(ctx, p.EnsureDeletePhases())
+	return result, err
 }
 
 func enqueueSecretForCluster(_ context.Context, o client.Object) []ctrl.Request {
@@ -250,25 +117,5 @@ func enqueueSecretForCluster(_ context.Context, o client.Object) []ctrl.Request 
 	if !ok {
 		return nil
 	}
-	// Ignore clusters being deleted currently.
-	if cluster.DeletionTimestamp != nil {
-		return nil
-	}
 	return []ctrl.Request{{NamespacedName: types.NamespacedName{Namespace: cluster.GetNamespace(), Name: cluster.GetSecretName()}}}
-}
-
-func compareCAWithKubeConfigCA(secret *corev1.Secret) (bool, error) {
-	restClient, err := clientutil.NewRestClientGetterFromSecret(secret, secret.GetNamespace())
-	if err != nil {
-		return false, err
-	}
-	restConfig, err := restClient.ToRESTConfig()
-	if err != nil {
-		return false, err
-	}
-	secretCertBytes, err := base64.StdEncoding.DecodeString(string(secret.Data[greenhouseapis.SecretAPIServerCAKey]))
-	if err != nil {
-		return false, errors.Wrap(err, "failed decoding certificate data from secret")
-	}
-	return strings.Compare(string(secretCertBytes), string(restConfig.CAData)) == 0, nil
 }

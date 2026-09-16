@@ -114,3 +114,7 @@ Define postgresql helpers
 {{- define "pluginPreset.expressionEvaluationEnabled" -}}
   {{- printf "%t" (required "global.pluginPreset.expressionEvaluationEnabled missing" .Values.global.pluginPreset.expressionEvaluationEnabled) }}
 {{- end }}
+{{/* Render the workloadIdentity enabled flag */}}
+{{- define "workloadIdentity.enabled" -}}
+  {{- printf "%t" (required "global.workloadIdentity.enabled missing" .Values.global.workloadIdentity.enabled) }}
+{{- end }}

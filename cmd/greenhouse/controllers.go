@@ -42,7 +42,7 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	"clusterPluginDefinition": startClusterPluginDefinitionReconciler,
 
 	// Cluster controllers
-	"bootstrap":  (&clustercontrollers.BootstrapReconciler{}).SetupWithManager,
+	"bootstrap":  startBootstrapReconciler,
 	"cluster":    startClusterReconciler,
 	"kubeconfig": (&clustercontrollers.KubeconfigReconciler{}).SetupWithManager,
 }
@@ -83,10 +83,13 @@ func startOrganizationReconciler(name string, mgr ctrl.Manager) error {
 // startPluginReconciler initializes the plugin reconciler.
 func startPluginReconciler(name string, mgr ctrl.Manager) error {
 	return (&plugincontrollers.PluginReconciler{
-		KubeRuntimeOpts:     kubeClientOpts,
-		OCIMirroringEnabled: featureFlags.IsOCIMirroringEnabled(),
-		StoragePath:         artifactStoragePath,
-		HTTPRetry:           artifactRetries,
+		KubeRuntimeOpts:         kubeClientOpts,
+		OCIMirroringEnabled:     featureFlags.IsOCIMirroringEnabled(),
+		StoragePath:             artifactStoragePath,
+		HTTPRetry:               artifactRetries,
+		WorkloadIdentityEnabled: featureFlags.IsWorkloadIdentityEnabled(),
+		FeatureFlagsName:        clientutil.GetEnvOrDefault(featureFlagsEnv, defaultFeatureFlagConfigMapName),
+		FeatureFlagsNamespace:   clientutil.GetEnvOrDefault(podNamespaceEnv, defaultPodNamespace),
 	}).SetupWithManager(name, mgr)
 }
 
@@ -117,6 +120,17 @@ func startClusterReconciler(name string, mgr ctrl.Manager) error {
 	return (&clustercontrollers.RemoteClusterReconciler{
 		RemoteClusterBearerTokenValidity:   remoteClusterBearerTokenValidity,
 		RenewRemoteClusterBearerTokenAfter: renewRemoteClusterBearerTokenAfter,
+		WorkloadIdentityEnabled:            featureFlags.IsWorkloadIdentityEnabled(),
+		FeatureFlagsName:                   clientutil.GetEnvOrDefault(featureFlagsEnv, defaultFeatureFlagConfigMapName),
+		FeatureFlagsNamespace:              clientutil.GetEnvOrDefault(podNamespaceEnv, defaultPodNamespace),
+	}).SetupWithManager(name, mgr)
+}
+
+func startBootstrapReconciler(name string, mgr ctrl.Manager) error {
+	return (&clustercontrollers.BootstrapReconciler{
+		WorkloadIdentityEnabled: featureFlags.IsWorkloadIdentityEnabled(),
+		FeatureFlagsName:        clientutil.GetEnvOrDefault(featureFlagsEnv, defaultFeatureFlagConfigMapName),
+		FeatureFlagsNamespace:   clientutil.GetEnvOrDefault(podNamespaceEnv, defaultPodNamespace),
 	}).SetupWithManager(name, mgr)
 }
 

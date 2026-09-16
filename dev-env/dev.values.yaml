@@ -9,6 +9,8 @@ global:
     ociMirroringEnabled: true
   pluginPreset:
     expressionEvaluationEnabled: true
+  workloadIdentity:
+    enabled: false
 alerts:
   enabled: false
 controllerManager:

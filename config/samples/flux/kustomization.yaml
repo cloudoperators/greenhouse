@@ -33,11 +33,18 @@ patches:
   # do not apply image-reflector-controller and image-automation-controller
   - target:
       kind: Deployment
+      name: helm-controller
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: --feature-gates=ObjectLevelWorkloadIdentity=true
+  - target:
+      kind: Deployment
       name: kustomize-controller
     patch: |
       - op: add
         path: /spec/template/spec/containers/0/args/-
-        value: --feature-gates=ExternalArtifact=true
+        value: --feature-gates=ExternalArtifact=true,ObjectLevelWorkloadIdentity=true
 
   - target:
       kind: Deployment

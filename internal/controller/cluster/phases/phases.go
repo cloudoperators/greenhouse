@@ -12,9 +12,9 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/client-go/tools/events"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
@@ -28,28 +28,44 @@ type Phase struct {
 	ClusterSecret                      *corev1.Secret
 	RestClientGetter                   *clientutil.RestClientGetter
 	RemoteClient                       client.Client
+	WorkloadIdentityEnabled            bool
 	crb                                *rbacv1.ClusterRoleBinding
 }
 
-func CreateRemoteClient(secret *corev1.Secret, namespace string) (*clientutil.RestClientGetter, client.Client, error) {
-	rcg, err := clientutil.NewRestClientGetterFromSecret(secret, namespace)
-	if err != nil {
-		return nil, nil, fmt.Errorf("building rest client getter: %w", err)
-	}
-	rc, err := clientutil.NewK8sClientFromRestClientGetter(rcg)
-	if err != nil {
-		return nil, nil, fmt.Errorf("building remote k8s client: %w", err)
-	}
-	return rcg, rc, nil
+// breakInvalidKubeConfig reports the failure, otherwise the last known status survives and the cluster stays Ready.
+func breakInvalidKubeConfig(cluster *greenhousev1alpha1.Cluster, err error) (lifecycle.Result, error) {
+	cluster.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.KubeConfigValid, "", err.Error()))
+	return lifecycle.Break(), err
 }
 
-func (p *Phase) ensureSecretFinalizerRemoved() lifecycle.SubRoutine {
-	return func(ctx context.Context) (lifecycle.Result, error) {
-		if controllerutil.RemoveFinalizer(p.ClusterSecret, lifecycle.CommonCleanupFinalizer) {
-			if err := p.Client.Update(ctx, p.ClusterSecret); err != nil {
-				return lifecycle.Break(), err
-			}
+func (p *Phase) createRemoteClient(cluster *greenhousev1alpha1.Cluster) lifecycle.SubRoutine {
+	return func(_ context.Context) (lifecycle.Result, error) {
+		rcg, err := clientutil.NewRestClientGetterFromSecret(p.ClusterSecret, cluster.GetNamespace())
+		if err != nil {
+			return breakInvalidKubeConfig(cluster, fmt.Errorf("error building rest client getter: %w", err))
 		}
+		rc, err := clientutil.NewK8sClientFromRestClientGetter(rcg)
+		if err != nil {
+			return breakInvalidKubeConfig(cluster, fmt.Errorf("error building remote k8s client: %w", err))
+		}
+		p.RestClientGetter = rcg
+		p.RemoteClient = rc
+		return lifecycle.Continue(), nil
+	}
+}
+
+func (p *Phase) createWorkloadIdentityClient(cluster *greenhousev1alpha1.Cluster) lifecycle.SubRoutine {
+	return func(ctx context.Context) (lifecycle.Result, error) {
+		rcg, err := clientutil.NewRestClientGetterForWI(ctx, p.Client, p.ClusterSecret, cluster.GetNamespace())
+		if err != nil {
+			return breakInvalidKubeConfig(cluster, fmt.Errorf("error building workload identity rest client getter: %w", err))
+		}
+		rc, err := clientutil.NewK8sClientFromRestClientGetter(rcg)
+		if err != nil {
+			return breakInvalidKubeConfig(cluster, fmt.Errorf("error building workload identity remote k8s client: %w", err))
+		}
+		p.RestClientGetter = rcg
+		p.RemoteClient = rc
 		return lifecycle.Continue(), nil
 	}
 }
@@ -59,24 +75,30 @@ func (p *Phase) EnsureDeletePhases(cluster *greenhousev1alpha1.Cluster) []lifecy
 		p.ensurePluginsDeleted(cluster),
 	}
 	if p.ClusterSecret != nil && p.ClusterSecret.Type != greenhouseapis.SecretTypeOIDCConfig {
-		phases = append(phases, p.deleteClusterRoleBinding())
+		phases = append([]lifecycle.SubRoutine{p.createRemoteClient(cluster)}, append(phases, p.deleteClusterRoleBinding())...)
 	}
-	phases = append(phases, p.ensureSecretFinalizerRemoved())
 	return phases
 }
 
 func (p *Phase) EnsureCreatePhases(cluster *greenhousev1alpha1.Cluster) []lifecycle.SubRoutine {
 	if p.ClusterSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
-		return []lifecycle.SubRoutine{
-			p.ensureServiceAccountToken(cluster),
+		phases := make([]lifecycle.SubRoutine, 0, 6)
+		// if workload identity feature gate is enabled there is no need to write SA token to cluster secret
+		if p.WorkloadIdentityEnabled {
+			phases = append(phases, p.createWorkloadIdentityClient(cluster))
+		} else {
+			phases = append(phases, p.createRemoteClient(cluster), p.ensureServiceAccountToken(cluster))
+		}
+		return append(phases,
 			p.ensureConnectivity(cluster),
 			p.ensurePermissions(cluster),
 			p.ensureNodesReady(cluster),
 			p.ensureWorkloadSchedulable(cluster),
 			p.ensureDiscoveryCache(cluster),
-		}
+		)
 	}
 	return []lifecycle.SubRoutine{
+		p.createRemoteClient(cluster),
 		p.ensureConnectivity(cluster),
 		p.ensureClusterRoleBinding(cluster),
 		p.ensureNamespace(cluster),
