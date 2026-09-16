@@ -1,0 +1,30 @@
+# Flux2 FluxDeployer — for air-gapped FRESH cluster bootstrap ONLY.
+#
+# Apply ONLY when Flux is NOT yet installed on the target cluster.
+# Steps for a fresh air-gapped cluster:
+#   1. Install OCM controller manually (helm install, since no Flux yet)
+#   2. Apply namespace.yaml + componentversion.yaml + resources.yaml
+#   3. Apply THIS file — FluxDeployer installs Flux via OCM
+#   4. Wait for Flux to be Ready
+#   5. Apply flux-deployers.yaml for the remaining components
+#
+# WARNING: Do NOT apply this on a cluster where Flux is already running.
+# The helm install will delete and recreate all Flux CRDs and controllers
+# mid-flight, breaking any running HelmReleases and Kustomizations.
+
+apiVersion: delivery.ocm.software/v1alpha1
+kind: FluxDeployer
+metadata:
+  name: flux2
+  namespace: greenhouse
+spec:
+  interval: 10m
+  sourceRef:
+    kind: Resource
+    name: flux2-chart
+    namespace: greenhouse
+  helmReleaseTemplate:
+    interval: 10m
+    targetNamespace: flux-system
+    install:
+      createNamespace: true

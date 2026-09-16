@@ -4,12 +4,19 @@
 #   2. Creates an OCIRepository pointing to that Snapshot
 #   3. Creates a HelmRelease from the helmReleaseTemplate below
 #
-# Deployment order (via dependsOn):
-#   cert-manager → (no deps)
-#   ocm-controller → cert-manager  (uses cert-manager for webhooks)
-#   kro → (no deps)
-#   flux2 → (no deps)
-#   greenhouse → cert-manager
+# The HelmRelease is always created in the FluxDeployer's namespace (greenhouse),
+# and helmReleaseTemplate fields map directly to helmv2.HelmReleaseSpec.
+#
+# Deployment order (via dependsOn — all HelmReleases live in greenhouse ns):
+#   cert-manager  → (no deps)
+#   ocm-controller → cert-manager
+#   kro           → (no deps)
+#   greenhouse    → cert-manager
+#
+# NOTE: flux2 FluxDeployer is NOT included here.
+# See flux-deployers-bootstrap-flux2.yaml for air-gapped fresh cluster installs.
+# Applying flux2 FluxDeployer on a cluster with Flux already running will
+# delete/recreate all Flux CRDs mid-flight, breaking all running controllers.
 
 # ---- cert-manager ----
 apiVersion: delivery.ocm.software/v1alpha1
@@ -24,16 +31,12 @@ spec:
     name: cert-manager-chart
     namespace: greenhouse
   helmReleaseTemplate:
-    metadata:
-      name: cert-manager
-      namespace: cert-manager
-    spec:
-      interval: 10m
-      targetNamespace: cert-manager
-      install:
-        createNamespace: true
-      values:
-        installCRDs: true
+    interval: 10m
+    targetNamespace: cert-manager
+    install:
+      createNamespace: true
+    values:
+      installCRDs: true
 ---
 # ---- ocm-controller ----
 apiVersion: delivery.ocm.software/v1alpha1
@@ -48,17 +51,13 @@ spec:
     name: ocm-controller-chart
     namespace: greenhouse
   helmReleaseTemplate:
-    metadata:
-      name: ocm-controller
-      namespace: ocm-system
-    spec:
-      interval: 10m
-      targetNamespace: ocm-system
-      install:
-        createNamespace: true
-      dependsOn:
-        - name: cert-manager
-          namespace: cert-manager
+    interval: 10m
+    targetNamespace: ocm-system
+    install:
+      createNamespace: true
+    dependsOn:
+      - name: cert-manager
+        namespace: greenhouse
 ---
 # ---- kro ----
 apiVersion: delivery.ocm.software/v1alpha1
@@ -73,38 +72,10 @@ spec:
     name: kro-chart
     namespace: greenhouse
   helmReleaseTemplate:
-    metadata:
-      name: kro
-      namespace: kro-system
-    spec:
-      interval: 10m
-      targetNamespace: kro-system
-      install:
-        createNamespace: true
----
-# ---- flux2 ----
-# Note: if Flux is already bootstrapped on the cluster, skip this deployer.
-# Apply only when deploying Flux itself via OCM (e.g. fresh air-gapped cluster).
-apiVersion: delivery.ocm.software/v1alpha1
-kind: FluxDeployer
-metadata:
-  name: flux2
-  namespace: greenhouse
-spec:
-  interval: 10m
-  sourceRef:
-    kind: Resource
-    name: flux2-chart
-    namespace: greenhouse
-  helmReleaseTemplate:
-    metadata:
-      name: flux2
-      namespace: flux-system
-    spec:
-      interval: 10m
-      targetNamespace: flux-system
-      install:
-        createNamespace: true
+    interval: 10m
+    targetNamespace: kro-system
+    install:
+      createNamespace: true
 ---
 # ---- greenhouse core ----
 # Requires:
@@ -139,17 +110,13 @@ spec:
     name: greenhouse-chart
     namespace: greenhouse
   helmReleaseTemplate:
-    metadata:
-      name: greenhouse
-      namespace: greenhouse
-    spec:
-      interval: 10m
-      targetNamespace: greenhouse
-      dependsOn:
-        - name: cert-manager
-          namespace: cert-manager
-      valuesFrom:
-        - kind: Secret
-          name: greenhouse-values
-          valuesKey: values.yaml
-          optional: false
+    interval: 10m
+    targetNamespace: greenhouse
+    dependsOn:
+      - name: cert-manager
+        namespace: greenhouse
+    valuesFrom:
+      - kind: Secret
+        name: greenhouse-values
+        valuesKey: values.yaml
+        optional: false

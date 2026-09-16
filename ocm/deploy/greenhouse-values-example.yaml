@@ -1,0 +1,57 @@
+# Minimal working values for greenhouse chart deployed via OCM+Flux.
+#
+# Create the secret before running `make deploy-apply`:
+#   kubectl create secret generic greenhouse-values \
+#     --namespace greenhouse \
+#     --from-literal=values.yaml="$(cat greenhouse-values-example.yaml)"
+#
+# Notes:
+#   - global.dex.backend must be "kubernetes" or "postgres" (not "memory")
+#   - Using "postgres" requires postgresqlUsername to be set, or pguser secret name
+#     will have a trailing hyphen and be invalid
+#   - greenhouse chart always renders PrometheusRule objects; install CRDs separately:
+#     helm install prometheus-crds \
+#       oci://ghcr.io/prometheus-community/charts/prometheus-operator-crds \
+#       --namespace monitoring --create-namespace
+#   - Flux helm-controller needs cluster-admin to install cluster-scoped resources:
+#     kubectl create clusterrolebinding helm-controller-cluster-admin \
+#       --clusterrole=cluster-admin \
+#       --serviceaccount=flux-system:helm-controller
+
+global:
+  dnsDomain: greenhouse.example.com
+  oidc:
+    enabled: false
+  ingress:
+    enabled: false
+  postgresql:
+    enabled: false
+  registry: ghcr.io
+  monitoring:
+    enabled: false
+  dex:
+    backend: kubernetes
+
+idproxy:
+  enabled: false
+corsProxy:
+  enabled: false
+authz:
+  enabled: false
+controllerManager:
+  enabled: true
+  replicaCount: 1
+  monitoring:
+    enabled: false
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+postgresqlng:
+  enabled: false
+dashboard:
+  enabled: false

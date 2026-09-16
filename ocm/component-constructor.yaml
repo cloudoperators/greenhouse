@@ -21,6 +21,9 @@
 #
 # Core components (single image ghcr.io/cloudoperators/greenhouse):
 #   controller-manager, idproxy, cors-proxy, authz
+#
+# NOTE: OCM label names must be valid Kubernetes label keys (prefix/name, max 1 slash)
+# because the OCM controller maps them directly to Kubernetes labels on ComponentDescriptor CRDs.
 
 components:
 
@@ -32,7 +35,7 @@ components:
     provider:
       name: cloudoperators
     labels:
-      - name: github.com/cloudoperators/greenhouse/role
+      - name: cloudoperators.github.com/role
         value: prerequisite
     resources:
       - name: cert-manager-chart
@@ -52,7 +55,7 @@ components:
     provider:
       name: cloudoperators
     labels:
-      - name: github.com/cloudoperators/greenhouse/role
+      - name: cloudoperators.github.com/role
         value: prerequisite
     resources:
       - name: flux2-chart
@@ -72,7 +75,7 @@ components:
     provider:
       name: cloudoperators
     labels:
-      - name: github.com/cloudoperators/greenhouse/role
+      - name: cloudoperators.github.com/role
         value: prerequisite
     resources:
       - name: kro-chart
@@ -92,7 +95,7 @@ components:
     provider:
       name: cloudoperators
     labels:
-      - name: github.com/cloudoperators/greenhouse/role
+      - name: cloudoperators.github.com/role
         value: prerequisite
     resources:
       - name: ocm-controller-chart
@@ -116,20 +119,17 @@ components:
     provider:
       name: cloudoperators
     labels:
-      - name: github.com/cloudoperators/greenhouse/role
+      - name: cloudoperators.github.com/role
         value: core
-      - name: github.com/cloudoperators/greenhouse/version
-        value: ${GREENHOUSE_VERSION}
-        signing: true
     resources:
 
       # Greenhouse umbrella chart (bundles manager, idproxy, cors-proxy, authz, dashboard subcharts)
       - name: greenhouse-chart
         type: helmChart
-        version: ${GREENHOUSE_CHART_VERSION}
+        version: ${GREENHOUSE_VERSION}
         input:
           type: file
-          path: charts/greenhouse-${GREENHOUSE_CHART_VERSION}.tgz
+          path: charts/greenhouse-${GREENHOUSE_VERSION}.tgz
           mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
           compress: false
 
@@ -149,10 +149,6 @@ components:
     version: ${GREENHOUSE_VERSION}
     provider:
       name: cloudoperators
-    labels:
-      - name: github.com/cloudoperators/greenhouse/version
-        value: ${GREENHOUSE_VERSION}
-        signing: true
     componentReferences:
       - name: core
         componentName: github.com/cloudoperators/greenhouse/core
