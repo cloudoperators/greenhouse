@@ -43,6 +43,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/common"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 func NewProxyManager() *ProxyManager {
@@ -106,11 +107,12 @@ func (pm *ProxyManager) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	restClientGetter, err := clientutil.NewRestClientGetterFromSecret(secret, "")
+	var cluster = new(greenhousev1alpha1.Cluster)
+	err = pm.client.Get(ctx, req.NamespacedName, cluster)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	restConfig, err := restClientGetter.ToRESTConfig()
+	restConfig, err := lifecycle.NewRemoteKubeCfg(ctx, pm.client, cluster)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
