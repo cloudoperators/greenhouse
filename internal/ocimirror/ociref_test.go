@@ -6,18 +6,14 @@ package ocimirror
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/cloudoperators/greenhouse/internal/test/fixture"
 )
 
 var _ = Describe("OCI Reference Extraction", func() {
 	Describe("ExtractUniqueOCIRefs", func() {
-		It("should extract images from manifests", func() {
-			manifests := `
-containers:
-- image: ghcr.io/cloudoperators/greenhouse:main
-- image: docker.io/library/nginx:latest
-`
-			images := ExtractUniqueOCIRefs(manifests)
-			Expect(images).To(HaveLen(2))
+		It("should extract images from workloads", func() {
+			images := ExtractUniqueOCIRefs(fixture.PodManifest("ghcr.io/cloudoperators/greenhouse:main", "docker.io/library/nginx:latest"))
 			Expect(images).To(ConsistOf(
 				"docker.io/library/nginx:latest",
 				"ghcr.io/cloudoperators/greenhouse:main",
@@ -25,14 +21,8 @@ containers:
 		})
 
 		It("should deduplicate images", func() {
-			manifests := `
-containers:
-- image: ghcr.io/cloudoperators/greenhouse:main
-- image: ghcr.io/cloudoperators/greenhouse:main
-`
-			images := ExtractUniqueOCIRefs(manifests)
-			Expect(images).To(HaveLen(1))
-			Expect(images[0]).To(Equal("ghcr.io/cloudoperators/greenhouse:main"))
+			images := ExtractUniqueOCIRefs(fixture.PodManifest("ghcr.io/cloudoperators/greenhouse:main", "ghcr.io/cloudoperators/greenhouse:main"))
+			Expect(images).To(Equal([]string{"ghcr.io/cloudoperators/greenhouse:main"}))
 		})
 
 		It("should return empty for manifests without images", func() {
@@ -48,27 +38,112 @@ metadata:
 
 		It("should handle quoted images", func() {
 			manifests := `
-containers:
-- image: "ghcr.io/cloudoperators/greenhouse:main"
-- image: 'docker.io/library/nginx:latest'
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test
+spec:
+  containers:
+  - name: greenhouse
+    image: "ghcr.io/cloudoperators/greenhouse:main"
+  - name: nginx
+    image: 'docker.io/library/nginx:latest'
 `
 			images := ExtractUniqueOCIRefs(manifests)
 			Expect(images).To(HaveLen(2))
 		})
 
-		It("should ignore `image:` used as a CRD field name with nested children", func() {
-			// Regression: OpenSearch index templates declare `image` as a field, not a container ref.
+		It("should ignore image fields of custom resources", func() {
 			manifests := `
-mappings:
-  properties:
-    container:
-      properties:
-        image:
-          properties:
-            name:
-              type: keyword
-            tag:
-              type: keyword
+---
+# Source: gpu-operator/templates/clusterpolicy.yaml
+apiVersion: nvidia.com/v1
+kind: ClusterPolicy
+metadata:
+  name: cluster-policy
+spec:
+  toolkit:
+    repository: nvcr.io/nvidia/k8s
+    image: container-toolkit
+    version: v1.20.0
+---
+# Source: monitoring/templates/prometheus.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: prometheus
+spec:
+  image: quay.io/prometheus/prometheus:v3.0.0
+---
+# Source: gpu-operator/templates/operator.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-operator
+spec:
+  template:
+    spec:
+      containers:
+      - name: gpu-operator
+        image: nvcr.io/nvidia/gpu-operator:v26.7.0
+`
+			Expect(ExtractUniqueOCIRefs(manifests)).To(Equal([]string{"nvcr.io/nvidia/gpu-operator:v26.7.0"}))
+		})
+
+		It("should ignore custom resources that embed a pod spec", func() {
+			manifests := `
+apiVersion: opensearch.opster.io/v1
+kind: OpenSearchCluster
+metadata:
+  name: logs
+spec:
+  nodePools:
+  - component: masters
+    podTemplate:
+      spec:
+        containers:
+        - name: sidecar
+          image: ghcr.io/cloudoperators/greenhouse:main
+`
+			Expect(ExtractUniqueOCIRefs(manifests)).To(BeEmpty())
+		})
+
+		It("should extract images from initContainers of nested pod templates", func() {
+			manifests := `
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cleanup
+spec:
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          initContainers:
+          - name: init
+            image: docker.io/library/busybox:1.36
+          containers:
+          - name: cleanup
+            image: ghcr.io/cloudoperators/greenhouse:main
+`
+			Expect(ExtractUniqueOCIRefs(manifests)).To(ConsistOf(
+				"docker.io/library/busybox:1.36",
+				"ghcr.io/cloudoperators/greenhouse:main",
+			))
+		})
+
+		It("should ignore containers without an image", func() {
+			manifests := `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test
+spec:
+  initContainers:
+  - name: init
+    image: ""
+  containers:
+  - name: main
 `
 			Expect(ExtractUniqueOCIRefs(manifests)).To(BeEmpty())
 		})

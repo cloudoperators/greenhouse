@@ -4,7 +4,9 @@
 package scenarios
 
 const (
-	optionUIMessage    = "ui.message"
-	optionUIBackend    = "ui.backend"
-	optionReplicaCount = "replicaCount"
+	optionUIMessage       = "ui.message"
+	optionUIBackend       = "ui.backend"
+	optionReplicaCount    = "replicaCount"
+	optionServiceHostname = "service.hostname"
+	selectorTestLabel     = "e2e.greenhouse.sap/selector-ref-test"
 )

@@ -4,32 +4,78 @@
 package ocimirror
 
 import (
-	"regexp"
+	"bufio"
+	"bytes"
+	"maps"
 	"slices"
+	"strings"
 
 	"github.com/google/go-containerregistry/pkg/name"
+	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	kyaml "k8s.io/apimachinery/pkg/util/yaml"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
-// imageFieldPattern matches `image: <ref>` only when <ref> is on the same line.
-// Avoids false matches when `image:` opens a nested map (e.g. CRD field schemas).
-var imageFieldPattern = regexp.MustCompile(`(?m)^[\s-]*image:[\t ]+["']?([^\s"']+)["']?\s*$`)
-
-// ExtractUniqueOCIRefs extracts and deduplicates all OCI image references from YAML manifests.
+// ExtractUniqueOCIRefs extracts and deduplicates the container images of the standard workloads in the given manifests.
+// Images of custom resources are ignored, even when the resource embeds a pod spec.
 func ExtractUniqueOCIRefs(manifests string) []string {
 	seen := make(map[string]struct{})
 
-	for _, match := range imageFieldPattern.FindAllStringSubmatch(manifests, -1) {
-		if len(match) > 1 {
-			seen[match[1]] = struct{}{}
+	decoder := clientgoscheme.Codecs.UniversalDeserializer()
+	reader := kyaml.NewYAMLReader(bufio.NewReader(strings.NewReader(manifests)))
+	for {
+		doc, err := reader.Read()
+		if err != nil {
+			break
+		}
+		// Fast path, decoding is the expensive part and every pod spec has containers.
+		if !bytes.Contains(doc, []byte("containers")) {
+			continue
+		}
+		obj, _, err := decoder.Decode(doc, nil, nil)
+		if err != nil {
+			continue
+		}
+		spec := podSpecOf(obj)
+		if spec == nil {
+			continue
+		}
+		for _, container := range slices.Concat(spec.InitContainers, spec.Containers) {
+			if container.Image != "" {
+				seen[container.Image] = struct{}{}
+			}
 		}
 	}
 
-	images := make([]string, 0, len(seen))
-	for img := range seen {
-		images = append(images, img)
+	return slices.Sorted(maps.Keys(seen))
+}
+
+// podSpecOf returns the pod spec of the standard Kubernetes workloads and nil for anything else.
+func podSpecOf(obj runtime.Object) *corev1.PodSpec {
+	switch o := obj.(type) {
+	case *corev1.Pod:
+		return &o.Spec
+	case *appsv1.Deployment:
+		return &o.Spec.Template.Spec
+	case *appsv1.DaemonSet:
+		return &o.Spec.Template.Spec
+	case *appsv1.StatefulSet:
+		return &o.Spec.Template.Spec
+	case *appsv1.ReplicaSet:
+		return &o.Spec.Template.Spec
+	case *corev1.ReplicationController:
+		if o.Spec.Template != nil {
+			return &o.Spec.Template.Spec
+		}
+	case *batchv1.Job:
+		return &o.Spec.Template.Spec
+	case *batchv1.CronJob:
+		return &o.Spec.JobTemplate.Spec.Template.Spec
 	}
-	slices.Sort(images)
-	return images
+	return nil
 }
 
 // SplitOCIRef breaks an OCI reference into registry, repository, and tag/digest.

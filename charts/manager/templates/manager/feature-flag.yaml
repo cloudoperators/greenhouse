@@ -24,8 +24,11 @@ data:
     # enable pluginPreset features
     # expressionEvaluationEnabled allows you to enable or disable CEL expression evaluation in PluginPreset
     # when enabled, expressions in PluginPreset.spec.plugin.optionValues are evaluated before creating the Plugin
+    # integrationEnabled allows you to enable or disable ValueFrom.Ref resolution in PluginPreset
+    # when enabled, valueFrom.ref references in PluginPreset are resolved before creating the Plugin
     pluginPreset: |
       expressionEvaluationEnabled: false / true
+      integrationEnabled: false / true
     # enable workloadIdentity features
     # enabled allows you to use Flux ObjectLevelWorkloadIdentity for OIDC clusters
     # when enabled, the bootstrap controller writes a workload identity ConfigMap instead of a static kubeconfig
@@ -37,5 +40,6 @@ data:
     ociMirroringEnabled: {{ include "plugin.ociMirroringEnabled" $ }}
   pluginPreset: |
     expressionEvaluationEnabled: {{ include "pluginPreset.expressionEvaluationEnabled" $ }}
+    integrationEnabled: {{ include "pluginPreset.integrationEnabled" $ }}
   workloadIdentity: |
     enabled: {{ include "workloadIdentity.enabled" $ }}

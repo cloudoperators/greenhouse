@@ -122,6 +122,7 @@ Fields:
 ### Image Transformation
 
 When deploying plugins, image references are automatically rewritten to use the configured mirror registries.
+Only the images of standard workloads, for example a `Deployment`, `DaemonSet` or `CronJob`, are replicated to the mirror. An image that only a custom resource references, such as an operator configuration, is left untouched.
 
 **Example: GitHub Container Registry**
 
