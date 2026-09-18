@@ -139,6 +139,8 @@ const (
 	ClusterConnectivityOIDC           = "oidc"
 	ClusterWorkloadIdentityAnnotation = "greenhouse.sap/workload-identity"
 	ClusterWorkloadIdentityEnabled    = "true"
+
+	ClusterWorkerlessAnnotation = "greenhouse.sap/workerless"
 )
 
 const (
