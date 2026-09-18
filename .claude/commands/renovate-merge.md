@@ -73,27 +73,29 @@ First, approve the PR:
 gh pr review <PR_NUMBER> --repo cloudoperators/greenhouse --approve
 ```
 
-Then poll CI checks every 60 seconds until all checks reach a terminal state (`pass`, `skipping`, or `fail`) before merging:
+Then poll CI checks every 60 seconds until all checks reach a terminal state before merging. Only `pass` and `skipping` are considered success; `fail`, `cancelled`, and `timed_out` are failures; `queued`, `pending`, and `in_progress` keep the loop waiting:
 
 ```bash
 while true; do
   STATUS=$(gh pr checks <PR_NUMBER> --repo cloudoperators/greenhouse 2>&1)
-  PENDING=$(echo "$STATUS" | grep -cE "pending|in_progress" || true)
-  FAILING=$(echo "$STATUS" | grep -cE "^[^\t]+\tfail" || true)
-  echo "[$(date '+%H:%M:%S')] PR #<PR_NUMBER> — Pending/In-progress: $PENDING, Failing: $FAILING"
-  if [ "$PENDING" -eq 0 ] && [ "$FAILING" -eq 0 ]; then
+  NOT_TERMINAL=$(echo "$STATUS" | grep -cE "\t(queued|pending|in_progress)\t" || true)
+  FAILING=$(echo "$STATUS" | grep -cE "\t(fail|cancelled|timed_out)\t" || true)
+  PASSING=$(echo "$STATUS" | grep -cE "\t(pass|skipping)\t" || true)
+  TOTAL=$(echo "$STATUS" | grep -cE "^\S" || true)
+  echo "[$(date '+%H:%M:%S')] PR #<PR_NUMBER> — Total: $TOTAL, Passing: $PASSING, Waiting: $NOT_TERMINAL, Failing: $FAILING"
+  if [ "$NOT_TERMINAL" -eq 0 ] && [ "$FAILING" -eq 0 ] && [ "$TOTAL" -gt 0 ]; then
     echo "All checks passed — proceeding to merge PR #<PR_NUMBER>."
     break
-  elif [ "$PENDING" -eq 0 ] && [ "$FAILING" -gt 0 ]; then
+  elif [ "$NOT_TERMINAL" -eq 0 ] && [ "$FAILING" -gt 0 ]; then
     echo "Some checks failed on PR #<PR_NUMBER>. Skipping merge."
-    echo "$STATUS" | grep -E "^[^\t]+\tfail"
+    echo "$STATUS" | grep -E "\t(fail|cancelled|timed_out)\t"
     exit 1
   fi
   sleep 60
 done
 ```
 
-If any check failed, skip this PR and report the failures.
+If any check failed, cancelled, or timed out, skip this PR and report the failures.
 
 Once all checks pass, merge the PR:
 ```bash
