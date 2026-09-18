@@ -81,7 +81,7 @@ while true; do
   NOT_TERMINAL=$(echo "$STATUS" | grep -cE "\t(queued|pending|in_progress)\t" || true)
   FAILING=$(echo "$STATUS" | grep -cE "\t(fail|cancelled|timed_out)\t" || true)
   PASSING=$(echo "$STATUS" | grep -cE "\t(pass|skipping)\t" || true)
-  TOTAL=$(echo "$STATUS" | grep -cE "^\S" || true)
+  TOTAL=$(echo "$STATUS" | grep -cE "^." || true)
   echo "[$(date '+%H:%M:%S')] PR #<PR_NUMBER> — Total: $TOTAL, Passing: $PASSING, Waiting: $NOT_TERMINAL, Failing: $FAILING"
   if [ "$NOT_TERMINAL" -eq 0 ] && [ "$FAILING" -eq 0 ] && [ "$TOTAL" -gt 0 ]; then
     echo "All checks passed — proceeding to merge PR #<PR_NUMBER>."
