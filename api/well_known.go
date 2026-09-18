@@ -45,6 +45,9 @@ const (
 	// LabelKeyCluster is used to identify corresponding Cluster for the resource.
 	LabelKeyCluster = "greenhouse.sap/cluster"
 
+	// LabelKeyKubernetesVersion is the Kubernetes version of the cluster, written by the clusterkubeconfig controller.
+	LabelKeyKubernetesVersion = "greenhouse.sap/kubernetes-version"
+
 	// AnnotationKeyExpose marks services and ingresses for exposure via Plugin status.
 	// For services: set to "true" or specify a named port to be exposed via service-proxy.
 	// For ingresses: set to "true" to expose the ingress URL directly.

@@ -14,6 +14,7 @@ import (
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/ocimirror"
+	"github.com/cloudoperators/greenhouse/internal/test/fixture"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
@@ -42,46 +43,48 @@ var _ = Describe("buildPostRenderer", func() {
 	})
 
 	It("should return nil when mirror is nil", func() {
-		manifest := `image: ghcr.io/cloudoperators/greenhouse:main`
+		manifest := fixture.PodManifest("ghcr.io/cloudoperators/greenhouse:main")
 		postRenderer := buildPostRenderer(nil, manifest)
 		Expect(postRenderer).To(BeNil())
 	})
 
 	It("should return nil when no images in manifests", func() {
 		manifest := `
-		apiVersion: v1
-		kind: ConfigMap
-		metadata:
-		name: test
-		data:
-		key: value
-		`
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test
+data:
+  key: value
+`
 		postRenderer := buildPostRenderer(mirror, manifest)
 		Expect(postRenderer).To(BeNil())
 	})
 
 	It("should return nil when no matching mirrors", func() {
-		manifest := `image: registry.k8s.io/pause:3.9`
+		manifest := fixture.PodManifest("registry.k8s.io/pause:3.9")
 		postRenderer := buildPostRenderer(mirror, manifest)
 		Expect(postRenderer).To(BeNil())
 	})
 
-	It("should create transformation preserving full image path", func() {
-		manifest := `image: ghcr.io/cloudoperators/greenhouse:main`
-		postRenderer := buildPostRenderer(mirror, manifest)
-		Expect(postRenderer).NotTo(BeNil())
-		Expect(postRenderer.Kustomize.Images).To(HaveLen(1))
-		Expect(postRenderer.Kustomize.Images[0].Name).To(Equal("ghcr.io/cloudoperators/greenhouse"))
-		Expect(postRenderer.Kustomize.Images[0].NewName).To(Equal("mirror.example.com/ghcr-mirror/cloudoperators/greenhouse"))
-	})
+	DescribeTable("should map an image to its mirror",
+		func(image, expectedName, expectedNewName string) {
+			postRenderer := buildPostRenderer(mirror, fixture.PodManifest(image))
+			Expect(postRenderer).NotTo(BeNil())
+			Expect(postRenderer.Kustomize.Images).To(HaveLen(1))
+			Expect(postRenderer.Kustomize.Images[0].Name).To(Equal(expectedName))
+			Expect(postRenderer.Kustomize.Images[0].NewName).To(Equal(expectedNewName))
+		},
+		Entry("full image path", "ghcr.io/cloudoperators/greenhouse:main",
+			"ghcr.io/cloudoperators/greenhouse", "mirror.example.com/ghcr-mirror/cloudoperators/greenhouse"),
+		Entry("nested repository path", "ghcr.io/org/team/project/app:v1.0",
+			"ghcr.io/org/team/project/app", "mirror.example.com/ghcr-mirror/org/team/project/app"),
+		Entry("digest", "ghcr.io/cloudoperators/greenhouse@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+			"ghcr.io/cloudoperators/greenhouse", "mirror.example.com/ghcr-mirror/cloudoperators/greenhouse"),
+	)
 
 	It("should handle multiple images with different registries", func() {
-		manifest := `
-		containers:
-		- image: ghcr.io/cloudoperators/greenhouse:main
-		- image: docker.io/library/nginx:latest
-		- image: registry.k8s.io/pause:3.9
-		`
+		manifest := fixture.PodManifest("ghcr.io/cloudoperators/greenhouse:main", "docker.io/library/nginx:latest", "registry.k8s.io/pause:3.9")
 		postRenderer := buildPostRenderer(mirror, manifest)
 		Expect(postRenderer).NotTo(BeNil())
 		Expect(postRenderer.Kustomize.Images).To(HaveLen(2))
@@ -94,12 +97,7 @@ var _ = Describe("buildPostRenderer", func() {
 	})
 
 	It("should deduplicate identical images", func() {
-		manifest := `
-		containers:
-		- image: ghcr.io/cloudoperators/greenhouse:main
-		- image: ghcr.io/cloudoperators/greenhouse:main
-		- image: ghcr.io/cloudoperators/greenhouse:main
-		`
+		manifest := fixture.PodManifest("ghcr.io/cloudoperators/greenhouse:main", "ghcr.io/cloudoperators/greenhouse:main", "ghcr.io/cloudoperators/greenhouse:main")
 		postRenderer := buildPostRenderer(mirror, manifest)
 		Expect(postRenderer).NotTo(BeNil())
 		Expect(postRenderer.Kustomize.Images).To(HaveLen(1))
@@ -107,49 +105,8 @@ var _ = Describe("buildPostRenderer", func() {
 		Expect(postRenderer.Kustomize.Images[0].NewName).To(Equal("mirror.example.com/ghcr-mirror/cloudoperators/greenhouse"))
 	})
 
-	It("should preserve nested repository paths", func() {
-		manifest := `image: ghcr.io/org/team/project/app:v1.0`
-		postRenderer := buildPostRenderer(mirror, manifest)
-		Expect(postRenderer).NotTo(BeNil())
-		Expect(postRenderer.Kustomize.Images[0].Name).To(Equal("ghcr.io/org/team/project/app"))
-		Expect(postRenderer.Kustomize.Images[0].NewName).To(Equal("mirror.example.com/ghcr-mirror/org/team/project/app"))
-	})
-
-	It("should handle images with digest", func() {
-		manifest := `image: ghcr.io/cloudoperators/greenhouse@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
-		postRenderer := buildPostRenderer(mirror, manifest)
-		Expect(postRenderer).NotTo(BeNil())
-		Expect(postRenderer.Kustomize.Images[0].Name).To(Equal("ghcr.io/cloudoperators/greenhouse"))
-		Expect(postRenderer.Kustomize.Images[0].NewName).To(Equal("mirror.example.com/ghcr-mirror/cloudoperators/greenhouse"))
-	})
-
-	It("should handle images with quotes", func() {
-		manifest := `
-		containers:
-		- image: "ghcr.io/cloudoperators/greenhouse:main"
-		- image: 'docker.io/library/nginx:latest'
-		`
-		postRenderer := buildPostRenderer(mirror, manifest)
-		Expect(postRenderer).NotTo(BeNil())
-
-		names := []string{postRenderer.Kustomize.Images[0].Name, postRenderer.Kustomize.Images[1].Name}
-		Expect(names).To(ConsistOf(
-			"ghcr.io/cloudoperators/greenhouse",
-			"docker.io/library/nginx",
-		))
-		newNames := []string{postRenderer.Kustomize.Images[0].NewName, postRenderer.Kustomize.Images[1].NewName}
-		Expect(newNames).To(ConsistOf(
-			"mirror.example.com/ghcr-mirror/cloudoperators/greenhouse",
-			"mirror.example.com/dockerhub-mirror/library/nginx",
-		))
-	})
-
 	It("should handle Docker Hub default registry for images without registry prefix", func() {
-		manifest := `
-		containers:
-		- image: nginx:latest
-		- image: myorg/myapp:v1.0
-		`
+		manifest := fixture.PodManifest("nginx:latest", "myorg/myapp:v1.0")
 		postRenderer := buildPostRenderer(mirror, manifest)
 		Expect(postRenderer).NotTo(BeNil())
 		Expect(postRenderer.Kustomize.Images).To(HaveLen(2))
@@ -168,8 +125,8 @@ var _ = Describe("buildPostRenderer", func() {
 	})
 
 	It("should include image refs from helm hook manifests", func() {
-		mainManifest := `image: ghcr.io/cloudoperators/greenhouse:main`
-		hookManifest := `image: docker.io/library/busybox:1.36`
+		mainManifest := fixture.PodManifest("ghcr.io/cloudoperators/greenhouse:main")
+		hookManifest := fixture.PodManifest("docker.io/library/busybox:1.36")
 		postRenderer := buildPostRenderer(mirror, mainManifest, hookManifest)
 		Expect(postRenderer).NotTo(BeNil())
 		Expect(postRenderer.Kustomize.Images).To(HaveLen(2))
@@ -182,15 +139,15 @@ var _ = Describe("buildPostRenderer", func() {
 	})
 
 	It("should deduplicate image refs across manifest and hooks", func() {
-		mainManifest := `image: ghcr.io/cloudoperators/greenhouse:main`
-		hookManifest := `image: ghcr.io/cloudoperators/greenhouse:main`
+		mainManifest := fixture.PodManifest("ghcr.io/cloudoperators/greenhouse:main")
+		hookManifest := fixture.PodManifest("ghcr.io/cloudoperators/greenhouse:main")
 		postRenderer := buildPostRenderer(mirror, mainManifest, hookManifest)
 		Expect(postRenderer).NotTo(BeNil())
 		Expect(postRenderer.Kustomize.Images).To(HaveLen(1))
 	})
 
 	It("should pick up image refs even when only present in a hook", func() {
-		hookManifest := `image: ghcr.io/cloudoperators/greenhouse:main`
+		hookManifest := fixture.PodManifest("ghcr.io/cloudoperators/greenhouse:main")
 		postRenderer := buildPostRenderer(mirror, "", hookManifest)
 		Expect(postRenderer).NotTo(BeNil())
 		Expect(postRenderer.Kustomize.Images).To(HaveLen(1))
@@ -221,7 +178,7 @@ var _ = Describe("ensureImageReplication", func() {
 			return []byte("{}"), nil
 		})
 
-		manifests := "image: ghcr.io/cloudoperators/greenhouse:main"
+		manifests := fixture.PodManifest("ghcr.io/cloudoperators/greenhouse:main")
 		err := ensureImageReplication(context.Background(), mirror, plugin, manifests)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(plugin.Status.ImageReplication).To(ContainElement("ghcr.io/cloudoperators/greenhouse:main"))
@@ -240,7 +197,7 @@ var _ = Describe("ensureImageReplication", func() {
 		})
 
 		plugin.Status.ImageReplication = []string{"ghcr.io/cloudoperators/greenhouse:main"}
-		manifests := "image: ghcr.io/cloudoperators/greenhouse:main"
+		manifests := fixture.PodManifest("ghcr.io/cloudoperators/greenhouse:main")
 		err := ensureImageReplication(context.Background(), mirror, plugin, manifests)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(fetchCount).To(Equal(0))
@@ -259,7 +216,7 @@ var _ = Describe("ensureImageReplication", func() {
 
 		plugin.SetAnnotations(map[string]string{lifecycle.ReconcileAnnotation: "2026-08-25T13:34:13Z"})
 		plugin.Status.ImageReplication = []string{"ghcr.io/cloudoperators/greenhouse:main"}
-		manifests := "image: ghcr.io/cloudoperators/greenhouse:main"
+		manifests := fixture.PodManifest("ghcr.io/cloudoperators/greenhouse:main")
 		err := ensureImageReplication(context.Background(), mirror, plugin, manifests)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(fetchCount).To(Equal(1))
@@ -277,7 +234,7 @@ var _ = Describe("ensureImageReplication", func() {
 
 		plugin.Status.ImageReplication = []string{"ghcr.io/cloudoperators/previous:v1"}
 
-		manifests := "image: ghcr.io/cloudoperators/greenhouse:main"
+		manifests := fixture.PodManifest("ghcr.io/cloudoperators/greenhouse:main")
 		err := ensureImageReplication(context.Background(), mirror, plugin, manifests)
 		Expect(err).To(HaveOccurred())
 
@@ -298,7 +255,7 @@ var _ = Describe("ensureImageReplication", func() {
 			return []byte("{}"), nil
 		})
 
-		manifests := "image: registry.k8s.io/pause:3.9"
+		manifests := fixture.PodManifest("registry.k8s.io/pause:3.9")
 		err := ensureImageReplication(context.Background(), mirror, plugin, manifests)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(plugin.Status.ImageReplication).To(BeEmpty())

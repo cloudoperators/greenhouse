@@ -7,11 +7,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"regexp"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	k8svalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -107,6 +110,28 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		} else {
 			l.Info("created initial ClusterKubeconfig resource")
 		}
+	}
+
+	// Sync labels from cluster on every reconcile, independent of OIDC/secret availability.
+	if _, err := clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
+		kubeconfig.Labels = cluster.GetLabels()
+		// Always delete the version key first so a stale value from the Cluster's own
+		// metadata labels cannot survive when Status.KubernetesVersion is empty.
+		delete(kubeconfig.Labels, greenhouseapis.LabelKeyKubernetesVersion)
+		if v := cluster.Status.KubernetesVersion; v != "" {
+			if kubeconfig.Labels == nil {
+				kubeconfig.Labels = make(map[string]string)
+			}
+			if safe, ok := labelSafeVersion(v); ok {
+				kubeconfig.Labels[greenhouseapis.LabelKeyKubernetesVersion] = safe
+			} else {
+				l.Info("kubernetes version cannot be represented as a label value, skipping", "version", v)
+			}
+		}
+		return nil
+	}); err != nil {
+		l.Error(err, "failed to sync labels on ClusterKubeconfig")
+		return ctrl.Result{}, err
 	}
 
 	// get oidc info from organization
@@ -206,9 +231,6 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// collect oidc data and update kubeconfig
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
-		// Mirror the cluster's labels
-		kubeconfig.Labels = cluster.GetLabels()
-
 		kubeconfig.Spec.Kubeconfig.Clusters = []v1alpha1.ClusterKubeconfigClusterItem{
 			{
 				Name: cluster.Name,
@@ -447,4 +469,34 @@ var ExposedKubeconfigConditions = []greenhousemetav1alpha1.ConditionType{
 	v1alpha1.KubeconfigCreatedCondition,
 	v1alpha1.KubeconfigReconcileFailedCondition,
 	v1alpha1.KubeconfigReadyCondition,
+}
+
+// nonLabelChars matches any character that is not alphanumeric, '-', '_', or '.'.
+var nonLabelChars = regexp.MustCompile(`[^a-zA-Z0-9\-_.]+`)
+
+// labelSafeVersion converts a Kubernetes version string (e.g. "v1.31.4+k3s1") into
+// a value that satisfies Kubernetes label-value constraints (≤63 chars,
+// alphanumeric/-/./_ only, must start and end with alphanumeric).
+// Returns the sanitized value and true when the result is valid, or ("", false)
+// when the version string cannot be represented as a valid label value.
+// Selectors should match the normalized form, e.g. "v1.31.4-k3s1".
+func labelSafeVersion(version string) (string, bool) {
+	// Replace '+' with '-' to preserve build metadata readably (v1.31.4+k3s1 → v1.31.4-k3s1).
+	safe := strings.ReplaceAll(version, "+", "-")
+	// Replace any remaining disallowed characters with '-'.
+	safe = nonLabelChars.ReplaceAllString(safe, "-")
+	// Truncate to 63 characters.
+	if len(safe) > 63 {
+		safe = safe[:63]
+	}
+	// Trim leading/trailing characters that are not alphanumeric.
+	safe = strings.TrimRight(safe, "-_.")
+	safe = strings.TrimLeft(safe, "-_.")
+	if safe == "" {
+		return "", false
+	}
+	if len(k8svalidation.IsValidLabelValue(safe)) > 0 {
+		return "", false
+	}
+	return safe, true
 }
