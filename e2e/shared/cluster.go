@@ -42,6 +42,23 @@ func OnboardRemoteCluster(ctx context.Context, k8sClient client.Client, kubeConf
 	Expect(err).NotTo(HaveOccurred())
 }
 
+func OnboardWorkerlessCluster(ctx context.Context, k8sClient client.Client, kubeConfigBytes []byte, name, namespace, supportGroupTeamName string) {
+	By("applying remote cluster kubeconfig as greenhouse secret with workerless annotation")
+	secret := test.NewSecret(name, namespace, test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
+		test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: kubeConfigBytes}),
+		test.WithSecretLabel(greenhouseapis.LabelKeyOwnedBy, supportGroupTeamName),
+		test.WithSecretAnnotations(map[string]string{
+			lifecycle.PropagateLabelsAnnotation:        greenhouseapis.LabelKeyOwnedBy,
+			greenhouseapis.ClusterWorkerlessAnnotation: "true",
+		}),
+	)
+	err := k8sClient.Create(ctx, secret)
+	if apierrors.IsAlreadyExists(err) {
+		err = k8sClient.Update(ctx, secret)
+	}
+	Expect(err).NotTo(HaveOccurred())
+}
+
 func OnboardRemoteOIDCCluster(ctx context.Context, k8sClient client.Client, caCert []byte, apiServerURL, name, namespace, supportGroupTeamName string) {
 	By("applying remote cluster OIDC configuration as greenhouse secret")
 	secret := test.NewSecret(name, namespace, test.WithSecretType(greenhouseapis.SecretTypeOIDCConfig),
@@ -108,7 +125,11 @@ func OffBoardRemoteCluster(ctx context.Context, adminClient, remoteClient client
 		}
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "cluster secret should be deleted")
 	}).Should(Succeed(), "cluster resource & secret should be deleted")
+}
 
+// VerifyRemoteRBACDeleted checks that the shared greenhouse CRB and SA are gone from the remote
+// cluster. Call once after all clusters sharing the remote are offboarded.
+func VerifyRemoteRBACDeleted(ctx context.Context, remoteClient client.Client, namespace string) {
 	By("verifying that the remote cluster managed service account and cluster role binding is deleted")
 	Eventually(func(g Gomega) {
 		crb := &rbacv1.ClusterRoleBinding{}
