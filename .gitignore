@@ -31,6 +31,9 @@ testbin/*
 *~
 .vscode
 .claude
+!.claude/
+!.claude/commands/
+!.claude/commands/*.md
 .cursor
 .copilot
 
