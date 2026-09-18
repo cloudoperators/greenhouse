@@ -10,7 +10,7 @@ Run the following to list PRs ordered by size label from smallest to largest (XS
 ```bash
 gh pr list --state open --author "renovate[bot]" --repo cloudoperators/greenhouse --json number,title,labels,headRefName,createdAt | \
   jq 'def size_order: . as $l | ["XS","S","M","L","XL"] | index($l) // 99;
-  sort_by(.labels | map(.name | select(startswith("size/"))) | first | ltrimstr("size/") | size_order) |
+  sort_by(.labels | map(.name | select(startswith("size/"))) | first // "" | ltrimstr("size/") | size_order) |
   .[] | [(.number | tostring), .title, (.labels | map(.name) | join(", ")), .headRefName] | @tsv'
 ```
 
@@ -73,12 +73,7 @@ First, approve the PR:
 gh pr review <PR_NUMBER> --repo cloudoperators/greenhouse --approve
 ```
 
-Then enable auto-merge so the PR merges automatically once all branch protection requirements are satisfied:
-```bash
-gh pr merge <PR_NUMBER> --repo cloudoperators/greenhouse --squash --auto
-```
-
-Then poll CI checks every 60 seconds to monitor progress. Report the final status once all checks reach a terminal state (`pass`, `skipping`, or `fail`):
+Then poll CI checks every 60 seconds until all checks reach a terminal state (`pass`, `skipping`, or `fail`) before merging:
 
 ```bash
 while true; do
@@ -87,18 +82,31 @@ while true; do
   FAILING=$(echo "$STATUS" | grep -cE "^[^\t]+\tfail" || true)
   echo "[$(date '+%H:%M:%S')] PR #<PR_NUMBER> — Pending/In-progress: $PENDING, Failing: $FAILING"
   if [ "$PENDING" -eq 0 ] && [ "$FAILING" -eq 0 ]; then
-    echo "All checks passed — PR #<PR_NUMBER> will be merged automatically."
+    echo "All checks passed — proceeding to merge PR #<PR_NUMBER>."
     break
   elif [ "$PENDING" -eq 0 ] && [ "$FAILING" -gt 0 ]; then
-    echo "Some checks failed on PR #<PR_NUMBER>. Auto-merge will be blocked."
+    echo "Some checks failed on PR #<PR_NUMBER>. Skipping merge."
     echo "$STATUS" | grep -E "^[^\t]+\tfail"
-    break
+    exit 1
   fi
   sleep 60
 done
 ```
 
-If a PR has failing checks, report which checks failed.
+If any check failed, skip this PR and report the failures.
+
+Once all checks pass, merge the PR:
+```bash
+gh pr merge <PR_NUMBER> --repo cloudoperators/greenhouse --squash
+```
+
+Then verify it was actually merged:
+```bash
+gh pr view <PR_NUMBER> --repo cloudoperators/greenhouse --json state,mergedAt \
+  | jq 'if .state == "MERGED" then "PR #<PR_NUMBER> merged at \(.mergedAt)" else "PR #<PR_NUMBER> not merged — state: \(.state)" end'
+```
+
+Report the actual merge state from this output.
 
 5. **Final report**
 
