@@ -45,7 +45,6 @@ func main() {
 	figure.NewColorFigure("Version: "+version.GitCommit+" ("+version.BuildDate+")", "term", "yellow", true).Print()
 	logger.Info("Service-proxy", "version", version.GitCommit, "build_date", version.BuildDate, "go", version.GoVersion)
 
-	// Signal-canceled context drives the informer cache.
 	ctx := ctrl.SetupSignalHandler()
 
 	pm, err := proxy.NewProxyManager(ctx, logger)
@@ -54,7 +53,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Start the cache in the background; the proxy serves once it is warm.
 	go func() {
 		if err := pm.Start(ctx); err != nil {
 			logger.Error(err, "cache stopped")

@@ -17,8 +17,10 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
-const tokenExpiryLeeway = 60 * time.Second
-const tokenMintTimeout = 10 * time.Second
+const (
+	tokenExpiryLeeway = 60 * time.Second
+	tokenMintTimeout  = 10 * time.Second
+)
 
 func (pm *PmManager) workloadIdentityTransport(ctx context.Context, cluster *greenhousev1alpha1.Cluster) (http.RoundTripper, string, error) {
 	restCfg, err := lifecycle.NewRemoteKubeCfg(ctx, pm.reader, cluster)
@@ -38,7 +40,7 @@ func (pm *PmManager) workloadIdentityTransport(ctx context.Context, cluster *gre
 		namespace: cluster.Namespace,
 		name:      cluster.Name,
 		tokenCtx: func() (context.Context, context.CancelFunc) {
-			return context.WithTimeout(pm.baseCtx, tokenMintTimeout)
+			return context.WithTimeout(ctx, tokenMintTimeout)
 		},
 	}
 	rt := transport.ResettableTokenSourceWrapTransport(transport.NewCachedTokenSource(src))(base)

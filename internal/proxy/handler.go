@@ -27,18 +27,10 @@ func (w *logrWriter) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-// contextClusterKey carries the resolved cluster name from rewrite to RoundTrip.
-// httputil.ReverseProxy rewrites the outgoing Host to the upstream apiserver
-// before RoundTrip runs, so the original cluster host is no longer available
-// there; the context is the only channel between the two hooks.
 type contextClusterKey struct{}
 
-// apiServerProxyPathRegex matches the kube-apiserver service-proxy path prefix
-// the apiserver prepends to redirect Location headers.
 var apiServerProxyPathRegex = regexp.MustCompile(`/api/v1/namespaces/[^/]+/services/[^/]+/proxy/`)
 
-// ReverseProxy returns the reverse proxy that forwards requests to the cluster
-// resolved for the incoming host.
 func (pm *PmManager) ReverseProxy() *httputil.ReverseProxy {
 	return &httputil.ReverseProxy{
 		Rewrite:        pm.rewrite,
@@ -50,8 +42,6 @@ func (pm *PmManager) ReverseProxy() *httputil.ReverseProxy {
 	}
 }
 
-// RoundTrip forwards the rewritten request using the transport stored for the
-// cluster carried in the request context.
 func (pm *PmManager) RoundTrip(req *http.Request) (*http.Response, error) {
 	cluster, ok := req.Context().Value(contextClusterKey{}).(string)
 	if !ok {
@@ -62,16 +52,12 @@ func (pm *PmManager) RoundTrip(req *http.Request) (*http.Response, error) {
 		return nil, fmt.Errorf("cluster %s not found", cluster)
 	}
 	resp, err := transport.RoundTrip(req)
-	// errors are logged by pm.errorHandler
 	if err == nil {
 		log.FromContext(req.Context()).Info("forwarded request", "status", resp.StatusCode, "upstreamServiceRouteURL", req.URL.String())
 	}
 	return resp, err
 }
 
-// rewrite resolves the cluster and route for the incoming host, points the
-// outgoing request at the upstream apiserver service-proxy URL, and injects the
-// cluster into the outgoing context for RoundTrip.
 func (pm *PmManager) rewrite(req *httputil.ProxyRequest) {
 	req.SetXForwarded()
 
@@ -116,8 +102,6 @@ func (pm *PmManager) rewrite(req *httputil.ProxyRequest) {
 	)
 }
 
-// modifyResponse strips the kube-apiserver service-proxy path prefix that the
-// apiserver prepends to redirect Location headers.
 func (pm *PmManager) modifyResponse(resp *http.Response) error {
 	logger := log.FromContext(resp.Request.Context())
 	logger.Info("modifying response", "statusCode", resp.StatusCode, "originalLocation", resp.Header.Get("Location"))
@@ -130,7 +114,6 @@ func (pm *PmManager) modifyResponse(resp *http.Response) error {
 	return nil
 }
 
-// errorHandler logs the proxy failure and returns a bad gateway.
 func (pm *PmManager) errorHandler(rw http.ResponseWriter, req *http.Request, err error) {
 	logger := pm.logger
 	if l, lerr := logr.FromContext(req.Context()); lerr == nil {
