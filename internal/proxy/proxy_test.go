@@ -12,7 +12,6 @@ import (
 
 	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -129,12 +128,12 @@ func TestURLGenerationWithProtocols(t *testing.T) {
 		},
 		{
 			name:            "explicit_http_protocol",
-			protocol:        ptr.To("http"),
+			protocol:        new("http"),
 			expectedURLPath: "/api/v1/namespaces/namespace/services/test:8080/proxy",
 		},
 		{
 			name:            "explicit_https_protocol",
-			protocol:        ptr.To("https"),
+			protocol:        new("https"),
 			expectedURLPath: "/api/v1/namespaces/namespace/services/https:test:8080/proxy",
 		},
 	}

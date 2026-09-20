@@ -26,7 +26,7 @@ func (pm *PmManager) workloadIdentityTransport(ctx context.Context, cluster *gre
 	}
 
 	base, err := transport.New(&transport.Config{
-		TLS: transport.TLSConfig{CAData: restCfg.TLSClientConfig.CAData},
+		TLS: transport.TLSConfig{CAData: restCfg.CAData},
 	})
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to build base transport: %w", err)
@@ -56,6 +56,6 @@ func (s *tokenRequestSource) Token() (*oauth2.Token, error) {
 	return &oauth2.Token{
 		AccessToken: tokenRequest.Status.Token,
 		TokenType:   "Bearer",
-		Expiry:      tokenRequest.Status.ExpirationTimestamp.Time.Add(-tokenExpiryLeeway),
+		Expiry:      tokenRequest.Status.ExpirationTimestamp.Add(-tokenExpiryLeeway),
 	}, nil
 }

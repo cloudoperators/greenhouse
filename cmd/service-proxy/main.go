@@ -100,8 +100,12 @@ func main() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		_ = e.Shutdown(shutdownCtx)
-		_ = metrics.Shutdown(shutdownCtx)
+		if err := e.Shutdown(shutdownCtx); err != nil {
+			logger.Error(err, "failed to shutdown server")
+		}
+		if err := metrics.Shutdown(shutdownCtx); err != nil {
+			logger.Error(err, "failed to shutdown metrics server")
+		}
 	}()
 
 	if err := e.Start(listenAddr); err != nil && !errors.Is(err, http.ErrServerClosed) {
