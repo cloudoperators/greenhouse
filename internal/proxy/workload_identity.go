@@ -18,6 +18,7 @@ import (
 )
 
 const tokenExpiryLeeway = 60 * time.Second
+const tokenMintTimeout = 10 * time.Second
 
 func (pm *PmManager) workloadIdentityTransport(ctx context.Context, cluster *greenhousev1alpha1.Cluster) (http.RoundTripper, string, error) {
 	restCfg, err := lifecycle.NewRemoteKubeCfg(ctx, pm.reader, cluster)
@@ -36,6 +37,9 @@ func (pm *PmManager) workloadIdentityTransport(ctx context.Context, cluster *gre
 		client:    pm.reader,
 		namespace: cluster.Namespace,
 		name:      cluster.Name,
+		tokenCtx: func() (context.Context, context.CancelFunc) {
+			return context.WithTimeout(pm.baseCtx, tokenMintTimeout)
+		},
 	}
 	rt := transport.ResettableTokenSourceWrapTransport(transport.NewCachedTokenSource(src))(base)
 
@@ -46,10 +50,13 @@ type tokenRequestSource struct {
 	client    client.Client
 	namespace string
 	name      string
+	tokenCtx  func() (context.Context, context.CancelFunc)
 }
 
 func (s *tokenRequestSource) Token() (*oauth2.Token, error) {
-	tokenRequest, err := lifecycle.MintServiceAccountToken(context.Background(), s.client, s.namespace, s.name)
+	ctx, cancel := s.tokenCtx()
+	defer cancel()
+	tokenRequest, err := lifecycle.MintServiceAccountToken(ctx, s.client, s.namespace, s.name)
 	if err != nil {
 		return nil, err
 	}

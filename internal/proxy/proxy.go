@@ -38,6 +38,10 @@ const (
 type PmManager struct {
 	logger logr.Logger
 
+	// baseCtx is the manager lifetime context (signal-canceled on shutdown). It
+	// is the parent for token minting so in-flight mints abort on shutdown.
+	baseCtx context.Context
+
 	// cache drives the Cluster and Plugin informers.
 	cache cache.Cache
 	// reader is an uncached client used to fetch the workload-identity ConfigMap
@@ -92,6 +96,7 @@ func NewProxyManager(ctx context.Context, logger logr.Logger) (*PmManager, error
 
 	pm := &PmManager{
 		logger:    logger,
+		baseCtx:   ctx,
 		cache:     c,
 		reader:    reader,
 		store:     NewStore(),
