@@ -38,10 +38,26 @@ func getWorkloadIdentityCfg(ctx context.Context, kubeClient client.Client, secre
 		return nil, fmt.Errorf("failed decoding certificate data: %w", err)
 	}
 
+	tokenRequest, err := MintServiceAccountToken(ctx, kubeClient, secret.GetNamespace(), secret.GetName())
+	if err != nil {
+		return nil, err
+	}
+
+	cfg := &rest.Config{
+		Host:        secret.Annotations[greenhouseapis.SecretAPIServerURLAnnotation],
+		BearerToken: tokenRequest.Status.Token,
+		TLSClientConfig: rest.TLSClientConfig{
+			CAData: certDecoded,
+		},
+	}
+	return cfg, nil
+}
+
+func MintServiceAccountToken(ctx context.Context, kubeClient client.Client, namespace, name string) (*authenticationv1.TokenRequest, error) {
 	serviceAccount := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      secret.GetName(),
-			Namespace: secret.GetNamespace(),
+			Name:      name,
+			Namespace: namespace,
 		},
 	}
 	tokenRequest := &authenticationv1.TokenRequest{
@@ -53,15 +69,7 @@ func getWorkloadIdentityCfg(ctx context.Context, kubeClient client.Client, secre
 	if err := kubeClient.SubResource("token").Create(ctx, serviceAccount, tokenRequest); err != nil {
 		return nil, fmt.Errorf("failed creating token request for workload identity: %w", err)
 	}
-
-	cfg := &rest.Config{
-		Host:        secret.Annotations[greenhouseapis.SecretAPIServerURLAnnotation],
-		BearerToken: tokenRequest.Status.Token,
-		TLSClientConfig: rest.TLSClientConfig{
-			CAData: certDecoded,
-		},
-	}
-	return cfg, nil
+	return tokenRequest, nil
 }
 
 func getKubeCfg(secret *corev1.Secret) (*rest.Config, error) {
