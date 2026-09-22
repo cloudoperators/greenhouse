@@ -236,7 +236,7 @@ spec:
             kind: PluginPreset
             name: backend-preset
             expression: |
-              ${spec.optionValues.filter(v, v.name == "backend.hostname")[0].value}
+              ${spec.plugin.optionValues.filter(v, v.name == "backend.hostname")[0].value}
   clusterSelector:
     matchLabels:
       env: production
@@ -321,7 +321,7 @@ spec:
               matchLabels:
                 e2e.greenhouse.sap/selector-test: "true"
             expression: |
-              ${spec.optionValues.filter(v, v.name == "source.endpoint")[0].value}
+              ${spec.plugin.optionValues.filter(v, v.name == "source.endpoint")[0].value}
   clusterSelector:
     matchLabels:
       greenhouse.sap/cluster: kind-greenhouse-remote
@@ -368,7 +368,25 @@ spec:
       env: production
 ```
 
-Next to `metadata` and `spec.optionValues`, an expression on a Plugin reference can also read `spec.clusterName` and `spec.releaseName`.
+### What an expression can read
+
+The expression runs against the referenced object as the API server stores it, so every field is addressed by the same path `kubectl get -o yaml` prints. A reference to a Plugin reads its option values under `spec.optionValues`, a reference to a PluginPreset under `spec.plugin.optionValues`, and both can read `metadata`, the rest of `spec` and `status`.
+
+`status` is the only place a value can come from that the source does not know before it runs, the address of a service it exposes for example:
+
+```yaml
+      - name: thanos.query.stores
+        valueFrom:
+          ref:
+            kind: Plugin
+            selector:
+              matchLabels:
+                greenhouse.sap/pluginpreset: thanos-regional
+            expression: |
+              ${status.exposedServices.map(url, url)}
+```
+
+An expression reads plain values only. An option that takes its value from a secret or from another reference comes through without its `valueFrom`, so neither its value nor the name of the secret behind it is readable.
 
 ### CEL Expression Syntax for References
 The expression field in valueFrom.ref supports multiple syntax styles:
