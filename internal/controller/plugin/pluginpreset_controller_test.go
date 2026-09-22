@@ -5,6 +5,7 @@ package plugin
 
 import (
 	"encoding/json"
+	"errors"
 	"slices"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
@@ -1217,7 +1218,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 								Ref: &greenhousev1alpha1.ExternalValueSource{
 									Kind:       greenhousev1alpha1.PluginPresetKind,
 									Name:       "source-plugin",
-									Expression: "spec.optionValues[0].value",
+									Expression: "spec.plugin.optionValues[0].value",
 								},
 							},
 						},
@@ -1351,7 +1352,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind:       greenhousev1alpha1.PluginPresetKind,
 							Name:       "ref-source",
-							Expression: `${spec.optionValues.filter(v, v.name == "source.value")[0].value}`,
+							Expression: `${spec.plugin.optionValues.filter(v, v.name == "source.value")[0].value}`,
 						},
 					},
 				},
@@ -1468,7 +1469,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind:       greenhousev1alpha1.PluginPresetKind,
 							Name:       "ref-transform-source",
-							Expression: `"https://" + spec.optionValues.filter(v, v.name == "service.hostname")[0].value`,
+							Expression: `"https://" + spec.plugin.optionValues.filter(v, v.name == "service.hostname")[0].value`,
 						},
 					},
 				},
@@ -1525,7 +1526,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind:       greenhousev1alpha1.PluginPresetKind,
 							Name:       "provider-watch",
-							Expression: `spec.optionValues.filter(o, o.name == "provider.output")[0].value`,
+							Expression: `spec.plugin.optionValues.filter(o, o.name == "provider.output")[0].value`,
 						},
 					},
 				},
@@ -1628,7 +1629,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind:       greenhousev1alpha1.PluginPresetKind,
 							Name:       "provider-upd",
-							Expression: `spec.optionValues.filter(o, o.name == "provider.output")[0].value`,
+							Expression: `spec.plugin.optionValues.filter(o, o.name == "provider.output")[0].value`,
 						},
 					},
 				},
@@ -1765,7 +1766,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 									"e2e.greenhouse.sap/selector-test": "true",
 								},
 							},
-							Expression: `spec.optionValues.filter(v, v.name == "source.endpoint")[0].value`,
+							Expression: `spec.plugin.optionValues.filter(v, v.name == "source.endpoint")[0].value`,
 						},
 					},
 				},
@@ -1830,7 +1831,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 									"non-existent-label": "true",
 								},
 							},
-							Expression: `spec.optionValues[0].value`,
+							Expression: `spec.plugin.optionValues[0].value`,
 						},
 					},
 				},
@@ -1873,7 +1874,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind:       greenhousev1alpha1.PluginPresetKind,
 							Name:       "non-existent-preset",
-							Expression: `spec.optionValues[0].value`,
+							Expression: `spec.plugin.optionValues[0].value`,
 						},
 					},
 				},
@@ -2065,7 +2066,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 							Selector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{selectorLabel: selectorValue},
 							},
-							Expression: `spec.optionValues.filter(v, v.name == "source.endpoint")[0].value`,
+							Expression: `spec.plugin.optionValues.filter(v, v.name == "source.endpoint")[0].value`,
 						},
 					},
 				},
@@ -2576,7 +2577,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind:       greenhousev1alpha1.PluginPresetKind,
 							Name:       "ref-int-source",
-							Expression: `spec.optionValues.filter(v, v.name == "source.replicas")[0].value`,
+							Expression: `spec.plugin.optionValues.filter(v, v.name == "source.replicas")[0].value`,
 						},
 					},
 				},
@@ -2656,7 +2657,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 							Ref: &greenhousev1alpha1.ExternalValueSource{
 								Kind:       greenhousev1alpha1.PluginPresetKind,
 								Name:       "enqueue-source",
-								Expression: `spec.optionValues[0].value`,
+								Expression: `spec.plugin.optionValues[0].value`,
 							},
 						},
 					},
@@ -2743,7 +2744,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 								Selector: &metav1.LabelSelector{
 									MatchLabels: map[string]string{"source-group": "my-sources"},
 								},
-								Expression: `spec.optionValues[0].value`,
+								Expression: `spec.plugin.optionValues[0].value`,
 							},
 						},
 					},
@@ -2874,7 +2875,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind:       greenhousev1alpha1.PluginPresetKind,
 							Name:       "ref-bool-source",
-							Expression: `spec.optionValues.filter(v, v.name == "source.enabled")[0].value`,
+							Expression: `spec.plugin.optionValues.filter(v, v.name == "source.enabled")[0].value`,
 						},
 					},
 				},
@@ -2958,7 +2959,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind:       greenhousev1alpha1.PluginPresetKind,
 							Name:       "ref-map-source",
-							Expression: `spec.optionValues.filter(v, v.name == "source.labels")[0].value`,
+							Expression: `spec.plugin.optionValues.filter(v, v.name == "source.labels")[0].value`,
 						},
 					},
 				},
@@ -3044,7 +3045,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind:       greenhousev1alpha1.PluginPresetKind,
 							Name:       "ref-arr-source",
-							Expression: `spec.optionValues.filter(v, v.name == "source.hosts")[0].value`,
+							Expression: `spec.plugin.optionValues.filter(v, v.name == "source.hosts")[0].value`,
 						},
 					},
 				},
@@ -3085,6 +3086,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, consumerPreset)
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, sourcePreset)
 	})
+
 })
 
 var _ = Describe("applyOverridesToPreset", func() {
@@ -3360,12 +3362,13 @@ var _ = Describe("resolveReferencedPresetValues", func() {
 
 		result, err := reconciler.resolveReferencedPresetValues(test.Ctx, refPreset, cluster)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(result).To(HaveLen(2))
-		Expect(result[0].Name).To(Equal("option-1"))
-		Expect(string(result[0].Value.Raw)).To(Equal(`"overridden-value"`),
+		optionValues := result.Spec.Plugin.OptionValues
+		Expect(optionValues).To(HaveLen(2))
+		Expect(optionValues[0].Name).To(Equal("option-1"))
+		Expect(string(optionValues[0].Value.Raw)).To(Equal(`"overridden-value"`),
 			"override should be applied even when ExpressionEvaluationEnabled is false")
-		Expect(result[1].Name).To(Equal("option-2"))
-		Expect(string(result[1].Value.Raw)).To(Equal(`"unchanged"`))
+		Expect(optionValues[1].Name).To(Equal("option-2"))
+		Expect(string(optionValues[1].Value.Raw)).To(Equal(`"unchanged"`))
 	})
 
 	It("should apply overrides when ExpressionEvaluationEnabled is true", func() {
@@ -3406,12 +3409,13 @@ var _ = Describe("resolveReferencedPresetValues", func() {
 
 		result, err := reconciler.resolveReferencedPresetValues(test.Ctx, refPreset, cluster)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(result).To(HaveLen(2))
-		Expect(result[0].Name).To(Equal("option-1"))
-		Expect(string(result[0].Value.Raw)).To(Equal(`"overridden-value"`),
+		optionValues := result.Spec.Plugin.OptionValues
+		Expect(optionValues).To(HaveLen(2))
+		Expect(optionValues[0].Name).To(Equal("option-1"))
+		Expect(string(optionValues[0].Value.Raw)).To(Equal(`"overridden-value"`),
 			"override should be applied when ExpressionEvaluationEnabled is true")
-		Expect(result[1].Name).To(Equal("option-2"))
-		Expect(string(result[1].Value.Raw)).To(Equal(`"unchanged"`))
+		Expect(optionValues[1].Name).To(Equal("option-2"))
+		Expect(string(optionValues[1].Value.Raw)).To(Equal(`"unchanged"`))
 	})
 
 	It("should not apply overrides for a different cluster", func() {
@@ -3443,9 +3447,10 @@ var _ = Describe("resolveReferencedPresetValues", func() {
 
 		result, err := reconciler.resolveReferencedPresetValues(test.Ctx, refPreset, cluster)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(result).To(HaveLen(1))
-		Expect(result[0].Name).To(Equal("option-1"))
-		Expect(string(result[0].Value.Raw)).To(Equal(`"default-value"`),
+		optionValues := result.Spec.Plugin.OptionValues
+		Expect(optionValues).To(HaveLen(1))
+		Expect(optionValues[0].Name).To(Equal("option-1"))
+		Expect(string(optionValues[0].Value.Raw)).To(Equal(`"default-value"`),
 			"override for different cluster should not be applied")
 	})
 
@@ -3504,6 +3509,144 @@ var _ = Describe("getReleaseName", func() {
 		plugin := &greenhousev1alpha1.Plugin{Spec: greenhousev1alpha1.PluginSpec{ReleaseName: ""}}
 		preset := &greenhousev1alpha1.PluginPreset{Spec: greenhousev1alpha1.PluginPresetSpec{Plugin: greenhousev1alpha1.PluginPresetPluginSpec{ReleaseName: "preset-release"}}}
 		Expect(getReleaseName(plugin, preset)).To(Equal("preset-release"))
+	})
+})
+
+// evaluateRefExpression takes the two steps the resolver takes for every object a reference matched.
+func evaluateRefExpression(expression string, obj client.Object) (any, error) {
+	program, err := compileRefExpression(expression)
+	if err != nil {
+		return nil, err
+	}
+	return evaluateRef(program, obj)
+}
+
+var _ = Describe("evaluateRef", func() {
+	It("exposes a Plugin as the API server stores it, status included", func() {
+		plugin := &greenhousev1alpha1.Plugin{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:          "source-plugin",
+				Namespace:     test.TestNamespace,
+				Labels:        map[string]string{"region": "eu-de-1"},
+				ManagedFields: []metav1.ManagedFieldsEntry{{Manager: "greenhouse"}},
+			},
+			Spec: greenhousev1alpha1.PluginSpec{
+				ClusterName: clusterA,
+				OptionValues: []greenhousev1alpha1.PluginOptionValue{
+					{Name: "endpoint", Value: test.MustReturnJSONFor("https://source.example.com")},
+					{Name: "token", ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
+						Secret: &greenhousev1alpha1.SecretKeyReference{Name: "some-secret", Key: "token"},
+					}},
+				},
+			},
+			Status: greenhousev1alpha1.PluginStatus{
+				ExposedServices: map[string]greenhousev1alpha1.Service{
+					"https://thanos.eu-de-1.example.com": {Name: "thanos", Namespace: releaseNamespace, Port: 10901},
+				},
+			},
+		}
+
+		region, err := evaluateRefExpression(`metadata.labels["region"]`, plugin)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(region).To(Equal("eu-de-1"))
+
+		hasManagedFields, err := evaluateRefExpression(`has(metadata.managedFields)`, plugin)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(hasManagedFields).To(BeFalse(), "managed fields are noise for an expression")
+
+		exposed, err := evaluateRefExpression(`status.exposedServices.map(url, url)`, plugin)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(exposed).To(ConsistOf("https://thanos.eu-de-1.example.com"))
+
+		clusterName, err := evaluateRefExpression(`spec.clusterName`, plugin)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(clusterName).To(Equal(clusterA))
+
+		hasValueFrom, err := evaluateRefExpression(
+			`spec.optionValues.exists(v, has(v.valueFrom))`, plugin)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(hasValueFrom).To(BeFalse(), "an expression reads plain values, not where they come from")
+	})
+
+	It("exposes a PluginPreset's option values under spec.plugin", func() {
+		preset := &greenhousev1alpha1.PluginPreset{
+			ObjectMeta: metav1.ObjectMeta{Name: "source-preset", Namespace: test.TestNamespace},
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				Plugin: greenhousev1alpha1.PluginPresetPluginSpec{
+					OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+						{Name: "endpoint", Value: test.MustReturnJSONFor("https://source.example.com")},
+					},
+				},
+				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
+					{
+						ClusterName: clusterA,
+						Overrides: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+							{Name: "endpoint", Value: test.MustReturnJSONFor("https://cluster-a.example.com")},
+							{Name: "token", ValueFrom: &greenhousev1alpha1.PluginPresetPluginValueFromSource{
+								Secret: &greenhousev1alpha1.SecretKeyReference{Name: "some-secret", Key: "token"},
+							}},
+						},
+					},
+				},
+				ClusterSelector: metav1.LabelSelector{MatchLabels: map[string]string{"cluster": clusterA}},
+			},
+		}
+
+		endpoint, err := evaluateRefExpression(`spec.plugin.optionValues.filter(v, v.name == "endpoint")[0].value`, preset)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(endpoint).To(Equal("https://source.example.com"))
+
+		selector, err := evaluateRefExpression(`spec.clusterSelector.matchLabels["cluster"]`, preset)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(selector).To(Equal(clusterA))
+
+		override, err := evaluateRefExpression(
+			`spec.clusterOptionOverrides.filter(o, o.clusterName == "`+clusterA+`")[0].overrides.filter(v, v.name == "endpoint")[0].value`, preset)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(override).To(Equal("https://cluster-a.example.com"))
+
+		hasValueFrom, err := evaluateRefExpression(
+			`spec.clusterOptionOverrides.exists(o, o.overrides.exists(v, has(v.valueFrom)))`, preset)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(hasValueFrom).To(BeFalse(), "an override hides where its value comes from too")
+	})
+})
+
+var _ = Describe("withMissingValueHint", func() {
+	It("names the options holding no value of their own", func() {
+		plugin := &greenhousev1alpha1.Plugin{
+			Spec: greenhousev1alpha1.PluginSpec{
+				OptionValues: []greenhousev1alpha1.PluginOptionValue{
+					{Name: "plain", Value: test.MustReturnJSONFor("value")},
+					{Name: "token", ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
+						Secret: &greenhousev1alpha1.SecretKeyReference{Name: "some-secret", Key: "token"},
+					}},
+				},
+			},
+		}
+		err := withMissingValueHint(errors.New("no such key: value"), plugin)
+		Expect(err).To(MatchError(ContainSubstring("options with no value of their own: token")))
+	})
+
+	It("reads a PluginPreset's options through spec.plugin", func() {
+		preset := &greenhousev1alpha1.PluginPreset{
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				Plugin: greenhousev1alpha1.PluginPresetPluginSpec{
+					OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+						{Name: "token", ValueFrom: &greenhousev1alpha1.PluginPresetPluginValueFromSource{
+							Secret: &greenhousev1alpha1.SecretKeyReference{Name: "some-secret", Key: "token"},
+						}},
+					},
+				},
+			},
+		}
+		err := withMissingValueHint(errors.New("no such key: value"), preset)
+		Expect(err).To(MatchError(ContainSubstring("options with no value of their own: token")))
+	})
+
+	It("leaves the error alone when every option holds a value", func() {
+		original := errors.New("no such key: value")
+		Expect(withMissingValueHint(original, &greenhousev1alpha1.Plugin{})).To(Equal(original))
 	})
 })
 
