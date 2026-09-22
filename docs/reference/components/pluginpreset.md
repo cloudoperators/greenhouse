@@ -386,6 +386,8 @@ The expression runs against the referenced object as the API server stores it, s
               ${status.exposedServices.map(url, url)}
 ```
 
+A status change does not bump a Plugin's generation, so the PluginPreset controller watches the status of every Plugin and re-resolves the consumers referencing it. The same does not hold for a reference to a PluginPreset, which re-resolves on a change to the referenced spec, not its status.
+
 An expression reads plain values only. An option that takes its value from a secret or from another reference comes through without its `valueFrom`, so neither its value nor the name of the secret behind it is readable.
 
 ### CEL Expression Syntax for References

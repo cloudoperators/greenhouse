@@ -87,9 +87,13 @@ func (r *PluginPresetReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 		Watches(&greenhousev1alpha1.PluginPreset{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueReferencingPluginPresets),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		// A referencing PluginPreset can read the Plugin's status, which does not bump its generation.
 		Watches(&greenhousev1alpha1.Plugin{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueReferencingPluginPresetsForPlugin),
-			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+			builder.WithPredicates(predicate.Or(
+				predicate.GenerationChangedPredicate{},
+				clientutil.PredicatePluginWithStatusChange(),
+			))).
 		Complete(r)
 }
 
