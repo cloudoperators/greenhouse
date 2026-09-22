@@ -397,6 +397,8 @@ The expression field in valueFrom.ref supports multiple syntax styles:
 #### With ${...} wrapper
 `expression: ${spec.optionValues.filter(v, v.name == "my.value")[0].value}`
 
+The wrapper goes around the whole expression, once. An expression holding more than one `${...}` is rejected.
+
 #### Legacy syntax (backward compatible)
 `expression: object.spec.optionValues.filter(v, v.name == "my.value")[0].value`
 
