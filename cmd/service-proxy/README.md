@@ -7,7 +7,7 @@ You can run the `service-proxy` service locally to debug and test against a runn
 Point the environment variable `KUBECONFIG` to the kubeconfig file of the target greenhouse cluster you want to test against.
 
 The exposed service URLs generated on the target Greenhouse cluster need to be reachable from your local machine.
-Set the environment variable `GREENHOUSE_DNS_DOMAIN` to the DNS domain used in the target greenhouse cluster. For example: `myorg.greenhouse.tld`
+Set the environment variable `GREENHOUSE_DNS_DOMAIN` to the base DNS domain used in the target greenhouse cluster. For example: `greenhouse.tld`
 
 In order to forward the requests to your local machine, you can use a service like `nip.io` that maps wildcard DNS to IP addresses.
 Set the environment variable `DEBUG_DOMAIN` to a domain that maps to your local machine. For example: `127.0.0.1.nip.io:8080`

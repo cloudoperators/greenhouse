@@ -1,7 +1,7 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package main
+package proxy
 
 import (
 	"context"
@@ -12,6 +12,10 @@ import (
 
 	"github.com/cloudoperators/greenhouse/internal/common"
 )
+
+type contextOrganizationKey struct{}
+
+type contextNameKey struct{}
 
 var (
 	clusterFromContext = promhttp.WithLabelFromCtx("clusterName", func(ctx context.Context) string {
@@ -30,7 +34,7 @@ var (
 	})
 )
 
-func InstrumentHandler(pm *ProxyManager, registry prometheus.Registerer) http.Handler {
+func (pm *PmManager) InstrumentHandler(registry prometheus.Registerer) http.Handler {
 	requestCounter := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "http_requests_total",
@@ -65,10 +69,9 @@ func InstrumentHandler(pm *ProxyManager, registry prometheus.Registerer) http.Ha
 			if cluster, err := common.ExtractCluster(req.Host); err == nil {
 				ctx := req.Context()
 				ctx = context.WithValue(ctx, contextClusterKey{}, cluster)
-				route, found := pm.GetClusterRoute(cluster, req.Host)
-				if found {
-					ctx = context.WithValue(ctx, contextOrganizationKey{}, route.namespace)
-					ctx = context.WithValue(ctx, contextNameKey{}, route.serviceName)
+				if r, ok := pm.store.Route(cluster, "https://"+req.Host); ok {
+					ctx = context.WithValue(ctx, contextOrganizationKey{}, r.namespace)
+					ctx = context.WithValue(ctx, contextNameKey{}, r.serviceName)
 				}
 				req = req.WithContext(ctx)
 			}
