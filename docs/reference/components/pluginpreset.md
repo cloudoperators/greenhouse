@@ -437,6 +437,8 @@ pluginPreset: |
   integrationEnabled: true
 ```
 
+> :warning: Both are experimental. They cover the scenarios written up here and not much beyond them, and the shape of an expression can still change. Turn them on for a cluster you are willing to debug.
+
 ## Next Steps
 
 - [Managing Plugins for multiple clusters](./../../../user-guides/plugin/plugin-management)
