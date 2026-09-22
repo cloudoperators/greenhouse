@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -19,6 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	celgo "cel.dev/cel-go/cel"
+	"cel.dev/cel-go/ext"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/helm"
@@ -450,7 +452,7 @@ func (r *PluginPresetReconciler) resolveReferencedPresetValues(
 }
 
 // evaluateRef runs a compiled reference expression against one referenced object. The object goes
-// in as the API server stores it, so an expression addresses the same paths as kubectl shows.
+// in as the API server stores it, minus the copies of itself that kubectl leaves in metadata.
 func evaluateRef(program celgo.Program, obj client.Object) (any, error) {
 	object, err := cel.StructToMap(obj)
 	if err != nil {
@@ -458,6 +460,9 @@ func evaluateRef(program celgo.Program, obj client.Object) (any, error) {
 	}
 	if metadata, ok := object["metadata"].(map[string]any); ok {
 		delete(metadata, "managedFields")
+		if annotations, ok := metadata["annotations"].(map[string]any); ok {
+			delete(annotations, corev1.LastAppliedConfigAnnotation)
+		}
 	}
 	hideValueSources(object)
 
@@ -557,13 +562,16 @@ func appendToResults(results []any, value any) []any {
 }
 
 // refCELEnv holds the environment every reference expression compiles against. It never changes,
-// so it is built once instead of per reference.
+// so it is built once instead of per reference. The list extension is in because iterating a map
+// gives no order, and an option value that comes back in a different order every time is written
+// back to the Plugin every time, so an expression reading a map needs sort().
 var refCELEnv = sync.OnceValues(func() (*celgo.Env, error) {
 	return celgo.NewEnv(
 		celgo.Variable("object", celgo.DynType),
 		celgo.Variable("spec", celgo.DynType),
 		celgo.Variable("metadata", celgo.DynType),
 		celgo.Variable("status", celgo.DynType),
+		ext.Lists(),
 	)
 })
 
