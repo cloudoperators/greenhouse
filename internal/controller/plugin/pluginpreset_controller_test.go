@@ -3617,6 +3617,10 @@ var _ = Describe("evaluateRef", func() {
 				Namespace:     test.TestNamespace,
 				Labels:        map[string]string{"region": "eu-de-1"},
 				ManagedFields: []metav1.ManagedFieldsEntry{{Manager: "greenhouse"}},
+				Annotations: map[string]string{
+					corev1.LastAppliedConfigAnnotation: `{"spec":{"optionValues":[{"name":"token","valueFrom":{"secret":{"name":"some-secret","key":"token"}}}]}}`,
+					"greenhouse.sap/owner":             "observability",
+				},
 			},
 			Spec: greenhousev1alpha1.PluginSpec{
 				ClusterName: clusterA,
@@ -3654,6 +3658,35 @@ var _ = Describe("evaluateRef", func() {
 			`spec.optionValues.exists(v, has(v.valueFrom))`, plugin)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(hasValueFrom).To(BeFalse(), "an expression reads plain values, not where they come from")
+
+		annotations, err := evaluateRefExpression(`metadata.annotations`, plugin)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(annotations).To(HaveKey("greenhouse.sap/owner"))
+		Expect(annotations).ToNot(HaveKey(corev1.LastAppliedConfigAnnotation),
+			"the last applied configuration holds the valueFrom that was just stripped")
+	})
+
+	It("sorts a list built from a status map into a stable order", func() {
+		plugin := &greenhousev1alpha1.Plugin{
+			ObjectMeta: metav1.ObjectMeta{Name: "source-plugin", Namespace: test.TestNamespace},
+			Status: greenhousev1alpha1.PluginStatus{
+				ExposedServices: map[string]greenhousev1alpha1.Service{
+					"https://b.example.com": {Name: "b", Port: 1},
+					"https://d.example.com": {Name: "d", Port: 2},
+					"https://a.example.com": {Name: "a", Port: 3},
+					"https://c.example.com": {Name: "c", Port: 4},
+				},
+			},
+		}
+		sorted := []any{"https://a.example.com", "https://b.example.com", "https://c.example.com", "https://d.example.com"}
+
+		// A map has no order, so the same expression can come back in a different order on every
+		// evaluation. A resolved value that keeps changing is written to the Plugin every time.
+		program, err := compileRefExpression(`${status.exposedServices.map(url, url).sort()}`)
+		Expect(err).ToNot(HaveOccurred())
+		for range 20 {
+			Expect(evaluateRef(program, plugin)).To(Equal(sorted))
+		}
 	})
 
 	It("exposes a PluginPreset's option values under spec.plugin", func() {

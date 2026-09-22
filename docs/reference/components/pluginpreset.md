@@ -383,12 +383,14 @@ The expression runs against the referenced object as the API server stores it, s
               matchLabels:
                 greenhouse.sap/pluginpreset: thanos-regional
             expression: |
-              ${status.exposedServices.map(url, url)}
+              ${status.exposedServices.map(url, url).sort()}
 ```
+
+`exposedServices` is a map and a map has no order, so the result is sorted. Without that the same expression comes back in a different order on every resolution, which writes the Plugin again every time and never settles. The same holds for any expression reading a map, `metadata.labels` included.
 
 A status change does not bump a Plugin's generation, so the PluginPreset controller watches the status of every Plugin and re-resolves the consumers referencing it. The same does not hold for a reference to a PluginPreset, which re-resolves on a change to the referenced spec, not its status.
 
-An expression reads plain values only. An option that takes its value from a secret or from another reference comes through without its `valueFrom`, so neither its value nor the name of the secret behind it is readable.
+An expression reads plain values only. An option that takes its value from a secret or from another reference comes through without its `valueFrom`, so neither its value nor the name of the secret behind it is readable. The `kubectl.kubernetes.io/last-applied-configuration` annotation is dropped for the same reason, it holds a copy of the spec the object was applied with.
 
 ### Setting a value next to a reference
 
