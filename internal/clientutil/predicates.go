@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -77,6 +78,18 @@ func PredicatePluginWithStatusReadyChange() predicate.Predicate {
 				return true
 			}
 			return oldReadyCondition.Status != newReadyCondition.Status
+		},
+		GenericFunc: func(_ event.GenericEvent) bool { return false },
+	}
+}
+
+func PredicatePluginWithStatusChange() predicate.Predicate {
+	return predicate.Funcs{
+		CreateFunc: func(_ event.CreateEvent) bool { return false },
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			oldPlugin, okOld := e.ObjectOld.(*greenhousev1alpha1.Plugin)
+			newPlugin, okNew := e.ObjectNew.(*greenhousev1alpha1.Plugin)
+			return okOld && okNew && !equality.Semantic.DeepEqual(oldPlugin.Status, newPlugin.Status)
 		},
 		GenericFunc: func(_ event.GenericEvent) bool { return false },
 	}
