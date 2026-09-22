@@ -390,6 +390,26 @@ A status change does not bump a Plugin's generation, so the PluginPreset control
 
 An expression reads plain values only. An option that takes its value from a secret or from another reference comes through without its `valueFrom`, so neither its value nor the name of the secret behind it is readable.
 
+### Setting a value next to a reference
+
+An option can set a `value` and a `valueFrom.ref` at the same time. The two are merged into one list, with the value the option sets itself first:
+
+```yaml
+      - name: thanos.query.stores
+        value:
+          - thanos-sidecar.monitoring:10901
+        valueFrom:
+          ref:
+            kind: Plugin
+            selector:
+              matchLabels:
+                greenhouse.sap/pluginpreset: thanos-regional
+            expression: |
+              ${spec.optionValues.filter(v, v.name == "thanos.query.grpc.host")[0].value}
+```
+
+Merging only makes sense for lists, so a `value` that is not a list next to a `valueFrom.ref` is rejected. An `expression` on the same option is resolved first and merged the same way, which is how an entry built from the cluster ends up next to the entries read from other Plugins.
+
 ### CEL Expression Syntax for References
 The expression field in valueFrom.ref supports multiple syntax styles:
 

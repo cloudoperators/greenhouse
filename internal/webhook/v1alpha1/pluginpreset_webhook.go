@@ -14,6 +14,7 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/util"
 	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
 
@@ -87,6 +88,8 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, pluginPres
 		allErrs = append(allErrs, errList...)
 	}
 
+	allErrs = append(allErrs, validateRefOptionValuesForPreset(pluginPreset)...)
+
 	if len(allErrs) > 0 {
 		return allWarns, apierrors.NewInvalid(pluginPreset.GroupVersionKind().GroupKind(), pluginPreset.Name, allErrs)
 	}
@@ -107,10 +110,39 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldPluginP
 		allErrs = append(allErrs, errList...)
 	}
 
+	allErrs = append(allErrs, validateRefOptionValuesForPreset(pluginPreset)...)
+
 	if len(allErrs) > 0 {
 		return allWarns, apierrors.NewInvalid(pluginPreset.GroupVersionKind().GroupKind(), pluginPreset.Name, allErrs)
 	}
 	return allWarns, nil
+}
+
+func validateRefOptionValuesForPreset(pluginPreset *greenhousev1alpha1.PluginPreset) field.ErrorList {
+	allErrs := validateRefOptionValues(pluginPreset.Spec.Plugin.OptionValues, field.NewPath("spec", "plugin", "optionValues"))
+
+	for idx, overridesForSingleCluster := range pluginPreset.Spec.ClusterOptionOverrides {
+		optionOverridesPath := field.NewPath("spec", "clusterOptionOverrides").Index(idx).Child("overrides")
+		allErrs = append(allErrs, validateRefOptionValues(overridesForSingleCluster.Overrides, optionOverridesPath)...)
+	}
+	return allErrs
+}
+
+// validateRefOptionValues checks options that set a value next to a valueFrom.ref. The resolver
+// merges the two into a single list, so the value has to be a list as well.
+func validateRefOptionValues(optionValues []greenhousev1alpha1.PluginPresetPluginOptionValue, optionValuesPath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	for idx, optionValue := range optionValues {
+		if optionValue.Value == nil || optionValue.ValueFrom == nil || optionValue.ValueFrom.Ref == nil {
+			continue
+		}
+		if _, err := util.AsJSONList(optionValue.Value); err != nil {
+			allErrs = append(allErrs, field.Invalid(optionValuesPath.Index(idx).Child("value"), string(optionValue.Value.Raw),
+				"an option setting both value and valueFrom.ref merges the two into one list, so value must be a list"))
+		}
+	}
+	return allErrs
 }
 
 // validatePluginOptionValuesForPreset validates plugin options and their values, but skips the check for required options.
