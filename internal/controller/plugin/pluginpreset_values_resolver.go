@@ -555,6 +555,9 @@ func compileRefExpression(expression string) (celgo.Program, error) {
 	expr := strings.TrimSpace(expression)
 	if strings.HasPrefix(expr, "${") && strings.HasSuffix(expr, "}") {
 		expr = expr[2 : len(expr)-1]
+		if strings.Contains(expr, "${") {
+			return nil, fmt.Errorf("expression %q holds more than one ${...}, wrap the whole expression once instead", expression)
+		}
 	}
 
 	env, err := refCELEnv()

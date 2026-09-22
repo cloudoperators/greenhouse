@@ -3612,6 +3612,13 @@ var _ = Describe("evaluateRef", func() {
 	})
 })
 
+var _ = Describe("compileRefExpression", func() {
+	It("rejects an expression holding more than one ${...}", func() {
+		_, err := compileRefExpression(`${metadata.name} + "=" + ${spec.clusterName}`)
+		Expect(err).To(MatchError(ContainSubstring("more than one ${...}")))
+	})
+})
+
 var _ = Describe("withMissingValueHint", func() {
 	It("names the options holding no value of their own", func() {
 		plugin := &greenhousev1alpha1.Plugin{
