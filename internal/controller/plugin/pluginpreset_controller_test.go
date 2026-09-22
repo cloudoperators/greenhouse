@@ -3087,6 +3087,94 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, sourcePreset)
 	})
 
+	It("should merge an option's own value with the result of valueFrom.ref", func() {
+		By("creating a source Plugin holding one store address")
+		sourcePlugin := &greenhousev1alpha1.Plugin{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "merge-source-plugin",
+				Namespace: test.TestNamespace,
+				Labels: map[string]string{
+					greenhouseapis.LabelKeyOwnedBy: testTeam.Name,
+					"ref-merge-group":              "true",
+				},
+			},
+			Spec: greenhousev1alpha1.PluginSpec{
+				PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+					Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					Name: pluginPresetDefinitionName,
+				},
+				ClusterName:      clusterA,
+				ReleaseName:      "merge-source-plugin",
+				ReleaseNamespace: releaseNamespace,
+				OptionValues: []greenhousev1alpha1.PluginOptionValue{
+					{Name: "myRequiredOption", Value: test.MustReturnJSONFor("someValue")},
+					{Name: "store", Value: test.MustReturnJSONFor("region-a:10901")},
+				},
+			},
+		}
+		Expect(test.K8sClient.Create(test.Ctx, sourcePlugin)).To(Succeed())
+
+		By("creating a consumer PluginPreset setting a value and an expression next to the reference")
+		storeRef := &greenhousev1alpha1.PluginPresetPluginValueFromSource{
+			Ref: &greenhousev1alpha1.ExternalValueSource{
+				Kind:       greenhousev1alpha1.PluginKind,
+				Selector:   &metav1.LabelSelector{MatchLabels: map[string]string{"ref-merge-group": "true"}},
+				Expression: `spec.optionValues.filter(v, v.name == "store")[0].value`,
+			},
+		}
+		localStoreExpression := "- local-${global.greenhouse.clusterName}\n"
+		consumerSpec := greenhousev1alpha1.PluginPresetPluginSpec{
+			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+				Name: pluginPresetDefinitionName,
+			},
+			ReleaseName:      releaseName + "-merge",
+			ReleaseNamespace: releaseNamespace,
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+				{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
+				{
+					Name:      "query.stores",
+					Value:     test.MustReturnJSONFor([]string{"sidecar:10901"}),
+					ValueFrom: storeRef.DeepCopy(),
+				},
+				{
+					Name:       "query.localStores",
+					Expression: &localStoreExpression,
+					ValueFrom:  storeRef.DeepCopy(),
+				},
+			},
+		}
+		consumerPreset := test.NewPluginPreset("ref-merge-consumer", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPresetPluginSpec(consumerSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{"cluster": clusterA},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, consumerPreset)).To(Succeed())
+
+		By("ensuring the option's own value comes first and the resolved one after it")
+		Eventually(func(g Gomega) {
+			consumerPlugin := &greenhousev1alpha1.Plugin{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: "ref-merge-consumer-" + clusterA, Namespace: test.TestNamespace}, consumerPlugin)).To(Succeed())
+
+			merged := make(map[string][]any)
+			for _, ov := range consumerPlugin.Spec.OptionValues {
+				if ov.Name != "query.stores" && ov.Name != "query.localStores" {
+					continue
+				}
+				g.Expect(ov.Value).ToNot(BeNil())
+
+				var stores []any
+				g.Expect(json.Unmarshal(ov.Value.Raw, &stores)).To(Succeed())
+				merged[ov.Name] = stores
+			}
+			g.Expect(merged).To(HaveKeyWithValue("query.stores", []any{"sidecar:10901", "region-a:10901"}))
+			g.Expect(merged).To(HaveKeyWithValue("query.localStores", []any{"local-" + clusterA, "region-a:10901"}))
+		}).Should(Succeed())
+
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, consumerPreset)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, sourcePlugin)
+	})
 })
 
 var _ = Describe("applyOverridesToPreset", func() {
@@ -3616,6 +3704,25 @@ var _ = Describe("compileRefExpression", func() {
 	It("rejects an expression holding more than one ${...}", func() {
 		_, err := compileRefExpression(`${metadata.name} + "=" + ${spec.clusterName}`)
 		Expect(err).To(MatchError(ContainSubstring("more than one ${...}")))
+	})
+})
+
+var _ = Describe("mergeOwnValue", func() {
+	It("puts the value the option sets itself in front", func() {
+		merged, err := mergeOwnValue(test.MustReturnJSONFor([]string{"sidecar:10901"}), []any{"region-a:10901", "region-b:10901"})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(merged).To(Equal([]any{"sidecar:10901", "region-a:10901", "region-b:10901"}))
+	})
+
+	It("keeps the resolved value when the option sets none", func() {
+		merged, err := mergeOwnValue(nil, []any{"region-a:10901"})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(merged).To(Equal([]any{"region-a:10901"}))
+	})
+
+	It("refuses a value that is not a list", func() {
+		_, err := mergeOwnValue(test.MustReturnJSONFor("sidecar:10901"), []any{"region-a:10901"})
+		Expect(err).To(MatchError(ContainSubstring("is not a list")))
 	})
 })
 

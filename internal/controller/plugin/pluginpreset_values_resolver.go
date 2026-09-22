@@ -186,6 +186,11 @@ func (r *PluginPresetReconciler) resolveReferencesForPreset(
 			return nil, fmt.Errorf("failed to resolve reference for %s: %w", presetOV.Name, err)
 		}
 
+		resolvedValue, err = mergeOwnValue(resolvedOV.Value, resolvedValue)
+		if err != nil {
+			return nil, fmt.Errorf("failed to merge the value of %s with its reference: %w", presetOV.Name, err)
+		}
+
 		byteVal, err := json.Marshal(resolvedValue)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal resolved value for %s: %w", presetOV.Name, err)
@@ -524,6 +529,20 @@ func withMissingValueHint(err error, obj client.Object) error {
 	}
 	return fmt.Errorf("%w (options with no value of their own: %s, they take it from a secret or another reference)",
 		err, strings.Join(missing, ", "))
+}
+
+// mergeOwnValue puts the value an option sets itself in front of what its reference resolved to.
+// Both sides have to be lists, merging two scalars would come down to picking one.
+func mergeOwnValue(ownValue *apiextensionsv1.JSON, resolvedValue any) (any, error) {
+	if ownValue == nil || len(ownValue.Raw) == 0 {
+		return resolvedValue, nil
+	}
+
+	ownList, err := util.AsJSONList(ownValue)
+	if err != nil {
+		return nil, err
+	}
+	return appendToResults(ownList, resolvedValue), nil
 }
 
 // appendToResults appends a value to results, flattening slices to avoid nested arrays.

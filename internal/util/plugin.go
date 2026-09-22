@@ -4,8 +4,23 @@
 package util
 
 import (
+	"encoding/json"
+	"fmt"
+
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
+
+// AsJSONList decodes an option value as a JSON list. An option that sets a value next to a
+// valueFrom.ref has the two merged into one list, so the value has to be a list as well.
+func AsJSONList(value *apiextensionsv1.JSON) ([]any, error) {
+	var list []any
+	if err := json.Unmarshal(value.Raw, &list); err != nil {
+		return nil, fmt.Errorf("value %s is not a list", string(value.Raw))
+	}
+	return list, nil
+}
 
 func ConvertToPluginOptionValues(presetValues []greenhousev1alpha1.PluginPresetPluginOptionValue) []greenhousev1alpha1.PluginOptionValue {
 	result := make([]greenhousev1alpha1.PluginOptionValue, 0, len(presetValues))
