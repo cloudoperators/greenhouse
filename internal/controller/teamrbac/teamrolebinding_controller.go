@@ -649,7 +649,7 @@ func reconcileRoleBinding(ctx context.Context, cl client.Client, c *greenhousev1
 
 // deleteAllDeployedRoleBindings deletes all RoleBindings deployed to a remote cluster.
 // Deletes not only those specified in .spec.namespaces, but all by the trb.GetRBACName() name.
-func (r TeamRoleBindingReconciler) deleteAllDeployedRoleBindings(ctx context.Context, cl client.Client, trb *greenhousev1alpha2.TeamRoleBinding, cluster *greenhousev1alpha1.Cluster) error {
+func (r *TeamRoleBindingReconciler) deleteAllDeployedRoleBindings(ctx context.Context, cl client.Client, trb *greenhousev1alpha2.TeamRoleBinding, cluster *greenhousev1alpha1.Cluster) error {
 	var roleBindingsToDelete = new(rbacv1.RoleBindingList)
 	err := cl.List(ctx, roleBindingsToDelete, &client.ListOptions{
 		FieldSelector: fields.OneTermEqualSelector("metadata.name", trb.GetRBACName()),
@@ -674,7 +674,7 @@ func (r TeamRoleBindingReconciler) deleteAllDeployedRoleBindings(ctx context.Con
 	return nil
 }
 
-func (r TeamRoleBindingReconciler) deleteClusterRoleBinding(ctx context.Context, cl client.Client, trb *greenhousev1alpha2.TeamRoleBinding, cluster *greenhousev1alpha1.Cluster) error {
+func (r *TeamRoleBindingReconciler) deleteClusterRoleBinding(ctx context.Context, cl client.Client, trb *greenhousev1alpha2.TeamRoleBinding, cluster *greenhousev1alpha1.Cluster) error {
 	remoteObject := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: trb.GetRBACName(),
@@ -692,7 +692,7 @@ func (r TeamRoleBindingReconciler) deleteClusterRoleBinding(ctx context.Context,
 	return nil
 }
 
-func (r TeamRoleBindingReconciler) deleteClusterRole(ctx context.Context, cl client.Client, trb *greenhousev1alpha2.TeamRoleBinding, cluster *greenhousev1alpha1.Cluster) error {
+func (r *TeamRoleBindingReconciler) deleteClusterRole(ctx context.Context, cl client.Client, trb *greenhousev1alpha2.TeamRoleBinding, cluster *greenhousev1alpha1.Cluster) error {
 	remoteObject := &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: greenhouseapis.RBACPrefix + trb.Spec.TeamRoleRef,
