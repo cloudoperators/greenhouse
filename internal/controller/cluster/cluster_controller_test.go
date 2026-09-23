@@ -5,6 +5,7 @@ package cluster_test
 
 import (
 	"fmt"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -39,6 +40,7 @@ var _ = Describe("KubeConfig controller", func() {
 
 		BeforeEach(func() {
 			_, _, remoteEnvTest, remoteKubeConfig = test.StartControlPlane("6885", false, false)
+			remoteEnvTest.ControlPlaneStopTimeout = 60 * time.Second
 			setup = test.NewTestSetup(test.Ctx, test.K8sClient, directAccessTestCase)
 			team = setup.CreateTeam(test.Ctx, "test-team", test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 			setup.CreateOrganizationWithOIDCConfig(test.Ctx, setup.Namespace(), team.Name)

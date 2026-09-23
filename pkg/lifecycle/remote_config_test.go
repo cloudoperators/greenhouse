@@ -41,6 +41,7 @@ func TestNewRemoteKubeCfg_KubeConfig(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "test-cluster", Namespace: "test-org"},
 	}
 	secret := &corev1.Secret{
+		Type: greenhouseapis.SecretTypeKubeConfig,
 		Data: map[string][]byte{
 			greenhouseapis.GreenHouseKubeConfigKey: minimalKubeconfig(t),
 		},
