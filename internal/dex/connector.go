@@ -53,20 +53,22 @@ func (c *OIDCConfig) Open(id string, logger *slog.Logger) (connector.Connector, 
 	}
 
 	return &oidcConnector{
-		conn:               conn,
-		logger:             logger,
-		client:             c.client,
-		id:                 id,
-		keepUpstreamGroups: c.KeepUpstreamGroups,
+		conn:                  conn,
+		logger:                logger,
+		client:                c.client,
+		id:                    id,
+		keepUpstreamGroups:    c.KeepUpstreamGroups,
+		overrideEmailVerified: c.InsecureSkipEmailVerified,
 	}, nil
 }
 
 type oidcConnector struct {
-	conn               connector.Connector
-	logger             *slog.Logger
-	client             client.Client
-	id                 string
-	keepUpstreamGroups bool
+	conn                  connector.Connector
+	logger                *slog.Logger
+	client                client.Client
+	id                    string
+	keepUpstreamGroups    bool
+	overrideEmailVerified bool
 }
 
 func (c *oidcConnector) LoginURL(s connector.Scopes, callbackURL, state string) (string, []byte, error) { //nolint:gocritic
@@ -77,6 +79,15 @@ func (c *oidcConnector) HandleCallback(s connector.Scopes, connData []byte, r *h
 	identity, err := c.conn.(connector.CallbackConnector).HandleCallback(s, connData, r)
 	if err != nil {
 		return identity, err
+	}
+
+	// overrideEmailVerified forces the email_verified claim to true regardless of the value
+	// reported by the upstream IdP, including overriding an explicit email_verified=false.
+	// It is required for IdPs that report email_verified=false (or omit the claim) for users
+	// federated via SAML, where the email is verified by other means. Enabled per organization
+	// via the effective InsecureSkipEmailVerified flag.
+	if c.overrideEmailVerified {
+		identity.EmailVerified = true
 	}
 
 	groups, groupsErr := c.getGroups(c.id, identity.Groups, r.Context())
@@ -106,6 +117,11 @@ func (c *oidcConnector) Refresh(ctx context.Context, s connector.Scopes, identit
 	identity, err := c.conn.(connector.RefreshConnector).Refresh(ctx, s, identity)
 	if err != nil {
 		return identity, err
+	}
+
+	// Keep email_verified consistent with HandleCallback when the token is refreshed.
+	if c.overrideEmailVerified {
+		identity.EmailVerified = true
 	}
 
 	groups, groupsErr := c.getGroups(c.id, identity.Groups, ctx)

@@ -134,6 +134,24 @@ func WithOIDCConfig(issuer, secretName, clientIDKey, clientSecretKey string) fun
 	}
 }
 
+// WithOIDCExtraConfig sets the OIDCExtraConfig on an Organization's OIDCConfig.
+// Must be used after WithOIDCConfig: WithOIDCConfig replaces OIDCConfig wholesale,
+// so any ExtraConfig set beforehand would be discarded.
+func WithOIDCExtraConfig(userIDClaim string, insecureSkipEmailVerified bool) func(*greenhousev1alpha1.Organization) {
+	return func(org *greenhousev1alpha1.Organization) {
+		if org.Spec.Authentication == nil {
+			org.Spec.Authentication = &greenhousev1alpha1.Authentication{}
+		}
+		if org.Spec.Authentication.OIDCConfig == nil {
+			org.Spec.Authentication.OIDCConfig = &greenhousev1alpha1.OIDCConfig{}
+		}
+		org.Spec.Authentication.OIDCConfig.ExtraConfig = &greenhousev1alpha1.OIDCExtraConfig{
+			UserIDClaim:               userIDClaim,
+			InsecureSkipEmailVerified: insecureSkipEmailVerified,
+		}
+	}
+}
+
 // NewOrganization returns a greenhousev1alpha1.Organization object. Opts can be used to set the desired state of the Organization.
 func NewOrganization(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.Organization)) *greenhousev1alpha1.Organization {
 	org := &greenhousev1alpha1.Organization{
