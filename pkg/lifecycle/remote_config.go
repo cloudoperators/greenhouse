@@ -73,9 +73,25 @@ func MintServiceAccountToken(ctx context.Context, kubeClient client.Client, name
 }
 
 func getKubeCfg(secret *corev1.Secret) (*rest.Config, error) {
-	kubeconfigBytes, ok := secret.Data[greenhouseapis.GreenHouseKubeConfigKey]
-	if !ok {
-		return nil, fmt.Errorf("secret %q missing %s key", secret.Name, greenhouseapis.GreenHouseKubeConfigKey)
+	var kubeconfigBytes []byte
+	switch {
+	case secret.Type != greenhouseapis.SecretTypeKubeConfig && secret.Type != greenhouseapis.SecretTypeOIDCConfig:
+		return nil, fmt.Errorf("secret %s/%s is not of type %s", secret.GetNamespace(), secret.GetName(), greenhouseapis.SecretTypeKubeConfig)
+	case isSecretContainsKey(secret, greenhouseapis.GreenHouseKubeConfigKey):
+		kubeconfigBytes = secret.Data[greenhouseapis.GreenHouseKubeConfigKey]
+	case isSecretContainsKey(secret, greenhouseapis.KubeConfigKey):
+		kubeconfigBytes = secret.Data[greenhouseapis.KubeConfigKey]
+	default:
+		return nil, fmt.Errorf("secret %s/%s does not contain a kubeconfig", secret.GetNamespace(), secret.GetName())
 	}
 	return clientcmd.RESTConfigFromKubeConfig(kubeconfigBytes)
+}
+
+// isSecretContainsKey checks whether the given secret contains a key.
+func isSecretContainsKey(s *corev1.Secret, key string) bool {
+	if s.Data == nil {
+		return false
+	}
+	v, ok := s.Data[key]
+	return ok && v != nil
 }
