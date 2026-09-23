@@ -11,10 +11,8 @@ import (
 	kustomizev1 "github.com/fluxcd/kustomize-controller/api/v1"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	sourcev2 "github.com/fluxcd/source-watcher/api/v2/v1beta1"
-	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -23,6 +21,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	dexapi "github.com/cloudoperators/greenhouse/internal/dex/api"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 var KnownSchemes = []func(*runtime.Scheme) error{
@@ -59,19 +58,9 @@ func NewK8sClientFromRestClientGetter(restClientGetter genericclioptions.RESTCli
 
 // NewK8sClientFromCluster returns a client.Client based on the given clusters kubeconfig secret.
 func NewK8sClientFromCluster(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster) (client.Client, error) {
-	secret := new(corev1.Secret)
-	if err := c.Get(ctx, types.NamespacedName{Name: cluster.GetSecretName(), Namespace: cluster.GetNamespace()}, secret); err != nil {
-		return nil, err
-	}
-
-	restClientGetter, err := NewRestClientGetterFromSecret(secret, cluster.GetNamespace(), WithPersistentConfig())
+	cfg, err := lifecycle.NewRemoteKubeCfg(ctx, c, cluster)
 	if err != nil {
 		return nil, err
 	}
-
-	remoteRestClient, err := NewK8sClientFromRestClientGetter(restClientGetter)
-	if err != nil {
-		return nil, err
-	}
-	return remoteRestClient, nil
+	return NewK8sClient(cfg)
 }
