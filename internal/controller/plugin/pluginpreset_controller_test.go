@@ -3759,6 +3759,36 @@ var _ = Describe("mergeOwnValue", func() {
 	})
 })
 
+var _ = Describe("reference matching", func() {
+	overrideRefTo := func(kind, name string) []greenhousev1alpha1.ClusterOptionOverride {
+		return []greenhousev1alpha1.ClusterOptionOverride{{
+			ClusterName: clusterA,
+			Overrides: []greenhousev1alpha1.PluginPresetPluginOptionValue{{
+				Name: "endpoint",
+				ValueFrom: &greenhousev1alpha1.PluginPresetPluginValueFromSource{
+					Ref: &greenhousev1alpha1.ExternalValueSource{Kind: kind, Name: name, Expression: "spec"},
+				},
+			}},
+		}}
+	}
+
+	It("finds a Plugin reference declared only in a cluster override", func() {
+		consumer := &greenhousev1alpha1.PluginPreset{Spec: greenhousev1alpha1.PluginPresetSpec{
+			ClusterOptionOverrides: overrideRefTo(greenhousev1alpha1.PluginKind, "source"),
+		}}
+		source := &greenhousev1alpha1.Plugin{ObjectMeta: metav1.ObjectMeta{Name: "source"}}
+		Expect(presetReferencesPlugin(consumer, source)).To(BeTrue())
+	})
+
+	It("finds a PluginPreset reference declared only in a cluster override", func() {
+		consumer := &greenhousev1alpha1.PluginPreset{Spec: greenhousev1alpha1.PluginPresetSpec{
+			ClusterOptionOverrides: overrideRefTo(greenhousev1alpha1.PluginPresetKind, "source"),
+		}}
+		source := &greenhousev1alpha1.PluginPreset{ObjectMeta: metav1.ObjectMeta{Name: "source"}}
+		Expect(presetReferences(consumer, source)).To(BeTrue())
+	})
+})
+
 var _ = Describe("withMissingValueHint", func() {
 	It("names the options holding no value of their own", func() {
 		plugin := &greenhousev1alpha1.Plugin{
