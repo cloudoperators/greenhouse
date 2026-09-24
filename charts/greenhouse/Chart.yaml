@@ -5,8 +5,8 @@ apiVersion: v2
 name: greenhouse
 description: A Helm chart for deploying greenhouse operations platform
 type: application
-version: 0.24.1
-appVersion: "v0.17.1"
+version: 0.24.2
+appVersion: "v0.17.2"
 
 dependencies:
   - condition: idproxy.enabled
