@@ -59,6 +59,7 @@ func TestEnsureWorkloadSchedulable(t *testing.T) {
 	tests := []struct {
 		name          string
 		mode          greenhousev1alpha1.ClusterMode
+		nodes         *greenhousev1alpha1.Nodes
 		preconditions []greenhousemetav1alpha1.Condition
 		wantStatus    metav1.ConditionStatus
 		wantReason    greenhousemetav1alpha1.ConditionReason
@@ -82,12 +83,25 @@ func TestEnsureWorkloadSchedulable(t *testing.T) {
 			},
 			wantStatus: metav1.ConditionFalse,
 		},
+		{
+			name:       "default with no ready nodes sets PayloadSchedulable=False",
+			mode:       greenhousev1alpha1.ClusterModeDefault,
+			nodes:      &greenhousev1alpha1.Nodes{Total: 3, Ready: 0},
+			wantStatus: metav1.ConditionFalse,
+		},
+		{
+			name:       "default with some nodes not ready but ready nodes exist sets PayloadSchedulable=True",
+			mode:       greenhousev1alpha1.ClusterModeDefault,
+			nodes:      &greenhousev1alpha1.Nodes{Total: 210, Ready: 207},
+			wantStatus: metav1.ConditionTrue,
+		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			cluster := &greenhousev1alpha1.Cluster{}
 			cluster.Spec.Mode = tc.mode
+			cluster.Status.Nodes = tc.nodes
 			for _, cond := range tc.preconditions {
 				cluster.SetCondition(cond)
 			}
