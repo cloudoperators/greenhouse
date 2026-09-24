@@ -30,6 +30,7 @@ func (p *Phase) ensureNodesReady(cluster *greenhousev1alpha1.Cluster) lifecycle.
 			cluster.SetCondition(greenhousemetav1alpha1.FalseCondition(
 				greenhousev1alpha1.AllNodesReady, "", err.Error(),
 			))
+			cluster.Status.Nodes = nil
 			return lifecycle.Continue(), nil
 		}
 
@@ -38,6 +39,7 @@ func (p *Phase) ensureNodesReady(cluster *greenhousev1alpha1.Cluster) lifecycle.
 			cluster.SetCondition(greenhousemetav1alpha1.FalseCondition(
 				greenhousev1alpha1.AllNodesReady, "", err.Error(),
 			))
+			cluster.Status.Nodes = nil
 			return lifecycle.Continue(), nil
 		}
 
