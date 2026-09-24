@@ -29,6 +29,15 @@ func (p *Phase) ensureWorkloadSchedulable(cluster *greenhousev1alpha1.Cluster) l
 			return lifecycle.Continue(), nil
 		}
 
+		allNodesReady := cluster.Status.GetConditionByType(greenhousev1alpha1.AllNodesReady)
+		if allNodesReady != nil && allNodesReady.IsFalse() && cluster.Status.Nodes == nil {
+			// node observation failed (remote client or list error) — cannot verify schedulability
+			cluster.SetCondition(greenhousemetav1alpha1.FalseCondition(
+				greenhousev1alpha1.PayloadSchedulable, "", "node observation failed - payloads cannot be scheduled: "+allNodesReady.Message,
+			))
+			return lifecycle.Continue(), nil
+		}
+
 		if cluster.Status.Nodes != nil && cluster.Status.Nodes.Ready == 0 && cluster.Status.Nodes.Total > 0 {
 			cluster.SetCondition(greenhousemetav1alpha1.FalseCondition(
 				greenhousev1alpha1.PayloadSchedulable, "", "no ready nodes - payloads cannot be scheduled",

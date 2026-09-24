@@ -95,6 +95,14 @@ func TestEnsureWorkloadSchedulable(t *testing.T) {
 			nodes:      &greenhousev1alpha1.Nodes{Total: 210, Ready: 207},
 			wantStatus: metav1.ConditionTrue,
 		},
+		{
+			name: "node observation failure (AllNodesReady=False, nil nodes) sets PayloadSchedulable=False",
+			mode: greenhousev1alpha1.ClusterModeDefault,
+			preconditions: []greenhousemetav1alpha1.Condition{
+				greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.AllNodesReady, "", "connection refused"),
+			},
+			wantStatus: metav1.ConditionFalse,
+		},
 	}
 
 	for _, tc := range tests {
