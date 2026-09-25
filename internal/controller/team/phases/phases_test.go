@@ -301,12 +301,3 @@ func TestEnsureSupportGroupResourcesDeleted_ResourcesAbsent_NoError(t *testing.T
 	require.NoError(t, err)
 	require.False(t, result.Break)
 }
-
-func TestEnsureRequeue_AlwaysRequeues(t *testing.T) {
-	team := testTeam("myorg", false)
-	p := &Phase{Client: fake.NewClientBuilder().WithScheme(testScheme(t)).Build(), Recorder: noopRecorder{}}
-
-	result, err := p.ensureRequeue(team)(context.Background())
-	require.NoError(t, err)
-	require.Greater(t, result.RequeueAfter, RequeueInterval/2)
-}

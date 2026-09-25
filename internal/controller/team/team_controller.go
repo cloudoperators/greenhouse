@@ -5,11 +5,13 @@ package team
 
 import (
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -23,6 +25,8 @@ import (
 	teamphases "github.com/cloudoperators/greenhouse/internal/controller/team/phases"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
+
+const requeueInterval = 10 * time.Minute
 
 var (
 	// exposedConditions are the conditions that are exposed in the StatusConditions of the Team.
@@ -122,7 +126,11 @@ func (r *TeamController) EnsureCreated(ctx context.Context, object lifecycle.Run
 		Client:   r.Client,
 		Recorder: r.recorder,
 	}
-	return lifecycle.ExecuteSubRoutine(ctx, p.EnsureCreatePhases(team))
+	result, recResult, err := lifecycle.ExecuteSubRoutine(ctx, p.EnsureCreatePhases(team))
+	if recResult != lifecycle.Success {
+		return result, recResult, err
+	}
+	return ctrl.Result{RequeueAfter: wait.Jitter(requeueInterval, 0.1)}, lifecycle.Success, nil
 }
 
 func (r *TeamController) EnsureSuspended(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, error) {

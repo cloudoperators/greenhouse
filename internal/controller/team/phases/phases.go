@@ -23,7 +23,6 @@ func (p *Phase) EnsureCreatePhases(team *greenhousev1alpha1.Team) []lifecycle.Su
 		p.ensureCleanupIfNotSupportGroup(team),
 		p.ensureSCIMMembers(team),
 		p.ensureSupportGroupResources(team),
-		p.ensureRequeue(team),
 	}
 }
 
