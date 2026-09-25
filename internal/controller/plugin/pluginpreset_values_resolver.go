@@ -188,12 +188,12 @@ func (r *PluginPresetReconciler) resolveReferencesForPreset(
 			return nil, fmt.Errorf("failed to resolve reference for %s: %w", presetOV.Name, err)
 		}
 
-		resolvedValue, err = mergeOwnValue(resolvedOV.Value, resolvedValue)
+		resolvedValue, err = mergeSelfOptionValue(resolvedOV.Value, resolvedValue)
 		if err != nil {
 			return nil, fmt.Errorf("failed to merge the value of %s with its reference: %w", presetOV.Name, err)
 		}
 
-		byteVal, err := json.Marshal(resolvedValue)
+		byteVal, err := json.Marshal(dropDuplicates(resolvedValue))
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal resolved value for %s: %w", presetOV.Name, err)
 		}
@@ -427,8 +427,7 @@ func (r *PluginPresetReconciler) resolvePluginPresetRefBySelector(
 	return results, nil
 }
 
-// resolveReferencedPresetValues returns a copy of the referenced PluginPreset with the cluster
-// overrides applied and, when expression evaluation is enabled, its expressions resolved.
+// resolveReferencedPresetValues returns the referenced PluginPreset with overrides and expressions resolved.
 func (r *PluginPresetReconciler) resolveReferencedPresetValues(
 	ctx context.Context,
 	refPreset *greenhousev1alpha1.PluginPreset,
@@ -451,8 +450,7 @@ func (r *PluginPresetReconciler) resolveReferencedPresetValues(
 	return refPresetWithOverrides, nil
 }
 
-// evaluateRef runs a compiled reference expression against one referenced object. The object goes
-// in as the API server stores it, minus the copies of itself that kubectl leaves in metadata.
+// evaluateRef runs a compiled reference expression against one object, minus the spec copies in metadata.
 func evaluateRef(program celgo.Program, obj client.Object) (any, error) {
 	object, err := cel.StructToMap(obj)
 	if err != nil {
@@ -479,8 +477,7 @@ func evaluateRef(program celgo.Program, obj client.Object) (any, error) {
 	return value, nil
 }
 
-// hideValueSources drops valueFrom from every option value of the CEL object, so an expression
-// can read plain values and nothing else. The name and key of a secret are no exception.
+// hideValueSources drops valueFrom from every option value, so an expression can't read secret references.
 func hideValueSources(object map[string]any) {
 	spec, ok := object["spec"].(map[string]any)
 	if !ok {
@@ -512,8 +509,7 @@ func hideValueSources(object map[string]any) {
 	}
 }
 
-// withMissingValueHint names the options of a referenced object that hold no value to read, the
-// usual reason an expression reaching for one fails.
+// withMissingValueHint names the options of the referenced object that hold no plain value.
 func withMissingValueHint(err error, obj client.Object) error {
 	var optionValues []greenhousev1alpha1.PluginOptionValue
 	switch o := obj.(type) {
@@ -532,22 +528,35 @@ func withMissingValueHint(err error, obj client.Object) error {
 	if len(missing) == 0 {
 		return err
 	}
-	return fmt.Errorf("%w (options with no value of their own: %s, they take it from a secret or another reference)",
-		err, strings.Join(missing, ", "))
+	return fmt.Errorf("%w (options with no plain value to read: %s)", err, strings.Join(missing, ", "))
 }
 
-// mergeOwnValue puts the value an option sets itself in front of what its reference resolved to.
-// Both sides have to be lists, merging two scalars would come down to picking one.
-func mergeOwnValue(ownValue *apiextensionsv1.JSON, resolvedValue any) (any, error) {
-	if ownValue == nil || len(ownValue.Raw) == 0 {
+// mergeSelfOptionValue puts the option's own value, one entry or a list, in front of the resolved one.
+func mergeSelfOptionValue(selfValue *apiextensionsv1.JSON, resolvedValue any) (any, error) {
+	if selfValue == nil || len(selfValue.Raw) == 0 {
 		return resolvedValue, nil
 	}
 
-	ownList, err := util.AsJSONList(ownValue)
-	if err != nil {
+	var value any
+	if err := json.Unmarshal(selfValue.Raw, &value); err != nil {
 		return nil, err
 	}
-	return appendToResults(ownList, resolvedValue), nil
+	return appendToResults(appendToResults(nil, value), resolvedValue), nil
+}
+
+// dropDuplicates keeps the first occurrence of each list entry, comparing entries as JSON.
+func dropDuplicates(value any) any {
+	list, ok := value.([]any)
+	if !ok {
+		return value
+	}
+	seen := make(map[string]bool, len(list))
+	return slices.DeleteFunc(list, func(entry any) bool {
+		key, _ := json.Marshal(entry)
+		duplicate := seen[string(key)]
+		seen[string(key)] = true
+		return duplicate
+	})
 }
 
 // appendToResults appends a value to results, flattening slices to avoid nested arrays.
@@ -561,10 +570,8 @@ func appendToResults(results []any, value any) []any {
 	return results
 }
 
-// refCELEnv holds the environment every reference expression compiles against. It never changes,
-// so it is built once instead of per reference. The list extension is in because iterating a map
-// gives no order, and an option value that comes back in a different order every time is written
-// back to the Plugin every time, so an expression reading a map needs sort().
+// refCELEnv is shared by every reference expression. ext.Lists adds sort(), a list built from a map
+// comes back in random order and would rewrite the Plugin on every reconcile.
 var refCELEnv = sync.OnceValues(func() (*celgo.Env, error) {
 	return celgo.NewEnv(
 		celgo.Variable("object", celgo.DynType),
@@ -575,9 +582,7 @@ var refCELEnv = sync.OnceValues(func() (*celgo.Env, error) {
 	)
 })
 
-// compileRefExpression compiles the expression of a valueFrom.ref once, so a selector that matched
-// many objects evaluates the same program against each of them. The ${...} wrapper is optional and
-// goes around the whole expression.
+// compileRefExpression compiles a valueFrom.ref expression, with or without the ${...} wrapper.
 func compileRefExpression(expression string) (celgo.Program, error) {
 	expr := strings.TrimSpace(expression)
 	if strings.HasPrefix(expr, "${") && strings.HasSuffix(expr, "}") {

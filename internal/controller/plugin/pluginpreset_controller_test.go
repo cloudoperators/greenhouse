@@ -3122,7 +3122,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 				Expression: `spec.optionValues.filter(v, v.name == "store")[0].value`,
 			},
 		}
-		localStoreExpression := "- local-${global.greenhouse.clusterName}\n"
+		localStoreExpression := "local-${global.greenhouse.clusterName}"
 		consumerSpec := greenhousev1alpha1.PluginPresetPluginSpec{
 			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
@@ -3134,7 +3134,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 				{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
 				{
 					Name:      "query.stores",
-					Value:     test.MustReturnJSONFor([]string{"sidecar:10901"}),
+					Value:     test.MustReturnJSONFor([]string{"sidecar:10901", "region-a:10901"}),
 					ValueFrom: storeRef.DeepCopy(),
 				},
 				{
@@ -3152,7 +3152,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			}))
 		Expect(test.K8sClient.Create(test.Ctx, consumerPreset)).To(Succeed())
 
-		By("ensuring the option's own value comes first and the resolved one after it")
+		By("ensuring the option's own value comes first, the resolved one after it and the repeated store only once")
 		Eventually(func(g Gomega) {
 			consumerPlugin := &greenhousev1alpha1.Plugin{}
 			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: "ref-merge-consumer-" + clusterA, Namespace: test.TestNamespace}, consumerPlugin)).To(Succeed())
@@ -3740,24 +3740,27 @@ var _ = Describe("compileRefExpression", func() {
 	})
 })
 
-var _ = Describe("mergeOwnValue", func() {
-	It("puts the value the option sets itself in front", func() {
-		merged, err := mergeOwnValue(test.MustReturnJSONFor([]string{"sidecar:10901"}), []any{"region-a:10901", "region-b:10901"})
-		Expect(err).ToNot(HaveOccurred())
-		Expect(merged).To(Equal([]any{"sidecar:10901", "region-a:10901", "region-b:10901"}))
-	})
+var _ = DescribeTable("mergeSelfOptionValue", func(selfValue *apiextensionsv1.JSON, expected []any) {
+	merged, err := mergeSelfOptionValue(selfValue, []any{"region-a:10901"})
+	Expect(err).ToNot(HaveOccurred())
+	Expect(merged).To(Equal(expected))
+},
+	Entry("puts the value the option sets itself in front", test.MustReturnJSONFor([]string{"sidecar:10901"}), []any{"sidecar:10901", "region-a:10901"}),
+	Entry("keeps the resolved value when the option sets none", nil, []any{"region-a:10901"}),
+	Entry("turns a single value into the first entry", test.MustReturnJSONFor("sidecar:10901"), []any{"sidecar:10901", "region-a:10901"}),
+	Entry("keeps a map as a single entry", test.MustReturnJSONFor(map[string]string{"host": "sidecar"}), []any{map[string]any{"host": "sidecar"}, "region-a:10901"}),
+)
 
-	It("keeps the resolved value when the option sets none", func() {
-		merged, err := mergeOwnValue(nil, []any{"region-a:10901"})
-		Expect(err).ToNot(HaveOccurred())
-		Expect(merged).To(Equal([]any{"region-a:10901"}))
-	})
-
-	It("refuses a value that is not a list", func() {
-		_, err := mergeOwnValue(test.MustReturnJSONFor("sidecar:10901"), []any{"region-a:10901"})
-		Expect(err).To(MatchError(ContainSubstring("is not a list")))
-	})
-})
+var _ = DescribeTable("dropDuplicates", func(value, expected any) {
+	Expect(dropDuplicates(value)).To(Equal(expected))
+},
+	Entry("keeps the first of the entries a list holds more than once",
+		[]any{"sidecar:10901", "region-a:10901", "sidecar:10901"}, []any{"sidecar:10901", "region-a:10901"}),
+	Entry("compares entries as JSON",
+		[]any{float64(10901), int64(10901), map[string]any{"host": "sidecar"}, map[string]any{"host": "sidecar"}},
+		[]any{float64(10901), map[string]any{"host": "sidecar"}}),
+	Entry("leaves a value that is not a list alone", "sidecar:10901", "sidecar:10901"),
+)
 
 var _ = Describe("reference matching", func() {
 	overrideRefTo := func(kind, name string) []greenhousev1alpha1.ClusterOptionOverride {
@@ -3790,7 +3793,7 @@ var _ = Describe("reference matching", func() {
 })
 
 var _ = Describe("withMissingValueHint", func() {
-	It("names the options holding no value of their own", func() {
+	It("names the options holding no plain value", func() {
 		plugin := &greenhousev1alpha1.Plugin{
 			Spec: greenhousev1alpha1.PluginSpec{
 				OptionValues: []greenhousev1alpha1.PluginOptionValue{
@@ -3802,7 +3805,7 @@ var _ = Describe("withMissingValueHint", func() {
 			},
 		}
 		err := withMissingValueHint(errors.New("no such key: value"), plugin)
-		Expect(err).To(MatchError(ContainSubstring("options with no value of their own: token")))
+		Expect(err).To(MatchError(ContainSubstring("options with no plain value to read: token")))
 	})
 
 	It("reads a PluginPreset's options through spec.plugin", func() {
@@ -3818,7 +3821,7 @@ var _ = Describe("withMissingValueHint", func() {
 			},
 		}
 		err := withMissingValueHint(errors.New("no such key: value"), preset)
-		Expect(err).To(MatchError(ContainSubstring("options with no value of their own: token")))
+		Expect(err).To(MatchError(ContainSubstring("options with no plain value to read: token")))
 	})
 
 	It("leaves the error alone when every option holds a value", func() {

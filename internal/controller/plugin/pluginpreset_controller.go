@@ -643,8 +643,7 @@ func presetReferences(consumer, target *greenhousev1alpha1.PluginPreset) (bool, 
 	return false, nil
 }
 
-// refOptionValues returns the option values of a preset that can hold a valueFrom.ref, its own and
-// those in its cluster overrides.
+// refOptionValues returns a preset's option values, including those in its cluster overrides.
 func refOptionValues(preset *greenhousev1alpha1.PluginPreset) []greenhousev1alpha1.PluginPresetPluginOptionValue {
 	optionValues := slices.Clone(preset.Spec.Plugin.OptionValues)
 	for _, override := range preset.Spec.ClusterOptionOverrides {
