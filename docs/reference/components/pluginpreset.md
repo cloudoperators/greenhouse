@@ -254,7 +254,7 @@ spec:
 
 ### Reference by Label Selector
 When multiple PluginPresets need to be referenced, use a label selector.
-The CEL expression is evaluated against each matching PluginPreset and results are collected into an array.
+The CEL expression is evaluated against each matching PluginPreset and results are collected into an array, each value once.
 
 
 ```yaml
@@ -410,7 +410,7 @@ An option can set a `value` and a `valueFrom.ref` at the same time. The two are 
               ${spec.optionValues.filter(v, v.name == "thanos.query.grpc.host")[0].value}
 ```
 
-Merging only makes sense for lists, so a `value` that is not a list next to a `valueFrom.ref` is rejected. An `expression` on the same option is resolved first and merged the same way, which is how an entry built from the cluster ends up next to the entries read from other Plugins.
+A single value counts as a list with one entry, so the result is always a list. An `expression` on the same option is resolved first and merged the same way, which is how an entry built from the cluster ends up next to the entries read from other Plugins. An entry both the value and the reference hold is kept once, where it first shows up.
 
 ### CEL Expression Syntax for References
 The expression field in valueFrom.ref supports multiple syntax styles:

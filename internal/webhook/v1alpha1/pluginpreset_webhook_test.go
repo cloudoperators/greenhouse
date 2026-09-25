@@ -396,45 +396,6 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 		Entry("All three set (invalid)", test.MustReturnJSONFor("test"), &greenhousev1alpha1.PluginPresetPluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret"}}, utils.StringP(`"test-expression"`), true),
 	)
 
-	DescribeTable("Validate an OptionValue setting both Value and ValueFrom.Ref", func(value *apiextensionsv1.JSON, expErr bool) {
-		pluginPreset := &greenhousev1alpha1.PluginPreset{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-plugin-preset",
-				Namespace: test.TestNamespace,
-			},
-			Spec: greenhousev1alpha1.PluginPresetSpec{
-				Plugin: greenhousev1alpha1.PluginPresetPluginSpec{
-					OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
-						{
-							Name:  "query.stores",
-							Value: value,
-							ValueFrom: &greenhousev1alpha1.PluginPresetPluginValueFromSource{
-								Ref: &greenhousev1alpha1.ExternalValueSource{
-									Kind:       greenhousev1alpha1.PluginKind,
-									Name:       "source",
-									Expression: `spec.optionValues[0].value`,
-								},
-							},
-						},
-					},
-				},
-			},
-		}
-
-		errList := validateRefOptionValuesForPreset(pluginPreset)
-		switch expErr {
-		case true:
-			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
-		default:
-			Expect(errList).To(BeEmpty(), "expected no error, got %v", errList)
-		}
-	},
-		Entry("a list is merged with what the reference resolves to", test.MustReturnJSONFor([]string{"sidecar:10901"}), false),
-		Entry("no value next to the reference", nil, false),
-		Entry("a scalar cannot be merged", test.MustReturnJSONFor("sidecar:10901"), true),
-		Entry("an object cannot be merged", test.MustReturnJSONFor(map[string]string{"host": "sidecar"}), true),
-	)
-
 	DescribeTable("Validate WaitFor PluginRefs", func(waitForItems []greenhousev1alpha1.WaitForItem, expErr bool) {
 		errList := validateWaitForPluginRefs(waitForItems, false)
 		switch expErr {

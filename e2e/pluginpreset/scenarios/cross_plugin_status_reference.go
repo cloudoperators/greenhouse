@@ -19,8 +19,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
-// PluginPresetCrossPluginStatusReference covers an option that reads the status of a referenced
-// Plugin next to a value of its own.
+// PluginPresetCrossPluginStatusReference covers an option merging its own value with a Plugin's status.
 func PluginPresetCrossPluginStatusReference(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName, teamName string) {
 	By("creating plugin definition")
 	testPluginDefinition := fixtures.PreparePodInfoClusterPluginDefinition(env.TestNamespace, "6.9.0")
