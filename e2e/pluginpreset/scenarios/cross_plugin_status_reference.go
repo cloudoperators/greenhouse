@@ -5,6 +5,7 @@ package scenarios
 
 import (
 	"context"
+	"encoding/json"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -18,7 +19,8 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
-func PluginPresetCrossPresetReference(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName, teamName string) {
+// PluginPresetCrossPluginStatusReference covers an option merging its own value with a Plugin's status.
+func PluginPresetCrossPluginStatusReference(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName, teamName string) {
 	By("creating plugin definition")
 	testPluginDefinition := fixtures.PreparePodInfoClusterPluginDefinition(env.TestNamespace, "6.9.0")
 	err := adminClient.Create(ctx, testPluginDefinition)
@@ -38,57 +40,53 @@ func PluginPresetCrossPresetReference(ctx context.Context, adminClient, remoteCl
 	if remoteCluster.Labels == nil {
 		remoteCluster.Labels = make(map[string]string)
 	}
-	remoteCluster.Labels["app"] = "test-ref-cluster"
+	remoteCluster.Labels["app"] = "test-plugin-status-ref-cluster"
 	err = adminClient.Update(ctx, remoteCluster)
 	Expect(err).ToNot(HaveOccurred())
 
-	By("creating source PluginPreset with CEL expression")
-	sourceExpressionStr := `"generated-${global.greenhouse.clusterName}"`
-	sourcePluginSpec := greenhousev1alpha1.PluginPresetPluginSpec{
-		PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
-			Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
-			Name: testPluginDefinition.Name,
-		},
-		ReleaseName:      "ref-source",
-		ReleaseNamespace: env.TestNamespace,
-		OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
-			{
-				Name:  optionReplicaCount,
-				Value: test.MustReturnJSONFor("1"),
+	selectorLabel := "ref-status-group"
+	selectorValue := "plugin-status-test"
+
+	By("creating the source Plugin")
+	sourcePlugin := &greenhousev1alpha1.Plugin{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "status-ref-plugin",
+			Namespace: env.TestNamespace,
+			Labels: map[string]string{
+				greenhouseapis.LabelKeyOwnedBy: teamName,
+				selectorLabel:                  selectorValue,
 			},
-			{
-				Name:       optionUIMessage,
-				Expression: &sourceExpressionStr,
+		},
+		Spec: greenhousev1alpha1.PluginSpec{
+			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+				Name: testPluginDefinition.Name,
+			},
+			ClusterName:      remoteClusterName,
+			ReleaseName:      "status-ref-plugin",
+			ReleaseNamespace: env.TestNamespace,
+			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+				{Name: optionReplicaCount, Value: test.MustReturnJSONFor("1")},
 			},
 		},
 	}
-
-	sourcePreset := test.NewPluginPreset("ref-source-preset", env.TestNamespace,
-		test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamName),
-		test.WithPresetPluginSpec(sourcePluginSpec),
-		test.WithPluginPresetClusterSelector(metav1.LabelSelector{
-			MatchLabels: map[string]string{"app": "test-ref-cluster"},
-		}),
-	)
-	err = adminClient.Create(ctx, sourcePreset)
+	err = adminClient.Create(ctx, sourcePlugin)
 	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
 
-	By("waiting for source Plugin to be ready")
-	expectedSourcePluginName := sourcePreset.Name + "-" + remoteClusterName
+	By("waiting for the source Plugin to be ready")
 	Eventually(func(g Gomega) {
-		sourcePlugin := &greenhousev1alpha1.Plugin{}
-		err = adminClient.Get(ctx, client.ObjectKey{Name: expectedSourcePluginName, Namespace: env.TestNamespace}, sourcePlugin)
+		err = adminClient.Get(ctx, client.ObjectKeyFromObject(sourcePlugin), sourcePlugin)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(sourcePlugin.Status.IsReadyTrue()).To(BeTrue())
 	}).Should(Succeed())
 
-	By("creating consumer PluginPreset that references source")
+	By("creating a consumer PluginPreset reading the source Plugin's status next to a value of its own")
 	consumerPluginSpec := greenhousev1alpha1.PluginPresetPluginSpec{
 		PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 			Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 			Name: testPluginDefinition.Name,
 		},
-		ReleaseName:      "ref-consumer",
+		ReleaseName:      "ref-plugin-status-consumer",
 		ReleaseNamespace: env.TestNamespace,
 		OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
 			{
@@ -96,38 +94,36 @@ func PluginPresetCrossPresetReference(ctx context.Context, adminClient, remoteCl
 				Value: test.MustReturnJSONFor("1"),
 			},
 			{
-				Name: optionUIMessage,
+				Name:  optionUIMessage,
+				Value: test.MustReturnJSONFor([]string{"static-entry"}),
 				ValueFrom: &greenhousev1alpha1.PluginPresetPluginValueFromSource{
 					Ref: &greenhousev1alpha1.ExternalValueSource{
-						Kind:       greenhousev1alpha1.PluginPresetKind,
-						Name:       sourcePreset.Name,
-						Expression: `${spec.plugin.optionValues.filter(v, v.name == 'ui.message')[0].value}`,
+						Kind: greenhousev1alpha1.PluginKind,
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{selectorLabel: selectorValue},
+						},
+						Expression: `${status.statusConditions.conditions.filter(c, c.type == 'Ready')[0].status}`,
 					},
 				},
 			},
 		},
 	}
-
-	consumerPreset := test.NewPluginPreset("ref-consumer-preset", env.TestNamespace,
+	consumerPreset := test.NewPluginPreset("ref-plugin-status-consumer-preset", env.TestNamespace,
 		test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamName),
 		test.WithPresetPluginSpec(consumerPluginSpec),
 		test.WithPluginPresetClusterSelector(metav1.LabelSelector{
-			MatchLabels: map[string]string{"app": "test-ref-cluster"},
+			MatchLabels: map[string]string{"app": "test-plugin-status-ref-cluster"},
 		}),
 	)
 	err = adminClient.Create(ctx, consumerPreset)
 	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
 
-	By("verifying consumer Plugin has resolved reference value")
+	By("verifying the consumer Plugin holds its own value first and the resolved status after it")
 	expectedConsumerPluginName := consumerPreset.Name + "-" + remoteClusterName
 	Eventually(func(g Gomega) {
-		pluginList := &greenhousev1alpha1.PluginList{}
-		err = adminClient.List(ctx, pluginList, client.MatchingLabels{greenhouseapis.LabelKeyPluginPreset: consumerPreset.Name})
+		consumerPlugin := &greenhousev1alpha1.Plugin{}
+		err = adminClient.Get(ctx, client.ObjectKey{Name: expectedConsumerPluginName, Namespace: env.TestNamespace}, consumerPlugin)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(pluginList.Items).To(HaveLen(1))
-
-		consumerPlugin := &pluginList.Items[0]
-		g.Expect(consumerPlugin.Name).To(Equal(expectedConsumerPluginName))
 
 		var found bool
 		for _, ov := range consumerPlugin.Spec.OptionValues {
@@ -135,14 +131,17 @@ func PluginPresetCrossPresetReference(ctx context.Context, adminClient, remoteCl
 				found = true
 				g.Expect(ov.ValueFrom).To(BeNil(), "ValueFrom should be resolved")
 				g.Expect(ov.Value).ToNot(BeNil())
-				g.Expect(string(ov.Value.Raw)).To(Equal(`"generated-` + remoteClusterName + `"`))
+
+				var merged []any
+				g.Expect(json.Unmarshal(ov.Value.Raw, &merged)).To(Succeed())
+				g.Expect(merged).To(Equal([]any{"static-entry", "True"}))
 			}
 		}
 		g.Expect(found).To(BeTrue())
-	}).Should(Succeed(), "Consumer Plugin should have resolved reference value")
+	}).Should(Succeed(), "Consumer Plugin should hold the static value followed by the referenced Plugin's Ready status")
 
 	By("cleaning up")
 	test.EventuallyDeleted(ctx, adminClient, consumerPreset)
-	test.EventuallyDeleted(ctx, adminClient, sourcePreset)
+	test.EventuallyDeleted(ctx, adminClient, sourcePlugin)
 	test.EventuallyDeleted(ctx, adminClient, testPluginDefinition)
 }

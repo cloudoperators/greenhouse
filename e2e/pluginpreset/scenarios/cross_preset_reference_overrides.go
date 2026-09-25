@@ -135,7 +135,7 @@ func PluginPresetCrossPresetReferenceWithOverrides(ctx context.Context, adminCli
 					Ref: &greenhousev1alpha1.ExternalValueSource{
 						Kind:       greenhousev1alpha1.PluginPresetKind,
 						Name:       sourcePreset.Name,
-						Expression: `"https://" + spec.optionValues.filter(v, v.name == 'service.hostname')[0].value`,
+						Expression: `"https://" + spec.plugin.optionValues.filter(v, v.name == 'service.hostname')[0].value`,
 					},
 				},
 			},

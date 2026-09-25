@@ -86,10 +86,18 @@ func (r *PluginPresetReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 		// so that consumers with valueFrom.ref references pick up the change.
 		Watches(&greenhousev1alpha1.PluginPreset{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueReferencingPluginPresets),
-			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+			builder.WithPredicates(predicate.Or(
+				predicate.GenerationChangedPredicate{},
+				predicate.LabelChangedPredicate{},
+			))).
+		// A selector follows the Plugin's labels and an expression can read its status, neither bumps the generation.
 		Watches(&greenhousev1alpha1.Plugin{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueReferencingPluginPresetsForPlugin),
-			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+			builder.WithPredicates(predicate.Or(
+				predicate.GenerationChangedPredicate{},
+				predicate.LabelChangedPredicate{},
+				clientutil.PredicatePluginWithStatusChange(),
+			))).
 		Complete(r)
 }
 
@@ -532,7 +540,7 @@ func (r *PluginPresetReconciler) enqueueReferencingPluginPresetsForPlugin(ctx co
 // presetReferencesPlugin returns true if the preset references the target Plugin
 // via valueFrom.ref (either by name or by label selector).
 func presetReferencesPlugin(preset *greenhousev1alpha1.PluginPreset, target *greenhousev1alpha1.Plugin) (bool, error) {
-	for _, ov := range preset.Spec.Plugin.OptionValues {
+	for _, ov := range refOptionValues(preset) {
 		if ov.ValueFrom == nil || ov.ValueFrom.Ref == nil {
 			continue
 		}
@@ -604,7 +612,7 @@ func (r *PluginPresetReconciler) enqueueReferencingPluginPresets(ctx context.Con
 // presetReferences returns true if the consumer preset references the target preset
 // via valueFrom.ref (either by name or by label selector).
 func presetReferences(consumer, target *greenhousev1alpha1.PluginPreset) (bool, error) {
-	for _, ov := range consumer.Spec.Plugin.OptionValues {
+	for _, ov := range refOptionValues(consumer) {
 		if ov.ValueFrom == nil || ov.ValueFrom.Ref == nil {
 			continue
 		}
@@ -633,6 +641,15 @@ func presetReferences(consumer, target *greenhousev1alpha1.PluginPreset) (bool, 
 		}
 	}
 	return false, nil
+}
+
+// refOptionValues returns a preset's option values, including those in its cluster overrides.
+func refOptionValues(preset *greenhousev1alpha1.PluginPreset) []greenhousev1alpha1.PluginPresetPluginOptionValue {
+	optionValues := slices.Clone(preset.Spec.Plugin.OptionValues)
+	for _, override := range preset.Spec.ClusterOptionOverrides {
+		optionValues = append(optionValues, override.Overrides...)
+	}
+	return optionValues
 }
 
 // listPluginPresetsAsReconcileRequests returns a list of reconcile requests for all PluginPresets that match the given list options.
