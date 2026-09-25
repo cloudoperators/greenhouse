@@ -116,7 +116,7 @@ func (r *TeamController) EnsureCreated(ctx context.Context, object lifecycle.Run
 	}
 
 	initTeamStatus(team)
-	defer updateTeamMembersCountMetric(team, len(team.Status.Members))
+	defer func() { updateTeamMembersCountMetric(team, len(team.Status.Members)) }()
 
 	p := &teamphases.Phase{
 		Client:   r.Client,
