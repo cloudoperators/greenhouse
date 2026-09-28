@@ -1,5 +1,5 @@
 {{- if .Values.alerts.enabled }}
-{{- range $path, $bytes := .Files.Glob "alerts/*.alerts" }}
+{{- range $path, $bytes := .Files.Glob "alerts/default/*.alerts" }}
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
@@ -8,8 +8,23 @@ metadata:
     app: operator
     role: alert-rules
     plugin: kube-monitoring
-  name: {{ printf "%s-%s" (include "manager.fullname" $) (trimPrefix "alerts/" $path) | replace "." "-"}}
+  name: {{ printf "%s-%s" (include "manager.fullname" $) (trimPrefix "alerts/default/" $path) | replace "." "-"}}
 spec:
 {{ printf "%s" $bytes | indent 2 }}
+{{- end }}
+{{- if not .Values.global.workloadIdentity.enabled }}
+{{- range $path, $bytes := .Files.Glob "alerts/no-workload-identity/*.alerts" }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    app: operator
+    role: alert-rules
+    plugin: kube-monitoring
+  name: {{ printf "no-workload-identity-%s-%s" (include "manager.fullname" $) (trimPrefix "alerts/no-workload-identity/" $path) | replace "." "-"}}
+spec:
+{{ printf "%s" $bytes | indent 2 }}
+{{- end }}
 {{- end }}
 {{- end }}
