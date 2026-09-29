@@ -457,8 +457,12 @@ func (r *PluginReconciler) fetchReleaseStatus(ctx context.Context,
 	case isReadyCurrent && ready.Status == metav1.ConditionFalse:
 		stalledCondition := meta.FindStatusCondition(helmRelease.Status.Conditions, string(fluxstatus.ConditionStalled))
 		if stalledCondition != nil && stalledCondition.Status == metav1.ConditionTrue {
+			message := stalledCondition.Message
+			if releasedCondition := meta.FindStatusCondition(helmRelease.Status.Conditions, helmv2.ReleasedCondition); releasedCondition != nil && releasedCondition.Status == metav1.ConditionFalse && releasedCondition.Message != "" {
+				message = releasedCondition.Message
+			}
 			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
-				greenhousev1alpha1.HelmReleaseDeployedCondition, greenhousev1alpha1.FluxHelmReleaseStalledReason, stalledCondition.Message))
+				greenhousev1alpha1.HelmReleaseDeployedCondition, greenhousev1alpha1.FluxHelmReleaseStalledReason, message))
 		}
 		releaseStatus.Status = "failed"
 	default:
