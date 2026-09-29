@@ -111,4 +111,8 @@ var _ = Describe("PluginPreset E2E", Ordered, func() {
 	It("should resolve cross-Plugin references by selector", func() {
 		scenarios.PluginPresetCrossPluginSelectorReference(ctx, adminClient, remoteClient, env, remoteClusterName, team.Name)
 	})
+
+	It("should resolve a cross-Plugin reference reading status next to a static value", func() {
+		scenarios.PluginPresetCrossPluginStatusReference(ctx, adminClient, remoteClient, env, remoteClusterName, team.Name)
+	})
 })
