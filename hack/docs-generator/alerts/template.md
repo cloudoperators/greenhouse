@@ -17,7 +17,7 @@ This page is auto-generated from `charts/manager/alerts/`. Do not edit by hand �
 
 {{ .Description }}
 {{ range .Rules }}
-- {{ if eq .Playbook "—" }}`{{ .Alert }}`{{ else }}[`{{ .Alert }}`]({{ .Playbook }}){{ end }}  
+- {{ if eq .Playbook "—" }}`{{ .Alert }}`{{ else }}[`{{ .Alert }}`]({{ .Playbook }}){{ end }}
   {{ .Summary }}
 {{- end }}
 {{- end }}

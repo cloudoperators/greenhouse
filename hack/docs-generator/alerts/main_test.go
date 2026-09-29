@@ -19,11 +19,11 @@ func repoRelative(t *testing.T, parts ...string) string {
 }
 
 func TestRunAgainstRealSource(t *testing.T) {
-	alertsDir := repoRelative(t, "charts", "manager", "alerts")
+	alertsDir := repoRelative(t, "charts", "manager", "alerts", "default")
 	outDir := t.TempDir()
 	outFile := filepath.Join(outDir, "_index.md")
 
-	if err := run(alertsDir, outFile); err != nil {
+	if err := run([]string{alertsDir}, outFile); err != nil {
 		t.Fatalf("run: %v", err)
 	}
 
