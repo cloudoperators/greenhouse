@@ -236,7 +236,7 @@ spec:
             kind: PluginPreset
             name: backend-preset
             expression: |
-              ${spec.optionValues.filter(v, v.name == "backend.hostname")[0].value}
+              ${spec.plugin.optionValues.filter(v, v.name == "backend.hostname")[0].value}
   clusterSelector:
     matchLabels:
       env: production
@@ -254,7 +254,7 @@ spec:
 
 ### Reference by Label Selector
 When multiple PluginPresets need to be referenced, use a label selector.
-The CEL expression is evaluated against each matching PluginPreset and results are collected into an array.
+The CEL expression is evaluated against each matching PluginPreset and results are collected into an array, each value once.
 
 
 ```yaml
@@ -321,7 +321,7 @@ spec:
               matchLabels:
                 e2e.greenhouse.sap/selector-test: "true"
             expression: |
-              ${spec.optionValues.filter(v, v.name == "source.endpoint")[0].value}
+              ${spec.plugin.optionValues.filter(v, v.name == "source.endpoint")[0].value}
   clusterSelector:
     matchLabels:
       greenhouse.sap/cluster: kind-greenhouse-remote
@@ -368,7 +368,49 @@ spec:
       env: production
 ```
 
-Next to `metadata` and `spec.optionValues`, an expression on a Plugin reference can also read `spec.clusterName` and `spec.releaseName`.
+### What an expression can read
+
+The expression runs against the referenced object as the API server stores it, so every field is addressed by the same path `kubectl get -o yaml` prints. A reference to a Plugin reads its option values under `spec.optionValues`, a reference to a PluginPreset under `spec.plugin.optionValues`, and both can read `metadata`, the rest of `spec` and `status`.
+
+`status` is the only place a value can come from that the source does not know before it runs, the address of a service it exposes for example:
+
+```yaml
+      - name: thanos.query.stores
+        valueFrom:
+          ref:
+            kind: Plugin
+            selector:
+              matchLabels:
+                greenhouse.sap/pluginpreset: thanos-regional
+            expression: |
+              ${status.exposedServices.map(url, url).sort()}
+```
+
+`exposedServices` is a map and a map has no order, so the result is sorted. Without that the same expression comes back in a different order on every resolution, which writes the Plugin again every time and never settles. The same holds for any expression reading a map, `metadata.labels` included.
+
+A status change does not bump a Plugin's generation, so the PluginPreset controller watches the status of every Plugin and re-resolves the consumers referencing it. The same does not hold for a reference to a PluginPreset, which re-resolves on a change to the referenced spec, not its status.
+
+An expression reads plain values only. An option that takes its value from a secret or from another reference comes through without its `valueFrom`, so neither its value nor the name of the secret behind it is readable. The `kubectl.kubernetes.io/last-applied-configuration` annotation is dropped for the same reason, it holds a copy of the spec the object was applied with.
+
+### Setting a value next to a reference
+
+An option can set a `value` and a `valueFrom.ref` at the same time. The two are merged into one list, with the value the option sets itself first:
+
+```yaml
+      - name: thanos.query.stores
+        value:
+          - thanos-sidecar.monitoring:10901
+        valueFrom:
+          ref:
+            kind: Plugin
+            selector:
+              matchLabels:
+                greenhouse.sap/pluginpreset: thanos-regional
+            expression: |
+              ${spec.optionValues.filter(v, v.name == "thanos.query.grpc.host")[0].value}
+```
+
+A single value counts as a list with one entry, so the result is always a list. An `expression` on the same option is resolved first and merged the same way, which is how an entry built from the cluster ends up next to the entries read from other Plugins. An entry both the value and the reference hold is kept once, where it first shows up.
 
 ### CEL Expression Syntax for References
 The expression field in valueFrom.ref supports multiple syntax styles:
@@ -378,6 +420,8 @@ The expression field in valueFrom.ref supports multiple syntax styles:
 
 #### With ${...} wrapper
 `expression: ${spec.optionValues.filter(v, v.name == "my.value")[0].value}`
+
+The wrapper goes around the whole expression, once. An expression holding more than one `${...}` is rejected.
 
 #### Legacy syntax (backward compatible)
 `expression: object.spec.optionValues.filter(v, v.name == "my.value")[0].value`
@@ -394,6 +438,8 @@ pluginPreset: |
   expressionEvaluationEnabled: true
   integrationEnabled: true
 ```
+
+> :warning: Both are experimental. They cover the scenarios written up here and not much beyond them, and the shape of an expression can still change. Turn them on for a cluster you are willing to debug.
 
 ## Next Steps
 

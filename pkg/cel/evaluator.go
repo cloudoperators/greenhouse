@@ -101,6 +101,11 @@ func EvaluateWithData(expression string, env *cel.Env, data map[string]any) (any
 		return nil, err
 	}
 
+	return EvaluateProgram(prg, data)
+}
+
+// EvaluateProgram evaluates an already compiled CEL program against the given data.
+func EvaluateProgram(prg cel.Program, data map[string]any) (any, error) {
 	out, _, err := prg.Eval(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to evaluate expression: %w", err)
@@ -140,19 +145,12 @@ func evaluateObject(obj client.Object, prg cel.Program) (any, error) {
 		return nil, errors.New("object cannot be nil")
 	}
 
-	objMap, err := structToMap(obj)
+	objMap, err := StructToMap(obj)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert object to map: %w", err)
 	}
 
-	out, _, err := prg.Eval(map[string]any{
-		"object": objMap,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to evaluate expression: %w", err)
-	}
-
-	return convertCELValue(out)
+	return EvaluateProgram(prg, map[string]any{"object": objMap})
 }
 
 func convertCELValue(val ref.Val) (any, error) {
@@ -197,7 +195,8 @@ func convertCELValue(val ref.Val) (any, error) {
 	return val.Value(), nil
 }
 
-func structToMap(v any) (map[string]any, error) {
+// StructToMap marshals a value as JSON and unmarshals it into the map shape CEL evaluates against.
+func StructToMap(v any) (map[string]any, error) {
 	data, err := json.Marshal(v)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal struct: %w", err)

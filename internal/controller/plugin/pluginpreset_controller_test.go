@@ -5,6 +5,7 @@ package plugin
 
 import (
 	"encoding/json"
+	"errors"
 	"slices"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
@@ -1217,7 +1218,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 								Ref: &greenhousev1alpha1.ExternalValueSource{
 									Kind:       greenhousev1alpha1.PluginPresetKind,
 									Name:       "source-plugin",
-									Expression: "spec.optionValues[0].value",
+									Expression: "spec.plugin.optionValues[0].value",
 								},
 							},
 						},
@@ -1351,7 +1352,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind:       greenhousev1alpha1.PluginPresetKind,
 							Name:       "ref-source",
-							Expression: `${spec.optionValues.filter(v, v.name == "source.value")[0].value}`,
+							Expression: `${spec.plugin.optionValues.filter(v, v.name == "source.value")[0].value}`,
 						},
 					},
 				},
@@ -1468,7 +1469,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind:       greenhousev1alpha1.PluginPresetKind,
 							Name:       "ref-transform-source",
-							Expression: `"https://" + spec.optionValues.filter(v, v.name == "service.hostname")[0].value`,
+							Expression: `"https://" + spec.plugin.optionValues.filter(v, v.name == "service.hostname")[0].value`,
 						},
 					},
 				},
@@ -1525,7 +1526,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind:       greenhousev1alpha1.PluginPresetKind,
 							Name:       "provider-watch",
-							Expression: `spec.optionValues.filter(o, o.name == "provider.output")[0].value`,
+							Expression: `spec.plugin.optionValues.filter(o, o.name == "provider.output")[0].value`,
 						},
 					},
 				},
@@ -1628,7 +1629,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind:       greenhousev1alpha1.PluginPresetKind,
 							Name:       "provider-upd",
-							Expression: `spec.optionValues.filter(o, o.name == "provider.output")[0].value`,
+							Expression: `spec.plugin.optionValues.filter(o, o.name == "provider.output")[0].value`,
 						},
 					},
 				},
@@ -1765,7 +1766,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 									"e2e.greenhouse.sap/selector-test": "true",
 								},
 							},
-							Expression: `spec.optionValues.filter(v, v.name == "source.endpoint")[0].value`,
+							Expression: `spec.plugin.optionValues.filter(v, v.name == "source.endpoint")[0].value`,
 						},
 					},
 				},
@@ -1830,7 +1831,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 									"non-existent-label": "true",
 								},
 							},
-							Expression: `spec.optionValues[0].value`,
+							Expression: `spec.plugin.optionValues[0].value`,
 						},
 					},
 				},
@@ -1873,7 +1874,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind:       greenhousev1alpha1.PluginPresetKind,
 							Name:       "non-existent-preset",
-							Expression: `spec.optionValues[0].value`,
+							Expression: `spec.plugin.optionValues[0].value`,
 						},
 					},
 				},
@@ -2065,7 +2066,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 							Selector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{selectorLabel: selectorValue},
 							},
-							Expression: `spec.optionValues.filter(v, v.name == "source.endpoint")[0].value`,
+							Expression: `spec.plugin.optionValues.filter(v, v.name == "source.endpoint")[0].value`,
 						},
 					},
 				},
@@ -2576,7 +2577,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind:       greenhousev1alpha1.PluginPresetKind,
 							Name:       "ref-int-source",
-							Expression: `spec.optionValues.filter(v, v.name == "source.replicas")[0].value`,
+							Expression: `spec.plugin.optionValues.filter(v, v.name == "source.replicas")[0].value`,
 						},
 					},
 				},
@@ -2656,7 +2657,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 							Ref: &greenhousev1alpha1.ExternalValueSource{
 								Kind:       greenhousev1alpha1.PluginPresetKind,
 								Name:       "enqueue-source",
-								Expression: `spec.optionValues[0].value`,
+								Expression: `spec.plugin.optionValues[0].value`,
 							},
 						},
 					},
@@ -2743,7 +2744,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 								Selector: &metav1.LabelSelector{
 									MatchLabels: map[string]string{"source-group": "my-sources"},
 								},
-								Expression: `spec.optionValues[0].value`,
+								Expression: `spec.plugin.optionValues[0].value`,
 							},
 						},
 					},
@@ -2874,7 +2875,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind:       greenhousev1alpha1.PluginPresetKind,
 							Name:       "ref-bool-source",
-							Expression: `spec.optionValues.filter(v, v.name == "source.enabled")[0].value`,
+							Expression: `spec.plugin.optionValues.filter(v, v.name == "source.enabled")[0].value`,
 						},
 					},
 				},
@@ -2958,7 +2959,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind:       greenhousev1alpha1.PluginPresetKind,
 							Name:       "ref-map-source",
-							Expression: `spec.optionValues.filter(v, v.name == "source.labels")[0].value`,
+							Expression: `spec.plugin.optionValues.filter(v, v.name == "source.labels")[0].value`,
 						},
 					},
 				},
@@ -3044,7 +3045,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 						Ref: &greenhousev1alpha1.ExternalValueSource{
 							Kind:       greenhousev1alpha1.PluginPresetKind,
 							Name:       "ref-arr-source",
-							Expression: `spec.optionValues.filter(v, v.name == "source.hosts")[0].value`,
+							Expression: `spec.plugin.optionValues.filter(v, v.name == "source.hosts")[0].value`,
 						},
 					},
 				},
@@ -3084,6 +3085,95 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, consumerPreset)
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, sourcePreset)
+	})
+
+	It("should merge an option's own value with the result of valueFrom.ref", func() {
+		By("creating a source Plugin holding one store address")
+		sourcePlugin := &greenhousev1alpha1.Plugin{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "merge-source-plugin",
+				Namespace: test.TestNamespace,
+				Labels: map[string]string{
+					greenhouseapis.LabelKeyOwnedBy: testTeam.Name,
+					"ref-merge-group":              "true",
+				},
+			},
+			Spec: greenhousev1alpha1.PluginSpec{
+				PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+					Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					Name: pluginPresetDefinitionName,
+				},
+				ClusterName:      clusterA,
+				ReleaseName:      "merge-source-plugin",
+				ReleaseNamespace: releaseNamespace,
+				OptionValues: []greenhousev1alpha1.PluginOptionValue{
+					{Name: "myRequiredOption", Value: test.MustReturnJSONFor("someValue")},
+					{Name: "store", Value: test.MustReturnJSONFor("region-a:10901")},
+				},
+			},
+		}
+		Expect(test.K8sClient.Create(test.Ctx, sourcePlugin)).To(Succeed())
+
+		By("creating a consumer PluginPreset setting a value and an expression next to the reference")
+		storeRef := &greenhousev1alpha1.PluginPresetPluginValueFromSource{
+			Ref: &greenhousev1alpha1.ExternalValueSource{
+				Kind:       greenhousev1alpha1.PluginKind,
+				Selector:   &metav1.LabelSelector{MatchLabels: map[string]string{"ref-merge-group": "true"}},
+				Expression: `spec.optionValues.filter(v, v.name == "store")[0].value`,
+			},
+		}
+		localStoreExpression := "local-${global.greenhouse.clusterName}"
+		consumerSpec := greenhousev1alpha1.PluginPresetPluginSpec{
+			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+				Name: pluginPresetDefinitionName,
+			},
+			ReleaseName:      releaseName + "-merge",
+			ReleaseNamespace: releaseNamespace,
+			OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+				{Name: "myRequiredOption", Value: test.MustReturnJSONFor("myValue")},
+				{
+					Name:      "query.stores",
+					Value:     test.MustReturnJSONFor([]string{"sidecar:10901", "region-a:10901"}),
+					ValueFrom: storeRef.DeepCopy(),
+				},
+				{
+					Name:       "query.localStores",
+					Expression: &localStoreExpression,
+					ValueFrom:  storeRef.DeepCopy(),
+				},
+			},
+		}
+		consumerPreset := test.NewPluginPreset("ref-merge-consumer", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPresetPluginSpec(consumerSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{"cluster": clusterA},
+			}))
+		Expect(test.K8sClient.Create(test.Ctx, consumerPreset)).To(Succeed())
+
+		By("ensuring the option's own value comes first, the resolved one after it and the repeated store only once")
+		Eventually(func(g Gomega) {
+			consumerPlugin := &greenhousev1alpha1.Plugin{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: "ref-merge-consumer-" + clusterA, Namespace: test.TestNamespace}, consumerPlugin)).To(Succeed())
+
+			merged := make(map[string][]any)
+			for _, ov := range consumerPlugin.Spec.OptionValues {
+				if ov.Name != "query.stores" && ov.Name != "query.localStores" {
+					continue
+				}
+				g.Expect(ov.Value).ToNot(BeNil())
+
+				var stores []any
+				g.Expect(json.Unmarshal(ov.Value.Raw, &stores)).To(Succeed())
+				merged[ov.Name] = stores
+			}
+			g.Expect(merged).To(HaveKeyWithValue("query.stores", []any{"sidecar:10901", "region-a:10901"}))
+			g.Expect(merged).To(HaveKeyWithValue("query.localStores", []any{"local-" + clusterA, "region-a:10901"}))
+		}).Should(Succeed())
+
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, consumerPreset)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, sourcePlugin)
 	})
 })
 
@@ -3360,12 +3450,13 @@ var _ = Describe("resolveReferencedPresetValues", func() {
 
 		result, err := reconciler.resolveReferencedPresetValues(test.Ctx, refPreset, cluster)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(result).To(HaveLen(2))
-		Expect(result[0].Name).To(Equal("option-1"))
-		Expect(string(result[0].Value.Raw)).To(Equal(`"overridden-value"`),
+		optionValues := result.Spec.Plugin.OptionValues
+		Expect(optionValues).To(HaveLen(2))
+		Expect(optionValues[0].Name).To(Equal("option-1"))
+		Expect(string(optionValues[0].Value.Raw)).To(Equal(`"overridden-value"`),
 			"override should be applied even when ExpressionEvaluationEnabled is false")
-		Expect(result[1].Name).To(Equal("option-2"))
-		Expect(string(result[1].Value.Raw)).To(Equal(`"unchanged"`))
+		Expect(optionValues[1].Name).To(Equal("option-2"))
+		Expect(string(optionValues[1].Value.Raw)).To(Equal(`"unchanged"`))
 	})
 
 	It("should apply overrides when ExpressionEvaluationEnabled is true", func() {
@@ -3406,12 +3497,13 @@ var _ = Describe("resolveReferencedPresetValues", func() {
 
 		result, err := reconciler.resolveReferencedPresetValues(test.Ctx, refPreset, cluster)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(result).To(HaveLen(2))
-		Expect(result[0].Name).To(Equal("option-1"))
-		Expect(string(result[0].Value.Raw)).To(Equal(`"overridden-value"`),
+		optionValues := result.Spec.Plugin.OptionValues
+		Expect(optionValues).To(HaveLen(2))
+		Expect(optionValues[0].Name).To(Equal("option-1"))
+		Expect(string(optionValues[0].Value.Raw)).To(Equal(`"overridden-value"`),
 			"override should be applied when ExpressionEvaluationEnabled is true")
-		Expect(result[1].Name).To(Equal("option-2"))
-		Expect(string(result[1].Value.Raw)).To(Equal(`"unchanged"`))
+		Expect(optionValues[1].Name).To(Equal("option-2"))
+		Expect(string(optionValues[1].Value.Raw)).To(Equal(`"unchanged"`))
 	})
 
 	It("should not apply overrides for a different cluster", func() {
@@ -3443,9 +3535,10 @@ var _ = Describe("resolveReferencedPresetValues", func() {
 
 		result, err := reconciler.resolveReferencedPresetValues(test.Ctx, refPreset, cluster)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(result).To(HaveLen(1))
-		Expect(result[0].Name).To(Equal("option-1"))
-		Expect(string(result[0].Value.Raw)).To(Equal(`"default-value"`),
+		optionValues := result.Spec.Plugin.OptionValues
+		Expect(optionValues).To(HaveLen(1))
+		Expect(optionValues[0].Name).To(Equal("option-1"))
+		Expect(string(optionValues[0].Value.Raw)).To(Equal(`"default-value"`),
 			"override for different cluster should not be applied")
 	})
 
@@ -3504,6 +3597,236 @@ var _ = Describe("getReleaseName", func() {
 		plugin := &greenhousev1alpha1.Plugin{Spec: greenhousev1alpha1.PluginSpec{ReleaseName: ""}}
 		preset := &greenhousev1alpha1.PluginPreset{Spec: greenhousev1alpha1.PluginPresetSpec{Plugin: greenhousev1alpha1.PluginPresetPluginSpec{ReleaseName: "preset-release"}}}
 		Expect(getReleaseName(plugin, preset)).To(Equal("preset-release"))
+	})
+})
+
+// evaluateRefExpression takes the two steps the resolver takes for every object a reference matched.
+func evaluateRefExpression(expression string, obj client.Object) (any, error) {
+	program, err := compileRefExpression(expression)
+	if err != nil {
+		return nil, err
+	}
+	return evaluateRef(program, obj)
+}
+
+var _ = Describe("evaluateRef", func() {
+	It("exposes a Plugin as the API server stores it, status included", func() {
+		plugin := &greenhousev1alpha1.Plugin{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:          "source-plugin",
+				Namespace:     test.TestNamespace,
+				Labels:        map[string]string{"region": "eu-de-1"},
+				ManagedFields: []metav1.ManagedFieldsEntry{{Manager: "greenhouse"}},
+				Annotations: map[string]string{
+					corev1.LastAppliedConfigAnnotation: `{"spec":{"optionValues":[{"name":"token","valueFrom":{"secret":{"name":"some-secret","key":"token"}}}]}}`,
+					"greenhouse.sap/owner":             "observability",
+				},
+			},
+			Spec: greenhousev1alpha1.PluginSpec{
+				ClusterName: clusterA,
+				OptionValues: []greenhousev1alpha1.PluginOptionValue{
+					{Name: "endpoint", Value: test.MustReturnJSONFor("https://source.example.com")},
+					{Name: "token", ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
+						Secret: &greenhousev1alpha1.SecretKeyReference{Name: "some-secret", Key: "token"},
+					}},
+				},
+			},
+			Status: greenhousev1alpha1.PluginStatus{
+				ExposedServices: map[string]greenhousev1alpha1.Service{
+					"https://thanos.eu-de-1.example.com": {Name: "thanos", Namespace: releaseNamespace, Port: 10901},
+				},
+			},
+		}
+
+		region, err := evaluateRefExpression(`metadata.labels["region"]`, plugin)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(region).To(Equal("eu-de-1"))
+
+		hasManagedFields, err := evaluateRefExpression(`has(metadata.managedFields)`, plugin)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(hasManagedFields).To(BeFalse(), "managed fields are noise for an expression")
+
+		exposed, err := evaluateRefExpression(`status.exposedServices.map(url, url)`, plugin)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(exposed).To(ConsistOf("https://thanos.eu-de-1.example.com"))
+
+		clusterName, err := evaluateRefExpression(`spec.clusterName`, plugin)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(clusterName).To(Equal(clusterA))
+
+		hasValueFrom, err := evaluateRefExpression(
+			`spec.optionValues.exists(v, has(v.valueFrom))`, plugin)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(hasValueFrom).To(BeFalse(), "an expression reads plain values, not where they come from")
+
+		annotations, err := evaluateRefExpression(`metadata.annotations`, plugin)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(annotations).To(HaveKey("greenhouse.sap/owner"))
+		Expect(annotations).ToNot(HaveKey(corev1.LastAppliedConfigAnnotation),
+			"the last applied configuration holds the valueFrom that was just stripped")
+	})
+
+	It("sorts a list built from a status map into a stable order", func() {
+		plugin := &greenhousev1alpha1.Plugin{
+			ObjectMeta: metav1.ObjectMeta{Name: "source-plugin", Namespace: test.TestNamespace},
+			Status: greenhousev1alpha1.PluginStatus{
+				ExposedServices: map[string]greenhousev1alpha1.Service{
+					"https://b.example.com": {Name: "b", Port: 1},
+					"https://d.example.com": {Name: "d", Port: 2},
+					"https://a.example.com": {Name: "a", Port: 3},
+					"https://c.example.com": {Name: "c", Port: 4},
+				},
+			},
+		}
+		sorted := []any{"https://a.example.com", "https://b.example.com", "https://c.example.com", "https://d.example.com"}
+
+		// A map has no order, so the same expression can come back in a different order on every
+		// evaluation. A resolved value that keeps changing is written to the Plugin every time.
+		program, err := compileRefExpression(`${status.exposedServices.map(url, url).sort()}`)
+		Expect(err).ToNot(HaveOccurred())
+		for range 20 {
+			Expect(evaluateRef(program, plugin)).To(Equal(sorted))
+		}
+	})
+
+	It("exposes a PluginPreset's option values under spec.plugin", func() {
+		preset := &greenhousev1alpha1.PluginPreset{
+			ObjectMeta: metav1.ObjectMeta{Name: "source-preset", Namespace: test.TestNamespace},
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				Plugin: greenhousev1alpha1.PluginPresetPluginSpec{
+					OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+						{Name: "endpoint", Value: test.MustReturnJSONFor("https://source.example.com")},
+					},
+				},
+				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
+					{
+						ClusterName: clusterA,
+						Overrides: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+							{Name: "endpoint", Value: test.MustReturnJSONFor("https://cluster-a.example.com")},
+							{Name: "token", ValueFrom: &greenhousev1alpha1.PluginPresetPluginValueFromSource{
+								Secret: &greenhousev1alpha1.SecretKeyReference{Name: "some-secret", Key: "token"},
+							}},
+						},
+					},
+				},
+				ClusterSelector: metav1.LabelSelector{MatchLabels: map[string]string{"cluster": clusterA}},
+			},
+		}
+
+		endpoint, err := evaluateRefExpression(`spec.plugin.optionValues.filter(v, v.name == "endpoint")[0].value`, preset)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(endpoint).To(Equal("https://source.example.com"))
+
+		selector, err := evaluateRefExpression(`spec.clusterSelector.matchLabels["cluster"]`, preset)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(selector).To(Equal(clusterA))
+
+		override, err := evaluateRefExpression(
+			`spec.clusterOptionOverrides.filter(o, o.clusterName == "`+clusterA+`")[0].overrides.filter(v, v.name == "endpoint")[0].value`, preset)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(override).To(Equal("https://cluster-a.example.com"))
+
+		hasValueFrom, err := evaluateRefExpression(
+			`spec.clusterOptionOverrides.exists(o, o.overrides.exists(v, has(v.valueFrom)))`, preset)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(hasValueFrom).To(BeFalse(), "an override hides where its value comes from too")
+	})
+})
+
+var _ = Describe("compileRefExpression", func() {
+	It("rejects an expression holding more than one ${...}", func() {
+		_, err := compileRefExpression(`${metadata.name} + "=" + ${spec.clusterName}`)
+		Expect(err).To(MatchError(ContainSubstring("more than one ${...}")))
+	})
+})
+
+var _ = DescribeTable("mergeSelfOptionValue", func(selfValue *apiextensionsv1.JSON, expected []any) {
+	merged, err := mergeSelfOptionValue(selfValue, []any{"region-a:10901"})
+	Expect(err).ToNot(HaveOccurred())
+	Expect(merged).To(Equal(expected))
+},
+	Entry("puts the value the option sets itself in front", test.MustReturnJSONFor([]string{"sidecar:10901"}), []any{"sidecar:10901", "region-a:10901"}),
+	Entry("keeps the resolved value when the option sets none", nil, []any{"region-a:10901"}),
+	Entry("turns a single value into the first entry", test.MustReturnJSONFor("sidecar:10901"), []any{"sidecar:10901", "region-a:10901"}),
+	Entry("keeps a map as a single entry", test.MustReturnJSONFor(map[string]string{"host": "sidecar"}), []any{map[string]any{"host": "sidecar"}, "region-a:10901"}),
+)
+
+var _ = DescribeTable("dropDuplicates", func(value, expected any) {
+	Expect(dropDuplicates(value)).To(Equal(expected))
+},
+	Entry("keeps the first of the entries a list holds more than once",
+		[]any{"sidecar:10901", "region-a:10901", "sidecar:10901"}, []any{"sidecar:10901", "region-a:10901"}),
+	Entry("compares entries as JSON",
+		[]any{float64(10901), int64(10901), map[string]any{"host": "sidecar"}, map[string]any{"host": "sidecar"}},
+		[]any{float64(10901), map[string]any{"host": "sidecar"}}),
+	Entry("leaves a value that is not a list alone", "sidecar:10901", "sidecar:10901"),
+)
+
+var _ = Describe("reference matching", func() {
+	overrideRefTo := func(kind, name string) []greenhousev1alpha1.ClusterOptionOverride {
+		return []greenhousev1alpha1.ClusterOptionOverride{{
+			ClusterName: clusterA,
+			Overrides: []greenhousev1alpha1.PluginPresetPluginOptionValue{{
+				Name: "endpoint",
+				ValueFrom: &greenhousev1alpha1.PluginPresetPluginValueFromSource{
+					Ref: &greenhousev1alpha1.ExternalValueSource{Kind: kind, Name: name, Expression: "spec"},
+				},
+			}},
+		}}
+	}
+
+	It("finds a Plugin reference declared only in a cluster override", func() {
+		consumer := &greenhousev1alpha1.PluginPreset{Spec: greenhousev1alpha1.PluginPresetSpec{
+			ClusterOptionOverrides: overrideRefTo(greenhousev1alpha1.PluginKind, "source"),
+		}}
+		source := &greenhousev1alpha1.Plugin{ObjectMeta: metav1.ObjectMeta{Name: "source"}}
+		Expect(presetReferencesPlugin(consumer, source)).To(BeTrue())
+	})
+
+	It("finds a PluginPreset reference declared only in a cluster override", func() {
+		consumer := &greenhousev1alpha1.PluginPreset{Spec: greenhousev1alpha1.PluginPresetSpec{
+			ClusterOptionOverrides: overrideRefTo(greenhousev1alpha1.PluginPresetKind, "source"),
+		}}
+		source := &greenhousev1alpha1.PluginPreset{ObjectMeta: metav1.ObjectMeta{Name: "source"}}
+		Expect(presetReferences(consumer, source)).To(BeTrue())
+	})
+})
+
+var _ = Describe("withMissingValueHint", func() {
+	It("names the options holding no plain value", func() {
+		plugin := &greenhousev1alpha1.Plugin{
+			Spec: greenhousev1alpha1.PluginSpec{
+				OptionValues: []greenhousev1alpha1.PluginOptionValue{
+					{Name: "plain", Value: test.MustReturnJSONFor("value")},
+					{Name: "token", ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
+						Secret: &greenhousev1alpha1.SecretKeyReference{Name: "some-secret", Key: "token"},
+					}},
+				},
+			},
+		}
+		err := withMissingValueHint(errors.New("no such key: value"), plugin)
+		Expect(err).To(MatchError(ContainSubstring("options with no plain value to read: token")))
+	})
+
+	It("reads a PluginPreset's options through spec.plugin", func() {
+		preset := &greenhousev1alpha1.PluginPreset{
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				Plugin: greenhousev1alpha1.PluginPresetPluginSpec{
+					OptionValues: []greenhousev1alpha1.PluginPresetPluginOptionValue{
+						{Name: "token", ValueFrom: &greenhousev1alpha1.PluginPresetPluginValueFromSource{
+							Secret: &greenhousev1alpha1.SecretKeyReference{Name: "some-secret", Key: "token"},
+						}},
+					},
+				},
+			},
+		}
+		err := withMissingValueHint(errors.New("no such key: value"), preset)
+		Expect(err).To(MatchError(ContainSubstring("options with no plain value to read: token")))
+	})
+
+	It("leaves the error alone when every option holds a value", func() {
+		original := errors.New("no such key: value")
+		Expect(withMissingValueHint(original, &greenhousev1alpha1.Plugin{})).To(Equal(original))
 	})
 })
 
