@@ -66,6 +66,12 @@ func FluxObjectLevelWorkloadIdentity(ctx context.Context, adminClient, remoteCli
 	Expect(client.IgnoreAlreadyExists(adminClient.Create(ctx, pluginDefinition))).ToNot(HaveOccurred())
 	DeferCleanup(func() { test.EventuallyDeleted(ctx, adminClient, pluginDefinition) })
 
+	// The Plugin webhooks read the definition from the controller cache, so wait until it is reconciled.
+	Eventually(func(g Gomega) {
+		g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(pluginDefinition), pluginDefinition)).To(Succeed())
+		g.Expect(pluginDefinition.Status.IsReadyTrue()).To(BeTrue(), "the plugin definition should be ready")
+	}).Should(Succeed(), "the plugin definition should be ready before creating the plugin")
+
 	plugin := test.NewPlugin(ctx, "podinfo-oidc", env.TestNamespace,
 		test.WithClusterPluginDefinition(pluginDefinition.Name),
 		test.WithCluster(oidcClusterName),

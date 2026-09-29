@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 
+	fluxstatus "github.com/fluxcd/cli-utils/pkg/kstatus/status"
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	fluxmeta "github.com/fluxcd/pkg/apis/meta"
 	corev1 "k8s.io/api/core/v1"
@@ -424,6 +425,72 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 		Eventually(func(g Gomega) {
 			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(deletionPlugin), deletionPlugin)
 			g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "Plugin should be deleted once HelmRelease is gone")
+		}).Should(Succeed())
+	})
+
+	It("should surface the Released condition message when HelmRelease is stalled", func() {
+		stalledPlugin := test.NewPlugin(test.Ctx, "test-stalled-detail", test.TestNamespace,
+			test.WithCluster("test-flux-cluster"),
+			test.WithClusterPluginDefinition("test-flux-plugindefinition"),
+			test.WithReleaseName("release-stalled-detail"),
+			test.WithReleaseNamespace(test.TestNamespace),
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testPluginTeam.Name),
+		)
+
+		By("creating the Plugin")
+		Expect(test.K8sClient.Create(test.Ctx, stalledPlugin)).To(Succeed())
+
+		By("waiting for the HelmRelease to be created")
+		helmRelease := &helmv2.HelmRelease{}
+		releaseKey := types.NamespacedName{Name: stalledPlugin.Name, Namespace: stalledPlugin.Namespace}
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, releaseKey, helmRelease)
+			g.Expect(err).ToNot(HaveOccurred(), "HelmRelease should be created")
+		}).Should(Succeed())
+
+		By("simulating Flux reporting a stalled HelmRelease with a detailed Released condition")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, releaseKey, helmRelease)
+			g.Expect(err).ToNot(HaveOccurred())
+			helmRelease.Status.Conditions = []metav1.Condition{
+				{
+					Type:               "Ready",
+					Status:             metav1.ConditionFalse,
+					Reason:             "RetriesExceeded",
+					Message:            "Failed to install after 4 attempt(s)",
+					ObservedGeneration: helmRelease.Generation,
+					LastTransitionTime: metav1.Now(),
+				},
+				{
+					Type:               string(fluxstatus.ConditionStalled),
+					Status:             metav1.ConditionTrue,
+					Reason:             "RetriesExceeded",
+					Message:            "Failed to install after 4 attempt(s)",
+					ObservedGeneration: helmRelease.Generation,
+					LastTransitionTime: metav1.Now(),
+				},
+				{
+					Type:               helmv2.ReleasedCondition,
+					Status:             metav1.ConditionFalse,
+					Reason:             "InstallFailed",
+					Message:            `Helm install failed for release test/release-stalled-detail: namespaces "some-namespace" not found`,
+					ObservedGeneration: helmRelease.Generation,
+					LastTransitionTime: metav1.Now(),
+				},
+			}
+			err = test.K8sClient.Status().Update(test.Ctx, helmRelease)
+			g.Expect(err).ToNot(HaveOccurred())
+		}).Should(Succeed())
+
+		By("verifying the Plugin surfaces the Released condition message")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(stalledPlugin), stalledPlugin)
+			g.Expect(err).ToNot(HaveOccurred())
+			cond := stalledPlugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseDeployedCondition)
+			g.Expect(cond).ToNot(BeNil())
+			g.Expect(cond.IsFalse()).To(BeTrue())
+			g.Expect(cond.Reason).To(Equal(greenhousev1alpha1.FluxHelmReleaseStalledReason))
+			g.Expect(cond.Message).To(ContainSubstring(`namespaces "some-namespace" not found`))
 		}).Should(Succeed())
 	})
 
