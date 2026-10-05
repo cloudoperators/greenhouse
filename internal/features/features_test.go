@@ -106,13 +106,14 @@ func Test_DexFeatures(t *testing.T) {
 	}
 }
 
-// Test_PluginFeatures tests plugin OCI mirroring feature gate.
+// Test_PluginFeatures tests the plugin feature gates.
 func Test_PluginFeatures(t *testing.T) {
 	type testCase struct {
-		name                        string
-		configMapData               map[string]string
-		getError                    error
-		expectedOCIMirroringEnabled bool
+		name                            string
+		configMapData                   map[string]string
+		getError                        error
+		expectedOCIMirroringEnabled     bool
+		expectedChangeManagementEnabled bool
 	}
 
 	testCases := []testCase{
@@ -140,6 +141,11 @@ func Test_PluginFeatures(t *testing.T) {
 			name:                        "it should return false when ociMirroringEnabled key is missing",
 			configMapData:               map[string]string{PluginFeatureKey: "xxx: false\n"},
 			expectedOCIMirroringEnabled: false,
+		},
+		{
+			name:                            "it should return true when changeManagementEnabled is explicitly true",
+			configMapData:                   map[string]string{PluginFeatureKey: "changeManagementEnabled: true\n"},
+			expectedChangeManagementEnabled: true,
 		},
 	}
 
@@ -174,6 +180,7 @@ func Test_PluginFeatures(t *testing.T) {
 				ociMirroringValue := featuresInstance.IsOCIMirroringEnabled()
 
 				assert.Equal(t, tc.expectedOCIMirroringEnabled, ociMirroringValue)
+				assert.Equal(t, tc.expectedChangeManagementEnabled, featuresInstance.IsChangeManagementEnabled())
 				mockK8sClient.AssertExpectations(t)
 				return
 			}
@@ -184,6 +191,7 @@ func Test_PluginFeatures(t *testing.T) {
 
 			// Assert expected values
 			assert.Equal(t, tc.expectedOCIMirroringEnabled, ociMirroringValue)
+			assert.Equal(t, tc.expectedChangeManagementEnabled, featuresInstance.IsChangeManagementEnabled())
 			mockK8sClient.AssertExpectations(t)
 		})
 	}
