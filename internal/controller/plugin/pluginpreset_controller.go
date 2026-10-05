@@ -31,6 +31,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/util"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
+	"github.com/cloudoperators/greenhouse/pkg/predicates"
 )
 
 // presetExposedConditions contains the conditions that are exposed in the PluginPreset's StatusConditions.
@@ -71,9 +72,9 @@ func (r *PluginPresetReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 		Owns(&greenhousev1alpha1.Plugin{}, builder.WithPredicates(
 			predicate.Or(
 				predicate.GenerationChangedPredicate{},
-				clientutil.PredicatePluginWithStatusReadyChange(),
+				predicates.PredicatePluginWithStatusReadyChange(),
 			),
-			clientutil.PredicateIgnoreDeletingResources(),
+			predicates.PredicateIgnoreDeletingResources(),
 		)).
 		// Clusters and teams are passed as values to each Helm operation. Reconcile on change.
 		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginPresetsInNamespace),
@@ -96,7 +97,7 @@ func (r *PluginPresetReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 			builder.WithPredicates(predicate.Or(
 				predicate.GenerationChangedPredicate{},
 				predicate.LabelChangedPredicate{},
-				clientutil.PredicatePluginWithStatusChange(),
+				predicates.PredicatePluginWithStatusChange(),
 			))).
 		Complete(r)
 }

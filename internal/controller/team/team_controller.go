@@ -21,9 +21,9 @@ import (
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	teamphases "github.com/cloudoperators/greenhouse/internal/controller/team/phases"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
+	"github.com/cloudoperators/greenhouse/pkg/predicates"
 )
 
 const requeueInterval = 10 * time.Minute
@@ -65,7 +65,7 @@ func (r *TeamController) SetupWithManager(name string, mgr ctrl.Manager) error {
 		// If an Organization's .Spec was changed, reconcile relevant Teams.
 		Watches(&greenhousev1alpha1.Organization{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllTeamsForOrganization),
 			builder.WithPredicates(
-				predicate.Or(predicate.GenerationChangedPredicate{}, clientutil.PredicateOrganizationSCIMStatusChange()))).
+				predicate.Or(predicate.GenerationChangedPredicate{}, predicates.PredicateOrganizationSCIMStatusChange()))).
 		Complete(r)
 }
 
