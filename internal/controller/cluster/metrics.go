@@ -56,6 +56,23 @@ func UpdateClusterMetrics(cluster *greenhousev1alpha1.Cluster) {
 	}
 	KubernetesVersionsGauge.With(kubernetesVersionLabels).Set(float64(1))
 
+	if cluster.Annotations[greenhouseapis.ClusterWorkloadIdentityAnnotation] == greenhouseapis.ClusterWorkloadIdentityEnabled {
+		// WI clusters mint short-lived tokens per request; there is no kubeconfig
+		// token validity to report. Drop any stale series so the expiry alert clears.
+		SecondsToTokenExpiryGauge.DeletePartialMatch(prometheus.Labels{
+			"clusterName":  cluster.Name,
+			"organization": cluster.Namespace,
+		})
+	} else {
+		secondsToExpiry := cluster.Status.BearerTokenExpirationTimestamp.Unix() - time.Now().Unix()
+		secondsToExpiryLabels := prometheus.Labels{
+			"clusterName":  cluster.Name,
+			"organization": cluster.Namespace,
+			"owned_by":     cluster.Labels[greenhouseapis.LabelKeyOwnedBy],
+		}
+		SecondsToTokenExpiryGauge.With(secondsToExpiryLabels).Set(float64(secondsToExpiry))
+	}
+
 	clusterReadyLabels := prometheus.Labels{
 		"clusterName":  cluster.Name,
 		"organization": cluster.Namespace,
@@ -65,24 +82,6 @@ func UpdateClusterMetrics(cluster *greenhousev1alpha1.Cluster) {
 		ClusterReadyGauge.With(clusterReadyLabels).Set(float64(1))
 	} else {
 		ClusterReadyGauge.With(clusterReadyLabels).Set(float64(0))
-	}
-
-	tokenLabels := prometheus.Labels{
-		"clusterName":  cluster.Name,
-		"organization": cluster.Namespace,
-	}
-
-	if cluster.Annotations[greenhouseapis.ClusterWorkloadIdentityAnnotation] == greenhouseapis.ClusterWorkloadIdentityEnabled {
-		// WI clusters mint short-lived tokens per request; there is no kubeconfig
-		// token validity to report. Drop any stale series so the expiry alert clears.
-		SecondsToTokenExpiryGauge.DeletePartialMatch(tokenLabels)
-	} else {
-		secondsToExpiry := cluster.Status.BearerTokenExpirationTimestamp.Unix() - time.Now().Unix()
-		SecondsToTokenExpiryGauge.With(prometheus.Labels{
-			"clusterName":  cluster.Name,
-			"organization": cluster.Namespace,
-			"owned_by":     cluster.Labels[greenhouseapis.LabelKeyOwnedBy],
-		}).Set(float64(secondsToExpiry))
 	}
 }
 
