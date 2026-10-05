@@ -30,6 +30,7 @@ replace (
 
 require (
 	cel.dev/cel-go v0.32.0
+	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/cenkalti/backoff/v7 v7.0.0
 	github.com/cloudoperators/greenhouse/api v0.0.0-00010101000000-000000000000
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be
@@ -91,7 +92,6 @@ require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Masterminds/semver/v3 v3.5.0 // indirect
-	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
 	github.com/Masterminds/squirrel v1.5.4 // indirect
 	github.com/ProtonMail/go-crypto v1.4.1 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
