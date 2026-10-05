@@ -110,6 +110,10 @@ Define postgresql helpers
 {{- define "plugin.ociMirroringEnabled" -}}
   {{- printf "%t" (required "global.plugin.ociMirroringEnabled missing" .Values.global.plugin.ociMirroringEnabled) }}
 {{- end }}
+{{/* Render the plugin change management flag */}}
+{{- define "plugin.changeManagementEnabled" -}}
+  {{- printf "%t" (required "global.plugin.changeManagementEnabled missing" .Values.global.plugin.changeManagementEnabled) }}
+{{- end }}
 {{/* Render the pluginPreset expression evaluation flag */}}
 {{- define "pluginPreset.expressionEvaluationEnabled" -}}
   {{- printf "%t" (required "global.pluginPreset.expressionEvaluationEnabled missing" .Values.global.pluginPreset.expressionEvaluationEnabled) }}

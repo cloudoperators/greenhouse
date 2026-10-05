@@ -88,6 +88,7 @@ func startPluginReconciler(name string, mgr ctrl.Manager) error {
 		StoragePath:             artifactStoragePath,
 		HTTPRetry:               artifactRetries,
 		WorkloadIdentityEnabled: featureFlags.IsWorkloadIdentityEnabled(),
+		ChangeManagementEnabled: featureFlags.IsChangeManagementEnabled(),
 		FeatureFlagsName:        clientutil.GetEnvOrDefault(featureFlagsEnv, defaultFeatureFlagConfigMapName),
 		FeatureFlagsNamespace:   clientutil.GetEnvOrDefault(podNamespaceEnv, defaultPodNamespace),
 	}).SetupWithManager(name, mgr)

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -36,8 +37,10 @@ func TestHelmController(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
+	changeReportRetryInterval = time.Second
 	test.RegisterController("plugin", (&PluginReconciler{
-		KubeRuntimeOpts: clientutil.RuntimeOptions{QPS: 5, Burst: 10},
+		KubeRuntimeOpts:         clientutil.RuntimeOptions{QPS: 5, Burst: 10},
+		ChangeManagementEnabled: true,
 	}).SetupWithManager)
 	test.RegisterController("pluginPreset", (&PluginPresetReconciler{
 		ExpressionEvaluationEnabled: true,
