@@ -35,6 +35,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/util"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
+	"github.com/cloudoperators/greenhouse/pkg/predicates"
 )
 
 // PluginReconciler reconciles a Plugin object.
@@ -102,7 +103,7 @@ func (r *PluginReconciler) SetupWithManager(name string, mgr ctrl.Manager) error
 		}).
 		For(&greenhousev1alpha1.Plugin{}).
 		// Reconcile on owned flux HelmRelease changes.
-		Owns(&helmv2.HelmRelease{}).
+		Owns(&helmv2.HelmRelease{}, builder.WithPredicates(predicates.PredicateFluxHelmReleaseStatus())).
 		// If a ClusterPluginDefinition was changed, reconcile relevant Plugins.
 		Watches(
 			&greenhousev1alpha1.ClusterPluginDefinition{},
@@ -127,7 +128,7 @@ func (r *PluginReconciler) SetupWithManager(name string, mgr ctrl.Manager) error
 		Watches(
 			&corev1.ConfigMap{},
 			handler.EnqueueRequestsFromMapFunc(r.reloadFeatureFlags),
-			builder.WithPredicates(clientutil.PredicateHasLabelWithValue(greenhouseapis.LabelKeyFeatureFlags, "true")),
+			builder.WithPredicates(predicates.PredicateHasLabelWithValue(greenhouseapis.LabelKeyFeatureFlags, "true")),
 		).
 		Complete(r)
 }
