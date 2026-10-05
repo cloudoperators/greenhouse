@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"text/template"
 	"time"
@@ -49,6 +50,7 @@ type changeProperties struct {
 // reportChange reports each new HelmRelease revision of the Plugin once.
 func (r *PluginReconciler) reportChange(ctx context.Context, plugin *greenhousev1alpha1.Plugin) error {
 	if !r.ChangeManagementEnabled {
+		plugin.RemoveCondition(greenhousev1alpha1.ChangeReportedCondition)
 		return nil
 	}
 	config, err := getChangeManagementConfig(ctx, r.Client, plugin.Namespace)
@@ -87,8 +89,15 @@ func recordBaseline(plugin *greenhousev1alpha1.Plugin, latest *helmv2.Snapshot) 
 	}
 }
 
+// changeReportFailed sets ChangeReported to False with the error.
+// Transport errors get a fixed message, because they carry addresses that change on every attempt and each new message triggers another reconcile.
 func changeReportFailed(plugin *greenhousev1alpha1.Plugin, err error) error {
-	plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ChangeReportedCondition, "", err.Error()))
+	message := err.Error()
+	var urlErr *url.Error
+	if errors.As(err, &urlErr) {
+		message = "failed to send the change to the change management endpoint, see the controller logs"
+	}
+	plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ChangeReportedCondition, "", message))
 	return err
 }
 
