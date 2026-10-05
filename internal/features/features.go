@@ -35,7 +35,8 @@ type dexFeatures struct {
 }
 
 type pluginFeatures struct {
-	OCIMirroringEnabled bool `yaml:"ociMirroringEnabled"`
+	OCIMirroringEnabled     bool `yaml:"ociMirroringEnabled"`
+	ChangeManagementEnabled bool `yaml:"changeManagementEnabled"`
 }
 
 type pluginPresetFeatures struct {
@@ -165,6 +166,22 @@ func (f *Features) IsOCIMirroringEnabled() bool {
 		return false
 	}
 	return f.plugin.OCIMirroringEnabled
+}
+
+// IsChangeManagementEnabled returns whether change management is enabled.
+func (f *Features) IsChangeManagementEnabled() bool {
+	if f == nil {
+		return false
+	}
+
+	if f.plugin != nil {
+		return f.plugin.ChangeManagementEnabled
+	}
+	if err := f.resolvePluginFeatures(); err != nil {
+		ctrl.LoggerFrom(context.Background()).Error(err, "failed to resolve plugin features")
+		return false
+	}
+	return f.plugin.ChangeManagementEnabled
 }
 
 func (f *Features) resolveWorkloadIdentityFeatures() error {
