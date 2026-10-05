@@ -4,18 +4,12 @@
 package plugin
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"net/url"
-	"strings"
-	"text/template"
 	"time"
 
-	"github.com/Masterminds/sprig/v3"
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
@@ -24,19 +18,17 @@ import (
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/changemanagement"
 )
 
 const changeManagementConfigKey = "changeManagementConfig"
 
-var (
-	changeReportRetryInterval = time.Minute
-	changeReportClient        = &http.Client{Timeout: 10 * time.Second}
-)
+var changeReportRetryInterval = time.Minute
 
 type changeManagementConfig struct {
-	Endpoint         string `yaml:"endpoint"`
-	HeadersSecretRef string `yaml:"headersSecretRef"`
-	PayloadTemplate  string `yaml:"payloadTemplate"`
+	Endpoint        string `yaml:"endpoint"`
+	SecretName      string `yaml:"secretName"`
+	PayloadTemplate string `yaml:"payloadTemplate"`
 }
 
 // changeProperties are the well-known properties available to the payload template.
@@ -122,6 +114,7 @@ func getChangeManagementConfig(ctx context.Context, c client.Client, organizatio
 	return config, nil
 }
 
+// sendChange collects the payload and credentials for the revision and sends them.
 func (r *PluginReconciler) sendChange(ctx context.Context, plugin *greenhousev1alpha1.Plugin, config *changeManagementConfig, release *helmv2.Snapshot) error {
 	if reported, err := r.alreadyReported(ctx, plugin, release.Digest); err != nil || reported {
 		return err
@@ -132,7 +125,7 @@ func (r *PluginReconciler) sendChange(ctx context.Context, plugin *greenhousev1a
 			return err
 		}
 	}
-	payload, err := renderChangePayload(config.PayloadTemplate, changeProperties{
+	payload, err := changemanagement.Render(config.PayloadTemplate, changeProperties{
 		Organization: plugin.Namespace,
 		Plugin:       plugin,
 		Cluster:      cluster,
@@ -141,30 +134,19 @@ func (r *PluginReconciler) sendChange(ctx context.Context, plugin *greenhousev1a
 	if err != nil || payload == nil {
 		return err
 	}
-
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, config.Endpoint, bytes.NewReader(payload))
-	if err != nil {
-		return err
-	}
-	request.Header.Set("Content-Type", "application/json")
-	if config.HeadersSecretRef != "" {
+	auth := changemanagement.Auth{}
+	if config.SecretName != "" {
 		secret := &corev1.Secret{}
-		if err := r.Get(ctx, types.NamespacedName{Name: config.HeadersSecretRef, Namespace: plugin.Namespace}, secret); err != nil {
+		if err := r.Get(ctx, types.NamespacedName{Name: config.SecretName, Namespace: plugin.Namespace}, secret); err != nil {
 			return err
 		}
-		for name, value := range secret.Data {
-			request.Header.Set(name, strings.TrimSpace(string(value)))
+		auth.Username = string(secret.Data["username"])
+		auth.Password = string(secret.Data["password"])
+		if auth.Username == "" || auth.Password == "" {
+			return fmt.Errorf("secret %s is missing username or password", config.SecretName)
 		}
 	}
-	response, err := changeReportClient.Do(request)
-	if err != nil {
-		return err
-	}
-	defer response.Body.Close()
-	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
-		return fmt.Errorf("change management endpoint responded with %s", response.Status)
-	}
-	return nil
+	return changemanagement.New(config.Endpoint, auth).Send(ctx, payload)
 }
 
 // alreadyReported reads the Plugin from the API server, because the cache can lag behind the status written by the previous reconcile.
@@ -174,27 +156,4 @@ func (r *PluginReconciler) alreadyReported(ctx context.Context, plugin *greenhou
 		return false, err
 	}
 	return current.Status.ChangeManagement != nil && current.Status.ChangeManagement.LastReportedDigest == digest, nil
-}
-
-// renderChangePayload renders the template with sprig without env and expandenv, like Helm.
-// It returns nil when the template renders nothing, which skips the revision, e.g. a failed upgrade.
-func renderChangePayload(text string, properties changeProperties) ([]byte, error) {
-	funcs := sprig.TxtFuncMap()
-	delete(funcs, "env")
-	delete(funcs, "expandenv")
-	tmpl, err := template.New("payloadTemplate").Funcs(funcs).Parse(text)
-	if err != nil {
-		return nil, err
-	}
-	var payload bytes.Buffer
-	if err := tmpl.Execute(&payload, properties); err != nil {
-		return nil, err
-	}
-	if len(bytes.TrimSpace(payload.Bytes())) == 0 {
-		return nil, nil
-	}
-	if !json.Valid(payload.Bytes()) {
-		return nil, errors.New("payloadTemplate did not render valid JSON")
-	}
-	return payload.Bytes(), nil
 }
