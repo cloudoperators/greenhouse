@@ -17,10 +17,10 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	clusterphases "github.com/cloudoperators/greenhouse/internal/controller/cluster/phases"
 	"github.com/cloudoperators/greenhouse/internal/features"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
+	"github.com/cloudoperators/greenhouse/pkg/predicates"
 )
 
 type BootstrapReconciler struct {
@@ -50,13 +50,13 @@ func (r *BootstrapReconciler) SetupWithManager(name string, mgr ctrl.Manager) er
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&corev1.Secret{}, builder.WithPredicates(
-			clientutil.PredicateFilterBySecretTypes(greenhouseapis.SecretTypeKubeConfig, greenhouseapis.SecretTypeOIDCConfig),
+			predicates.PredicateFilterBySecretTypes(greenhouseapis.SecretTypeKubeConfig, greenhouseapis.SecretTypeOIDCConfig),
 		)).
 		// Watch clusters and enqueue its secret.
 		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(enqueueSecretForCluster)).
 		// Watch the feature flags ConfigMap to hot-reload the workload identity feature gate.
 		Watches(&corev1.ConfigMap{}, handler.EnqueueRequestsFromMapFunc(r.reloadFeatureFlags), builder.WithPredicates(
-			clientutil.PredicateHasLabelWithValue(greenhouseapis.LabelKeyFeatureFlags, "true"),
+			predicates.PredicateHasLabelWithValue(greenhouseapis.LabelKeyFeatureFlags, "true"),
 		)).
 		// (WI feature gate) Owns the workload identity ConfigMap rendered for OIDC clusters.
 		Owns(&corev1.ConfigMap{}).

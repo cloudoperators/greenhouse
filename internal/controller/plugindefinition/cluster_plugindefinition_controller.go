@@ -18,10 +18,10 @@ import (
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/controller/plugindefinition/phases"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
+	"github.com/cloudoperators/greenhouse/pkg/predicates"
 )
 
 type ClusterPluginDefinitionReconciler struct {
@@ -38,7 +38,7 @@ func (r *ClusterPluginDefinitionReconciler) SetupWithManager(name string, mgr ct
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&greenhousev1alpha1.ClusterPluginDefinition{}).
-		Owns(&sourcev1.HelmChart{}, builder.WithPredicates(clientutil.PredicateIgnoreDeletingResources())).Complete(r)
+		Owns(&sourcev1.HelmChart{}, builder.WithPredicates(predicates.PredicateIgnoreDeletingResources())).Complete(r)
 }
 
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=ocirepositories, verbs=get;list;watch;create;update;patch;delete

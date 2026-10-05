@@ -32,6 +32,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/util"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
+	"github.com/cloudoperators/greenhouse/pkg/predicates"
 )
 
 var exposedConditions = []greenhousemetav1alpha1.ConditionType{
@@ -87,7 +88,7 @@ func (r *TeamRoleBindingReconciler) SetupWithManager(name string, mgr ctrl.Manag
 			handler.EnqueueRequestsFromMapFunc(r.enqueueTeamRoleBindingsFor)).
 		// Reconcile TeamRoleBindings for all Cluster label changes or Ready status transitions in the same namespace
 		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllTeamRoleBindingsInNamespace),
-			builder.WithPredicates(predicate.Or(predicate.LabelChangedPredicate{}, clientutil.PredicateClusterReadyStatusChange()))).
+			builder.WithPredicates(predicate.Or(predicate.LabelChangedPredicate{}, predicates.PredicateClusterReadyStatusChange()))).
 		Complete(r)
 }
 
