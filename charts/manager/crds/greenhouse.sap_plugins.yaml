@@ -212,6 +212,16 @@ spec:
           status:
             description: PluginStatus defines the observed state of Plugin
             properties:
+              changeManagement:
+                description: ChangeManagement tracks the last HelmRelease revision
+                  reported to change management.
+                properties:
+                  lastReportedDigest:
+                    description: LastReportedDigest is the HelmRelease history digest
+                      reported last, or recorded when change management was switched
+                      on.
+                    type: string
+                type: object
               description:
                 description: Description provides additional details of the plugin.
                 type: string
