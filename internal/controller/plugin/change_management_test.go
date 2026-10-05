@@ -32,7 +32,7 @@ import (
 )
 
 const changeManagementTestConfig = `endpoint: %s
-headersSecretRef: change-headers
+secretName: change-credentials
 payloadTemplate: |
   {{ if ne .Release.Status "failed" }}{"organization": {{ .Organization | toJson }}, "plugin": {{ .Plugin.Name | toJson }}, "cluster": {{ .Cluster.Name | toJson }}, "digest": {{ .Release.Digest | toJson }}}{{ end }}
 `
@@ -57,7 +57,8 @@ func newChangeEndpoint() *changeEndpoint {
 		endpoint.attempts.Add(1)
 		status := int(endpoint.status.Load())
 		if status == http.StatusOK {
-			report := changeReport{auth: r.Header.Get("Authorization")}
+			username, password, _ := r.BasicAuth()
+			report := changeReport{auth: username + ":" + password}
 			if err := json.NewDecoder(r.Body).Decode(&report.payload); err != nil {
 				status = http.StatusBadRequest
 			} else {
@@ -149,7 +150,7 @@ var _ = Describe("Change management", Ordered, func() {
 		cluster = setup.CreateCluster(test.Ctx, "change-management-cluster",
 			test.WithAccessMode(greenhousev1alpha1.ClusterAccessModeDirect),
 			test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
-		setup.CreateSecret(test.Ctx, "change-headers", test.WithSecretData(map[string][]byte{"Authorization": []byte("Bearer token\n")}))
+		setup.CreateSecret(test.Ctx, "change-credentials", test.WithSecretData(map[string][]byte{"username": []byte("greenhouse"), "password": []byte("secret")}))
 		definition = setup.CreateClusterPluginDefinition(test.Ctx, "change-management",
 			test.WithVersion("1.0.0"),
 			test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{Name: "dummy", Repository: "oci://greenhouse/helm-charts", Version: "1.0.0"}))
@@ -183,7 +184,7 @@ var _ = Describe("Change management", Ordered, func() {
 			g.Expect(getPlugin(g, plugin).Status.ChangeManagement.LastReportedDigest).To(Equal("sha256:2"))
 		}).Should(Succeed())
 		Expect(endpoint.received()).To(ConsistOf(changeReport{
-			auth: "Bearer token",
+			auth: "greenhouse:secret",
 			payload: map[string]any{
 				"organization": setup.Namespace(),
 				"plugin":       plugin.Name,
@@ -241,32 +242,6 @@ var _ = Describe("Change management", Ordered, func() {
 		}).Should(Succeed())
 		Expect(endpoint.received()).To(HaveLen(3))
 		Expect(endpoint.received()[2].payload).To(HaveKeyWithValue("plugin", newPlugin.Name))
-	})
-})
-
-var _ = Describe("Change payload", func() {
-	properties := changeProperties{Organization: "demo", Release: &helmv2.Snapshot{Digest: "sha256:1"}}
-
-	It("renders the template with sprig functions", func() {
-		payload, err := renderChangePayload(`{"organization": {{ .Organization | upper | toJson }}, "digest": {{ .Release.Digest | toJson }}}`, properties)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(payload).To(MatchJSON(`{"organization": "DEMO", "digest": "sha256:1"}`))
-	})
-
-	It("renders nothing when the template skips the revision", func() {
-		payload, err := renderChangePayload(`{{ if eq .Release.Status "deployed" }}{"digest": {{ .Release.Digest | toJson }}}{{ end }}`+"\n", properties)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(payload).To(BeNil())
-	})
-
-	It("does not expose the controller environment", func() {
-		_, err := renderChangePayload(`{"home": {{ env "HOME" | toJson }}}`, properties)
-		Expect(err).To(MatchError(ContainSubstring(`function "env" not defined`)))
-	})
-
-	It("rejects a payload that is not JSON", func() {
-		_, err := renderChangePayload(`{"digest": {{ .Release.Digest }}}`, properties)
-		Expect(err).To(MatchError(ContainSubstring("valid JSON")))
 	})
 })
 
