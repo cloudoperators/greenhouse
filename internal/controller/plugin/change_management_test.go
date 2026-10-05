@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"slices"
 	"strconv"
 	"sync"
@@ -24,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/test"
@@ -265,5 +267,25 @@ var _ = Describe("Change payload", func() {
 	It("rejects a payload that is not JSON", func() {
 		_, err := renderChangePayload(`{"digest": {{ .Release.Digest }}}`, properties)
 		Expect(err).To(MatchError(ContainSubstring("valid JSON")))
+	})
+})
+
+var _ = Describe("Change report condition", func() {
+	It("keeps the message stable when the endpoint resets connections", func() {
+		plugin := &greenhousev1alpha1.Plugin{}
+		reset := func(port int) error {
+			return &url.Error{Op: "Post", URL: "http://endpoint", Err: fmt.Errorf("read tcp 127.0.0.1:%d->127.0.0.1:80: read: connection reset by peer", port)}
+		}
+		Expect(changeReportFailed(plugin, reset(50544))).To(HaveOccurred())
+		message := plugin.Status.GetConditionByType(greenhousev1alpha1.ChangeReportedCondition).Message
+		Expect(changeReportFailed(plugin, reset(50817))).To(HaveOccurred())
+		Expect(plugin.Status.GetConditionByType(greenhousev1alpha1.ChangeReportedCondition).Message).To(Equal(message))
+	})
+
+	It("is removed when change management is disabled", func() {
+		plugin := &greenhousev1alpha1.Plugin{}
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ChangeReportedCondition, "", "failed"))
+		Expect((&PluginReconciler{}).reportChange(test.Ctx, plugin)).To(Succeed())
+		Expect(plugin.Status.GetConditionByType(greenhousev1alpha1.ChangeReportedCondition)).To(BeNil())
 	})
 })
