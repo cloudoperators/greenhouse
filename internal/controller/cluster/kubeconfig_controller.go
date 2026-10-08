@@ -5,6 +5,7 @@ package cluster
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"regexp"
@@ -168,46 +169,66 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// collect cluster connection data and update kubeconfig
-	rootKubeCfg, hasKey := secret.Data[greenhouseapis.GreenHouseKubeConfigKey]
-	if !hasKey || len(rootKubeCfg) == 0 {
-		kubeconfig.Status.Conditions.SetConditions(
-			greenhousemetav1alpha1.TrueCondition(
-				v1alpha1.KubeconfigReconcileFailedCondition,
-				"KubeconfigMissing",
-				"secret data key greenhousekubeconfig missing or empty",
-			),
-		)
-		// patch status before returning on error
-		result, perr := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
-			kubeconfig.Status = calculateKubeconfigStatus(&kubeconfig)
-			return nil
-		})
-		if perr != nil {
-			log.FromContext(ctx).Error(perr, "error setting status")
-		}
-		l.Info("status updated", "result", result)
-		return ctrl.Result{}, nil
-	}
-
-	kubeCfg, err := clientcmd.Load(rootKubeCfg)
-	if err != nil {
-		kubeconfig.Status.Conditions.SetConditions(greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "KubeconfigLoadError", err.Error()))
-		// patch status before returning on error
-		result, perr := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
-			kubeconfig.Status = calculateKubeconfigStatus(&kubeconfig)
-			return nil
-		})
-		if perr != nil {
-			log.FromContext(ctx).Error(perr, "error setting status")
-		}
-		l.Info("status updated", "result", result)
-		return ctrl.Result{}, nil
-	}
-
 	var clusterCfg *clientcmdapi.Cluster
-	for _, v := range kubeCfg.Clusters {
-		clusterCfg = v
-		break
+	if cluster.Annotations[greenhouseapis.ClusterWorkloadIdentityAnnotation] == greenhouseapis.ClusterWorkloadIdentityEnabled {
+		caData, err := base64.StdEncoding.DecodeString(string(secret.Data[greenhouseapis.SecretAPIServerCAKey]))
+		if err != nil {
+			kubeconfig.Status.Conditions.SetConditions(greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "SecretDataError", err.Error()))
+			result, perr := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
+				kubeconfig.Status = calculateKubeconfigStatus(&kubeconfig)
+				return nil
+			})
+			if perr != nil {
+				log.FromContext(ctx).Error(perr, "error setting status")
+			}
+			l.Info("status updated", "result", result)
+			return ctrl.Result{}, nil
+		}
+		clusterCfg = &clientcmdapi.Cluster{
+			Server:                   secret.Annotations[greenhouseapis.SecretAPIServerURLAnnotation],
+			CertificateAuthorityData: caData,
+		}
+	} else {
+		rootKubeCfg, hasKey := secret.Data[greenhouseapis.GreenHouseKubeConfigKey]
+		if !hasKey || len(rootKubeCfg) == 0 {
+			kubeconfig.Status.Conditions.SetConditions(
+				greenhousemetav1alpha1.TrueCondition(
+					v1alpha1.KubeconfigReconcileFailedCondition,
+					"KubeconfigMissing",
+					"secret data key greenhousekubeconfig missing or empty",
+				),
+			)
+			// patch status before returning on error
+			result, perr := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
+				kubeconfig.Status = calculateKubeconfigStatus(&kubeconfig)
+				return nil
+			})
+			if perr != nil {
+				log.FromContext(ctx).Error(perr, "error setting status")
+			}
+			l.Info("status updated", "result", result)
+			return ctrl.Result{}, nil
+		}
+
+		kubeCfg, err := clientcmd.Load(rootKubeCfg)
+		if err != nil {
+			kubeconfig.Status.Conditions.SetConditions(greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "KubeconfigLoadError", err.Error()))
+			// patch status before returning on error
+			result, perr := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
+				kubeconfig.Status = calculateKubeconfigStatus(&kubeconfig)
+				return nil
+			})
+			if perr != nil {
+				log.FromContext(ctx).Error(perr, "error setting status")
+			}
+			l.Info("status updated", "result", result)
+			return ctrl.Result{}, nil
+		}
+
+		for _, v := range kubeCfg.Clusters {
+			clusterCfg = v
+			break
+		}
 	}
 	if clusterCfg == nil {
 		kubeconfig.Status.Conditions.SetConditions(
