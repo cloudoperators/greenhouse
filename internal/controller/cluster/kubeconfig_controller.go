@@ -280,7 +280,21 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// Apply generic kubeconfig overrides from annotation greenhouse.sap/kubeconfig-overrides.
 	// This runs after oidc-override and the main spec patch, so it wins on any overlapping field.
 	if raw, ok := cluster.Annotations[greenhouseapis.AnnotationKeyKubeconfigOverrides]; ok && raw != "" {
-		patched, oErr := applyKubeconfigOverrides(kubeconfig.Spec.Kubeconfig, raw)
+		resolved, oErr := resolveKubeconfigOverrides(ctx, r.Client, cluster.Namespace, raw)
+		if oErr != nil {
+			kubeconfig.Status.Conditions.SetConditions(
+				greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "OverrideResolveError", oErr.Error()),
+			)
+			_, perr := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
+				kubeconfig.Status = calculateKubeconfigStatus(&kubeconfig)
+				return nil
+			})
+			if perr != nil {
+				log.FromContext(ctx).Error(perr, "error setting status")
+			}
+			return ctrl.Result{}, oErr
+		}
+		patched, oErr := applyKubeconfigOverrides(kubeconfig.Spec.Kubeconfig, resolved)
 		if oErr != nil {
 			kubeconfig.Status.Conditions.SetConditions(
 				greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "OverrideError", oErr.Error()),
@@ -416,18 +430,45 @@ func (r *KubeconfigReconciler) getOIDCInfo(ctx context.Context, orgName string, 
 // indexedSegment matches a path segment with an array index, e.g. "clusters[0]".
 var indexedSegment = regexp.MustCompile(`^([\w][\w-]*)\[(\d+)\]$`)
 
+// secretRefValue is a helper struct used only for unmarshalling secretRef values in the override map.
+type secretRefValue struct {
+	SecretRef *v1alpha1.SecretKeyReference `json:"secretRef"`
+}
+
+// resolveKubeconfigOverrides unmarshals the raw annotation value and resolves any secretRef entries
+// by reading the referenced secret. Plain string values are returned as-is.
+func resolveKubeconfigOverrides(ctx context.Context, c client.Client, namespace string, raw string) (map[string]string, error) {
+	var rawMap map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(raw), &rawMap); err != nil {
+		return nil, fmt.Errorf("kubeconfig-overrides: invalid JSON: %w", err)
+	}
+	resolved := make(map[string]string, len(rawMap))
+	for path, rawVal := range rawMap {
+		var ref secretRefValue
+		if err := json.Unmarshal(rawVal, &ref); err == nil && ref.SecretRef != nil {
+			val, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, c, namespace, *ref.SecretRef)
+			if err != nil {
+				return nil, fmt.Errorf("kubeconfig-overrides: path %q: %w", path, err)
+			}
+			resolved[path] = val
+			continue
+		}
+		var s string
+		if err := json.Unmarshal(rawVal, &s); err != nil {
+			return nil, fmt.Errorf("kubeconfig-overrides: path %q: value must be a string or secretRef object", path)
+		}
+		resolved[path] = s
+	}
+	return resolved, nil
+}
+
 // applyKubeconfigOverrides applies a flat map of dot-path → string value overrides onto data.
 // Keys use dot-separated JSON field names with optional [n] array indexing, e.g.:
 //
 //	"clusters[0].cluster.server"
 //	"users[0].user.auth-provider.config.client-id"
 //	"contexts[0].context.namespace"
-func applyKubeconfigOverrides(data v1alpha1.ClusterKubeconfigData, raw string) (v1alpha1.ClusterKubeconfigData, error) {
-	var overrides map[string]string
-	if err := json.Unmarshal([]byte(raw), &overrides); err != nil {
-		return data, fmt.Errorf("kubeconfig-overrides: invalid JSON: %w", err)
-	}
-
+func applyKubeconfigOverrides(data v1alpha1.ClusterKubeconfigData, overrides map[string]string) (v1alpha1.ClusterKubeconfigData, error) {
 	// Round-trip through map[string]any so we can apply arbitrary dot-path writes.
 	b, err := json.Marshal(data)
 	if err != nil {

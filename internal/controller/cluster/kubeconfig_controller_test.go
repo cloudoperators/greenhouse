@@ -540,6 +540,72 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 		}).Should(Equal(overrideServer))
 	})
 
+	It("should resolve secretRef values in kubeconfig-overrides annotation", func() {
+		const (
+			overrideSecretName     = "kubeconfig-override-secret"
+			overrideSecretClientID = "secretref-client-id"
+		)
+
+		// Create the secret that the annotation will reference.
+		overrideSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      overrideSecretName,
+				Namespace: setup.Namespace(),
+			},
+			Data: map[string][]byte{
+				"client-id": []byte(overrideSecretClientID),
+			},
+		}
+		Expect(test.K8sClient.Create(test.Ctx, overrideSecret)).To(Succeed())
+		DeferCleanup(func() {
+			_ = test.K8sClient.Delete(test.Ctx, overrideSecret)
+		})
+
+		Eventually(func(g Gomega) {
+			clusterToBeUpdated := v1alpha1.Cluster{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterToBeUpdated)).To(Succeed())
+			if clusterToBeUpdated.Annotations == nil {
+				clusterToBeUpdated.Annotations = make(map[string]string)
+			}
+			clusterToBeUpdated.Annotations[greenhouseapis.AnnotationKeyKubeconfigOverrides] = fmt.Sprintf(`{
+				"users[0].user.auth-provider.config.client-id": {"secretRef": {"name": "%s", "key": "client-id"}}
+			}`, overrideSecretName)
+			g.Expect(test.K8sClient.Update(test.Ctx, &clusterToBeUpdated)).To(Succeed())
+		}).Should(Succeed(), "cluster should be updated with secretRef annotation")
+
+		// The controller should resolve the secretRef and write the secret value into the kubeconfig.
+		Eventually(func(g Gomega) string {
+			fresh := v1alpha1.ClusterKubeconfig{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &fresh)).ShouldNot(HaveOccurred())
+			return fresh.Spec.Kubeconfig.AuthInfo[0].AuthInfo.AuthProvider.Config["client-id"]
+		}).Should(Equal(overrideSecretClientID))
+
+		// Verify a missing secret causes KubeconfigReconcileFailedCondition.
+		Eventually(func(g Gomega) {
+			clusterToBeUpdated := v1alpha1.Cluster{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterToBeUpdated)).To(Succeed())
+			clusterToBeUpdated.Annotations[greenhouseapis.AnnotationKeyKubeconfigOverrides] = `{
+				"users[0].user.auth-provider.config.client-id": {"secretRef": {"name": "does-not-exist", "key": "client-id"}}
+			}`
+			g.Expect(test.K8sClient.Update(test.Ctx, &clusterToBeUpdated)).To(Succeed())
+		}).Should(Succeed(), "cluster should be updated with bad secretRef annotation")
+
+		Eventually(func(g Gomega) bool {
+			fresh := v1alpha1.ClusterKubeconfig{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &fresh)).ShouldNot(HaveOccurred())
+			cond := fresh.Status.Conditions.GetConditionByType(v1alpha1.KubeconfigReconcileFailedCondition)
+			return cond != nil && strings.Contains(cond.Message, "kubeconfig-overrides")
+		}).Should(BeTrue(), "ReconcileFailedCondition should be set when secretRef target is missing")
+
+		// Clean up: remove the annotation so subsequent specs start from a healthy state.
+		Eventually(func(g Gomega) {
+			clusterToBeUpdated := v1alpha1.Cluster{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterToBeUpdated)).To(Succeed())
+			delete(clusterToBeUpdated.Annotations, greenhouseapis.AnnotationKeyKubeconfigOverrides)
+			g.Expect(test.K8sClient.Update(test.Ctx, &clusterToBeUpdated)).To(Succeed())
+		}).Should(Succeed(), "cluster annotation should be cleared")
+	})
+
 	It("should set ReconcileFailedCondition on invalid kubeconfig-overrides JSON", func() {
 		Eventually(func(g Gomega) {
 			clusterToBeUpdated := v1alpha1.Cluster{}
