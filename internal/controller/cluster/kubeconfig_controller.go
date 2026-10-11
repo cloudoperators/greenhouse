@@ -7,7 +7,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -275,6 +277,43 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 	l.Info("kubeconfig updated", "result", result)
 
+	// Apply generic kubeconfig overrides from annotation greenhouse.sap/kubeconfig-overrides.
+	// This runs after oidc-override and the main spec patch, so it wins on any overlapping field.
+	if raw, ok := cluster.Annotations[greenhouseapis.AnnotationKeyKubeconfigOverrides]; ok && raw != "" {
+		patched, oErr := applyKubeconfigOverrides(kubeconfig.Spec.Kubeconfig, raw)
+		if oErr != nil {
+			kubeconfig.Status.Conditions.SetConditions(
+				greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "OverrideError", oErr.Error()),
+			)
+			_, perr := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
+				kubeconfig.Status = calculateKubeconfigStatus(&kubeconfig)
+				return nil
+			})
+			if perr != nil {
+				log.FromContext(ctx).Error(perr, "error setting status")
+			}
+			return ctrl.Result{}, oErr
+		}
+		_, oErr = clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
+			kubeconfig.Spec.Kubeconfig = patched
+			return nil
+		})
+		if oErr != nil {
+			kubeconfig.Status.Conditions.SetConditions(
+				greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "OverridePatchError", oErr.Error()),
+			)
+			_, perr := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
+				kubeconfig.Status = calculateKubeconfigStatus(&kubeconfig)
+				return nil
+			})
+			if perr != nil {
+				log.FromContext(ctx).Error(perr, "error setting status")
+			}
+			return ctrl.Result{}, oErr
+		}
+		l.Info("kubeconfig overrides applied")
+	}
+
 	// Success path: clear any previous failure condition and patch status.
 	kubeconfig.Status.Conditions.SetConditions(
 		greenhousemetav1alpha1.FalseCondition(v1alpha1.KubeconfigReconcileFailedCondition, "NoError", ""),
@@ -372,6 +411,93 @@ func (r *KubeconfigReconciler) getOIDCInfo(ctx context.Context, orgName string, 
 	}
 
 	return oidc, nil
+}
+
+// indexedSegment matches a path segment with an array index, e.g. "clusters[0]".
+var indexedSegment = regexp.MustCompile(`^([\w][\w-]*)\[(\d+)\]$`)
+
+// applyKubeconfigOverrides applies a flat map of dot-path → string value overrides onto data.
+// Keys use dot-separated JSON field names with optional [n] array indexing, e.g.:
+//
+//	"clusters[0].cluster.server"
+//	"users[0].user.auth-provider.config.client-id"
+//	"contexts[0].context.namespace"
+func applyKubeconfigOverrides(data v1alpha1.ClusterKubeconfigData, raw string) (v1alpha1.ClusterKubeconfigData, error) {
+	var overrides map[string]string
+	if err := json.Unmarshal([]byte(raw), &overrides); err != nil {
+		return data, fmt.Errorf("kubeconfig-overrides: invalid JSON: %w", err)
+	}
+
+	// Round-trip through map[string]any so we can apply arbitrary dot-path writes.
+	b, err := json.Marshal(data)
+	if err != nil {
+		return data, err
+	}
+	var m map[string]any
+	if err := json.Unmarshal(b, &m); err != nil {
+		return data, err
+	}
+
+	for path, val := range overrides {
+		if err := setDotPath(m, path, val); err != nil {
+			return data, fmt.Errorf("kubeconfig-overrides: path %q: %w", path, err)
+		}
+	}
+
+	patched, err := json.Marshal(m)
+	if err != nil {
+		return data, err
+	}
+	var result v1alpha1.ClusterKubeconfigData
+	if err := json.Unmarshal(patched, &result); err != nil {
+		return data, err
+	}
+	return result, nil
+}
+
+// setDotPath sets val at the dot-separated path inside m, creating intermediate maps as needed.
+// Array elements (e.g. "clusters[0]") must already exist — the function sets inside them, not appends.
+func setDotPath(m map[string]any, path string, val string) error {
+	segments := strings.Split(path, ".")
+	var cur any = m
+	for i, seg := range segments {
+		isLast := i == len(segments)-1
+
+		if match := indexedSegment.FindStringSubmatch(seg); match != nil {
+			key := match[1]
+			idx, _ := strconv.Atoi(match[2])
+
+			node, ok := cur.(map[string]any)
+			if !ok {
+				return fmt.Errorf("expected object at %q", strings.Join(segments[:i], "."))
+			}
+			arr, ok := node[key].([]any)
+			if !ok || idx >= len(arr) {
+				return fmt.Errorf("array %q index %d out of range", key, idx)
+			}
+			if isLast {
+				arr[idx] = val
+				return nil
+			}
+			cur = arr[idx]
+		} else {
+			node, ok := cur.(map[string]any)
+			if !ok {
+				return fmt.Errorf("expected object at %q", strings.Join(segments[:i], "."))
+			}
+			if isLast {
+				node[seg] = val
+				return nil
+			}
+			next, exists := node[seg]
+			if !exists {
+				next = map[string]any{}
+				node[seg] = next
+			}
+			cur = next
+		}
+	}
+	return nil
 }
 
 func sameNameResource(_ context.Context, o client.Object) []ctrl.Request {

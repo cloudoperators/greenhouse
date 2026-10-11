@@ -478,4 +478,92 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: setup.Namespace()}, currentOrg)).To(Succeed())
 		Expect(clusterKubeconfig.Spec.Kubeconfig.AuthInfo[0].AuthInfo.AuthProvider.Config["idp-issuer-url"]).Should(Equal(currentOrg.Spec.Authentication.OIDCConfig.Issuer))
 	})
+
+	It("should apply generic kubeconfig-overrides annotation for OIDC fields", func() {
+		const (
+			overrideClientID  = "generic-override-client-id"
+			overrideIssuerURL = "https://generic-override-issuer.example.com"
+		)
+
+		Eventually(func(g Gomega) {
+			clusterToBeUpdated := v1alpha1.Cluster{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterToBeUpdated)).To(Succeed())
+			if clusterToBeUpdated.Annotations == nil {
+				clusterToBeUpdated.Annotations = make(map[string]string)
+			}
+			clusterToBeUpdated.Annotations[greenhouseapis.AnnotationKeyKubeconfigOverrides] = fmt.Sprintf(`{
+				"users[0].user.auth-provider.config.client-id": "%s",
+				"users[0].user.auth-provider.config.idp-issuer-url": "%s"
+			}`, overrideClientID, overrideIssuerURL)
+			g.Expect(test.K8sClient.Update(test.Ctx, &clusterToBeUpdated)).To(Succeed())
+		}).Should(Succeed(), "cluster should be updated with kubeconfig-overrides annotation")
+
+		Eventually(func(g Gomega) string {
+			fresh := v1alpha1.ClusterKubeconfig{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &fresh)).ShouldNot(HaveOccurred())
+			return fresh.Spec.Kubeconfig.AuthInfo[0].AuthInfo.AuthProvider.Config["client-id"]
+		}).Should(Equal(overrideClientID))
+
+		Eventually(func(g Gomega) string {
+			fresh := v1alpha1.ClusterKubeconfig{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &fresh)).ShouldNot(HaveOccurred())
+			return fresh.Spec.Kubeconfig.AuthInfo[0].AuthInfo.AuthProvider.Config["idp-issuer-url"]
+		}).Should(Equal(overrideIssuerURL))
+
+		// client-secret not overridden — should still be the org value
+		Eventually(func(g Gomega) string {
+			fresh := v1alpha1.ClusterKubeconfig{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &fresh)).ShouldNot(HaveOccurred())
+			return fresh.Spec.Kubeconfig.AuthInfo[0].AuthInfo.AuthProvider.Config["client-secret"]
+		}).Should(Equal(oidcClientSecret))
+	})
+
+	It("should apply generic kubeconfig-overrides annotation for server URL", func() {
+		const overrideServer = "https://new-tenant-api.example.com:6443"
+
+		Eventually(func(g Gomega) {
+			clusterToBeUpdated := v1alpha1.Cluster{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterToBeUpdated)).To(Succeed())
+			if clusterToBeUpdated.Annotations == nil {
+				clusterToBeUpdated.Annotations = make(map[string]string)
+			}
+			clusterToBeUpdated.Annotations[greenhouseapis.AnnotationKeyKubeconfigOverrides] = fmt.Sprintf(`{
+				"clusters[0].cluster.server": "%s"
+			}`, overrideServer)
+			g.Expect(test.K8sClient.Update(test.Ctx, &clusterToBeUpdated)).To(Succeed())
+		}).Should(Succeed(), "cluster should be updated with server override")
+
+		Eventually(func(g Gomega) string {
+			fresh := v1alpha1.ClusterKubeconfig{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &fresh)).ShouldNot(HaveOccurred())
+			return fresh.Spec.Kubeconfig.Clusters[0].Cluster.Server
+		}).Should(Equal(overrideServer))
+	})
+
+	It("should set ReconcileFailedCondition on invalid kubeconfig-overrides JSON", func() {
+		Eventually(func(g Gomega) {
+			clusterToBeUpdated := v1alpha1.Cluster{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterToBeUpdated)).To(Succeed())
+			if clusterToBeUpdated.Annotations == nil {
+				clusterToBeUpdated.Annotations = make(map[string]string)
+			}
+			clusterToBeUpdated.Annotations[greenhouseapis.AnnotationKeyKubeconfigOverrides] = `not-valid-json`
+			g.Expect(test.K8sClient.Update(test.Ctx, &clusterToBeUpdated)).To(Succeed())
+		}).Should(Succeed(), "cluster should be updated with invalid annotation")
+
+		Eventually(func(g Gomega) bool {
+			fresh := v1alpha1.ClusterKubeconfig{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &fresh)).ShouldNot(HaveOccurred())
+			cond := fresh.Status.Conditions.GetConditionByType(v1alpha1.KubeconfigReconcileFailedCondition)
+			return cond != nil && strings.Contains(cond.Message, "kubeconfig-overrides")
+		}).Should(BeTrue(), "ReconcileFailedCondition should be set with kubeconfig-overrides error")
+
+		// Restore a valid annotation so the suite is not left in a broken state
+		Eventually(func(g Gomega) {
+			clusterToBeUpdated := v1alpha1.Cluster{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterToBeUpdated)).To(Succeed())
+			delete(clusterToBeUpdated.Annotations, greenhouseapis.AnnotationKeyKubeconfigOverrides)
+			g.Expect(test.K8sClient.Update(test.Ctx, &clusterToBeUpdated)).To(Succeed())
+		}).Should(Succeed(), "cluster annotation should be cleared")
+	})
 })
