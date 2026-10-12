@@ -2,14 +2,27 @@
 # This file contains all authz-related make targets:
 #   - Development environment setup (manager, dashboard, demo)
 #   - End-to-end test lifecycle (setup, prepare, run, clean)
-#   - TLS certificate generation and management for the authorization webhook (CA, server, client)
 
 .PHONY: setup-authz
 setup-authz: setup-manager-authz setup-dashboard-authz setup-demo-authz
 
 .PHONY: setup-manager-authz
-setup-manager-authz: cli authz-certs
+setup-manager-authz: cli authz-webhook-server
 	CONTROLLER_ENABLED=$(WITH_CONTROLLER) PLUGIN_PATH=$(PLUGIN_DIR) $(CLI) dev setup -f dev-env/authz.config.yaml d=$(DEV_MODE)
+
+AUTHZ_WEBHOOK_SRC := dev-env/webhook
+AUTHZ_WEBHOOK_DIR := bin/authz/webhook
+AUTHZ_WEBHOOK_KUBECONFIG := $(AUTHZ_WEBHOOK_DIR)/authz-webhook.yaml
+AUTHZ_WEBHOOK_DEBUG_URL := http://host.docker.internal:9443/authorize
+DEBUG_AUTHZ ?= false
+.PHONY: authz-webhook-server
+authz-webhook-server:
+	rm -rf $(AUTHZ_WEBHOOK_DIR)
+	mkdir -p $(AUTHZ_WEBHOOK_DIR)
+	cp -r $(AUTHZ_WEBHOOK_SRC)/. $(AUTHZ_WEBHOOK_DIR)/
+ifeq ($(DEBUG_AUTHZ),true)
+	yq eval --inplace '.clusters[0].cluster.server = "$(AUTHZ_WEBHOOK_DEBUG_URL)"' $(AUTHZ_WEBHOOK_KUBECONFIG)
+endif
 
 .PHONY: setup-dashboard-authz
 setup-dashboard-authz: cli
@@ -20,7 +33,7 @@ setup-demo-authz: ADMIN_CLUSTER := greenhouse-authz
 setup-demo-authz: setup-demo
 
 .PHONY: setup-e2e-authz
-setup-e2e-authz: cli authz-certs
+setup-e2e-authz: cli authz-webhook-server
 	CONTROLLER_ENABLED=$(WITH_CONTROLLER) $(CLI) dev setup -f e2e/authz.config.yaml
 	$(MAKE) prepare-e2e-authz
 

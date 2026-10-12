@@ -1,13 +1,10 @@
 // SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package main
+package authz
 
 import (
-	"net/http"
-
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	crmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
@@ -81,11 +78,6 @@ func init() {
 		authzKindResolutionErrorsTotal,
 		authzRequestDuration,
 	)
-}
-
-// instrumentHandler wraps h with prometheus duration instrumentation using fine-grained buckets.
-func instrumentHandler(h http.Handler) http.Handler {
-	return promhttp.InstrumentHandlerDuration(authzRequestDuration, h)
 }
 
 func recordAllowed(verb, resource, supportGroup string) {

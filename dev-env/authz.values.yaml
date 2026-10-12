@@ -14,18 +14,12 @@ service:
   nodePort: 32443
 
 tls:
-  enabled: true
+  enabled: false
   useSecret: false
 
-volumes:
-  - name: serving-certs
-    hostPath:
-      path: /etc/kubernetes/webhook/certs
-      type: Directory
+volumes: []
 
-volumeMounts:
-  - name: serving-certs
-    mountPath: /tmp/k8s-webhook-server/serving-certs
+volumeMounts: []
 
 env:
   - name: AUTHZ_TLS_DISABLED
