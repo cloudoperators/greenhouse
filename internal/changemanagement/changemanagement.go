@@ -14,12 +14,15 @@ import (
 	"time"
 
 	"github.com/Masterminds/sprig/v3"
+	"golang.org/x/oauth2/clientcredentials"
 )
 
-// Auth holds the basic auth credentials for the change management endpoint.
+// Auth holds the credentials for the change management endpoint, sent as basic auth or traded at TokenURL for an OAuth2 token.
 type Auth struct {
-	Username string
-	Password string
+	Username    string
+	Password    string
+	TokenURL    string
+	TokenHeader string
 }
 
 // Client sends changes to a change management endpoint.
@@ -57,7 +60,7 @@ func (c *Client) Send(ctx context.Context, payload []byte) error {
 	return nil
 }
 
-// authTransport sets basic auth on every request.
+// authTransport sets the auth on every request.
 type authTransport struct {
 	auth Auth
 	next http.RoundTripper
@@ -66,7 +69,19 @@ type authTransport struct {
 // RoundTrip works on a copy of the request, because a RoundTripper must not modify the original.
 func (t *authTransport) RoundTrip(request *http.Request) (*http.Response, error) {
 	request = request.Clone(request.Context())
-	if t.auth.Username != "" {
+	switch {
+	case t.auth.TokenURL != "":
+		config := clientcredentials.Config{ClientID: t.auth.Username, ClientSecret: t.auth.Password, TokenURL: t.auth.TokenURL}
+		token, err := config.Token(request.Context())
+		if err != nil {
+			return nil, err
+		}
+		if t.auth.TokenHeader == "" {
+			token.SetAuthHeader(request)
+		} else {
+			request.Header.Set(t.auth.TokenHeader, token.AccessToken)
+		}
+	case t.auth.Username != "":
 		request.SetBasicAuth(t.auth.Username, t.auth.Password)
 	}
 	return t.next.RoundTrip(request)
