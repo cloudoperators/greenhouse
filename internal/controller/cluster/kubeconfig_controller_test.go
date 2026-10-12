@@ -542,7 +542,7 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 
 	It("should resolve secretRef values in kubeconfig-overrides annotation", func() {
 		const (
-			overrideSecretName     = "kubeconfig-override-secret"
+			overrideSecretName     = "kubeconfig-override-secret" //nolint:gosec
 			overrideSecretClientID = "secretref-client-id"
 		)
 
@@ -558,7 +558,7 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 		}
 		Expect(test.K8sClient.Create(test.Ctx, overrideSecret)).To(Succeed())
 		DeferCleanup(func() {
-			_ = test.K8sClient.Delete(test.Ctx, overrideSecret)
+			Expect(test.K8sClient.Delete(test.Ctx, overrideSecret)).To(Succeed())
 		})
 
 		Eventually(func(g Gomega) {

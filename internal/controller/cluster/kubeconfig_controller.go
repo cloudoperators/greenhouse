@@ -434,7 +434,7 @@ type secretRefValue struct {
 
 // resolveKubeconfigOverrides unmarshals the raw annotation value and resolves any secretRef entries
 // by reading the referenced secret. Plain string values are returned as-is.
-func resolveKubeconfigOverrides(ctx context.Context, c client.Client, namespace string, raw string) (map[string]string, error) {
+func resolveKubeconfigOverrides(ctx context.Context, c client.Client, namespace, raw string) (map[string]string, error) {
 	var rawMap map[string]json.RawMessage
 	if err := json.Unmarshal([]byte(raw), &rawMap); err != nil {
 		return nil, fmt.Errorf("kubeconfig-overrides: invalid JSON: %w", err)
@@ -495,7 +495,7 @@ func applyKubeconfigOverrides(data v1alpha1.ClusterKubeconfigData, overrides map
 
 // setDotPath sets val at the dot-separated path inside m, creating intermediate maps as needed.
 // Array elements (e.g. "clusters[0]") must already exist — the function sets inside them, not appends.
-func setDotPath(m map[string]any, path string, val string) error {
+func setDotPath(m map[string]any, path, val string) error {
 	segments := strings.Split(path, ".")
 	var cur any = m
 	for i, seg := range segments {
@@ -503,7 +503,10 @@ func setDotPath(m map[string]any, path string, val string) error {
 
 		if match := indexedSegment.FindStringSubmatch(seg); match != nil {
 			key := match[1]
-			idx, _ := strconv.Atoi(match[2])
+			idx, err := strconv.Atoi(match[2])
+			if err != nil {
+				return fmt.Errorf("invalid array index in segment %q: %w", seg, err)
+			}
 
 			node, ok := cur.(map[string]any)
 			if !ok {
