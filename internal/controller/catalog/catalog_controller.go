@@ -22,6 +22,7 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -31,6 +32,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
+	"github.com/cloudoperators/greenhouse/pkg/predicates"
 )
 
 const (
@@ -56,8 +58,10 @@ func (r *CatalogReconciler) SetupWithManager(name string, mgr ctrl.Manager) erro
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&greenhousev1alpha1.Catalog{}).
-		Owns(&sourcev1.GitRepository{}).
-		Owns(&sourcev2.ArtifactGenerator{}).
+		Owns(&sourcev1.GitRepository{}, builder.WithPredicates(predicates.PredicateFluxResourceReadyChanged())).
+		Owns(&sourcev2.ArtifactGenerator{}, builder.WithPredicates(predicates.PredicateFluxResourceReadyChanged())).
+		// Kustomization is watched unfiltered: each revision attempt must regenerate option-override patches
+		// against the current artifact, so revision changes that keep Ready unchanged still need a reconcile.
 		Owns(&kustomizev1.Kustomization{}).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: 5,
