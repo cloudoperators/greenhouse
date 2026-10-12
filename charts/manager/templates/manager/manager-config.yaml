@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: greenhouse-cm
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "manager.labels" . | nindent 4 }}
+data:
+  {{- range $controller, $cfg := .Values.controllerManager.config }}
+  controller.{{ $controller }}.maxconcurrentreconciles: {{ $cfg.maxConcurrentReconciles | quote }}
+  {{- end }}
