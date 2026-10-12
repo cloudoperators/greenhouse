@@ -305,9 +305,13 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	if err != nil {
-		// Reflect the error in status and avoid sticky issues later.
+		// When overrides participated in the desired spec, classify the patch failure accordingly.
+		reason := greenhousemetav1alpha1.ConditionReason("PatchError")
+		if resolvedOverrides != nil {
+			reason = "OverridePatchError"
+		}
 		kubeconfig.Status.Conditions.SetConditions(
-			greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "PatchError", err.Error()),
+			greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, reason, err.Error()),
 		)
 		// patch status before returning on error
 		sResult, perr := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
