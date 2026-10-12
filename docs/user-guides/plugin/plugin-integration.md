@@ -14,6 +14,10 @@ Instead, a PluginPreset option can take its value from other Plugins in the same
 
 This guide sets up the Thanos example. All fields are described in [ValueFrom References](./../../../reference/components/pluginpreset#valuefrom-references).
 
+## Prerequisites
+
+The feature flags `pluginPreset.expressionEvaluationEnabled` and `pluginPreset.integrationEnabled` must be enabled in your Greenhouse installation. Both are off by default, see [Feature Flags](./../../../reference/components/pluginpreset#feature-flags).
+
 ## A regional Thanos on every cluster
 
 The `thanos-regional` PluginPreset deploys Thanos to every cluster labelled `cluster-type: observability` and builds the host of its gRPC ingress from the cluster label `metadata.greenhouse.sap/region`:
