@@ -21,6 +21,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -44,7 +45,8 @@ var exposedConditions = []greenhousemetav1alpha1.ConditionType{
 // TeamRoleBindingReconciler reconciles a TeamRole object
 type TeamRoleBindingReconciler struct {
 	client.Client
-	recorder events.EventRecorder
+	recorder                events.EventRecorder
+	MaxConcurrentReconciles int
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teamrolebindings,verbs=get;list;watch;create;update;patch;delete
@@ -89,6 +91,7 @@ func (r *TeamRoleBindingReconciler) SetupWithManager(name string, mgr ctrl.Manag
 		// Reconcile TeamRoleBindings for all Cluster label changes or Ready status transitions in the same namespace
 		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllTeamRoleBindingsInNamespace),
 			builder.WithPredicates(predicate.Or(predicate.LabelChangedPredicate{}, predicates.PredicateClusterReadyStatusChange()))).
+		WithOptions(controller.Options{MaxConcurrentReconciles: r.MaxConcurrentReconciles}).
 		Complete(r)
 }
 

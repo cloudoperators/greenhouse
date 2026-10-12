@@ -35,6 +35,7 @@ type RemoteClusterReconciler struct {
 	recorder                           events.EventRecorder
 	RemoteClusterBearerTokenValidity   time.Duration
 	RenewRemoteClusterBearerTokenAfter time.Duration
+	MaxConcurrentReconciles            int
 	WorkloadIdentityEnabled            bool
 	FeatureFlagsName                   string
 	FeatureFlagsNamespace              string
@@ -67,7 +68,7 @@ func (r *RemoteClusterReconciler) SetupWithManager(name string, mgr ctrl.Manager
 		Watches(&corev1.ConfigMap{}, handler.EnqueueRequestsFromMapFunc(r.reloadFeatureFlags), builder.WithPredicates(
 			predicates.PredicateHasLabelWithValue(greenhouseapis.LabelKeyFeatureFlags, "true"),
 		)).
-		WithOptions(controller.Options{MaxConcurrentReconciles: 5}).
+		WithOptions(controller.Options{MaxConcurrentReconciles: r.MaxConcurrentReconciles}).
 		Complete(r)
 }
 

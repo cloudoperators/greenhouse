@@ -16,6 +16,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
@@ -39,7 +40,8 @@ var (
 
 type TeamController struct {
 	client.Client
-	recorder events.EventRecorder
+	recorder                events.EventRecorder
+	MaxConcurrentReconciles int
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teams,verbs=get;list;watch;create;update;patch;delete
@@ -66,6 +68,7 @@ func (r *TeamController) SetupWithManager(name string, mgr ctrl.Manager) error {
 		Watches(&greenhousev1alpha1.Organization{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllTeamsForOrganization),
 			builder.WithPredicates(
 				predicate.Or(predicate.GenerationChangedPredicate{}, predicates.PredicateOrganizationSCIMStatusChange()))).
+		WithOptions(controller.Options{MaxConcurrentReconciles: r.MaxConcurrentReconciles}).
 		Complete(r)
 }
 

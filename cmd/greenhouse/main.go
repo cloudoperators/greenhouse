@@ -34,6 +34,7 @@ import (
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/common"
+	greenhouseconfig "github.com/cloudoperators/greenhouse/internal/config"
 	dexapi "github.com/cloudoperators/greenhouse/internal/dex/api"
 	"github.com/cloudoperators/greenhouse/internal/features"
 	"github.com/cloudoperators/greenhouse/internal/helm"
@@ -60,6 +61,7 @@ const (
 	defaultPodNamespace                       = "greenhouse"               // default pod namespace.
 	featureFlagsEnv                           = "FEATURE_FLAGS"            // used to read the feature flags configMap name from the environment.
 	defaultFeatureFlagConfigMapName           = "greenhouse-feature-flags" // default feature flags configMap name.
+	managerConfigEnv                          = "MANAGER_CONFIG"           // used to read the manager config configMap name from the environment.
 )
 
 const (
@@ -88,6 +90,7 @@ var (
 	renewRemoteClusterBearerTokenAfter time.Duration
 	kubeClientOpts      clientutil.RuntimeOptions
 	featureFlags        *features.Features
+	managerConfig       *greenhouseconfig.ManagerConfig
 	artifactStoragePath string
 	artifactRetries     int
 )
@@ -194,6 +197,16 @@ func main() {
 	)
 	if err != nil {
 		handleError(err, "unable to get features")
+	}
+
+	managerConfig, err = greenhouseconfig.NewManagerConfig(
+		context.TODO(),
+		k8sClient,
+		clientutil.GetEnvOrDefault(managerConfigEnv, "greenhouse-cm"),
+		clientutil.GetEnvOrDefault(podNamespaceEnv, defaultPodNamespace),
+	)
+	if err != nil {
+		handleError(err, "unable to get manager config")
 	}
 
 	// Register controllers.

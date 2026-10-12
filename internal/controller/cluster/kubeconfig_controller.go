@@ -18,6 +18,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -31,6 +32,7 @@ import (
 
 type KubeconfigReconciler struct {
 	client.Client
+	MaxConcurrentReconciles int
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=clusters,verbs=get;list;watch
@@ -49,6 +51,7 @@ func (r *KubeconfigReconciler) SetupWithManager(name string, mgr ctrl.Manager) e
 		Watches(&v1alpha1.Organization{}, handler.EnqueueRequestsFromMapFunc(r.organizationToClusters)).
 		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(r.organizationSecretToClusters)).
 		For(&v1alpha1.ClusterKubeconfig{}).
+		WithOptions(controller.Options{MaxConcurrentReconciles: r.MaxConcurrentReconciles}).
 		Complete(r)
 }
 
