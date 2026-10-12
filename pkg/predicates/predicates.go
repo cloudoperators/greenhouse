@@ -140,6 +140,9 @@ func PredicateClusterReadyStatusChange() predicate.Predicate {
 			if !maps.Equal(oldCluster.GetAnnotations(), newCluster.GetAnnotations()) {
 				return true
 			}
+			if !maps.Equal(oldCluster.GetLabels(), newCluster.GetLabels()) {
+				return true
+			}
 			oldCondition := oldCluster.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 			newCondition := newCluster.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 			oldReady := oldCondition != nil && oldCondition.IsTrue()
