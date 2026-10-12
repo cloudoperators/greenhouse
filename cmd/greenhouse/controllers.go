@@ -25,13 +25,13 @@ import (
 // knownControllers contains all controllers to be registered when starting the operator.
 var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) error{
 	// Organization controllers.
-	"organizationController": startOrganizationReconciler,
+	"organization": startOrganizationReconciler,
 
 	// Team controllers.
-	"teamController": (&teamcontrollers.TeamController{}).SetupWithManager,
+	"team": startTeamReconciler,
 
 	// Team RBAC controllers.
-	"teamRoleBindingController": (&teamrbaccontrollers.TeamRoleBindingReconciler{}).SetupWithManager,
+	"teamRoleBinding": startTeamRoleBindingReconciler,
 
 	// Plugin controllers.
 	"plugin":       startPluginReconciler,
@@ -44,7 +44,7 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	// Cluster controllers
 	"bootstrap":  startBootstrapReconciler,
 	"cluster":    startClusterReconciler,
-	"kubeconfig": (&clustercontrollers.KubeconfigReconciler{}).SetupWithManager,
+	"kubeconfig": startKubeconfigReconciler,
 }
 
 // knownControllers lists the name of known controllers.
@@ -65,9 +65,24 @@ func isControllerEnabled(controllerName string) bool {
 	return controllerName == "*" || slices.Contains(enabledControllers, controllerName)
 }
 
-// startOrganizationReconciler - initializes the organization reconciler
-// resolves dex storage backend from greenhouse-feature-flags
-// initializes the dex storage adapter interface in the organization reconciler
+func startTeamReconciler(name string, mgr ctrl.Manager) error {
+	return (&teamcontrollers.TeamController{
+		MaxConcurrentReconciles: managerConfig.GetMaxConcurrentReconciles(name, 1),
+	}).SetupWithManager(name, mgr)
+}
+
+func startTeamRoleBindingReconciler(name string, mgr ctrl.Manager) error {
+	return (&teamrbaccontrollers.TeamRoleBindingReconciler{
+		MaxConcurrentReconciles: managerConfig.GetMaxConcurrentReconciles(name, 1),
+	}).SetupWithManager(name, mgr)
+}
+
+func startKubeconfigReconciler(name string, mgr ctrl.Manager) error {
+	return (&clustercontrollers.KubeconfigReconciler{
+		MaxConcurrentReconciles: managerConfig.GetMaxConcurrentReconciles(name, 1),
+	}).SetupWithManager(name, mgr)
+}
+
 func startOrganizationReconciler(name string, mgr ctrl.Manager) error {
 	namespace := clientutil.GetEnvOrDefault(podNamespaceEnv, defaultPodNamespace)
 	backend := ptr.To(dexstore.K8s)
@@ -87,6 +102,7 @@ func startPluginReconciler(name string, mgr ctrl.Manager) error {
 		OCIMirroringEnabled:     featureFlags.IsOCIMirroringEnabled(),
 		StoragePath:             artifactStoragePath,
 		HTTPRetry:               artifactRetries,
+		MaxConcurrentReconciles: managerConfig.GetMaxConcurrentReconciles(name, 10),
 		WorkloadIdentityEnabled: featureFlags.IsWorkloadIdentityEnabled(),
 		FeatureFlagsName:        clientutil.GetEnvOrDefault(featureFlagsEnv, defaultFeatureFlagConfigMapName),
 		FeatureFlagsNamespace:   clientutil.GetEnvOrDefault(podNamespaceEnv, defaultPodNamespace),
@@ -95,6 +111,7 @@ func startPluginReconciler(name string, mgr ctrl.Manager) error {
 
 func startPluginPresetReconciler(name string, mgr ctrl.Manager) error {
 	return (&plugincontrollers.PluginPresetReconciler{
+		MaxConcurrentReconciles:     managerConfig.GetMaxConcurrentReconciles(name, 1),
 		ExpressionEvaluationEnabled: featureFlags.IsPresetExpressionEvaluationEnabled(),
 		IntegrationEnabled:          featureFlags.IsPresetIntegrationEnabled(),
 	}).SetupWithManager(name, mgr)
@@ -102,13 +119,15 @@ func startPluginPresetReconciler(name string, mgr ctrl.Manager) error {
 
 func startPluginDefinitionReconciler(name string, mgr ctrl.Manager) error {
 	return (&plugindefinitioncontroller.PluginDefinitionReconciler{
-		OCIMirroringEnabled: featureFlags.IsOCIMirroringEnabled(),
+		MaxConcurrentReconciles: managerConfig.GetMaxConcurrentReconciles(name, 1),
+		OCIMirroringEnabled:     featureFlags.IsOCIMirroringEnabled(),
 	}).SetupWithManager(name, mgr)
 }
 
 func startClusterPluginDefinitionReconciler(name string, mgr ctrl.Manager) error {
 	return (&plugindefinitioncontroller.ClusterPluginDefinitionReconciler{
-		OCIMirroringEnabled: featureFlags.IsOCIMirroringEnabled(),
+		MaxConcurrentReconciles: managerConfig.GetMaxConcurrentReconciles(name, 1),
+		OCIMirroringEnabled:     featureFlags.IsOCIMirroringEnabled(),
 	}).SetupWithManager(name, mgr)
 }
 
@@ -121,6 +140,7 @@ func startClusterReconciler(name string, mgr ctrl.Manager) error {
 	return (&clustercontrollers.RemoteClusterReconciler{
 		RemoteClusterBearerTokenValidity:   remoteClusterBearerTokenValidity,
 		RenewRemoteClusterBearerTokenAfter: renewRemoteClusterBearerTokenAfter,
+		MaxConcurrentReconciles:            managerConfig.GetMaxConcurrentReconciles(name, 5),
 		WorkloadIdentityEnabled:            featureFlags.IsWorkloadIdentityEnabled(),
 		FeatureFlagsName:                   clientutil.GetEnvOrDefault(featureFlagsEnv, defaultFeatureFlagConfigMapName),
 		FeatureFlagsNamespace:              clientutil.GetEnvOrDefault(podNamespaceEnv, defaultPodNamespace),
@@ -129,6 +149,7 @@ func startClusterReconciler(name string, mgr ctrl.Manager) error {
 
 func startBootstrapReconciler(name string, mgr ctrl.Manager) error {
 	return (&clustercontrollers.BootstrapReconciler{
+		MaxConcurrentReconciles: managerConfig.GetMaxConcurrentReconciles(name, 1),
 		WorkloadIdentityEnabled: featureFlags.IsWorkloadIdentityEnabled(),
 		FeatureFlagsName:        clientutil.GetEnvOrDefault(featureFlagsEnv, defaultFeatureFlagConfigMapName),
 		FeatureFlagsNamespace:   clientutil.GetEnvOrDefault(podNamespaceEnv, defaultPodNamespace),
@@ -137,8 +158,9 @@ func startBootstrapReconciler(name string, mgr ctrl.Manager) error {
 
 func startCatalogReconciler(name string, mgr ctrl.Manager) error {
 	return (&catalog.CatalogReconciler{
-		Log:         ctrl.Log.WithName("controllers").WithName("catalogs"),
-		StoragePath: artifactStoragePath,
-		HTTPRetry:   artifactRetries,
+		Log:                     ctrl.Log.WithName("controllers").WithName("catalogs"),
+		StoragePath:             artifactStoragePath,
+		HTTPRetry:               artifactRetries,
+		MaxConcurrentReconciles: managerConfig.GetMaxConcurrentReconciles(name, 5),
 	}).SetupWithManager(name, mgr)
 }

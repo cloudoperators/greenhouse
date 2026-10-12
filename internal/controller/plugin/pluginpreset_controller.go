@@ -19,6 +19,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -49,6 +50,7 @@ var presetExposedConditions = []greenhousemetav1alpha1.ConditionType{
 type PluginPresetReconciler struct {
 	client.Client
 	recorder                    events.EventRecorder
+	MaxConcurrentReconciles     int
 	ExpressionEvaluationEnabled bool
 	IntegrationEnabled          bool
 }
@@ -99,6 +101,7 @@ func (r *PluginPresetReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 				predicate.LabelChangedPredicate{},
 				predicates.PredicatePluginWithStatusChange(),
 			))).
+		WithOptions(controller.Options{MaxConcurrentReconciles: r.MaxConcurrentReconciles}).
 		Complete(r)
 }
 

@@ -41,12 +41,13 @@ const (
 
 type CatalogReconciler struct {
 	client.Client
-	Scheme      *runtime.Scheme
-	Log         logr.Logger
-	recorder    events.EventRecorder
-	StoragePath string
-	HTTPRetry   int
-	artifactory flux.IArtifactory
+	Scheme                  *runtime.Scheme
+	Log                     logr.Logger
+	recorder                events.EventRecorder
+	StoragePath             string
+	HTTPRetry               int
+	MaxConcurrentReconciles int
+	artifactory             flux.IArtifactory
 }
 
 func (r *CatalogReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
@@ -64,7 +65,7 @@ func (r *CatalogReconciler) SetupWithManager(name string, mgr ctrl.Manager) erro
 		// against the current artifact, so revision changes that keep Ready unchanged still need a reconcile.
 		Owns(&kustomizev1.Kustomization{}).
 		WithOptions(controller.Options{
-			MaxConcurrentReconciles: 5,
+			MaxConcurrentReconciles: r.MaxConcurrentReconciles,
 		}).
 		Complete(r)
 }

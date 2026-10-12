@@ -63,6 +63,11 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
+	pluginPresetList := &greenhousev1alpha1.PluginPresetList{}
+	Expect(adminClient.List(ctx, pluginPresetList, client.InNamespace(env.TestNamespace))).To(Succeed())
+	for i := range pluginPresetList.Items {
+		test.EventuallyDeleted(ctx, adminClient, &pluginPresetList.Items[i])
+	}
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterName, env.TestNamespace)
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterName, env.TestNamespace)
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteWorkerlessClusterName, env.TestNamespace)

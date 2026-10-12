@@ -4,6 +4,7 @@
 package predicates
 
 import (
+	"maps"
 	"slices"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
@@ -124,7 +125,6 @@ func PredicateOrganizationSCIMStatusChange() predicate.Predicate {
 	}
 }
 
-// PredicateClusterReadyStatusChange triggers on updates where a Cluster's Ready condition transitions to True.
 func PredicateClusterReadyStatusChange() predicate.Predicate {
 	return predicate.Funcs{
 		CreateFunc: func(_ event.CreateEvent) bool { return false },
@@ -137,12 +137,17 @@ func PredicateClusterReadyStatusChange() predicate.Predicate {
 			if !okOld || !okNew {
 				return false
 			}
+			if !maps.Equal(oldCluster.GetAnnotations(), newCluster.GetAnnotations()) {
+				return true
+			}
+			if !maps.Equal(oldCluster.GetLabels(), newCluster.GetLabels()) {
+				return true
+			}
 			oldCondition := oldCluster.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 			newCondition := newCluster.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
-			if newCondition == nil {
-				return false
-			}
-			return (oldCondition == nil || !oldCondition.IsTrue()) && newCondition.IsTrue()
+			oldReady := oldCondition != nil && oldCondition.IsTrue()
+			newReady := newCondition != nil && newCondition.IsTrue()
+			return oldReady != newReady
 		},
 		DeleteFunc:  func(_ event.DeleteEvent) bool { return false },
 		GenericFunc: func(_ event.GenericEvent) bool { return false },

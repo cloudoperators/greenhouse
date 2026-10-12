@@ -48,6 +48,7 @@ type PluginReconciler struct {
 	HTTPRetry           int
 	artifactory         flux.IArtifactory
 
+	MaxConcurrentReconciles int
 	WorkloadIdentityEnabled bool
 	FeatureFlagsName        string
 	FeatureFlagsNamespace   string
@@ -99,7 +100,7 @@ func (r *PluginReconciler) SetupWithManager(name string, mgr ctrl.Manager) error
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(controller.Options{
-			MaxConcurrentReconciles: 10,
+			MaxConcurrentReconciles: r.MaxConcurrentReconciles,
 		}).
 		For(&greenhousev1alpha1.Plugin{}).
 		// Reconcile on owned flux HelmRelease changes.
@@ -118,6 +119,7 @@ func (r *PluginReconciler) SetupWithManager(name string, mgr ctrl.Manager) error
 		Watches(
 			&greenhousev1alpha1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForCluster),
+			builder.WithPredicates(predicates.PredicateClusterReadyStatusChange()),
 		).
 		Watches(
 			&greenhousev1alpha1.Team{},
