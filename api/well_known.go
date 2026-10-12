@@ -143,7 +143,8 @@ const (
 	ClusterWorkerlessAnnotation = "greenhouse.sap/workerless"
 
 	// AnnotationKeyKubeconfigOverrides allows per-cluster overrides of any ClusterKubeconfig field via a flat JSON
-	// object where keys are dot-separated paths (e.g. "clusters[0].cluster.server") and values are strings.
+	// object where keys are dot-separated paths (e.g. "clusters[0].cluster.server") and values are either a plain
+	// JSON string or a {"secretRef": {"name": "...", "key": "..."}} object resolved at reconcile time.
 	// Applied after the controller builds the spec; wins over greenhouse.sap/oidc-override on any overlapping field.
 	AnnotationKeyKubeconfigOverrides = "greenhouse.sap/kubeconfig-overrides"
 )

@@ -231,7 +231,30 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, nil
 	}
 
-	// collect oidc data and update kubeconfig
+	// Resolve annotation overrides before writing so they can be applied atomically in the
+	// single CreateOrPatch below — two separate patches would re-enqueue the resource on every
+	// reconcile because the controller watches ClusterKubeconfig via For(...).
+	var resolvedOverrides map[string]string
+	if raw, ok := cluster.Annotations[greenhouseapis.AnnotationKeyKubeconfigOverrides]; ok && raw != "" {
+		var oErr error
+		resolvedOverrides, oErr = resolveKubeconfigOverrides(ctx, r.Client, cluster.Namespace, raw)
+		if oErr != nil {
+			kubeconfig.Status.Conditions.SetConditions(
+				greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "OverrideResolveError", oErr.Error()),
+			)
+			_, perr := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
+				kubeconfig.Status = calculateKubeconfigStatus(&kubeconfig)
+				return nil
+			})
+			if perr != nil {
+				log.FromContext(ctx).Error(perr, "error setting status")
+			}
+			return ctrl.Result{}, oErr
+		}
+	}
+
+	// collect oidc data and update kubeconfig — overrides applied inside the same patch.
+	var applyErr error
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
 		kubeconfig.Spec.Kubeconfig.Clusters = []v1alpha1.ClusterKubeconfigClusterItem{
 			{
@@ -256,8 +279,30 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 				},
 			},
 		}
+		if resolvedOverrides != nil {
+			patched, oErr := applyKubeconfigOverrides(kubeconfig.Spec.Kubeconfig, resolvedOverrides)
+			if oErr != nil {
+				applyErr = oErr
+				return oErr
+			}
+			kubeconfig.Spec.Kubeconfig = patched
+		}
 		return nil
 	})
+
+	if applyErr != nil {
+		kubeconfig.Status.Conditions.SetConditions(
+			greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "OverrideError", applyErr.Error()),
+		)
+		_, perr := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
+			kubeconfig.Status = calculateKubeconfigStatus(&kubeconfig)
+			return nil
+		})
+		if perr != nil {
+			log.FromContext(ctx).Error(perr, "error setting status")
+		}
+		return ctrl.Result{}, applyErr
+	}
 
 	if err != nil {
 		// Reflect the error in status and avoid sticky issues later.
@@ -275,58 +320,10 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		l.Info("status updated", "result", sResult)
 		return ctrl.Result{}, err
 	}
-	l.Info("kubeconfig updated", "result", result)
-
-	// Apply generic kubeconfig overrides from annotation greenhouse.sap/kubeconfig-overrides.
-	// This runs after oidc-override and the main spec patch, so it wins on any overlapping field.
-	if raw, ok := cluster.Annotations[greenhouseapis.AnnotationKeyKubeconfigOverrides]; ok && raw != "" {
-		resolved, oErr := resolveKubeconfigOverrides(ctx, r.Client, cluster.Namespace, raw)
-		if oErr != nil {
-			kubeconfig.Status.Conditions.SetConditions(
-				greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "OverrideResolveError", oErr.Error()),
-			)
-			_, perr := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
-				kubeconfig.Status = calculateKubeconfigStatus(&kubeconfig)
-				return nil
-			})
-			if perr != nil {
-				log.FromContext(ctx).Error(perr, "error setting status")
-			}
-			return ctrl.Result{}, oErr
-		}
-		patched, oErr := applyKubeconfigOverrides(kubeconfig.Spec.Kubeconfig, resolved)
-		if oErr != nil {
-			kubeconfig.Status.Conditions.SetConditions(
-				greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "OverrideError", oErr.Error()),
-			)
-			_, perr := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
-				kubeconfig.Status = calculateKubeconfigStatus(&kubeconfig)
-				return nil
-			})
-			if perr != nil {
-				log.FromContext(ctx).Error(perr, "error setting status")
-			}
-			return ctrl.Result{}, oErr
-		}
-		_, oErr = clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
-			kubeconfig.Spec.Kubeconfig = patched
-			return nil
-		})
-		if oErr != nil {
-			kubeconfig.Status.Conditions.SetConditions(
-				greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "OverridePatchError", oErr.Error()),
-			)
-			_, perr := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
-				kubeconfig.Status = calculateKubeconfigStatus(&kubeconfig)
-				return nil
-			})
-			if perr != nil {
-				log.FromContext(ctx).Error(perr, "error setting status")
-			}
-			return ctrl.Result{}, oErr
-		}
+	if resolvedOverrides != nil {
 		l.Info("kubeconfig overrides applied")
 	}
+	l.Info("kubeconfig updated", "result", result)
 
 	// Success path: clear any previous failure condition and patch status.
 	kubeconfig.Status.Conditions.SetConditions(
