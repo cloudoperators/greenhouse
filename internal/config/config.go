@@ -14,7 +14,7 @@ import (
 )
 
 // ManagerConfig is the operational configuration for the greenhouse controller manager,
-// loaded from the greenhouse-manager-cm ConfigMap.
+// loaded from the greenhouse-cm ConfigMap.
 type ManagerConfig struct {
 	Controller map[string]ConcurrencyConfig
 }

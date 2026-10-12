@@ -65,9 +65,6 @@ func isControllerEnabled(controllerName string) bool {
 	return controllerName == "*" || slices.Contains(enabledControllers, controllerName)
 }
 
-// startOrganizationReconciler - initializes the organization reconciler
-// resolves dex storage backend from greenhouse-feature-flags
-// initializes the dex storage adapter interface in the organization reconciler
 func startTeamReconciler(name string, mgr ctrl.Manager) error {
 	return (&teamcontrollers.TeamController{
 		MaxConcurrentReconciles: managerConfig.GetMaxConcurrentReconciles(name, 1),

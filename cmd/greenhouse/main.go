@@ -199,18 +199,17 @@ func main() {
 		handleError(err, "unable to get features")
 	}
 
-	managerConfig, err = greenhouseconfig.NewManagerConfig(
-		context.TODO(),
-		k8sClient,
-		clientutil.GetEnvOrDefault(managerConfigEnv, "greenhouse-cm"),
-		clientutil.GetEnvOrDefault(podNamespaceEnv, defaultPodNamespace),
-	)
-	if err != nil {
-		handleError(err, "unable to get manager config")
-	}
-
 	// Register controllers.
 	if mode != webhookOnlyMode {
+		managerConfig, err = greenhouseconfig.NewManagerConfig(
+			context.TODO(),
+			k8sClient,
+			clientutil.GetEnvOrDefault(managerConfigEnv, "greenhouse-cm"),
+			clientutil.GetEnvOrDefault(podNamespaceEnv, defaultPodNamespace),
+		)
+		if err != nil {
+			handleError(err, "unable to get manager config")
+		}
 		for controllerName, hookFunc := range knownControllers {
 			if !isControllerEnabled(controllerName) {
 				setupLog.Info("skipping controller", "name", controllerName)
