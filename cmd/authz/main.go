@@ -14,11 +14,15 @@ import (
 	"time"
 
 	"go.uber.org/zap/zapcore"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -27,6 +31,7 @@ import (
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
+	"github.com/cloudoperators/greenhouse/internal/authz"
 	"github.com/cloudoperators/greenhouse/internal/version"
 )
 
@@ -81,7 +86,7 @@ func main() {
 	var webhookServer webhook.Server
 
 	if secure {
-		// By default it takes tls.crt and tls.key from CertDir.
+		// By default, it takes tls.crt and tls.key from CertDir.
 		webhookServer = webhook.NewServer(webhook.Options{
 			Port:         webhookPort,
 			CertDir:      webhookCertDir,
@@ -99,6 +104,13 @@ func main() {
 		Metrics:                metricsServerOptions,
 		HealthProbeBindAddress: healthzAddr,
 		LeaderElection:         false,
+		Cache: cache.Options{
+			ByObject: map[client.Object]cache.ByObject{
+				&corev1.Secret{}: {
+					Label: labels.SelectorFromSet(labels.Set{"owner": "helm"}),
+				},
+			},
+		},
 	}
 
 	if secure {
@@ -108,13 +120,7 @@ func main() {
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), mgrOptions)
 	handleError(err, "Failed to create manager")
 
-	// Register the authorizer webhook.
-	client := mgr.GetClient()
-	mapper := mgr.GetRESTMapper()
-
-	handler := instrumentHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handleAuthorize(w, r, client, mapper)
-	}))
+	handler := authz.NewAuthorizer(mgr.GetClient(), logger)
 
 	if secure {
 		mgr.GetWebhookServer().Register("/authorize", handler)
@@ -142,7 +148,7 @@ func addInsecureWebhookServer(mgr manager.Manager, port int, path string, handle
 		mux.Handle(path, handler)
 
 		addr := ":" + strconv.Itoa(port)
-		srv := &http.Server{Addr: addr, Handler: mux}
+		srv := &http.Server{Addr: addr, Handler: mux, ReadHeaderTimeout: 10 * time.Second}
 
 		errCh := make(chan error, 1)
 		go func() { errCh <- srv.ListenAndServe() }()
