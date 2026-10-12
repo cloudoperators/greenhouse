@@ -254,8 +254,23 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// collect oidc data and update kubeconfig — overrides applied inside the same patch.
+	// All controller-managed fields are reset on every reconcile so that removing the
+	// kubeconfig-overrides annotation fully restores the baseline values.
 	var applyErr error
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
+		kubeconfig.Spec.Kubeconfig.Kind = "Config"
+		kubeconfig.Spec.Kubeconfig.APIVersion = "v1"
+		kubeconfig.Spec.Kubeconfig.CurrentContext = cluster.Name
+		kubeconfig.Spec.Kubeconfig.Contexts = []v1alpha1.ClusterKubeconfigContextItem{
+			{
+				Name: cluster.Name,
+				Context: v1alpha1.ClusterKubeconfigContext{
+					Cluster:   cluster.Name,
+					AuthInfo:  "oidc@" + cluster.Name,
+					Namespace: "default",
+				},
+			},
+		}
 		kubeconfig.Spec.Kubeconfig.Clusters = []v1alpha1.ClusterKubeconfigClusterItem{
 			{
 				Name: cluster.Name,
