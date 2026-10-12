@@ -18,6 +18,7 @@ spec:
       annotations:
         kubectl.kubernetes.io/default-container: manager
         prometheus.io/scrape: "true"
+        checksum/manager-config: {{ include (print $.Template.BasePath "/manager/manager-config.yaml") . | sha256sum }}
     spec:
       containers:
         - command:
