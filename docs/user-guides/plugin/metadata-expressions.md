@@ -87,3 +87,4 @@ For a complete list of available CEL string functions, see the [CEL string exten
 - [Plugin reference](./../../../reference/components/plugin)
 - [PluginPreset reference](./../../../reference/components/pluginpreset)
 - [Managing Plugins for multiple clusters](./../plugin-management)
+- [Connecting Plugins with References](./../plugin-integration)
