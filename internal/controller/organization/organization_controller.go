@@ -31,6 +31,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/scim"
 	"github.com/cloudoperators/greenhouse/internal/util"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
+	"github.com/cloudoperators/greenhouse/pkg/predicates"
 )
 
 var (
@@ -100,16 +101,16 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 		Owns(&rbacv1.ClusterRoleBinding{}).
 		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueOrganizationForReferencedSecret),
-			builder.WithPredicates(clientutil.PredicateFilterBySecretTypes(greenhouseapis.SecretTypeOrganization))).
+			builder.WithPredicates(predicates.PredicateFilterBySecretTypes(greenhouseapis.SecretTypeOrganization))).
 		Watches(&greenhousev1alpha1.ClusterPluginDefinition{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueAllOrganizationsForServiceProxyPluginDefinition),
 			builder.WithPredicates(predicate.And(
-				clientutil.PredicateByName(serviceProxyName),
+				predicates.PredicateByName(serviceProxyName),
 				predicate.GenerationChangedPredicate{},
 			))).
 		Watches(&corev1.ConfigMap{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueOrganizationsForReferencedConfigMap),
-			builder.WithPredicates(clientutil.PredicateHasLabelWithValue(greenhouseapis.LabelKeyOrgConfigMap, "true")))
+			builder.WithPredicates(predicates.PredicateHasLabelWithValue(greenhouseapis.LabelKeyOrgConfigMap, "true")))
 	if r.DexStorageType == dexstore.K8s {
 		b.Owns(&dexapi.Connector{}).
 			Owns(&dexapi.OAuth2Client{})

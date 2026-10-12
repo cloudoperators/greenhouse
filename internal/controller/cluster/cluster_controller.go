@@ -22,11 +22,11 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	clusterphases "github.com/cloudoperators/greenhouse/internal/controller/cluster/phases"
 	"github.com/cloudoperators/greenhouse/internal/features"
 	"github.com/cloudoperators/greenhouse/internal/util"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
+	"github.com/cloudoperators/greenhouse/pkg/predicates"
 )
 
 // RemoteClusterReconciler reconciles a Cluster object with accessMode=direct set.
@@ -60,12 +60,12 @@ func (r *RemoteClusterReconciler) SetupWithManager(name string, mgr ctrl.Manager
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&greenhousev1alpha1.Cluster{}, builder.WithPredicates(
-			clientutil.PredicateClusterByAccessMode(greenhousev1alpha1.ClusterAccessModeDirect),
+			predicates.PredicateClusterByAccessMode(greenhousev1alpha1.ClusterAccessModeDirect),
 		)).
 		Watches(&corev1.Secret{}, handler.EnqueueRequestForOwner(mgr.GetScheme(), mgr.GetRESTMapper(), &greenhousev1alpha1.Cluster{})).
 		// Watch the feature flags ConfigMap to hot-reload the workload identity feature gate.
 		Watches(&corev1.ConfigMap{}, handler.EnqueueRequestsFromMapFunc(r.reloadFeatureFlags), builder.WithPredicates(
-			clientutil.PredicateHasLabelWithValue(greenhouseapis.LabelKeyFeatureFlags, "true"),
+			predicates.PredicateHasLabelWithValue(greenhouseapis.LabelKeyFeatureFlags, "true"),
 		)).
 		WithOptions(controller.Options{MaxConcurrentReconciles: 5}).
 		Complete(r)
