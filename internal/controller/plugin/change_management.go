@@ -28,6 +28,8 @@ var changeReportRetryInterval = time.Minute
 type changeManagementConfig struct {
 	Endpoint        string `yaml:"endpoint"`
 	SecretName      string `yaml:"secretName"`
+	TokenURL        string `yaml:"tokenURL"`
+	TokenHeader     string `yaml:"tokenHeader"`
 	PayloadTemplate string `yaml:"payloadTemplate"`
 }
 
@@ -134,7 +136,7 @@ func (r *PluginReconciler) sendChange(ctx context.Context, plugin *greenhousev1a
 	if err != nil || payload == nil {
 		return err
 	}
-	auth := changemanagement.Auth{}
+	auth := changemanagement.Auth{TokenURL: config.TokenURL, TokenHeader: config.TokenHeader}
 	if config.SecretName != "" {
 		secret := &corev1.Secret{}
 		if err := r.Get(ctx, types.NamespacedName{Name: config.SecretName, Namespace: plugin.Namespace}, secret); err != nil {

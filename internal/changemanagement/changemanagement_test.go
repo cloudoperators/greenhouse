@@ -35,6 +35,35 @@ var _ = Describe("Client", func() {
 		Expect(body).To(MatchJSON(`{"digest": "sha256:1"}`))
 	})
 
+	DescribeTable("trades the credentials for an OAuth2 token at the token URL",
+		func(ctx SpecContext, tokenHeader, header, value string) {
+			var clientID, clientSecret, grantType, received string
+			mux := http.NewServeMux()
+			mux.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
+				defer GinkgoRecover()
+				clientID, clientSecret, _ = r.BasicAuth()
+				grantType = r.FormValue("grant_type")
+				w.Header().Set("Content-Type", "application/json")
+				_, err := io.WriteString(w, `{"access_token": "token", "token_type": "Bearer"}`)
+				Expect(err).ToNot(HaveOccurred())
+			})
+			mux.HandleFunc("/events", func(_ http.ResponseWriter, r *http.Request) {
+				received = r.Header.Get(header)
+			})
+			server := httptest.NewServer(mux)
+			defer server.Close()
+
+			auth := Auth{Username: "greenhouse", Password: "secret", TokenURL: server.URL + "/token", TokenHeader: tokenHeader}
+			Expect(New(server.URL+"/events", auth).Send(ctx, []byte(`{}`))).To(Succeed())
+			Expect(clientID).To(Equal("greenhouse"))
+			Expect(clientSecret).To(Equal("secret"))
+			Expect(grantType).To(Equal("client_credentials"))
+			Expect(received).To(Equal(value))
+		},
+		Entry("in the configured header", "X-Auth-Token", "X-Auth-Token", "token"),
+		Entry("as a bearer token by default", "", "Authorization", "Bearer token"),
+	)
+
 	It("fails when the endpoint does not accept the change", func(ctx SpecContext) {
 		endpoint := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusServiceUnavailable)
