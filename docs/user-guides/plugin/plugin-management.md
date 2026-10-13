@@ -57,3 +57,4 @@ See [Writing a PluginPreset Spec](./../../../reference/components/pluginpreset#w
 - [Plugin reference](./../../../reference/components/plugin)
 - [PluginPreset reference](./../../../reference/components/pluginpreset)
 - [PluginDefinition reference](./../../../reference/components/plugindefinition)
+- [Connecting Plugins with References](./../plugin-integration)
