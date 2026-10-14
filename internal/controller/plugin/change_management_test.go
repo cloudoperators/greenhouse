@@ -19,6 +19,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
+	fluxmeta "github.com/fluxcd/pkg/apis/meta"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -96,12 +97,19 @@ func releaseSnapshot(digest string, version int) *helmv2.Snapshot {
 
 func setReleaseHistory(plugin *greenhousev1alpha1.Plugin, snapshots ...*helmv2.Snapshot) {
 	GinkgoHelper()
-	Eventually(func(g Gomega) {
-		helmRelease := &helmv2.HelmRelease{}
-		g.Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(plugin), helmRelease)).To(Succeed())
-		helmRelease.Status.History = snapshots
-		g.Expect(test.K8sClient.Status().Update(test.Ctx, helmRelease)).To(Succeed())
-	}).Should(Succeed())
+	now := metav1.Now()
+	for _, ready := range []metav1.Condition{
+		{Type: fluxmeta.ReadyCondition, Status: metav1.ConditionUnknown, Reason: fluxmeta.ProgressingReason, LastTransitionTime: now},
+		{Type: fluxmeta.ReadyCondition, Status: metav1.ConditionTrue, Reason: helmv2.UpgradeSucceededReason, LastTransitionTime: now},
+	} {
+		Eventually(func(g Gomega) {
+			helmRelease := &helmv2.HelmRelease{}
+			g.Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(plugin), helmRelease)).To(Succeed())
+			helmRelease.Status.History = snapshots
+			helmRelease.Status.Conditions = []metav1.Condition{ready}
+			g.Expect(test.K8sClient.Status().Update(test.Ctx, helmRelease)).To(Succeed())
+		}).Should(Succeed())
+	}
 }
 
 func triggerReconcile(g Gomega, plugin *greenhousev1alpha1.Plugin) {
