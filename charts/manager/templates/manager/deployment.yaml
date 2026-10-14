@@ -18,6 +18,7 @@ spec:
       annotations:
         kubectl.kubernetes.io/default-container: manager
         prometheus.io/scrape: "true"
+        checksum/manager-config: {{ include (print $.Template.BasePath "/manager/manager-config.yaml") . | sha256sum }}
     spec:
       containers:
         - command:
@@ -44,6 +45,8 @@ spec:
             {{- end }}
             - name: FEATURE_FLAGS
               value: {{ template "featureFlag.fullname" . }}
+            - name: MANAGER_CONFIG
+              value: greenhouse-cm
             - name: CONTROLLERS_ONLY
               value: "true"
             - name: POD_NAMESPACE

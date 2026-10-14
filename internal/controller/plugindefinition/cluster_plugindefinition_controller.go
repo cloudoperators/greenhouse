@@ -12,6 +12,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
@@ -26,9 +27,10 @@ import (
 
 type ClusterPluginDefinitionReconciler struct {
 	client.Client
-	Scheme              *runtime.Scheme
-	recorder            events.EventRecorder
-	OCIMirroringEnabled bool
+	Scheme                  *runtime.Scheme
+	recorder                events.EventRecorder
+	MaxConcurrentReconciles int
+	OCIMirroringEnabled     bool
 }
 
 func (r *ClusterPluginDefinitionReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
@@ -38,7 +40,9 @@ func (r *ClusterPluginDefinitionReconciler) SetupWithManager(name string, mgr ct
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&greenhousev1alpha1.ClusterPluginDefinition{}).
-		Owns(&sourcev1.HelmChart{}, builder.WithPredicates(predicates.PredicateIgnoreDeletingResources())).Complete(r)
+		Owns(&sourcev1.HelmChart{}, builder.WithPredicates(predicates.PredicateIgnoreDeletingResources())).
+		WithOptions(controller.Options{MaxConcurrentReconciles: r.MaxConcurrentReconciles}).
+		Complete(r)
 }
 
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=ocirepositories, verbs=get;list;watch;create;update;patch;delete

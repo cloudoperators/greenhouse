@@ -13,6 +13,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
@@ -26,6 +27,7 @@ import (
 type BootstrapReconciler struct {
 	client.Client
 	recorder                events.EventRecorder
+	MaxConcurrentReconciles int
 	WorkloadIdentityEnabled bool
 	FeatureFlagsName        string
 	FeatureFlagsNamespace   string
@@ -60,6 +62,7 @@ func (r *BootstrapReconciler) SetupWithManager(name string, mgr ctrl.Manager) er
 		)).
 		// (WI feature gate) Owns the workload identity ConfigMap rendered for OIDC clusters.
 		Owns(&corev1.ConfigMap{}).
+		WithOptions(controller.Options{MaxConcurrentReconciles: r.MaxConcurrentReconciles}).
 		Complete(r)
 }
 

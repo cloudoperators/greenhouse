@@ -31,6 +31,27 @@ controllerManager:
   artifactStorage:
     path: /tmp/data
     sizeLimit: 1Gi
+  config:
+    plugin:
+      maxConcurrentReconciles: 10
+    pluginPreset:
+      maxConcurrentReconciles: 10
+    cluster:
+      maxConcurrentReconciles: 5
+    catalog:
+      maxConcurrentReconciles: 5
+    team:
+      maxConcurrentReconciles: 5
+    teamRoleBinding:
+      maxConcurrentReconciles: 5
+    bootstrap:
+      maxConcurrentReconciles: 5
+    kubeconfig:
+      maxConcurrentReconciles: 1
+    pluginDefinition:
+      maxConcurrentReconciles: 10
+    clusterPluginDefinition:
+      maxConcurrentReconciles: 5
 
 webhook:
   replicas: 2

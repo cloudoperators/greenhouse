@@ -6,6 +6,7 @@ package helm
 import (
 	"context"
 	"errors"
+	"maps"
 	"os"
 
 	"helm.sh/helm/v3/pkg/release"
@@ -196,12 +197,30 @@ func (c *client) prepareChartAndValues() (*chart.Chart, helmValues, error) {
 		if err != nil {
 			return nil, nil, err
 		}
-		err = yaml.Unmarshal(valBytes, &vals)
-		if err != nil {
+		var overrides map[string]any
+		if err = yaml.Unmarshal(valBytes, &overrides); err != nil {
 			return nil, nil, err
 		}
+		vals = mergeMaps(localChart.Values, overrides)
 	} else {
 		vals = c.values
 	}
 	return localChart, vals, nil
+}
+
+func mergeMaps(dst, src map[string]any) map[string]any {
+	out := make(map[string]any, len(dst))
+	maps.Copy(out, dst)
+	for k, v := range src {
+		if dstVal, ok := out[k]; ok {
+			if dstMap, ok := dstVal.(map[string]any); ok {
+				if srcMap, ok := v.(map[string]any); ok {
+					out[k] = mergeMaps(dstMap, srcMap)
+					continue
+				}
+			}
+		}
+		out[k] = v
+	}
+	return out
 }
