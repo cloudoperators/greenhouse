@@ -12,9 +12,13 @@ Greenhouse allows you to define metadata labels on Clusters and use them in Plug
 
 For information on setting metadata labels on Clusters, see [Setting Metadata Labels](./../../../reference/components/cluster#setting-metadata-labels).
 
+## Prerequisites
+
+The feature flag `pluginPreset.expressionEvaluationEnabled` must be enabled in your Greenhouse installation. It is off by default, see [Feature Flags](./../../../reference/components/pluginpreset#feature-flags).
+
 ## Using Expressions with PluginPresets
 
-Expressions are particularly powerful with PluginPresets, allowing you to deploy Plugins to multiple clusters with cluster-specific configurations:
+Expressions can be used in the `optionValues` of a PluginPreset to deploy Plugins to multiple clusters with cluster-specific configurations:
 
 ```yaml
 apiVersion: greenhouse.sap/v1alpha1
@@ -32,9 +36,12 @@ spec:
       name: kube-monitoring
     releaseNamespace: monitoring
     optionValues:
-      - name: prometheus.remoteWrite.url
-        expression: "https://thanos.${global.greenhouse.metadata.region}.example.com/api/v1/receive"
-      - name: grafana.dashboards.annotations
+      - name: kubeMonitoring.prometheus.ingress.enabled
+        value: true
+      - name: kubeMonitoring.prometheus.ingress.hosts
+        expression: |
+          - prometheus.${global.greenhouse.clusterName}.example.com
+      - name: global.commonLabels
         expression: |
           cluster: ${global.greenhouse.clusterName}
           region: ${global.greenhouse.metadata.region}
@@ -45,6 +52,25 @@ This PluginPreset will:
 1. Select all clusters with the `metadata.greenhouse.sap/tier: premium` label
 2. Create a Plugin for each matching cluster
 3. Resolve expressions using each cluster's specific metadata
+
+The Plugin created for a cluster named `cluster-a` with the labels `metadata.greenhouse.sap/region: eu-de-1` and `metadata.greenhouse.sap/environment: production` contains the resolved values:
+
+```yaml
+spec:
+  optionValues:
+    - name: kubeMonitoring.prometheus.ingress.enabled
+      value: true
+    - name: kubeMonitoring.prometheus.ingress.hosts
+      value:
+        - prometheus.cluster-a.example.com
+    - name: global.commonLabels
+      value:
+        cluster: cluster-a
+        region: eu-de-1
+        environment: production
+```
+
+See [CEL Expressions in OptionValues](./../../../reference/components/pluginpreset#cel-expressions-in-optionvalues) for more details.
 
 ## Available Variables
 

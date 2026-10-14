@@ -8,19 +8,129 @@ description: >
 
 ## Overview
 
-A central Thanos Query has to know the endpoint of every regional Thanos. Written into its PluginPreset by hand, that list needs an edit for every new region.
+This guide describes how to use values of other Plugins in a PluginPreset.
 
-Instead, a PluginPreset option can take its value from other Plugins in the same namespace with `valueFrom.ref`. The reference names a Plugin or selects several by label, and a CEL expression picks the value out of each of them. Greenhouse resolves the reference for every cluster the PluginPreset deploys to, writes the result into the generated Plugin as a plain value and resolves it again whenever a referenced Plugin changes.
+An option of a PluginPreset can take its value from another Plugin or PluginPreset in the same namespace with `valueFrom.ref`. A CEL expression selects the value. Greenhouse resolves the reference for each cluster and writes the result into the generated Plugin as a plain value. When the spec or labels of the referenced Plugin or PluginPreset change, or the status of a referenced Plugin, the value is resolved again.
 
-This guide sets up the Thanos example. All fields are described in [ValueFrom References](./../../../reference/components/pluginpreset#valuefrom-references).
+The guide covers the following cases:
+
+| Case | Description | Example |
+|------|-------------|---------|
+| [n:n](#nn-integration) | Each Plugin reads a value from the other Plugin on the same cluster. | Perses on every cluster gets the ServiceMonitor labels of the Prometheus on the same cluster. |
+| [1:n](#1n-integration) | One Plugin collects a value from multiple Plugins. | A global Thanos Query discovers the Thanos endpoints of all clusters. |
+| [n:1](#n1-integration) | Multiple Plugins read a value from the same Plugin. | The Prometheus on every cluster sends its alerts to one central Alertmanager. |
+| [m:n](#mn-integration) | Multiple Plugins each collect a value from a different group of Plugins. | A Thanos Query per domain, such as compute or storage, discovers the Thanos endpoints of the clusters in its domain. |
+
+The examples use the `kube-monitoring`, `perses`, `thanos` and `alerts` Plugins. They are only examples, references work the same way between any other Plugins.
+
+See [ValueFrom References](./../../../reference/components/pluginpreset#valuefrom-references) for more details on all fields.
 
 ## Prerequisites
 
 The feature flags `pluginPreset.expressionEvaluationEnabled` and `pluginPreset.integrationEnabled` must be enabled in your Greenhouse installation. Both are off by default, see [Feature Flags](./../../../reference/components/pluginpreset#feature-flags).
 
-## A regional Thanos on every cluster
+## n:n integration
 
-The `thanos-regional` PluginPreset deploys Thanos to every cluster labelled `cluster-type: observability` and builds the host of its gRPC ingress from the cluster label `metadata.greenhouse.sap/region`:
+Each Plugin reads a value from the other Plugin on the same cluster. Both are created from PluginPresets deployed to the same clusters, and the reference points to the other PluginPreset.
+
+For example, Perses and Prometheus are deployed to the same clusters. The Prometheus only scrapes ServiceMonitors with certain labels, so the ServiceMonitor of Perses needs these labels.
+
+The `kube-monitoring` PluginPreset sets the labels the Prometheus selects ServiceMonitors by:
+
+```yaml
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginPreset
+metadata:
+  name: kube-monitoring
+  namespace: example-organization
+spec:
+  clusterSelector:
+    matchLabels:
+      cluster-type: observability
+  plugin:
+    pluginDefinitionRef:
+      kind: ClusterPluginDefinition
+      name: kube-monitoring
+    releaseName: kube-monitoring
+    releaseNamespace: kube-monitoring
+    optionValues:
+      - name: kubeMonitoring.prometheus.prometheusSpec.serviceMonitorSelector
+        value:
+          matchLabels:
+            plugin: kube-monitoring
+```
+
+The `perses` PluginPreset reads these labels from the `kube-monitoring` PluginPreset:
+
+```yaml
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginPreset
+metadata:
+  name: perses
+  namespace: example-organization
+spec:
+  clusterSelector:
+    matchLabels:
+      cluster-type: observability
+  plugin:
+    pluginDefinitionRef:
+      kind: ClusterPluginDefinition
+      name: perses
+    releaseName: perses
+    releaseNamespace: kube-monitoring
+    optionValues:
+      - name: perses.serviceMonitor.selfMonitor
+        value: true
+      - name: perses.serviceMonitor.labels
+        valueFrom:
+          ref:
+            kind: PluginPreset
+            name: kube-monitoring
+            expression: |
+              ${spec.plugin.optionValues.filter(v, v.name == "kubeMonitoring.prometheus.prometheusSpec.serviceMonitorSelector")[0].value.matchLabels}
+```
+
+The Plugin created for each cluster contains the resolved value:
+
+```yaml
+spec:
+  optionValues:
+    - name: perses.serviceMonitor.selfMonitor
+      value: true
+    - name: perses.serviceMonitor.labels
+      value:
+        plugin: kube-monitoring
+```
+
+A reference to a PluginPreset is resolved for each cluster separately. If `kube-monitoring` sets different labels for a cluster in its `clusterOptionOverrides`, the Perses on that cluster gets these labels.
+
+### Referencing a Plugin instead of a PluginPreset
+
+A reference to a PluginPreset can only read what is set in the PluginPreset. To read from the Plugin on a cluster, for example its `status`, use `kind: Plugin`. The name of a Plugin is `<PluginPreset name>-<cluster name>`, so the reference has to be set for each cluster in `clusterOptionOverrides`:
+
+```yaml
+spec:
+  clusterOptionOverrides:
+    - clusterName: obs-eu-de-1
+      overrides:
+        - name: perses.serviceMonitor.labels
+          valueFrom:
+            ref:
+              kind: Plugin
+              name: kube-monitoring-obs-eu-de-1
+              expression: |
+                ${spec.optionValues.filter(v, v.name == "kubeMonitoring.prometheus.prometheusSpec.serviceMonitorSelector")[0].value.matchLabels}
+```
+
+See [What a reference returns](./../../../reference/components/pluginpreset#what-a-reference-returns) for the difference between the two kinds.
+
+## 1:n integration
+
+A Plugin collects a value from multiple Plugins. The Plugins are selected by their labels, and the results are collected into a list.
+
+For example, a central Thanos Query needs the gRPC endpoint of the Thanos on every cluster.
+
+The `thanos-regional` PluginPreset deploys Thanos to all clusters with the label `cluster-type: observability` and exposes its Thanos Query via a gRPC ingress. The host is built from the cluster name:
 
 ```yaml
 apiVersion: greenhouse.sap/v1alpha1
@@ -43,17 +153,13 @@ spec:
         value: true
       - name: thanos.query.ingress.grpc.hosts
         expression: |
-          - host: thanos-grpc.${global.greenhouse.metadata.region}.example.com
+          - host: thanos-grpc.${global.greenhouse.clusterName}.example.com
             paths:
               - path: /
                 pathType: ImplementationSpecific
 ```
 
-Greenhouse creates one Plugin per matching cluster, for example `thanos-regional-obs-eu-de-1`, with the expression already resolved to the host. Every Plugin created by a PluginPreset carries the label `greenhouse.sap/pluginpreset: <PluginPreset name>`, the next section selects on it.
-
-## A central Thanos Query for all regions
-
-The `thanos-global` PluginPreset deploys a central Thanos Query to the cluster `obs-eu-de-1`. Its `thanos.query.stores` holds a fixed Thanos sidecar and the gRPC host of every regional Thanos:
+The `thanos-global` PluginPreset deploys the central Thanos Query to the cluster `obs-eu-de-1`. It selects all Plugins created by `thanos-regional` via the label `greenhouse.sap/pluginpreset` and reads the host from each of them:
 
 ```yaml
 apiVersion: greenhouse.sap/v1alpha1
@@ -85,7 +191,7 @@ spec:
               ${spec.optionValues.filter(v, v.name == "thanos.query.ingress.grpc.hosts")[0].value[0].host + ":443"}
 ```
 
-The selector matches every Plugin created by `thanos-regional`. The expression runs once per Plugin and the results are collected into one list, ordered by Plugin name. The option's own `value` goes first, and an entry that shows up twice is kept once. The generated Plugin only holds the result:
+The expression is evaluated for each matching Plugin. The `value` of the option is added in front of the list. The created Plugin contains:
 
 ```yaml
 spec:
@@ -93,28 +199,91 @@ spec:
     - name: thanos.query.stores
       value:
         - thanos-sidecar.monitoring:10901
-        - thanos-grpc.eu-de-1.example.com:443
-        - thanos-grpc.eu-nl-1.example.com:443
+        - thanos-grpc.obs-eu-de-1.example.com:443
+        - thanos-grpc.obs-eu-nl-1.example.com:443
 ```
 
-The reference uses `kind: Plugin`. With `kind: PluginPreset` and `name: thanos-regional`, Greenhouse would resolve `thanos-regional` for the cluster of `thanos-global` only and return a single host.
+When another cluster is labelled with `cluster-type: observability`, `thanos-regional` creates a Plugin for it and Greenhouse adds its host to the `thanos.query.stores` of the central Thanos Query. When a Plugin is deleted, its host is removed again.
 
-## Adding a region
+> :information_source: The reference has to use `kind: Plugin` here. A reference to the PluginPreset `thanos-regional` is resolved for the cluster of the central Thanos Query only and returns a single host.
 
-To add a region, label its cluster:
+## n:1 integration
 
-```bash
-kubectl label cluster obs-ap-jp-1 \
-  cluster-type=observability \
-  metadata.greenhouse.sap/region=ap-jp-1 \
-  --namespace=example-organization
+Multiple Plugins read a value from the same Plugin. This is a reference to a Plugin by name in a PluginPreset that is deployed to more than one cluster. Every created Plugin gets the same value.
+
+For example, the Prometheus on every cluster sends its alerts to one central Alertmanager. The Alertmanager is deployed by the Plugin `alerts`, which sets its hostnames in the option `alerts.alertmanager.ingress.hosts`. The `kube-monitoring` PluginPreset reads them from this Plugin:
+
+```yaml
+spec:
+  plugin:
+    optionValues:
+      - name: alerts.enabled
+        value: true
+      - name: alerts.alertmanagers.hosts
+        valueFrom:
+          ref:
+            kind: Plugin
+            name: alerts
+            expression: |
+              ${spec.optionValues.filter(v, v.name == "alerts.alertmanager.ingress.hosts")[0].value}
 ```
 
-Nothing else has to change. `thanos-regional` deploys Thanos to the new cluster, and as soon as its Plugin exists Greenhouse resolves `thanos-global` again and adds `thanos-grpc.ap-jp-1.example.com:443` to `thanos.query.stores`. When a regional Plugin is deleted, for example because its cluster no longer matches, its entry goes away.
+## m:n integration
 
-## Reading the status
+Multiple Plugins each collect a value from a different group of Plugins. This is a PluginPreset deployed to more than one cluster, with a reference with a selector set for each cluster in `clusterOptionOverrides`.
 
-The gRPC host is set before Thanos is deployed, so the expression reads it from `spec`. Values that only exist once a Plugin is deployed are in its `status`. `status.exposedServices` maps the URL of every Service and Ingress Greenhouse exposes for the Plugin to its details, see [URLs for exposed services and ingresses](./../plugin-deployment#urls-for-exposed-services-and-ingresses). This reference collects the URLs of every regional Thanos:
+For example, the clusters are split into domains, such as compute and storage. Each domain has its own Thanos Query that needs the gRPC endpoints of the Thanos in its domain only.
+
+The Thanos in each domain is deployed by its own PluginPreset, `thanos-compute` for the clusters with the label `domain: compute` and `thanos-storage` for the clusters with the label `domain: storage`. Both are set up like `thanos-regional` in the 1:n integration.
+
+The `thanos-domain` PluginPreset deploys a Thanos Query to the clusters `obs-compute` and `obs-storage`. Each of them selects the Plugins of its domain:
+
+```yaml
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginPreset
+metadata:
+  name: thanos-domain
+  namespace: example-organization
+spec:
+  clusterSelector:
+    matchLabels:
+      thanos-domain: "true"
+  plugin:
+    pluginDefinitionRef:
+      kind: ClusterPluginDefinition
+      name: thanos
+    releaseName: thanos-domain
+    releaseNamespace: kube-monitoring
+  clusterOptionOverrides:
+    - clusterName: obs-compute
+      overrides:
+        - name: thanos.query.stores
+          valueFrom:
+            ref:
+              kind: Plugin
+              selector:
+                matchLabels:
+                  greenhouse.sap/pluginpreset: thanos-compute
+              expression: |
+                ${spec.optionValues.filter(v, v.name == "thanos.query.ingress.grpc.hosts")[0].value[0].host + ":443"}
+    - clusterName: obs-storage
+      overrides:
+        - name: thanos.query.stores
+          valueFrom:
+            ref:
+              kind: Plugin
+              selector:
+                matchLabels:
+                  greenhouse.sap/pluginpreset: thanos-storage
+              expression: |
+                ${spec.optionValues.filter(v, v.name == "thanos.query.ingress.grpc.hosts")[0].value[0].host + ":443"}
+```
+
+The Plugin on `obs-compute` gets the hosts of all compute clusters, the Plugin on `obs-storage` the hosts of all storage clusters. The selector has to be set for each cluster, as `ref.selector` is used as it is. See [What a reference returns](./../../../reference/components/pluginpreset#what-a-reference-returns) for more details.
+
+## Reading the status of a Plugin
+
+An expression can also read the `status` of a Plugin, for example the URLs of its exposed services. See [URLs for exposed services and ingresses](./../plugin-deployment#urls-for-exposed-services-and-ingresses) for more details on these URLs.
 
 ```yaml
 valueFrom:
@@ -127,33 +296,11 @@ valueFrom:
       ${status.exposedServices.map(url, url).sort()}
 ```
 
-`exposedServices` is a map and a map has no order. Without `.sort()` the URLs come back in a different order on every resolution, so the generated Plugin is written again each time and never settles.
-
-Greenhouse also resolves the reference again when the status of a referenced Plugin changes.
-
-## A different Plugin on each cluster
-
-`${global.greenhouse.clusterName}` is resolved in an `expression`, but not in `ref.name` or `ref.selector`. To read a different Plugin on each cluster, set the reference per cluster in `clusterOptionOverrides`. For example, to give a Plugin the gRPC host of the Thanos in its own region:
-
-```yaml
-spec:
-  clusterOptionOverrides:
-    - clusterName: obs-eu-de-1
-      overrides:
-        - name: app.thanosHost
-          valueFrom:
-            ref:
-              kind: Plugin
-              name: thanos-regional-obs-eu-de-1
-              expression: |
-                ${spec.optionValues.filter(v, v.name == "thanos.query.ingress.grpc.hosts")[0].value[0].host}
-```
-
-Every cluster needs its own override, so a new region is not picked up on its own here.
+`exposedServices` is a map and has no defined order, so the result has to be sorted. See [What an expression can read](./../../../reference/components/pluginpreset#what-an-expression-can-read) for more details.
 
 ## Troubleshooting
 
-If a reference can't be resolved for a cluster, Greenhouse leaves the Plugin for that cluster as it is. An existing Plugin keeps its last resolved values, a new one is not created, and the other clusters are not affected. The PluginPreset is not Ready until the reference resolves, and the `PluginFailed` condition in its `statusConditions` holds the error for every affected Plugin:
+If a reference can't be resolved for a cluster, the Plugin for this cluster is not created or updated and the PluginPreset is not Ready. The error is shown in the `PluginFailed` condition of the PluginPreset:
 
 ```bash
 kubectl describe pluginpreset thanos-global --namespace=example-organization
@@ -161,10 +308,13 @@ kubectl describe pluginpreset thanos-global --namespace=example-organization
 
 | Error | Cause |
 |-------|-------|
-| `failed to get Plugin <name>: ... not found` | The referenced Plugin does not exist (yet). |
-| `no Plugins found matching selector ...` | The selector matches no Plugin in the namespace. |
+| `failed to get Plugin <name>: ... not found` or `failed to get PluginPreset <name>: ... not found` | The referenced Plugin or PluginPreset does not exist (yet). |
+| `no Plugins found matching selector ...` or `no PluginPresets found matching selector ...` | The selector matches no Plugin or PluginPreset in the namespace. |
+| `index out of bounds: 0` | The expression filters for an option that is not set on the referenced Plugin or PluginPreset. |
 | `no such key: <field>` | The expression reads a field the referenced object does not have. If the message lists `options with no plain value to read`, the option takes its value from a Secret or another reference, which an expression can't read. |
 | `option <name> has valueFrom.ref but integrationEnabled is disabled ...` | References are not enabled in this Greenhouse installation. |
+
+See [When a reference fails](./../../../reference/components/pluginpreset#when-a-reference-fails) for more details.
 
 ## Next Steps
 
