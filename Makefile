@@ -197,7 +197,7 @@ GOLINT_VERSION ?= 2.12.2
 GINKGOLINTER_VERSION ?= 0.23.0
 HELM_DOCS_VERSION ?= 1.14.2
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION ?= 1.36.0
+ENVTEST_K8S_VERSION ?= 1.36.2
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 .PHONY: kustomize
