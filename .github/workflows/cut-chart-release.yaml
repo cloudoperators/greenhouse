@@ -1,0 +1,25 @@
+name: Cut Chart Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump type"
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  cut-chart-release:
+    uses: cloudoperators/common/.github/workflows/shared-release.yaml@main
+    permissions:
+      contents: write
+    with:
+      bump: ${{ inputs.bump }}
+      chart-path: charts/greenhouse/Chart.yaml
+      chart-only: true
+    secrets:
+      release-token: ${{ secrets.GITHUB_TOKEN }}
