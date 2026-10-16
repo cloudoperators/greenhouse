@@ -6,43 +6,9 @@ on:
       - "v*.*.*"
 
 jobs:
-  release:
-    runs-on: [ ubuntu-latest ]
+  goreleaser:
+    uses: cloudoperators/common/.github/workflows/shared-goreleaser.yaml@main
     permissions:
-        contents: write
-        discussions: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Set up Go
-        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
-        with:
-          go-version-file: 'go.mod'
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: release
-        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
-        with:
-          distribution: goreleaser
-          version: ${{ vars.GITHUB_SHA }}
-          args: release --config .github/.goreleaser.yaml --clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build Changelog
-        uses: mikepenz/release-changelog-builder-action@c9bcd8238b6f41e05561348339429d360b1c0247 # v6.2.3
-        with:
-          configuration: .github/changelog-config.json
-          ignorePreReleases: true
-          outputFile: CHANGELOG.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
-        with:
-            draft: true
-            generate_release_notes: false
-            body_path: CHANGELOG.md
-            token: ${{ secrets.GITHUB_TOKEN }}
+      contents: write
+    with:
+      goreleaser-config: .github/.goreleaser.yaml
