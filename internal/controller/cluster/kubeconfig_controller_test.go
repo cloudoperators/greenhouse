@@ -4,6 +4,7 @@
 package cluster_test
 
 import (
+	"encoding/base64"
 	"fmt"
 	"strings"
 
@@ -12,6 +13,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	"github.com/cloudoperators/greenhouse/api/v1alpha1"
@@ -477,5 +480,44 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 		currentOrg := &v1alpha1.Organization{}
 		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: setup.Namespace()}, currentOrg)).To(Succeed())
 		Expect(clusterKubeconfig.Spec.Kubeconfig.AuthInfo[0].AuthInfo.AuthProvider.Config["idp-issuer-url"]).Should(Equal(currentOrg.Spec.Authentication.OIDCConfig.Issuer))
+	})
+})
+
+var _ = Describe("ClusterKubeconfig controller with workload identity", func() {
+	It("should build the kubeconfig from the OIDC secret", func() {
+		const (
+			clusterName  = "wi-cluster"
+			apiServerURL = "https://api.remote.example.com"
+			caCert       = "dummy-ca"
+		)
+		key := types.NamespacedName{Name: clusterName, Namespace: test.TestNamespace}
+		c := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).
+			WithStatusSubresource(&v1alpha1.ClusterKubeconfig{}).
+			WithObjects(
+				test.NewOrganization(test.Ctx, test.TestNamespace, test.WithOIDCConfig(test.OIDCIssuer, test.OIDCSecretResource, test.OIDCClientIDKey, test.OIDCClientSecretKey)),
+				test.NewSecret(test.OIDCSecretResource, test.TestNamespace, test.WithSecretData(map[string][]byte{
+					test.OIDCClientIDKey:     []byte(test.OIDCClientID),
+					test.OIDCClientSecretKey: []byte(test.OIDCClientSecret),
+				})),
+				test.NewCluster(test.Ctx, clusterName, test.TestNamespace, test.WithClusterAnnotations(map[string]string{
+					greenhouseapis.ClusterWorkloadIdentityAnnotation: greenhouseapis.ClusterWorkloadIdentityEnabled,
+				})),
+				test.NewSecret(clusterName, test.TestNamespace,
+					test.WithSecretType(greenhouseapis.SecretTypeOIDCConfig),
+					test.WithSecretAnnotations(map[string]string{greenhouseapis.SecretAPIServerURLAnnotation: apiServerURL}),
+					test.WithSecretData(map[string][]byte{
+						greenhouseapis.SecretAPIServerCAKey: []byte(base64.StdEncoding.EncodeToString([]byte(caCert))),
+					})),
+			).Build()
+
+		_, err := (&clusterpkg.KubeconfigReconciler{Client: c}).Reconcile(test.Ctx, ctrl.Request{NamespacedName: key})
+		Expect(err).NotTo(HaveOccurred())
+
+		clusterKubeconfig := v1alpha1.ClusterKubeconfig{}
+		Expect(c.Get(test.Ctx, key, &clusterKubeconfig)).To(Succeed())
+		Expect(clusterKubeconfig.Status.Conditions.IsReadyTrue()).To(BeTrue())
+		Expect(clusterKubeconfig.Spec.Kubeconfig.Clusters).To(HaveLen(1))
+		Expect(clusterKubeconfig.Spec.Kubeconfig.Clusters[0].Cluster.Server).To(Equal(apiServerURL))
+		Expect(clusterKubeconfig.Spec.Kubeconfig.Clusters[0].Cluster.CertificateAuthorityData).To(Equal([]byte(caCert)))
 	})
 })
