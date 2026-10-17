@@ -8,7 +8,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -253,8 +255,46 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, nil
 	}
 
-	// collect oidc data and update kubeconfig
+	// Resolve annotation overrides before writing so they can be applied atomically in the
+	// single CreateOrPatch below — two separate patches would re-enqueue the resource on every
+	// reconcile because the controller watches ClusterKubeconfig via For(...).
+	var resolvedOverrides map[string]string
+	if raw, ok := cluster.Annotations[greenhouseapis.AnnotationKeyKubeconfigOverrides]; ok && raw != "" {
+		var oErr error
+		resolvedOverrides, oErr = resolveKubeconfigOverrides(ctx, r.Client, cluster.Namespace, raw)
+		if oErr != nil {
+			kubeconfig.Status.Conditions.SetConditions(
+				greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "OverrideResolveError", oErr.Error()),
+			)
+			_, perr := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
+				kubeconfig.Status = calculateKubeconfigStatus(&kubeconfig)
+				return nil
+			})
+			if perr != nil {
+				log.FromContext(ctx).Error(perr, "error setting status")
+			}
+			return ctrl.Result{}, oErr
+		}
+	}
+
+	// collect oidc data and update kubeconfig — overrides applied inside the same patch.
+	// All controller-managed fields are reset on every reconcile so that removing the
+	// kubeconfig-overrides annotation fully restores the baseline values.
+	var applyErr error
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
+		kubeconfig.Spec.Kubeconfig.Kind = "Config"
+		kubeconfig.Spec.Kubeconfig.APIVersion = "v1"
+		kubeconfig.Spec.Kubeconfig.CurrentContext = cluster.Name
+		kubeconfig.Spec.Kubeconfig.Contexts = []v1alpha1.ClusterKubeconfigContextItem{
+			{
+				Name: cluster.Name,
+				Context: v1alpha1.ClusterKubeconfigContext{
+					Cluster:   cluster.Name,
+					AuthInfo:  "oidc@" + cluster.Name,
+					Namespace: "default",
+				},
+			},
+		}
 		kubeconfig.Spec.Kubeconfig.Clusters = []v1alpha1.ClusterKubeconfigClusterItem{
 			{
 				Name: cluster.Name,
@@ -278,13 +318,39 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 				},
 			},
 		}
+		if resolvedOverrides != nil {
+			patched, oErr := applyKubeconfigOverrides(kubeconfig.Spec.Kubeconfig, resolvedOverrides)
+			if oErr != nil {
+				applyErr = oErr
+				return oErr
+			}
+			kubeconfig.Spec.Kubeconfig = patched
+		}
 		return nil
 	})
 
-	if err != nil {
-		// Reflect the error in status and avoid sticky issues later.
+	if applyErr != nil {
 		kubeconfig.Status.Conditions.SetConditions(
-			greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "PatchError", err.Error()),
+			greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "OverrideError", applyErr.Error()),
+		)
+		_, perr := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
+			kubeconfig.Status = calculateKubeconfigStatus(&kubeconfig)
+			return nil
+		})
+		if perr != nil {
+			log.FromContext(ctx).Error(perr, "error setting status")
+		}
+		return ctrl.Result{}, applyErr
+	}
+
+	if err != nil {
+		// When overrides participated in the desired spec, classify the patch failure accordingly.
+		reason := greenhousemetav1alpha1.ConditionReason("PatchError")
+		if resolvedOverrides != nil {
+			reason = "OverridePatchError"
+		}
+		kubeconfig.Status.Conditions.SetConditions(
+			greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, reason, err.Error()),
 		)
 		// patch status before returning on error
 		sResult, perr := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
@@ -296,6 +362,9 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 		l.Info("status updated", "result", sResult)
 		return ctrl.Result{}, err
+	}
+	if resolvedOverrides != nil {
+		l.Info("kubeconfig overrides applied")
 	}
 	l.Info("kubeconfig updated", "result", result)
 
@@ -396,6 +465,123 @@ func (r *KubeconfigReconciler) getOIDCInfo(ctx context.Context, orgName string, 
 	}
 
 	return oidc, nil
+}
+
+// indexedSegment matches a path segment with an array index, e.g. "clusters[0]".
+var indexedSegment = regexp.MustCompile(`^([\w][\w-]*)\[(\d+)\]$`)
+
+// secretRefValue is a helper struct used only for unmarshalling secretRef values in the override map.
+type secretRefValue struct {
+	SecretRef *v1alpha1.SecretKeyReference `json:"secretRef"`
+}
+
+// resolveKubeconfigOverrides unmarshals the raw annotation value and resolves any secretRef entries
+// by reading the referenced secret. Plain string values are returned as-is.
+func resolveKubeconfigOverrides(ctx context.Context, c client.Client, namespace, raw string) (map[string]string, error) {
+	var rawMap map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(raw), &rawMap); err != nil {
+		return nil, fmt.Errorf("kubeconfig-overrides: invalid JSON: %w", err)
+	}
+	resolved := make(map[string]string, len(rawMap))
+	for path, rawVal := range rawMap {
+		var ref secretRefValue
+		if err := json.Unmarshal(rawVal, &ref); err == nil && ref.SecretRef != nil {
+			val, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, c, namespace, *ref.SecretRef)
+			if err != nil {
+				return nil, fmt.Errorf("kubeconfig-overrides: path %q: %w", path, err)
+			}
+			resolved[path] = val
+			continue
+		}
+		var s string
+		if err := json.Unmarshal(rawVal, &s); err != nil {
+			return nil, fmt.Errorf("kubeconfig-overrides: path %q: value must be a string or secretRef object", path)
+		}
+		resolved[path] = s
+	}
+	return resolved, nil
+}
+
+// applyKubeconfigOverrides applies a flat map of dot-path → string value overrides onto data.
+// Keys use dot-separated JSON field names with optional [n] array indexing, e.g.:
+//
+//	"clusters[0].cluster.server"
+//	"users[0].user.auth-provider.config.client-id"
+//	"contexts[0].context.namespace"
+func applyKubeconfigOverrides(data v1alpha1.ClusterKubeconfigData, overrides map[string]string) (v1alpha1.ClusterKubeconfigData, error) {
+	// Round-trip through map[string]any so we can apply arbitrary dot-path writes.
+	b, err := json.Marshal(data)
+	if err != nil {
+		return data, err
+	}
+	var m map[string]any
+	if err := json.Unmarshal(b, &m); err != nil {
+		return data, err
+	}
+
+	for path, val := range overrides {
+		if err := setDotPath(m, path, val); err != nil {
+			return data, fmt.Errorf("kubeconfig-overrides: path %q: %w", path, err)
+		}
+	}
+
+	patched, err := json.Marshal(m)
+	if err != nil {
+		return data, err
+	}
+	var result v1alpha1.ClusterKubeconfigData
+	if err := json.Unmarshal(patched, &result); err != nil {
+		return data, err
+	}
+	return result, nil
+}
+
+// setDotPath sets val at the dot-separated path inside m, creating intermediate maps as needed.
+// Array elements (e.g. "clusters[0]") must already exist — the function sets inside them, not appends.
+func setDotPath(m map[string]any, path, val string) error {
+	segments := strings.Split(path, ".")
+	var cur any = m
+	for i, seg := range segments {
+		isLast := i == len(segments)-1
+
+		if match := indexedSegment.FindStringSubmatch(seg); match != nil {
+			key := match[1]
+			idx, err := strconv.Atoi(match[2])
+			if err != nil {
+				return fmt.Errorf("invalid array index in segment %q: %w", seg, err)
+			}
+
+			node, ok := cur.(map[string]any)
+			if !ok {
+				return fmt.Errorf("expected object at %q", strings.Join(segments[:i], "."))
+			}
+			arr, ok := node[key].([]any)
+			if !ok || idx >= len(arr) {
+				return fmt.Errorf("array %q index %d out of range", key, idx)
+			}
+			if isLast {
+				arr[idx] = val
+				return nil
+			}
+			cur = arr[idx]
+		} else {
+			node, ok := cur.(map[string]any)
+			if !ok {
+				return fmt.Errorf("expected object at %q", strings.Join(segments[:i], "."))
+			}
+			if isLast {
+				node[seg] = val
+				return nil
+			}
+			next, exists := node[seg]
+			if !exists {
+				next = map[string]any{}
+				node[seg] = next
+			}
+			cur = next
+		}
+	}
+	return nil
 }
 
 func sameNameResource(_ context.Context, o client.Object) []ctrl.Request {
