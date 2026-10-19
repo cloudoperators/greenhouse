@@ -9,7 +9,7 @@ on:
 
 jobs:
   helm-release-greenhouse:
-    uses: cloudoperators/common/.github/workflows/shared-helm-release.yaml@main
+    uses: cloudoperators/common/.github/workflows/shared-helm-release.yaml@4a36aa4e13e96d49b6d17f29da005f6cdb42b15b
     permissions:
       contents: read
       packages: write
