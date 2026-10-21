@@ -19,8 +19,11 @@ data:
     # enable plugin features
     # ociMirroringEnabled allows you to enable or disable OCI mirroring
     # set to true to enable OCI mirroring, defaults to false
+    # changeManagementEnabled lets Plugins report HelmRelease changes to the endpoint configured per Organization
+    # set to true to enable change management reporting, defaults to false
     plugin: |
       ociMirroringEnabled: false / true
+      changeManagementEnabled: false / true
     # enable pluginPreset features
     # both pluginPreset flags are experimental, they cover the documented scenarios and not much beyond them
     # expressionEvaluationEnabled allows you to enable or disable CEL expression evaluation in PluginPreset
@@ -39,6 +42,7 @@ data:
     storage: {{ include "dex.backend" $ }}
   plugin: |
     ociMirroringEnabled: {{ include "plugin.ociMirroringEnabled" $ }}
+    changeManagementEnabled: {{ include "plugin.changeManagementEnabled" $ }}
   pluginPreset: |
     expressionEvaluationEnabled: {{ include "pluginPreset.expressionEvaluationEnabled" $ }}
     integrationEnabled: {{ include "pluginPreset.integrationEnabled" $ }}
