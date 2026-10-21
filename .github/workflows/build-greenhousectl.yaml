@@ -1,12 +1,7 @@
 name: "Build greenhousectl"
 on:
   workflow_dispatch: {}
-  # push:
-  #   tags:        
-  #     - '**'  
-  #   paths:
-  #     - cmd/greenhousectl/**
-  #     - internal/cmd/**
+  # Fork dev: manual-only. Build the greenhousectl binary on demand.
 
 permissions:
   contents: write # required to create a release

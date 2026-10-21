@@ -1,11 +1,8 @@
 name: Size Label
 
 on:
-  pull_request:
-    types:
-      - opened
-      - edited
-      - synchronize
+  workflow_dispatch: {}
+  # Fork dev: manual-only. Removed pull_request trigger (applies size labels).
 
 jobs:
   size-label:

@@ -1,12 +1,8 @@
 name: "Check playbooks index is up to date"
 
 on:
-  pull_request:
-    paths:
-      - 'charts/manager/alerts/**'
-      - 'hack/docs-generator/alerts/**'
-      - 'docs/operations/playbooks/_index.md'
-      - 'Makefile'
+  workflow_dispatch: {}
+  # Fork dev: manual-only. Removed pull_request trigger (playbooks index drift check).
 
 permissions:
   contents: read

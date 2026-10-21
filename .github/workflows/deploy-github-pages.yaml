@@ -2,14 +2,7 @@ name: Deploy Hugo to GitHub Pages
 
 on:
   workflow_dispatch: {}
-  repository_dispatch:
-    types: [trigger-workflow]
-  push:
-    branches:
-      - main
-    paths:
-      - "docs/**"
-      - "website/**"
+  # Fork dev: manual-only. Removed repository_dispatch + push-to-main triggers (Pages deploy).
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:

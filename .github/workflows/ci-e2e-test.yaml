@@ -1,15 +1,7 @@
 name: E2E Workflow
 on:
-  workflow_dispatch:
-  pull_request:
-    paths:
-      - 'internal/**'
-      - 'pkg/**'
-      - 'e2e/**'
-      - 'cmd/**'
-      - 'Dockerfile*'
-      - 'go.mod'
-      - 'go.sum'
+  workflow_dispatch: {}
+  # Fork dev: manual-only. Removed pull_request trigger (needs CLOUDOPERATOR_* app secrets).
 
 jobs:
 

@@ -12,12 +12,8 @@
 name: Detect CRD API Changes and Generate Docs, Types and Specs
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    paths:
-      - "api/meta/**"
-      - "api/v1alpha1/**"
-      - "api/v1alpha2/**"
+  workflow_dispatch: {}
+  # Fork dev: manual-only. Removed pull_request trigger (needs CLOUDOPERATOR_* app secrets, auto-commits to PR branch).
 jobs:
   generate-docs-types-specs:
     runs-on: [ ubuntu-latest ]

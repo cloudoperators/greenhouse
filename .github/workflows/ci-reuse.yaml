@@ -4,7 +4,9 @@
 
 name: REUSE Compliance Check
 
-on: [pull_request]
+on:
+  workflow_dispatch: {}
+  # Fork dev: manual-only. Removed pull_request trigger (calls upstream reusable wf).
 
 jobs:
   reuse:

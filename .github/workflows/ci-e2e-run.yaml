@@ -1,8 +1,8 @@
 name: CI E2E Runner
 
 on:
-  issue_comment:
-    types: [created]
+  workflow_dispatch: {}
+  # Fork dev: manual-only. Removed issue_comment /e2e trigger (needs CLOUDOPERATOR_* app secrets).
 
 permissions:
   contents: read

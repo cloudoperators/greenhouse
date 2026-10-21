@@ -1,11 +1,8 @@
 name: Test build Docker images on PR
 
 on:
-  pull_request:
-    types: [ opened, synchronize, reopened ]
-    paths:
-      - Makefile
-      - Dockerfile
+  workflow_dispatch: {}
+  # Fork dev: manual-only. Removed pull_request trigger (PR image build smoke test, push:false).
 
 env:
   REGISTRY: ghcr.io

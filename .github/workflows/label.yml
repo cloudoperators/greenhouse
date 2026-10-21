@@ -7,8 +7,8 @@
 
 name: Labeler
 on:
-  pull_request:
-    types: [ opened, synchronize, reopened ]
+  workflow_dispatch: {}
+  # Fork dev: manual-only. Removed pull_request trigger (applies labels).
 
 jobs:
   label:

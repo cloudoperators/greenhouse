@@ -1,7 +1,7 @@
 name: Issue Triage
 on:
-  issues:
-    types: [opened]
+  workflow_dispatch: {}
+  # Fork dev: manual-only. Removed issues trigger (calls upstream reusable wf, modifies issues).
 
 permissions:
   issues: write

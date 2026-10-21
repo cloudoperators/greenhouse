@@ -1,8 +1,7 @@
 name: 'Kustomize lint'
 on:
-  pull_request:
-    paths:
-      - 'charts/**'
+  workflow_dispatch: {}
+  # Fork dev: manual-only. Removed pull_request trigger.
 
 jobs:
   kustomize:

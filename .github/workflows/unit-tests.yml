@@ -1,14 +1,7 @@
 name: "Unit tests"
 on:
-  pull_request:
-    paths:
-      - 'internal/**'
-      - 'pkg/**'
-      - 'cmd/**'
-      - 'Dockerfile*'
-      - 'go.mod'
-      - 'go.sum'
-      - '.golangci.yaml'
+  workflow_dispatch: {}
+  # Fork dev: manual-only. Removed pull_request trigger (run `go test` / `make test` locally instead).
 
 jobs:
   lint:

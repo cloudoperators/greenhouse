@@ -1,7 +1,7 @@
 name: Check & Fix License Header
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  workflow_dispatch: {}
+  # Fork dev: manual-only. Removed pull_request trigger (needs CLOUDOPERATOR_* app secrets, calls upstream reusable wf).
 
 jobs:
   license:

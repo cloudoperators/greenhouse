@@ -1,19 +1,8 @@
 name: "CodeQL"
 
 on:
-  push:
-    branches: ["main"]
-  pull_request:
-    types: [opened, synchronize, reopened]
-    paths:
-      - "internal/**"
-      - "e2e/**"
-      - "cmd/**"
-      - "Dockerfile*"
-      - "go.mod"
-      - "go.sum"
-  schedule:
-    - cron: "20 08 * * 1"
+  workflow_dispatch: {}
+  # Fork dev: manual-only. Removed push/pull_request/schedule triggers (calls upstream reusable wf).
 
 jobs:
   codeql:

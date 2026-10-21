@@ -1,7 +1,7 @@
 name: Issue Project Sync
 on:
-  issues:
-    types: [labeled]
+  workflow_dispatch: {}
+  # Fork dev: manual-only. Removed issues trigger (needs GH_PROJECT_TOKEN PAT, writes to a project board).
 
 permissions:
   issues: read

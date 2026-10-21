@@ -2,18 +2,8 @@ name: Build Docker images and push to registry
 
 on:
   workflow_dispatch: {}
-  push:
-    branches:
-      - main
-    paths:
-      - cmd/**
-      - internal/**
-      - website/**
-      - Dockerfile
-      - go.mod
-      - go.sum
-    tags:
-      - v*.*.*
+  # Fork dev: manual-only. Build+push a dev image to ghcr.io/<owner>/greenhouse on demand.
+  # (Original auto-triggers on push to main + v*.*.* tags removed to avoid runs on upstream sync.)
 
 env:
   REGISTRY: ghcr.io

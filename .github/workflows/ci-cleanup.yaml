@@ -2,8 +2,7 @@ name: Packages Cleanup
 
 on:
   workflow_dispatch: {}
-  schedule:
-    - cron: "35 10 1-7 * 2" #"At 10:35 AM, between day 1 and 7 of the month, and on Tuesday"
+  # Fork dev: manual-only. Schedule cron removed; run on demand to prune your own GHCR packages.
 
 jobs:
   cleanup:
