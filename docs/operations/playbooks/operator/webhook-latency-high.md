@@ -9,7 +9,7 @@ description: >
 
 ## Alert Description
 
-This alert fires when the 90th percentile latency of a Greenhouse webhook exceeds 200ms for 15 minutes.
+This alert fires when the 90th percentile latency of a Greenhouse webhook exceeds 1 second for 15 minutes.
 
 ## What does this alert mean?
 
