@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -34,12 +35,13 @@ var _ = Describe("KubeConfig controller", func() {
 
 			remoteEnvTest    *envtest.Environment
 			remoteKubeConfig []byte
+			remoteK8sClient  client.Client
 			setup            *test.TestSetup
 			team             *greenhousev1alpha1.Team
 		)
 
 		BeforeEach(func() {
-			_, _, remoteEnvTest, remoteKubeConfig = test.StartControlPlane("6885", false, false)
+			_, remoteK8sClient, remoteEnvTest, remoteKubeConfig = test.StartControlPlane("6885", false, false)
 			remoteEnvTest.ControlPlaneStopTimeout = 60 * time.Second
 			setup = test.NewTestSetup(test.Ctx, test.K8sClient, directAccessTestCase)
 			team = setup.CreateTeam(test.Ctx, "test-team", test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
@@ -173,6 +175,93 @@ var _ = Describe("KubeConfig controller", func() {
 			greenhouseRemoteConfig, err := greenhouseRestClientGetter.ToRESTConfig()
 			Expect(err).NotTo(HaveOccurred(), "there should be no error creating a restConfig from the regenerated kubeConfig")
 			Expect(greenhouseRemoteConfig).ToNot(BeNil(), "the greenhouse restConfig should not be nil")
+		})
+
+		It("Should remove the TeamRoleBinding RBAC from the remote cluster when the cluster is deleted", func() {
+			By("Creating a secret with a valid kubeconfig for a remote cluster")
+			secret := setup.CreateSecret(test.Ctx, directAccessTestCase+"-team-rbac",
+				test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
+				test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}),
+				test.WithSecretLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
+
+			By("Waiting for the cluster to be ready")
+			Eventually(func(g Gomega) {
+				g.Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(secret), &cluster)).To(Succeed())
+				g.Expect(cluster.Status.IsReadyTrue()).To(BeTrue())
+			}).Should(Succeed(), "eventually the cluster should be ready")
+
+			By("Creating TeamRoleBinding RBAC in the remote cluster")
+			clusterRole := &rbacv1.ClusterRole{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   greenhouseapis.RBACPrefix + "test-role",
+					Labels: map[string]string{greenhouseapis.LabelKeyRole: "test-role"},
+				},
+			}
+			roleRef := rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "ClusterRole", Name: clusterRole.Name}
+			clusterRoleBinding := &rbacv1.ClusterRoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   greenhouseapis.RBACPrefix + "test-cluster-rolebinding",
+					Labels: map[string]string{greenhouseapis.LabelKeyRoleBinding: "test-cluster-rolebinding"},
+				},
+				RoleRef: roleRef,
+			}
+			roleBinding := &rbacv1.RoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      greenhouseapis.RBACPrefix + "test-rolebinding",
+					Namespace: metav1.NamespaceDefault,
+					Labels:    map[string]string{greenhouseapis.LabelKeyRoleBinding: "test-rolebinding"},
+				},
+				RoleRef: roleRef,
+			}
+			teamRBAC := []client.Object{clusterRole, clusterRoleBinding, roleBinding}
+			for _, obj := range teamRBAC {
+				Expect(remoteK8sClient.Create(test.Ctx, obj)).To(Succeed(), "there should be no error creating %s in the remote cluster", obj.GetName())
+			}
+
+			By("Deleting the cluster")
+			test.MustDeleteCluster(test.Ctx, test.K8sClient, &cluster)
+
+			By("Checking the TeamRoleBinding RBAC is gone from the remote cluster")
+			for _, obj := range teamRBAC {
+				err := remoteK8sClient.Get(test.Ctx, client.ObjectKeyFromObject(obj), obj)
+				Expect(apierrors.IsNotFound(err)).To(BeTrue(), "%s should be deleted from the remote cluster", obj.GetName())
+			}
+		})
+
+		It("Should delete the cluster when greenhouse has no access to the remote cluster anymore", func() {
+			By("Creating a secret with a valid kubeconfig for a remote cluster")
+			secret := setup.CreateSecret(test.Ctx, directAccessTestCase+"-no-access",
+				test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
+				test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}),
+				test.WithSecretLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
+
+			By("Waiting for the cluster to be ready")
+			Eventually(func(g Gomega) {
+				g.Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(secret), &cluster)).To(Succeed())
+				g.Expect(cluster.Status.IsReadyTrue()).To(BeTrue())
+			}).Should(Succeed(), "eventually the cluster should be ready")
+
+			By("Creating TeamRoleBinding RBAC in the remote cluster")
+			clusterRoleBinding := &rbacv1.ClusterRoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   greenhouseapis.RBACPrefix + "test-cluster-rolebinding",
+					Labels: map[string]string{greenhouseapis.LabelKeyRoleBinding: "test-cluster-rolebinding"},
+				},
+				RoleRef: rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "ClusterRole", Name: greenhouseapis.RBACPrefix + "test-role"},
+			}
+			Expect(remoteK8sClient.Create(test.Ctx, clusterRoleBinding)).To(Succeed(), "there should be no error creating the clusterRoleBinding in the remote cluster")
+
+			By("Revoking the permissions of greenhouse in the remote cluster")
+			greenhouseClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
+			Expect(remoteK8sClient.Get(test.Ctx, client.ObjectKey{Name: clusterutils.ServiceAccountName}, greenhouseClusterRoleBinding)).To(Succeed())
+			greenhouseClusterRoleBinding.Subjects = nil
+			Expect(remoteK8sClient.Update(test.Ctx, greenhouseClusterRoleBinding)).To(Succeed(), "there should be no error removing the subjects of the greenhouse clusterRoleBinding")
+
+			By("Deleting the cluster")
+			test.MustDeleteCluster(test.Ctx, test.K8sClient, &cluster)
+
+			By("Checking the TeamRoleBinding RBAC could not be removed from the remote cluster")
+			Expect(remoteK8sClient.Get(test.Ctx, client.ObjectKeyFromObject(clusterRoleBinding), clusterRoleBinding)).To(Succeed(), "the clusterRoleBinding should still exist in the remote cluster")
 		})
 	})
 })
