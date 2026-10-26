@@ -9,6 +9,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
@@ -174,4 +178,54 @@ func TestCreateWorkloadIdentityClientReportsInvalidKubeConfig(t *testing.T) {
 
 	result, err := p.createWorkloadIdentityClient(cluster)(context.Background())
 	requireInvalidKubeConfig(t, cluster, result, err)
+}
+
+func TestEnsureTeamRBACDeleted(t *testing.T) {
+	unreachableKubeConfig, err := clientcmd.Write(clientcmdapi.Config{
+		Clusters:       map[string]*clientcmdapi.Cluster{"remote": {Server: "https://127.0.0.1:1"}},
+		Contexts:       map[string]*clientcmdapi.Context{"remote": {Cluster: "remote"}},
+		CurrentContext: "remote",
+	})
+	require.NoError(t, err)
+	unreachableSecret := oidcSecret()
+	unreachableSecret.Data[greenhouseapis.GreenHouseKubeConfigKey] = unreachableKubeConfig
+
+	tests := []struct {
+		name                string
+		objects             []client.Object
+		deletionPolicy      string
+		wantBreak           bool
+		wantKubeConfigValid metav1.ConditionStatus
+	}{
+		{
+			name:                "secret without a kubeconfig marks the kubeconfig invalid",
+			objects:             []client.Object{oidcSecret()},
+			wantBreak:           true,
+			wantKubeConfigValid: metav1.ConditionFalse,
+		},
+		{
+			name:                "unreachable remote cluster marks the kubeconfig invalid",
+			objects:             []client.Object{unreachableSecret},
+			wantBreak:           true,
+			wantKubeConfigValid: metav1.ConditionFalse,
+		},
+		{
+			name:                "retained cluster keeps its team RBAC",
+			deletionPolicy:      greenhouseapis.DeletionPolicyRetain,
+			wantKubeConfigValid: metav1.ConditionTrue,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cluster := healthyCluster()
+			cluster.Annotations = map[string]string{greenhouseapis.AnnotationKeyDeletionPolicy: tc.deletionPolicy}
+			p := &Phase{Client: fake.NewClientBuilder().WithScheme(testScheme(t)).WithObjects(tc.objects...).Build()}
+
+			result, err := p.ensureTeamRBACDeleted(cluster)(context.Background())
+			require.Equal(t, tc.wantBreak, result.Break)
+			require.Equal(t, tc.wantBreak, err != nil)
+			require.Equal(t, tc.wantKubeConfigValid, cluster.Status.GetConditionByType(greenhousev1alpha1.KubeConfigValid).Status)
+		})
+	}
 }
