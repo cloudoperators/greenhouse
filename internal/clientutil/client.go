@@ -57,10 +57,7 @@ func NewK8sClientFromRestClientGetter(restClientGetter genericclioptions.RESTCli
 }
 
 // NewK8sClientFromCluster returns a client.Client based on the given clusters kubeconfig secret.
+// Deprecated: use lifecycle.ClientForCluster instead.
 func NewK8sClientFromCluster(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster) (client.Client, error) {
-	cfg, err := lifecycle.NewRemoteKubeCfg(ctx, c, cluster)
-	if err != nil {
-		return nil, err
-	}
-	return NewK8sClient(cfg)
+	return lifecycle.ClientForCluster(ctx, c, cluster, KnownSchemes...)
 }
