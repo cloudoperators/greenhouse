@@ -4,7 +4,6 @@
 package clientutil
 
 import (
-	"context"
 	"fmt"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
@@ -21,7 +20,6 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	dexapi "github.com/cloudoperators/greenhouse/internal/dex/api"
-	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 var KnownSchemes = []func(*runtime.Scheme) error{
@@ -54,10 +52,4 @@ func NewK8sClientFromRestClientGetter(restClientGetter genericclioptions.RESTCli
 		return nil, err
 	}
 	return NewK8sClient(cfg)
-}
-
-// NewK8sClientFromCluster returns a client.Client based on the given clusters kubeconfig secret.
-// Deprecated: use lifecycle.ClientForCluster instead.
-func NewK8sClientFromCluster(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster) (client.Client, error) {
-	return lifecycle.ClientForCluster(ctx, c, cluster, KnownSchemes...)
 }
