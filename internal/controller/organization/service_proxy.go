@@ -158,7 +158,6 @@ func (r *OrganizationReconciler) reconcileServiceProxyPlugin(ctx context.Context
 		Spec: greenhousev1alpha1.PluginSpec{
 			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 				Name: serviceProxyName,
-				Kind: greenhousev1alpha1.PluginDefinitionKind,
 			},
 		},
 	}
@@ -176,6 +175,8 @@ func (r *OrganizationReconciler) reconcileServiceProxyPlugin(ctx context.Context
 				Value: &apiextensionsv1.JSON{Raw: versionJSON},
 			},
 		}
+		plugin.Spec.PluginDefinitionRef.Kind = greenhousev1alpha1.PluginDefinitionKind
+
 		// Set the release name
 		if plugin.Spec.ReleaseName == "" {
 			plugin.Spec.ReleaseName = serviceProxyName
