@@ -17,8 +17,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -264,10 +262,6 @@ func (r *OrganizationReconciler) getOrCreateOrgSecret(ctx context.Context, org *
 		log.FromContext(ctx).Info("updated secret", "name", secret.Name)
 	}
 	return secret, nil
-}
-
-func (r *OrganizationReconciler) enqueueAllOrganizationsForServiceProxyPluginDefinition(ctx context.Context, _ client.Object) []ctrl.Request {
-	return listOrganizationsAsReconcileRequests(ctx, r.Client)
 }
 
 func getInternalSecretName(orgName string) string {
