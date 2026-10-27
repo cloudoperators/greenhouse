@@ -482,11 +482,22 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 			g.Expect(err).ToNot(HaveOccurred())
 		}).Should(Succeed())
 
-		By("verifying the Plugin surfaces the Released condition message")
+		By("verifying HelmReleaseDeployed shows the short stalled summary")
 		Eventually(func(g Gomega) {
 			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(stalledPlugin), stalledPlugin)
 			g.Expect(err).ToNot(HaveOccurred())
 			cond := stalledPlugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseDeployedCondition)
+			g.Expect(cond).ToNot(BeNil())
+			g.Expect(cond.IsFalse()).To(BeTrue())
+			g.Expect(cond.Reason).To(Equal(greenhousev1alpha1.FluxHelmReleaseStalledReason))
+			g.Expect(cond.Message).To(Equal("Failed to install after 4 attempt(s)"))
+		}).Should(Succeed())
+
+		By("verifying Ready surfaces the detailed Released condition message")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(stalledPlugin), stalledPlugin)
+			g.Expect(err).ToNot(HaveOccurred())
+			cond := stalledPlugin.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 			g.Expect(cond).ToNot(BeNil())
 			g.Expect(cond.IsFalse()).To(BeTrue())
 			g.Expect(cond.Reason).To(Equal(greenhousev1alpha1.FluxHelmReleaseStalledReason))
