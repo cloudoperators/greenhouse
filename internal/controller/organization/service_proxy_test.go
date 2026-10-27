@@ -20,7 +20,6 @@ import (
 var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 	var setup *test.TestSetup
 	var org *greenhousev1alpha1.Organization
-	serviceProxyPluginDefinition := test.NewClusterPluginDefinition(test.Ctx, "service-proxy")
 
 	BeforeEach(func() {
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "org-rbac-test")
@@ -50,6 +49,10 @@ var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 
 	Context("plugin definition for service proxy is present", Ordered, func() {
 		It("should create service-proxy plugin definition", func() {
+			By("creating an organization")
+			org = setup.CreateDefaultOrgWithOIDCSecret(test.Ctx, "test-serviceproxy-org2")
+
+			serviceProxyPluginDefinition := test.NewPluginDefinition(test.Ctx, "service-proxy", org.Name)
 			err := test.K8sClient.Create(test.Ctx, serviceProxyPluginDefinition)
 			Expect(err).ToNot(HaveOccurred(), "there should be no error creating the service-proxy plugin definition")
 
