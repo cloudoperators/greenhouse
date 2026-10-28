@@ -113,8 +113,8 @@ data:
 
 		names := []string{postRenderer.Kustomize.Images[0].Name, postRenderer.Kustomize.Images[1].Name}
 		Expect(names).To(ConsistOf(
-			"docker.io/library/nginx",
-			"docker.io/myorg/myapp",
+			"nginx",
+			"myorg/myapp",
 		))
 
 		newNames := []string{postRenderer.Kustomize.Images[0].NewName, postRenderer.Kustomize.Images[1].NewName}
@@ -136,6 +136,15 @@ data:
 			"ghcr.io/cloudoperators/greenhouse",
 			"docker.io/library/busybox",
 		))
+	})
+
+	It("should match a hook image written without library/", func() {
+		hookManifest := fixture.PodManifest("docker.io/busybox:latest")
+		postRenderer := buildPostRenderer(mirror, "", hookManifest)
+		Expect(postRenderer).NotTo(BeNil())
+		Expect(postRenderer.Kustomize.Images).To(HaveLen(1))
+		Expect(postRenderer.Kustomize.Images[0].Name).To(Equal("docker.io/busybox"))
+		Expect(postRenderer.Kustomize.Images[0].NewName).To(Equal("mirror.example.com/dockerhub-mirror/library/busybox"))
 	})
 
 	It("should deduplicate image refs across manifest and hooks", func() {
