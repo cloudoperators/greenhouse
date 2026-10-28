@@ -1764,13 +1764,6 @@ components:
         status:
           description: PluginStatus defines the observed state of Plugin
           properties:
-            changeManagement:
-              description: ChangeManagement tracks the last HelmRelease revision reported to change management.
-              properties:
-                lastReportedDigest:
-                  description: LastReportedDigest is the HelmRelease history digest reported last, or recorded when change management was switched on.
-                  type: string
-              type: object
             description:
               description: Description provides additional details of the plugin.
               type: string
@@ -1860,6 +1853,13 @@ components:
             lastReconciledAt:
               description: LastReconciledAt contains the value when the reconcile was last triggered via annotation.
               type: string
+            releaseEvents:
+              description: ReleaseEvents tracks the last HelmRelease revision sent as a release event.
+              properties:
+                lastReportedDigest:
+                  description: LastReportedDigest is the HelmRelease history digest reported last, or recorded when release events were switched on.
+                  type: string
+              type: object
             statusConditions:
               description: StatusConditions contain the different conditions that constitute the status of the Plugin.
               properties:

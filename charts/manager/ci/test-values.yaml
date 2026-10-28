@@ -11,7 +11,7 @@ global:
       postgresqlUsername: dex
   plugin:
     ociMirroringEnabled: false
-    changeManagementEnabled: false
+    releaseEventsEnabled: false
   pluginPreset:
     expressionEvaluationEnabled: true
     integrationEnabled: true

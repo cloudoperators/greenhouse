@@ -416,38 +416,6 @@ string
 </table>
 </div>
 </div>
-<h3 id="greenhouse.sap/v1alpha1.ChangeManagementStatus">ChangeManagementStatus
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.PluginStatus">PluginStatus</a>)
-</p>
-<p>ChangeManagementStatus is the change management state of a Plugin.</p>
-<div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>lastReportedDigest</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>LastReportedDigest is the HelmRelease history digest reported last, or recorded when change management was switched on.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
 <h3 id="greenhouse.sap/v1alpha1.Cluster">Cluster
 </h3>
 <p>Cluster is the Schema for the clusters API</p>
@@ -4158,15 +4126,15 @@ Used to skip redundant replication on subsequent reconciliations.</p>
 </tr>
 <tr>
 <td>
-<code>changeManagement</code><br>
+<code>releaseEvents</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.ChangeManagementStatus">
-ChangeManagementStatus
+<a href="#greenhouse.sap/v1alpha1.ReleaseEventsStatus">
+ReleaseEventsStatus
 </a>
 </em>
 </td>
 <td>
-<p>ChangeManagement tracks the last HelmRelease revision reported to change management.</p>
+<p>ReleaseEvents tracks the last HelmRelease revision sent as a release event.</p>
 </td>
 </tr>
 </tbody>
@@ -4201,6 +4169,38 @@ SecretKeyReference
 </td>
 <td>
 <p>Secret references the v1.Secret containing the value that needs to be extracted</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.ReleaseEventsStatus">ReleaseEventsStatus
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.PluginStatus">PluginStatus</a>)
+</p>
+<p>ReleaseEventsStatus is the release events state of a Plugin.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>lastReportedDigest</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>LastReportedDigest is the HelmRelease history digest reported last, or recorded when release events were switched on.</p>
 </td>
 </tr>
 </tbody>

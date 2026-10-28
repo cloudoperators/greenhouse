@@ -104,7 +104,7 @@ func startPluginReconciler(name string, mgr ctrl.Manager) error {
 		HTTPRetry:               artifactRetries,
 		MaxConcurrentReconciles: managerConfig.GetMaxConcurrentReconciles(name, 10),
 		WorkloadIdentityEnabled: featureFlags.IsWorkloadIdentityEnabled(),
-		ChangeManagementEnabled: featureFlags.IsChangeManagementEnabled(),
+		ReleaseEventsEnabled:    featureFlags.IsReleaseEventsEnabled(),
 		FeatureFlagsName:        clientutil.GetEnvOrDefault(featureFlagsEnv, defaultFeatureFlagConfigMapName),
 		FeatureFlagsNamespace:   clientutil.GetEnvOrDefault(podNamespaceEnv, defaultPodNamespace),
 	}).SetupWithManager(name, mgr)

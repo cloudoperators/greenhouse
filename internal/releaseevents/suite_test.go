@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package changemanagement
+package releaseevents
 
 import (
 	"testing"
@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestChangeManagement(t *testing.T) {
+func TestReleaseEvents(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Change Management suite")
+	RunSpecs(t, "Release Events suite")
 }

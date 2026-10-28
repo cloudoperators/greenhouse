@@ -7,7 +7,7 @@ global:
     backend: kubernetes
   plugin:
     ociMirroringEnabled: true
-    changeManagementEnabled: false
+    releaseEventsEnabled: false
   pluginPreset:
     expressionEvaluationEnabled: true
     integrationEnabled: true

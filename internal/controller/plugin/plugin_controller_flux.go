@@ -120,9 +120,9 @@ func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, plugin *greenh
 
 	plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.HelmReleaseCreatedCondition, "", "Flux HelmRelease successfully created"))
 
-	if err := r.reportChange(ctx, plugin); err != nil {
-		log.FromContext(ctx).Error(err, "failed to report change for Plugin", "name", plugin.Name, "namespace", plugin.Namespace)
-		return ctrl.Result{RequeueAfter: changeReportRetryInterval}, lifecycle.Success, nil
+	if err := r.reportRelease(ctx, plugin); err != nil {
+		log.FromContext(ctx).Error(err, "failed to report release events for Plugin", "name", plugin.Name, "namespace", plugin.Namespace)
+		return ctrl.Result{RequeueAfter: releaseEventRetryInterval}, lifecycle.Success, nil
 	}
 	return ctrl.Result{}, lifecycle.Success, nil
 }

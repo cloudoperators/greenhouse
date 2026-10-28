@@ -32,34 +32,34 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
-const changeManagementTestConfig = `endpoint: %s
+const releaseEventsTestConfig = `endpoint: %s
 secretName: change-credentials
 payloadTemplate: |
   {{ if ne .Release.Status "failed" }}{"organization": {{ .Organization | toJson }}, "plugin": {{ .Plugin.Name | toJson }}, "cluster": {{ .Cluster.Name | toJson }}, "digest": {{ .Release.Digest | toJson }}}{{ end }}
 `
 
-type changeEndpoint struct {
+type releaseEventEndpoint struct {
 	*httptest.Server
 	status   atomic.Int32
 	attempts atomic.Int32
 	mu       sync.Mutex
-	reports  []changeReport
+	reports  []releaseEvent
 }
 
-type changeReport struct {
+type releaseEvent struct {
 	auth    string
 	payload map[string]any
 }
 
-func newChangeEndpoint() *changeEndpoint {
-	endpoint := &changeEndpoint{}
+func newReleaseEventEndpoint() *releaseEventEndpoint {
+	endpoint := &releaseEventEndpoint{}
 	endpoint.status.Store(http.StatusOK)
 	endpoint.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		endpoint.attempts.Add(1)
 		status := int(endpoint.status.Load())
 		if status == http.StatusOK {
 			username, password, _ := r.BasicAuth()
-			report := changeReport{auth: username + ":" + password}
+			report := releaseEvent{auth: username + ":" + password}
 			if err := json.NewDecoder(r.Body).Decode(&report.payload); err != nil {
 				status = http.StatusBadRequest
 			} else {
@@ -73,7 +73,7 @@ func newChangeEndpoint() *changeEndpoint {
 	return endpoint
 }
 
-func (e *changeEndpoint) received() []changeReport {
+func (e *releaseEventEndpoint) received() []releaseEvent {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	return slices.Clone(e.reports)
@@ -114,7 +114,7 @@ func setReleaseHistory(plugin *greenhousev1alpha1.Plugin, snapshots ...*helmv2.S
 
 func triggerReconcile(g Gomega, plugin *greenhousev1alpha1.Plugin) {
 	current := getPlugin(g, plugin)
-	current.Labels["change-management-test/trigger"] = strconv.FormatInt(time.Now().UnixNano(), 10)
+	current.Labels["release-events-test/trigger"] = strconv.FormatInt(time.Now().UnixNano(), 10)
 	g.Expect(test.K8sClient.Update(test.Ctx, current)).To(Succeed())
 }
 
@@ -124,10 +124,10 @@ func getPlugin(g Gomega, plugin *greenhousev1alpha1.Plugin) *greenhousev1alpha1.
 	return current
 }
 
-var _ = Describe("Change management", Ordered, func() {
+var _ = Describe("Release events", Ordered, func() {
 	var (
 		setup      *test.TestSetup
-		endpoint   *changeEndpoint
+		endpoint   *releaseEventEndpoint
 		team       *greenhousev1alpha1.Team
 		cluster    *greenhousev1alpha1.Cluster
 		definition *greenhousev1alpha1.ClusterPluginDefinition
@@ -148,18 +148,18 @@ var _ = Describe("Change management", Ordered, func() {
 	}
 
 	BeforeAll(func() {
-		endpoint = newChangeEndpoint()
-		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "change-management")
+		endpoint = newReleaseEventEndpoint()
+		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "release-events")
 		Expect(test.K8sClient.Create(test.Ctx, &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{Name: "org-config", Namespace: setup.Namespace()},
 		})).To(Succeed())
 		setup.CreateOrganization(test.Ctx, setup.Namespace(), test.WithConfigMapRef("org-config"))
-		team = setup.CreateTeam(test.Ctx, "change-management-team", test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
-		cluster = setup.CreateCluster(test.Ctx, "change-management-cluster",
+		team = setup.CreateTeam(test.Ctx, "release-events-team", test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
+		cluster = setup.CreateCluster(test.Ctx, "release-events-cluster",
 			test.WithAccessMode(greenhousev1alpha1.ClusterAccessModeDirect),
 			test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
 		setup.CreateSecret(test.Ctx, "change-credentials", test.WithSecretData(map[string][]byte{"username": []byte("greenhouse"), "password": []byte("secret")}))
-		definition = setup.CreateClusterPluginDefinition(test.Ctx, "change-management",
+		definition = setup.CreateClusterPluginDefinition(test.Ctx, "release-events",
 			test.WithVersion("1.0.0"),
 			test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{Name: "dummy", Repository: "oci://greenhouse/helm-charts", Version: "1.0.0"}))
 		test.MockHelmChartReady(test.Ctx, test.K8sClient, definition, flux.HelmRepositoryDefaultNamespace)
@@ -169,18 +169,18 @@ var _ = Describe("Change management", Ordered, func() {
 		endpoint.Close()
 	})
 
-	It("records the revision deployed before change management was configured without reporting it", func() {
-		plugin = createPlugin("change-management")
+	It("records the revision deployed before release events were configured without reporting it", func() {
+		plugin = createPlugin("release-events")
 		setReleaseHistory(plugin, releaseSnapshot("sha256:1", 1))
 
 		configMap := &corev1.ConfigMap{}
 		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: "org-config", Namespace: setup.Namespace()}, configMap)).To(Succeed())
-		configMap.Data = map[string]string{changeManagementConfigKey: fmt.Sprintf(changeManagementTestConfig, endpoint.URL)}
+		configMap.Data = map[string]string{releaseEventsConfigKey: fmt.Sprintf(releaseEventsTestConfig, endpoint.URL)}
 		Expect(test.K8sClient.Update(test.Ctx, configMap)).To(Succeed())
 
 		Eventually(func(g Gomega) {
 			triggerReconcile(g, plugin)
-			g.Expect(getPlugin(g, plugin).Status.ChangeManagement).To(Equal(&greenhousev1alpha1.ChangeManagementStatus{LastReportedDigest: "sha256:1"}))
+			g.Expect(getPlugin(g, plugin).Status.ReleaseEvents).To(Equal(&greenhousev1alpha1.ReleaseEventsStatus{LastReportedDigest: "sha256:1"}))
 		}).WithPolling(time.Second).Should(Succeed())
 		Expect(endpoint.attempts.Load()).To(BeZero())
 	})
@@ -189,9 +189,9 @@ var _ = Describe("Change management", Ordered, func() {
 		setReleaseHistory(plugin, releaseSnapshot("sha256:2", 2), releaseSnapshot("sha256:1", 1))
 
 		Eventually(func(g Gomega) {
-			g.Expect(getPlugin(g, plugin).Status.ChangeManagement.LastReportedDigest).To(Equal("sha256:2"))
+			g.Expect(getPlugin(g, plugin).Status.ReleaseEvents.LastReportedDigest).To(Equal("sha256:2"))
 		}).Should(Succeed())
-		Expect(endpoint.received()).To(ConsistOf(changeReport{
+		Expect(endpoint.received()).To(ConsistOf(releaseEvent{
 			auth: "greenhouse:secret",
 			payload: map[string]any{
 				"organization": setup.Namespace(),
@@ -210,18 +210,18 @@ var _ = Describe("Change management", Ordered, func() {
 		setReleaseHistory(plugin, releaseSnapshot("sha256:3", 3), releaseSnapshot("sha256:2", 2))
 
 		Eventually(func(g Gomega) {
-			condition := getPlugin(g, plugin).Status.GetConditionByType(greenhousev1alpha1.ChangeReportedCondition)
+			condition := getPlugin(g, plugin).Status.GetConditionByType(greenhousev1alpha1.ReleaseEventSentCondition)
 			g.Expect(condition).ToNot(BeNil())
 			g.Expect(condition.IsFalse()).To(BeTrue())
 			g.Expect(condition.Message).To(ContainSubstring("503"))
 		}).Should(Succeed())
-		Expect(getPlugin(Default, plugin).Status.ChangeManagement.LastReportedDigest).To(Equal("sha256:2"))
+		Expect(getPlugin(Default, plugin).Status.ReleaseEvents.LastReportedDigest).To(Equal("sha256:2"))
 
 		endpoint.status.Store(http.StatusOK)
 		Eventually(func(g Gomega) {
 			current := getPlugin(g, plugin)
-			g.Expect(current.Status.ChangeManagement.LastReportedDigest).To(Equal("sha256:3"))
-			g.Expect(current.Status.GetConditionByType(greenhousev1alpha1.ChangeReportedCondition).IsTrue()).To(BeTrue())
+			g.Expect(current.Status.ReleaseEvents.LastReportedDigest).To(Equal("sha256:3"))
+			g.Expect(current.Status.GetConditionByType(greenhousev1alpha1.ReleaseEventSentCondition).IsTrue()).To(BeTrue())
 		}).Should(Succeed())
 		Expect(endpoint.received()).To(HaveLen(2))
 	})
@@ -233,42 +233,42 @@ var _ = Describe("Change management", Ordered, func() {
 		setReleaseHistory(plugin, failed, releaseSnapshot("sha256:3", 3))
 
 		Eventually(func(g Gomega) {
-			g.Expect(getPlugin(g, plugin).Status.ChangeManagement.LastReportedDigest).To(Equal("sha256:4"))
+			g.Expect(getPlugin(g, plugin).Status.ReleaseEvents.LastReportedDigest).To(Equal("sha256:4"))
 		}).Should(Succeed())
 		Expect(endpoint.attempts.Load()).To(Equal(attempts))
 	})
 
 	It("reports the first install of a new Plugin", func() {
-		newPlugin := createPlugin("change-management-new")
+		newPlugin := createPlugin("release-events-new")
 		Eventually(func(g Gomega) {
-			g.Expect(getPlugin(g, newPlugin).Status.ChangeManagement).ToNot(BeNil())
+			g.Expect(getPlugin(g, newPlugin).Status.ReleaseEvents).ToNot(BeNil())
 		}).Should(Succeed())
 
 		setReleaseHistory(newPlugin, releaseSnapshot("sha256:new", 1))
 		Eventually(func(g Gomega) {
-			g.Expect(getPlugin(g, newPlugin).Status.ChangeManagement.LastReportedDigest).To(Equal("sha256:new"))
+			g.Expect(getPlugin(g, newPlugin).Status.ReleaseEvents.LastReportedDigest).To(Equal("sha256:new"))
 		}).Should(Succeed())
 		Expect(endpoint.received()).To(HaveLen(3))
 		Expect(endpoint.received()[2].payload).To(HaveKeyWithValue("plugin", newPlugin.Name))
 	})
 })
 
-var _ = Describe("Change report condition", func() {
+var _ = Describe("Release event condition", func() {
 	It("keeps the message stable when the endpoint resets connections", func() {
 		plugin := &greenhousev1alpha1.Plugin{}
 		reset := func(port int) error {
 			return &url.Error{Op: "Post", URL: "http://endpoint", Err: fmt.Errorf("read tcp 127.0.0.1:%d->127.0.0.1:80: read: connection reset by peer", port)}
 		}
-		Expect(changeReportFailed(plugin, reset(50544))).To(HaveOccurred())
-		message := plugin.Status.GetConditionByType(greenhousev1alpha1.ChangeReportedCondition).Message
-		Expect(changeReportFailed(plugin, reset(50817))).To(HaveOccurred())
-		Expect(plugin.Status.GetConditionByType(greenhousev1alpha1.ChangeReportedCondition).Message).To(Equal(message))
+		Expect(releaseEventFailed(plugin, reset(50544))).To(HaveOccurred())
+		message := plugin.Status.GetConditionByType(greenhousev1alpha1.ReleaseEventSentCondition).Message
+		Expect(releaseEventFailed(plugin, reset(50817))).To(HaveOccurred())
+		Expect(plugin.Status.GetConditionByType(greenhousev1alpha1.ReleaseEventSentCondition).Message).To(Equal(message))
 	})
 
-	It("is removed when change management is disabled", func() {
+	It("is removed when release events are disabled", func() {
 		plugin := &greenhousev1alpha1.Plugin{}
-		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ChangeReportedCondition, "", "failed"))
-		Expect((&PluginReconciler{}).reportChange(test.Ctx, plugin)).To(Succeed())
-		Expect(plugin.Status.GetConditionByType(greenhousev1alpha1.ChangeReportedCondition)).To(BeNil())
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ReleaseEventSentCondition, "", "failed"))
+		Expect((&PluginReconciler{}).reportRelease(test.Ctx, plugin)).To(Succeed())
+		Expect(plugin.Status.GetConditionByType(greenhousev1alpha1.ReleaseEventSentCondition)).To(BeNil())
 	})
 })

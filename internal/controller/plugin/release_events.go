@@ -18,14 +18,14 @@ import (
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	"github.com/cloudoperators/greenhouse/internal/changemanagement"
+	"github.com/cloudoperators/greenhouse/internal/releaseevents"
 )
 
-const changeManagementConfigKey = "changeManagementConfig"
+const releaseEventsConfigKey = "releaseEventsConfig"
 
-var changeReportRetryInterval = time.Minute
+var releaseEventRetryInterval = time.Minute
 
-type changeManagementConfig struct {
+type releaseEventsConfig struct {
 	Endpoint        string `yaml:"endpoint"`
 	SecretName      string `yaml:"secretName"`
 	TokenURL        string `yaml:"tokenURL"`
@@ -33,70 +33,70 @@ type changeManagementConfig struct {
 	PayloadTemplate string `yaml:"payloadTemplate"`
 }
 
-// changeProperties are the well-known properties available to the payload template.
-type changeProperties struct {
+// releaseEventProperties are the well-known properties available to the payload template.
+type releaseEventProperties struct {
 	Organization string
 	Plugin       *greenhousev1alpha1.Plugin
 	Cluster      *greenhousev1alpha1.Cluster
 	Release      *helmv2.Snapshot
 }
 
-// reportChange reports each new HelmRelease revision of the Plugin once.
-func (r *PluginReconciler) reportChange(ctx context.Context, plugin *greenhousev1alpha1.Plugin) error {
-	if !r.ChangeManagementEnabled {
-		plugin.RemoveCondition(greenhousev1alpha1.ChangeReportedCondition)
+// reportRelease reports each new HelmRelease revision of the Plugin once.
+func (r *PluginReconciler) reportRelease(ctx context.Context, plugin *greenhousev1alpha1.Plugin) error {
+	if !r.ReleaseEventsEnabled {
+		plugin.RemoveCondition(greenhousev1alpha1.ReleaseEventSentCondition)
 		return nil
 	}
-	config, err := getChangeManagementConfig(ctx, r.Client, plugin.Namespace)
+	config, err := getReleaseEventsConfig(ctx, r.Client, plugin.Namespace)
 	if err != nil {
-		return changeReportFailed(plugin, err)
+		return releaseEventFailed(plugin, err)
 	}
 	if config == nil {
-		plugin.RemoveCondition(greenhousev1alpha1.ChangeReportedCondition)
+		plugin.RemoveCondition(greenhousev1alpha1.ReleaseEventSentCondition)
 		return nil
 	}
 
 	helmRelease := &helmv2.HelmRelease{}
 	if err := r.Get(ctx, client.ObjectKeyFromObject(plugin), helmRelease); client.IgnoreNotFound(err) != nil {
-		return changeReportFailed(plugin, err)
+		return releaseEventFailed(plugin, err)
 	}
 	latest := helmRelease.Status.History.Latest()
-	if plugin.Status.ChangeManagement == nil {
+	if plugin.Status.ReleaseEvents == nil {
 		recordBaseline(plugin, latest)
 	}
-	if latest != nil && latest.Digest != plugin.Status.ChangeManagement.LastReportedDigest {
-		if err := r.sendChange(ctx, plugin, config, latest); err != nil {
-			return changeReportFailed(plugin, err)
+	if latest != nil && latest.Digest != plugin.Status.ReleaseEvents.LastReportedDigest {
+		if err := r.sendReleaseEvent(ctx, plugin, config, latest); err != nil {
+			return releaseEventFailed(plugin, err)
 		}
-		plugin.Status.ChangeManagement.LastReportedDigest = latest.Digest
+		plugin.Status.ReleaseEvents.LastReportedDigest = latest.Digest
 	}
-	plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.ChangeReportedCondition, "", ""))
+	plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.ReleaseEventSentCondition, "", ""))
 	return nil
 }
 
-// recordBaseline marks what is deployed when change management gets switched on as reported, without sending it.
+// recordBaseline marks what is deployed when release events get switched on as reported, without sending it.
 // A Plugin without a release yet starts empty, so its first install is reported.
 func recordBaseline(plugin *greenhousev1alpha1.Plugin, latest *helmv2.Snapshot) {
-	plugin.Status.ChangeManagement = &greenhousev1alpha1.ChangeManagementStatus{}
+	plugin.Status.ReleaseEvents = &greenhousev1alpha1.ReleaseEventsStatus{}
 	if latest != nil {
-		plugin.Status.ChangeManagement.LastReportedDigest = latest.Digest
+		plugin.Status.ReleaseEvents.LastReportedDigest = latest.Digest
 	}
 }
 
-// changeReportFailed sets ChangeReported to False with the error.
+// releaseEventFailed sets ReleaseEventSent to False with the error.
 // Transport errors get a fixed message, because they carry addresses that change on every attempt and each new message triggers another reconcile.
-func changeReportFailed(plugin *greenhousev1alpha1.Plugin, err error) error {
+func releaseEventFailed(plugin *greenhousev1alpha1.Plugin, err error) error {
 	message := err.Error()
 	var urlErr *url.Error
 	if errors.As(err, &urlErr) {
-		message = "failed to send the change to the change management endpoint, see the controller logs"
+		message = "failed to send the release event, see the controller logs"
 	}
-	plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ChangeReportedCondition, "", message))
+	plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ReleaseEventSentCondition, "", message))
 	return err
 }
 
-// getChangeManagementConfig returns nil if the Organization has not configured change management.
-func getChangeManagementConfig(ctx context.Context, c client.Client, organization string) (*changeManagementConfig, error) {
+// getReleaseEventsConfig returns nil if the Organization has not configured release events.
+func getReleaseEventsConfig(ctx context.Context, c client.Client, organization string) (*releaseEventsConfig, error) {
 	org := &greenhousev1alpha1.Organization{}
 	if err := c.Get(ctx, types.NamespacedName{Name: organization}, org); err != nil || org.Spec.ConfigMapRef == "" {
 		return nil, client.IgnoreNotFound(err)
@@ -105,19 +105,19 @@ func getChangeManagementConfig(ctx context.Context, c client.Client, organizatio
 	if err := c.Get(ctx, types.NamespacedName{Name: org.Spec.ConfigMapRef, Namespace: organization}, configMap); err != nil {
 		return nil, client.IgnoreNotFound(err)
 	}
-	data, ok := configMap.Data[changeManagementConfigKey]
+	data, ok := configMap.Data[releaseEventsConfigKey]
 	if !ok {
 		return nil, nil
 	}
-	config := &changeManagementConfig{}
+	config := &releaseEventsConfig{}
 	if err := yaml.Unmarshal([]byte(data), config); err != nil {
-		return nil, fmt.Errorf("invalid %s in ConfigMap %s: %w", changeManagementConfigKey, org.Spec.ConfigMapRef, err)
+		return nil, fmt.Errorf("invalid %s in ConfigMap %s: %w", releaseEventsConfigKey, org.Spec.ConfigMapRef, err)
 	}
 	return config, nil
 }
 
-// sendChange collects the payload and credentials for the revision and sends them.
-func (r *PluginReconciler) sendChange(ctx context.Context, plugin *greenhousev1alpha1.Plugin, config *changeManagementConfig, release *helmv2.Snapshot) error {
+// sendReleaseEvent collects the payload and credentials for the revision and sends them.
+func (r *PluginReconciler) sendReleaseEvent(ctx context.Context, plugin *greenhousev1alpha1.Plugin, config *releaseEventsConfig, release *helmv2.Snapshot) error {
 	if reported, err := r.alreadyReported(ctx, plugin, release.Digest); err != nil || reported {
 		return err
 	}
@@ -127,7 +127,7 @@ func (r *PluginReconciler) sendChange(ctx context.Context, plugin *greenhousev1a
 			return err
 		}
 	}
-	payload, err := changemanagement.Render(config.PayloadTemplate, changeProperties{
+	payload, err := releaseevents.Render(config.PayloadTemplate, releaseEventProperties{
 		Organization: plugin.Namespace,
 		Plugin:       plugin,
 		Cluster:      cluster,
@@ -136,7 +136,7 @@ func (r *PluginReconciler) sendChange(ctx context.Context, plugin *greenhousev1a
 	if err != nil || payload == nil {
 		return err
 	}
-	auth := changemanagement.Auth{TokenURL: config.TokenURL, TokenHeader: config.TokenHeader}
+	auth := releaseevents.Auth{TokenURL: config.TokenURL, TokenHeader: config.TokenHeader}
 	if config.SecretName != "" {
 		secret := &corev1.Secret{}
 		if err := r.Get(ctx, types.NamespacedName{Name: config.SecretName, Namespace: plugin.Namespace}, secret); err != nil {
@@ -148,7 +148,7 @@ func (r *PluginReconciler) sendChange(ctx context.Context, plugin *greenhousev1a
 			return fmt.Errorf("secret %s is missing username or password", config.SecretName)
 		}
 	}
-	return changemanagement.New(config.Endpoint, auth).Send(ctx, payload)
+	return releaseevents.New(config.Endpoint, auth).Send(ctx, payload)
 }
 
 // alreadyReported reads the Plugin from the API server, because the cache can lag behind the status written by the previous reconcile.
@@ -157,5 +157,5 @@ func (r *PluginReconciler) alreadyReported(ctx context.Context, plugin *greenhou
 	if err := r.apiReader.Get(ctx, client.ObjectKeyFromObject(plugin), current); err != nil {
 		return false, err
 	}
-	return current.Status.ChangeManagement != nil && current.Status.ChangeManagement.LastReportedDigest == digest, nil
+	return current.Status.ReleaseEvents != nil && current.Status.ReleaseEvents.LastReportedDigest == digest, nil
 }

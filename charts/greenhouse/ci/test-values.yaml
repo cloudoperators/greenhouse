@@ -13,7 +13,7 @@ global:
   # Plugin configuration for Greenhouse.
   plugin:
     ociMirroringEnabled: false
-    changeManagementEnabled: false
+    releaseEventsEnabled: false
   # PluginPreset configuration for Greenhouse.
   pluginPreset:
     expressionEvaluationEnabled: true

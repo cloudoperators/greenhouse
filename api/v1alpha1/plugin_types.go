@@ -175,8 +175,8 @@ const (
 	// pre-replication to the configured mirror registry has failed.
 	ImageReplicationFailedReason greenhousemetav1alpha1.ConditionReason = "ImageReplicationFailed"
 
-	// ChangeReportedCondition reflects whether the latest HelmRelease revision was reported to change management.
-	ChangeReportedCondition greenhousemetav1alpha1.ConditionType = "ChangeReported"
+	// ReleaseEventSentCondition reflects whether the latest HelmRelease revision was sent as a release event.
+	ReleaseEventSentCondition greenhousemetav1alpha1.ConditionType = "ReleaseEventSent"
 )
 
 // PluginStatus defines the observed state of Plugin
@@ -217,13 +217,13 @@ type PluginStatus struct {
 	// +Optional
 	ImageReplication []string `json:"imageReplication,omitempty"`
 
-	// ChangeManagement tracks the last HelmRelease revision reported to change management.
-	ChangeManagement *ChangeManagementStatus `json:"changeManagement,omitempty"`
+	// ReleaseEvents tracks the last HelmRelease revision sent as a release event.
+	ReleaseEvents *ReleaseEventsStatus `json:"releaseEvents,omitempty"`
 }
 
-// ChangeManagementStatus is the change management state of a Plugin.
-type ChangeManagementStatus struct {
-	// LastReportedDigest is the HelmRelease history digest reported last, or recorded when change management was switched on.
+// ReleaseEventsStatus is the release events state of a Plugin.
+type ReleaseEventsStatus struct {
+	// LastReportedDigest is the HelmRelease history digest reported last, or recorded when release events were switched on.
 	LastReportedDigest string `json:"lastReportedDigest,omitempty"`
 }
 

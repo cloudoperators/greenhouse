@@ -37,10 +37,10 @@ func TestHelmController(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	changeReportRetryInterval = time.Second
+	releaseEventRetryInterval = time.Second
 	test.RegisterController("plugin", (&PluginReconciler{
-		KubeRuntimeOpts:         clientutil.RuntimeOptions{QPS: 5, Burst: 10},
-		ChangeManagementEnabled: true,
+		KubeRuntimeOpts:      clientutil.RuntimeOptions{QPS: 5, Burst: 10},
+		ReleaseEventsEnabled: true,
 	}).SetupWithManager)
 	test.RegisterController("pluginPreset", (&PluginPresetReconciler{
 		ExpressionEvaluationEnabled: true,

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package changemanagement
+package releaseevents
 
 import (
 	"bytes"
@@ -17,7 +17,7 @@ import (
 	"golang.org/x/oauth2/clientcredentials"
 )
 
-// Auth holds the credentials for the change management endpoint, sent as basic auth or traded at TokenURL for an OAuth2 token.
+// Auth holds the credentials for the release events endpoint, sent as basic auth or traded at TokenURL for an OAuth2 token.
 type Auth struct {
 	Username    string
 	Password    string
@@ -25,7 +25,7 @@ type Auth struct {
 	TokenHeader string
 }
 
-// Client sends changes to a change management endpoint.
+// Client sends changes to a release events endpoint.
 type Client struct {
 	endpoint   string
 	httpClient *http.Client
@@ -55,7 +55,7 @@ func (c *Client) Send(ctx context.Context, payload []byte) error {
 	}
 	defer response.Body.Close()
 	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
-		return fmt.Errorf("change management endpoint responded with %s", response.Status)
+		return fmt.Errorf("release events endpoint responded with %s", response.Status)
 	}
 	return nil
 }

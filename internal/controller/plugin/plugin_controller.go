@@ -50,7 +50,7 @@ type PluginReconciler struct {
 
 	MaxConcurrentReconciles int
 	WorkloadIdentityEnabled bool
-	ChangeManagementEnabled bool
+	ReleaseEventsEnabled    bool
 	FeatureFlagsName        string
 	FeatureFlagsNamespace   string
 	workloadIdentityEnabled atomic.Bool
