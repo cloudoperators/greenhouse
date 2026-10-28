@@ -15,6 +15,7 @@ import (
 )
 
 // ClientForCluster returns a controller-runtime client for the given remote cluster.
+// Callers must provide at least one addToScheme function; an empty scheme will cause resource operations to fail.
 func ClientForCluster(ctx context.Context, kubeClient client.Client, cluster *greenhouseapisv1alpha1.Cluster, addToScheme ...func(*runtime.Scheme) error) (client.Client, error) {
 	cfg, err := NewRemoteKubeCfg(ctx, kubeClient, cluster)
 	if err != nil {
