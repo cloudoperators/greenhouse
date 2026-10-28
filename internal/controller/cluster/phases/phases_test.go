@@ -5,14 +5,19 @@ package phases
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
@@ -194,6 +199,8 @@ func TestEnsureTeamRBACDeleted(t *testing.T) {
 		name                string
 		objects             []client.Object
 		deletionPolicy      string
+		workloadIdentity    bool
+		interceptor         interceptor.Funcs
 		wantBreak           bool
 		wantKubeConfigValid metav1.ConditionStatus
 	}{
@@ -210,6 +217,18 @@ func TestEnsureTeamRBACDeleted(t *testing.T) {
 			wantKubeConfigValid: metav1.ConditionFalse,
 		},
 		{
+			name:             "failed token request on a workload identity cluster is retried",
+			objects:          []client.Object{oidcSecret()},
+			workloadIdentity: true,
+			interceptor: interceptor.Funcs{
+				SubResourceCreate: func(context.Context, client.Client, string, client.Object, client.Object, ...client.SubResourceCreateOption) error {
+					return apierrors.NewServiceUnavailable("unavailable")
+				},
+			},
+			wantBreak:           true,
+			wantKubeConfigValid: metav1.ConditionTrue,
+		},
+		{
 			name:                "retained cluster keeps its team RBAC",
 			deletionPolicy:      greenhouseapis.DeletionPolicyRetain,
 			wantKubeConfigValid: metav1.ConditionTrue,
@@ -220,7 +239,10 @@ func TestEnsureTeamRBACDeleted(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			cluster := healthyCluster()
 			cluster.Annotations = map[string]string{greenhouseapis.AnnotationKeyDeletionPolicy: tc.deletionPolicy}
-			p := &Phase{Client: fake.NewClientBuilder().WithScheme(testScheme(t)).WithObjects(tc.objects...).Build()}
+			if tc.workloadIdentity {
+				cluster.Annotations[greenhouseapis.ClusterWorkloadIdentityAnnotation] = greenhouseapis.ClusterWorkloadIdentityEnabled
+			}
+			p := &Phase{Client: fake.NewClientBuilder().WithScheme(testScheme(t)).WithObjects(tc.objects...).WithInterceptorFuncs(tc.interceptor).Build()}
 
 			result, err := p.ensureTeamRBACDeleted(cluster)(context.Background())
 			require.Equal(t, tc.wantBreak, result.Break)
@@ -228,4 +250,33 @@ func TestEnsureTeamRBACDeleted(t *testing.T) {
 			require.Equal(t, tc.wantKubeConfigValid, cluster.Status.GetConditionByType(greenhousev1alpha1.KubeConfigValid).Status)
 		})
 	}
+}
+
+func TestDeleteTeamRBACContinuesPastFailedDeletes(t *testing.T) {
+	scheme := testScheme(t)
+	require.NoError(t, rbacv1.AddToScheme(scheme))
+	labels := map[string]string{greenhouseapis.LabelKeyRole: "team", greenhouseapis.LabelKeyRoleBinding: "team"}
+	roleBinding := &rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "team", Namespace: "kube-system", Labels: labels}}
+	remoteClient := fake.NewClientBuilder().WithScheme(scheme).
+		WithObjects(
+			roleBinding,
+			&rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "team", Labels: labels}},
+			&rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: "team", Labels: labels}},
+		).
+		WithInterceptorFuncs(interceptor.Funcs{
+			Delete: func(context.Context, client.WithWatch, client.Object, ...client.DeleteOption) error {
+				return apierrors.NewForbidden(schema.GroupResource{Group: rbacv1.GroupName, Resource: "rolebindings"}, "team", errors.New("denied by webhook"))
+			},
+		}).
+		Build()
+
+	err := deleteTeamRBAC(context.Background(), remoteClient, []rbacv1.RoleBinding{*roleBinding})
+	require.True(t, apierrors.IsForbidden(err))
+
+	clusterRoleBindings := &rbacv1.ClusterRoleBindingList{}
+	require.NoError(t, remoteClient.List(context.Background(), clusterRoleBindings))
+	require.Empty(t, clusterRoleBindings.Items)
+	clusterRoles := &rbacv1.ClusterRoleList{}
+	require.NoError(t, remoteClient.List(context.Background(), clusterRoles))
+	require.Empty(t, clusterRoles.Items)
 }

@@ -6,6 +6,7 @@ package phases
 import (
 	"context"
 	"errors"
+	"net"
 	"strings"
 
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -25,32 +26,39 @@ func (p *Phase) ensureTeamRBACDeleted(cluster *greenhousev1alpha1.Cluster) lifec
 		}
 		remoteClient, err := clientutil.NewK8sClientFromCluster(ctx, p.Client, cluster)
 		if err != nil {
+			if errors.As(err, new(net.Error)) || apierrors.IsTooManyRequests(err) || apierrors.IsServiceUnavailable(err) ||
+				apierrors.IsInternalError(err) || apierrors.IsServerTimeout(err) || apierrors.IsTimeout(err) {
+				return lifecycle.Break(), err
+			}
 			return breakInvalidKubeConfig(cluster, err)
 		}
-		err = deleteTeamRBAC(ctx, remoteClient)
+		roleBindings := &rbacv1.RoleBindingList{}
+		err = remoteClient.List(ctx, roleBindings, client.HasLabels{greenhouseapis.LabelKeyRoleBinding})
 		switch {
-		case err == nil, apierrors.IsUnauthorized(err), apierrors.IsForbidden(err):
+		case apierrors.IsUnauthorized(err), apierrors.IsForbidden(err):
 			return lifecycle.Continue(), nil
-		case !errors.As(err, new(apierrors.APIStatus)):
+		case err != nil && !errors.As(err, new(apierrors.APIStatus)):
 			return breakInvalidKubeConfig(cluster, err)
-		default:
+		case err != nil:
 			return lifecycle.Break(), err
 		}
+		if err := deleteTeamRBAC(ctx, remoteClient, roleBindings.Items); err != nil {
+			return lifecycle.Break(), err
+		}
+		return lifecycle.Continue(), nil
 	}
 }
 
-func deleteTeamRBAC(ctx context.Context, remoteClient client.Client) error {
-	roleBindings := &rbacv1.RoleBindingList{}
-	if err := remoteClient.List(ctx, roleBindings, client.HasLabels{greenhouseapis.LabelKeyRoleBinding}); err != nil {
-		return err
-	}
-	for _, roleBinding := range roleBindings.Items {
+func deleteTeamRBAC(ctx context.Context, remoteClient client.Client, roleBindings []rbacv1.RoleBinding) error {
+	var errs []error
+	for _, roleBinding := range roleBindings {
 		if err := remoteClient.Delete(ctx, &roleBinding); client.IgnoreNotFound(err) != nil {
-			return err
+			errs = append(errs, err)
 		}
 	}
-	if err := remoteClient.DeleteAllOf(ctx, &rbacv1.ClusterRoleBinding{}, client.HasLabels{greenhouseapis.LabelKeyRoleBinding}); err != nil {
-		return err
-	}
-	return remoteClient.DeleteAllOf(ctx, &rbacv1.ClusterRole{}, client.HasLabels{greenhouseapis.LabelKeyRole})
+	errs = append(errs,
+		remoteClient.DeleteAllOf(ctx, &rbacv1.ClusterRoleBinding{}, client.HasLabels{greenhouseapis.LabelKeyRoleBinding}),
+		remoteClient.DeleteAllOf(ctx, &rbacv1.ClusterRole{}, client.HasLabels{greenhouseapis.LabelKeyRole}),
+	)
+	return errors.Join(errs...)
 }
