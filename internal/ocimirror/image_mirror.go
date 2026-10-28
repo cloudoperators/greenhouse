@@ -103,6 +103,8 @@ func (m *ImageMirror) buildReplicationRef(ociRef string) (replicationRef, return
 // BuildImageTransformations extracts image refs from the given rendered manifest
 // sets and returns the upstream-to-mirror rewrites for them, skipping refs that
 // already point at a mirror and deduplicating across sets.
+// Original is the image name as written in the manifest, because Kustomize matches
+// image names literally, e.g. "busybox" does not match "docker.io/library/busybox".
 func (m *ImageMirror) BuildImageTransformations(manifestSets ...string) []ImageTransform {
 	seen := make(map[string]struct{})
 	var transforms []ImageTransform
@@ -113,7 +115,7 @@ func (m *ImageMirror) BuildImageTransformations(manifestSets ...string) []ImageT
 				continue
 			}
 
-			original := fmt.Sprintf("%s/%s", resolved.Registry, resolved.Repository)
+			original := trimTagAndDigest(imageRef)
 			if _, ok := seen[original]; ok {
 				continue
 			}
