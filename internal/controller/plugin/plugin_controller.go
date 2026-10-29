@@ -50,9 +50,11 @@ type PluginReconciler struct {
 
 	MaxConcurrentReconciles int
 	WorkloadIdentityEnabled bool
+	ReleaseEventsEnabled    bool
 	FeatureFlagsName        string
 	FeatureFlagsNamespace   string
 	workloadIdentityEnabled atomic.Bool
+	apiReader               client.Reader
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch;create;update;patch;delete
@@ -96,6 +98,7 @@ func (r *PluginReconciler) SetupWithManager(name string, mgr ctrl.Manager) error
 
 	r.artifactory = flux.NewArtifactory(ctrl.Log.WithName("artifactory"), r.StoragePath, r.HTTPRetry)
 	r.workloadIdentityEnabled.Store(r.WorkloadIdentityEnabled)
+	r.apiReader = mgr.GetAPIReader()
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).

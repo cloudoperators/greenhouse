@@ -174,6 +174,9 @@ const (
 	// ImageReplicationFailedReason is set on HelmReleaseCreatedCondition when container image
 	// pre-replication to the configured mirror registry has failed.
 	ImageReplicationFailedReason greenhousemetav1alpha1.ConditionReason = "ImageReplicationFailed"
+
+	// ReleaseEventSentCondition reflects whether the latest HelmRelease revision was sent as a release event.
+	ReleaseEventSentCondition greenhousemetav1alpha1.ConditionType = "ReleaseEventSent"
 )
 
 // PluginStatus defines the observed state of Plugin
@@ -213,6 +216,15 @@ type PluginStatus struct {
 	// Used to skip redundant replication on subsequent reconciliations.
 	// +Optional
 	ImageReplication []string `json:"imageReplication,omitempty"`
+
+	// ReleaseEvents tracks the last HelmRelease revision sent as a release event.
+	ReleaseEvents *ReleaseEventsStatus `json:"releaseEvents,omitempty"`
+}
+
+// ReleaseEventsStatus is the release events state of a Plugin.
+type ReleaseEventsStatus struct {
+	// LastReportedDigest is the HelmRelease history digest reported last, or recorded when release events were switched on.
+	LastReportedDigest string `json:"lastReportedDigest,omitempty"`
 }
 
 // ServiceType defines the type of exposed service.
