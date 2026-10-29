@@ -9,10 +9,10 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
-	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
@@ -69,7 +69,7 @@ func NewScenario(
 func (s *scenario) createTRB(ctx context.Context, name string, opts ...func(*greenhousev1alpha2.TeamRoleBinding)) *greenhousev1alpha2.TeamRoleBinding {
 	GinkgoHelper()
 	trb := test.NewTeamRoleBinding(ctx, name, s.namespace)
-	_, err := clientutil.CreateOrPatch(ctx, s.adminClient, trb, func() error {
+	_, err := controllerutil.CreateOrPatch(ctx, s.adminClient, trb, func() error {
 		for _, opt := range opts {
 			opt(trb)
 		}

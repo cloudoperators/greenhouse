@@ -14,10 +14,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
-	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
@@ -38,7 +38,7 @@ func (s *scenario) ExecuteClusterSelectorScenario(ctx context.Context) {
 	Expect(s.adminClient.Get(ctx, client.ObjectKey{Name: s.clusterName, Namespace: s.namespace}, cluster)).
 		To(Succeed(), "remote cluster should exist")
 
-	_, err := clientutil.CreateOrPatch(ctx, s.adminClient, cluster, func() error {
+	_, err := controllerutil.CreateOrPatch(ctx, s.adminClient, cluster, func() error {
 		if cluster.Labels == nil {
 			cluster.Labels = make(map[string]string)
 		}
@@ -49,7 +49,7 @@ func (s *scenario) ExecuteClusterSelectorScenario(ctx context.Context) {
 
 	// Restore the cluster label on cleanup regardless of test outcome.
 	DeferCleanup(func() {
-		_, err := clientutil.CreateOrPatch(ctx, s.adminClient, cluster, func() error {
+		_, err := controllerutil.CreateOrPatch(ctx, s.adminClient, cluster, func() error {
 			delete(cluster.Labels, labelKey)
 			return nil
 		})
@@ -89,7 +89,7 @@ func (s *scenario) ExecuteClusterSelectorScenario(ctx context.Context) {
 	}).Should(Succeed(), "PropagationStatus should only show the matching cluster")
 
 	By("changing the cluster label so it no longer matches the selector")
-	_, err = clientutil.CreateOrPatch(ctx, s.adminClient, cluster, func() error {
+	_, err = controllerutil.CreateOrPatch(ctx, s.adminClient, cluster, func() error {
 		cluster.Labels[labelKey] = labelNoMatch
 		return nil
 	})

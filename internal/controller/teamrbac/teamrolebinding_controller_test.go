@@ -16,12 +16,12 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
-	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
@@ -128,7 +128,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 
 			By("updating the TeamRoleBinding with a selector matching clusterB")
 			trb.Spec.ClusterSelector.LabelSelector = metav1.LabelSelector{MatchLabels: map[string]string{"cluster": "b"}}
-			_, err := clientutil.CreateOrPatch(test.Ctx, k8sClient, trb, func() error {
+			_, err := controllerutil.CreateOrPatch(test.Ctx, k8sClient, trb, func() error {
 				trb.Spec.ClusterSelector.Name = ""
 				trb.Spec.ClusterSelector.LabelSelector = metav1.LabelSelector{MatchLabels: map[string]string{"cluster": "b"}}
 				return nil
@@ -196,7 +196,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 
 			By("updating the TeamRoleBinding with to a selector matching clusterB")
 			trb.Spec.ClusterSelector.LabelSelector = metav1.LabelSelector{MatchLabels: map[string]string{"cluster": "b"}}
-			_, err := clientutil.CreateOrPatch(test.Ctx, k8sClient, trb, func() error {
+			_, err := controllerutil.CreateOrPatch(test.Ctx, k8sClient, trb, func() error {
 				trb.Spec.ClusterSelector.Name = ""
 				trb.Spec.ClusterSelector.LabelSelector = metav1.LabelSelector{MatchLabels: map[string]string{"cluster": "b"}}
 				return nil
@@ -228,13 +228,13 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 
 		It("should remove the RoleBinding on the cluster when the label matching the clusterSelector is removed from the cluster", func() {
 			By("labelling the clusters")
-			_, err := clientutil.CreateOrPatch(test.Ctx, k8sClient, clusterA, func() error {
+			_, err := controllerutil.CreateOrPatch(test.Ctx, k8sClient, clusterA, func() error {
 				clusterA.Labels["foo"] = "bar"
 				return nil
 			})
 			Expect(err).NotTo(HaveOccurred(), "there should be no error labelling clusterA")
 
-			_, err = clientutil.CreateOrPatch(test.Ctx, k8sClient, clusterB, func() error {
+			_, err = controllerutil.CreateOrPatch(test.Ctx, k8sClient, clusterB, func() error {
 				clusterB.Labels["foo"] = "bar"
 				return nil
 			})
@@ -275,7 +275,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			}).Should(Succeed(), "the TeamRoleBindings status should reflect the current status")
 
 			By("updating the ClusterB to remove the label that matches the clusterSelector")
-			_, err = clientutil.CreateOrPatch(test.Ctx, k8sClient, clusterB, func() error {
+			_, err = controllerutil.CreateOrPatch(test.Ctx, k8sClient, clusterB, func() error {
 				delete(clusterB.Labels, "foo")
 				return nil
 			})
@@ -937,7 +937,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			}).Should(Succeed(), "Two RoleBindings should be deployed to remote clusterA")
 
 			By("updating the TeamRoleBinding with a different selector and changed namespaces")
-			_, err := clientutil.CreateOrPatch(test.Ctx, k8sClient, trb, func() error {
+			_, err := controllerutil.CreateOrPatch(test.Ctx, k8sClient, trb, func() error {
 				trb.Spec.ClusterSelector.Name = ""
 				trb.Spec.ClusterSelector.LabelSelector = metav1.LabelSelector{MatchLabels: map[string]string{"not": "matching"}}
 				// Replace with a single different namespace.
@@ -1173,7 +1173,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			}).Should(Succeed())
 
 			By("adding a second team to teamRefs")
-			_, err := clientutil.CreateOrPatch(test.Ctx, k8sClient, trb, func() error {
+			_, err := controllerutil.CreateOrPatch(test.Ctx, k8sClient, trb, func() error {
 				trb.Spec.TeamRefs = []string{teamUT.Name, teamC.Name}
 				return nil
 			})
@@ -1230,7 +1230,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			}).Should(Succeed())
 
 			By("updating teamD's MappedIDPGroup")
-			_, err := clientutil.CreateOrPatch(test.Ctx, k8sClient, teamD, func() error {
+			_, err := controllerutil.CreateOrPatch(test.Ctx, k8sClient, teamD, func() error {
 				teamD.Spec.MappedIDPGroup = "updated-idp-group"
 				return nil
 			})

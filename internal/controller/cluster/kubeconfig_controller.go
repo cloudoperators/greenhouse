@@ -24,6 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
@@ -117,7 +118,7 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// Sync labels from cluster on every reconcile, independent of OIDC/secret availability.
-	if _, err := clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
+	if _, err := controllerutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
 		kubeconfig.Labels = cluster.GetLabels()
 		// Always delete the version key first so a stale value from the Cluster's own
 		// metadata labels cannot survive when Status.KubernetesVersion is empty.
@@ -254,7 +255,7 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// collect oidc data and update kubeconfig
-	result, err := clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
+	result, err := controllerutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
 		kubeconfig.Spec.Kubeconfig.Clusters = []v1alpha1.ClusterKubeconfigClusterItem{
 			{
 				Name: cluster.Name,

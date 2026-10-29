@@ -198,7 +198,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		Expect(expPlugin.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyPluginPreset, pluginPresetName), "the Plugin should be labeled as managed by the PluginPreset")
 
 		By("modifying the Plugin and ensuring it is reconciled")
-		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, expPlugin, func() error {
+		_, err = controllerutil.CreateOrPatch(test.Ctx, test.K8sClient, expPlugin, func() error {
 			// add a new option value that is not specified by the PluginPreset
 			opt := greenhousev1alpha1.PluginOptionValue{Name: "option1", Value: test.MustReturnJSONFor("value1")}
 			expPlugin.Spec.OptionValues = append(expPlugin.Spec.OptionValues, opt)
@@ -217,7 +217,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed(), "the Plugin should be reconciled")
 
 		By("removing the preset label from the Plugin")
-		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, expPlugin, func() error {
+		_, err = controllerutil.CreateOrPatch(test.Ctx, test.K8sClient, expPlugin, func() error {
 			delete(expPlugin.Labels, greenhouseapis.LabelKeyPluginPreset)
 			return controllerutil.RemoveControllerReference(testPluginPreset, expPlugin, test.K8sClient.Scheme())
 		})
@@ -230,7 +230,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(BeTrue(), "PluginPreset should have the SkippedCondition set to true")
 
 		By("re-adding the preset label to the Plugin")
-		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, expPlugin, func() error {
+		_, err = controllerutil.CreateOrPatch(test.Ctx, test.K8sClient, expPlugin, func() error {
 			expPlugin.Labels[greenhouseapis.LabelKeyPluginPreset] = testPluginPreset.Name
 			return controllerutil.SetControllerReference(testPluginPreset, expPlugin, test.K8sClient.Scheme())
 		})
@@ -307,7 +307,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 				Namespace: test.TestNamespace,
 			},
 		}
-		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, &cluster, func() error {
+		_, err = controllerutil.CreateOrPatch(test.Ctx, test.K8sClient, &cluster, func() error {
 			cluster.Labels = map[string]string{"cluster": clusterA}
 			return nil
 		})
@@ -366,7 +366,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 				Namespace: test.TestNamespace,
 			},
 		}
-		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, &cluster, func() error {
+		_, err = controllerutil.CreateOrPatch(test.Ctx, test.K8sClient, &cluster, func() error {
 			cluster.Labels = map[string]string{"cluster": clusterA}
 			return nil
 		})
@@ -378,7 +378,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed(), "the PluginPreset should have noticed the ClusterLabel change")
 
 		By("changing clusterB labels to ensure the Plugin is deleted")
-		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, &cluster, func() error {
+		_, err = controllerutil.CreateOrPatch(test.Ctx, test.K8sClient, &cluster, func() error {
 			cluster.Labels = map[string]string{}
 			return nil
 		})
@@ -459,7 +459,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 				Namespace: test.TestNamespace,
 			},
 		}
-		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, &cluster, func() error {
+		_, err = controllerutil.CreateOrPatch(test.Ctx, test.K8sClient, &cluster, func() error {
 			cluster.Labels = map[string]string{"cluster": clusterA}
 			return nil
 		})
@@ -837,7 +837,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed(), "Plugin should be created with the initial default option")
 
 		By("updating the ClusterPluginDefinition to add a new default option")
-		_, err := clientutil.CreateOrPatch(test.Ctx, test.K8sClient, watchPluginDef, func() error {
+		_, err := controllerutil.CreateOrPatch(test.Ctx, test.K8sClient, watchPluginDef, func() error {
 			watchPluginDef.Spec.Options = append(watchPluginDef.Spec.Options, greenhousev1alpha1.PluginOption{
 				Name:    "newDefault",
 				Type:    greenhousev1alpha1.PluginOptionTypeString,
@@ -977,7 +977,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			Name: clusterA, Namespace: test.TestNamespace,
 		}, clusterAObj)).To(Succeed())
 
-		_, err := clientutil.CreateOrPatch(test.Ctx, test.K8sClient, clusterAObj, func() error {
+		_, err := controllerutil.CreateOrPatch(test.Ctx, test.K8sClient, clusterAObj, func() error {
 			clusterAObj.Labels["metadata.greenhouse.sap/region"] = "eu-de-1"
 			return nil
 		})
@@ -1036,7 +1036,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{
 			Name: clusterA, Namespace: test.TestNamespace,
 		}, clusterAObj)).To(Succeed())
-		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, clusterAObj, func() error {
+		_, err = controllerutil.CreateOrPatch(test.Ctx, test.K8sClient, clusterAObj, func() error {
 			delete(clusterAObj.Labels, "metadata.greenhouse.sap/region")
 			return nil
 		})
