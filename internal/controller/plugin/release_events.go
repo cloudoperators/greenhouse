@@ -11,7 +11,6 @@ import (
 	"time"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
-	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -21,16 +20,16 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/releaseevents"
 )
 
-const releaseEventsConfigKey = "releaseEventsConfig"
+const (
+	releaseEventsConfigKey     = "releaseEventsConfig"
+	releaseEventsSecretNameKey = "releaseEventsSecretName"
+)
 
 var releaseEventRetryInterval = time.Minute
 
 type releaseEventsConfig struct {
-	Endpoint        string `yaml:"endpoint"`
-	SecretName      string `yaml:"secretName"`
-	TokenURL        string `yaml:"tokenURL"`
-	TokenHeader     string `yaml:"tokenHeader"`
-	PayloadTemplate string `yaml:"payloadTemplate"`
+	SecretName      string
+	PayloadTemplate string
 }
 
 // releaseEventProperties are the well-known properties available to the payload template.
@@ -105,15 +104,15 @@ func getReleaseEventsConfig(ctx context.Context, c client.Client, organization s
 	if err := c.Get(ctx, types.NamespacedName{Name: org.Spec.ConfigMapRef, Namespace: organization}, configMap); err != nil {
 		return nil, client.IgnoreNotFound(err)
 	}
-	data, ok := configMap.Data[releaseEventsConfigKey]
+	payloadTemplate, ok := configMap.Data[releaseEventsConfigKey]
 	if !ok {
 		return nil, nil
 	}
-	config := &releaseEventsConfig{}
-	if err := yaml.Unmarshal([]byte(data), config); err != nil {
-		return nil, fmt.Errorf("invalid %s in ConfigMap %s: %w", releaseEventsConfigKey, org.Spec.ConfigMapRef, err)
+	secretName := configMap.Data[releaseEventsSecretNameKey]
+	if secretName == "" {
+		return nil, fmt.Errorf("%s is missing in ConfigMap %s", releaseEventsSecretNameKey, org.Spec.ConfigMapRef)
 	}
-	return config, nil
+	return &releaseEventsConfig{SecretName: secretName, PayloadTemplate: payloadTemplate}, nil
 }
 
 // sendReleaseEvent collects the payload and credentials for the revision and sends them.
@@ -136,19 +135,38 @@ func (r *PluginReconciler) sendReleaseEvent(ctx context.Context, plugin *greenho
 	if err != nil || payload == nil {
 		return err
 	}
-	auth := releaseevents.Auth{TokenURL: config.TokenURL, TokenHeader: config.TokenHeader}
-	if config.SecretName != "" {
-		secret := &corev1.Secret{}
-		if err := r.Get(ctx, types.NamespacedName{Name: config.SecretName, Namespace: plugin.Namespace}, secret); err != nil {
-			return err
-		}
-		auth.Username = string(secret.Data["username"])
-		auth.Password = string(secret.Data["password"])
-		if auth.Username == "" || auth.Password == "" {
-			return fmt.Errorf("secret %s is missing username or password", config.SecretName)
-		}
+	releaseEventsClient, err := r.getReleaseEventsClient(ctx, plugin.Namespace, config.SecretName)
+	if err != nil {
+		return err
 	}
-	return releaseevents.New(config.Endpoint, auth).Send(ctx, payload)
+	return releaseEventsClient.Send(ctx, payload)
+}
+
+func (r *PluginReconciler) getReleaseEventsClient(ctx context.Context, namespace, secretName string) (*releaseevents.Client, error) {
+	secret := &corev1.Secret{}
+	if err := r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: namespace}, secret); err != nil {
+		return nil, err
+	}
+	endpoint := string(secret.Data["endpoint"])
+	auth := releaseevents.Auth{
+		Username:    string(secret.Data["username"]),
+		Password:    string(secret.Data["password"]),
+		TokenHeader: string(secret.Data["tokenHeader"]),
+	}
+	if endpoint == "" || auth.Username == "" || auth.Password == "" {
+		return nil, fmt.Errorf("secret %s is missing endpoint, username or password", secretName)
+	}
+	switch authType := string(secret.Data["authType"]); authType {
+	case "BASIC":
+	case "OAUTH2":
+		auth.TokenURL = string(secret.Data["tokenURL"])
+		if auth.TokenURL == "" {
+			return nil, fmt.Errorf("secret %s is missing tokenURL", secretName)
+		}
+	default:
+		return nil, fmt.Errorf("secret %s has unsupported authType %q, expected BASIC or OAUTH2", secretName, authType)
+	}
+	return releaseevents.New(endpoint, auth), nil
 }
 
 // alreadyReported reads the Plugin from the API server, because the cache can lag behind the status written by the previous reconcile.

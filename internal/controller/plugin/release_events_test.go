@@ -32,11 +32,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
-const releaseEventsTestConfig = `endpoint: %s
-secretName: change-credentials
-payloadTemplate: |
-  {{ if ne .Release.Status "failed" }}{"organization": {{ .Organization | toJson }}, "plugin": {{ .Plugin.Name | toJson }}, "cluster": {{ .Cluster.Name | toJson }}, "digest": {{ .Release.Digest | toJson }}}{{ end }}
-`
+const releaseEventsTestTemplate = `{{ if ne .Release.Status "failed" }}{"organization": {{ .Organization | toJson }}, "plugin": {{ .Plugin.Name | toJson }}, "cluster": {{ .Cluster.Name | toJson }}, "digest": {{ .Release.Digest | toJson }}}{{ end }}`
 
 type releaseEventEndpoint struct {
 	*httptest.Server
@@ -158,7 +154,12 @@ var _ = Describe("Release events", Ordered, func() {
 		cluster = setup.CreateCluster(test.Ctx, "release-events-cluster",
 			test.WithAccessMode(greenhousev1alpha1.ClusterAccessModeDirect),
 			test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
-		setup.CreateSecret(test.Ctx, "change-credentials", test.WithSecretData(map[string][]byte{"username": []byte("greenhouse"), "password": []byte("secret")}))
+		setup.CreateSecret(test.Ctx, "release-events-credentials", test.WithSecretData(map[string][]byte{
+			"authType": []byte("BASIC"),
+			"endpoint": []byte(endpoint.URL),
+			"username": []byte("greenhouse"),
+			"password": []byte("secret"),
+		}))
 		definition = setup.CreateClusterPluginDefinition(test.Ctx, "release-events",
 			test.WithVersion("1.0.0"),
 			test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{Name: "dummy", Repository: "oci://greenhouse/helm-charts", Version: "1.0.0"}))
@@ -175,7 +176,10 @@ var _ = Describe("Release events", Ordered, func() {
 
 		configMap := &corev1.ConfigMap{}
 		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: "org-config", Namespace: setup.Namespace()}, configMap)).To(Succeed())
-		configMap.Data = map[string]string{releaseEventsConfigKey: fmt.Sprintf(releaseEventsTestConfig, endpoint.URL)}
+		configMap.Data = map[string]string{
+			releaseEventsSecretNameKey: "release-events-credentials",
+			releaseEventsConfigKey:     releaseEventsTestTemplate,
+		}
 		Expect(test.K8sClient.Update(test.Ctx, configMap)).To(Succeed())
 
 		Eventually(func(g Gomega) {
