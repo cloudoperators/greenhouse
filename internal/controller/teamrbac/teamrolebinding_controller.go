@@ -395,12 +395,12 @@ func (r *TeamRoleBindingReconciler) cleanupClusterNamespaces(ctx context.Context
 	}
 
 	for _, roleBinding := range roleBindingsToDelete {
-		result, err := clientutil.Delete(ctx, cl, &roleBinding)
-		switch {
-		case err != nil:
-			log.FromContext(ctx).Error(err, "error deleting RoleBinding", "roleBinding", trb.GetRBACName(), "cluster", cluster.GetName(), "namespace", roleBinding.Namespace)
-			return err
-		case result == clientutil.DeletionResultDeleted:
+		if err := cl.Delete(ctx, &roleBinding); err != nil {
+			if !apierrors.IsNotFound(err) {
+				log.FromContext(ctx).Error(err, "error deleting RoleBinding", "roleBinding", trb.GetRBACName(), "cluster", cluster.GetName(), "namespace", roleBinding.Namespace)
+				return err
+			}
+		} else {
 			log.FromContext(ctx).Info("deleted RoleBinding successfully", "roleBinding", trb.GetRBACName(), "cluster", cluster.GetName(), "namespace", roleBinding.Namespace)
 		}
 	}
@@ -665,13 +665,12 @@ func (r *TeamRoleBindingReconciler) deleteAllDeployedRoleBindings(ctx context.Co
 	}
 
 	for _, roleBinding := range roleBindingsToDelete.Items {
-		result, err := clientutil.Delete(ctx, cl, &roleBinding)
-
-		switch {
-		case err != nil:
-			log.FromContext(ctx).Error(err, "error deleting RoleBinding", "roleBinding", trb.GetRBACName(), "cluster", cluster.GetName(), "namespace", roleBinding.Namespace)
-			return err
-		case result == clientutil.DeletionResultDeleted:
+		if err := cl.Delete(ctx, &roleBinding); err != nil {
+			if !apierrors.IsNotFound(err) {
+				log.FromContext(ctx).Error(err, "error deleting RoleBinding", "roleBinding", trb.GetRBACName(), "cluster", cluster.GetName(), "namespace", roleBinding.Namespace)
+				return err
+			}
+		} else {
 			log.FromContext(ctx).Info("deleted RoleBinding successfully", "roleBinding", trb.GetRBACName(), "cluster", cluster.GetName(), "namespace", roleBinding.Namespace)
 		}
 	}
@@ -685,12 +684,12 @@ func (r *TeamRoleBindingReconciler) deleteClusterRoleBinding(ctx context.Context
 		},
 	}
 
-	result, err := clientutil.Delete(ctx, cl, remoteObject)
-	switch {
-	case err != nil:
-		log.FromContext(ctx).Error(err, "error deleting ClusterRoleBinding", "clusterRoleBinding", trb.GetRBACName(), "cluster", cluster.GetName())
-		return err
-	case result == clientutil.DeletionResultDeleted:
+	if err := cl.Delete(ctx, remoteObject); err != nil {
+		if !apierrors.IsNotFound(err) {
+			log.FromContext(ctx).Error(err, "error deleting ClusterRoleBinding", "clusterRoleBinding", trb.GetRBACName(), "cluster", cluster.GetName())
+			return err
+		}
+	} else {
 		log.FromContext(ctx).Info("deleted ClusterRoleBinding successfully", "clusterRoleBinding", trb.GetRBACName(), "cluster", cluster.GetName())
 	}
 	return nil
@@ -702,12 +701,12 @@ func (r *TeamRoleBindingReconciler) deleteClusterRole(ctx context.Context, cl cl
 			Name: greenhouseapis.RBACPrefix + trb.Spec.TeamRoleRef,
 		},
 	}
-	result, err := clientutil.Delete(ctx, cl, remoteObject)
-	switch {
-	case err != nil:
-		log.FromContext(ctx).Error(err, "error deleting ClusterRole", "clusterRole", trb.GetRBACName(), "cluster", cluster.GetName())
-		return err
-	case result == clientutil.DeletionResultDeleted:
+	if err := cl.Delete(ctx, remoteObject); err != nil {
+		if !apierrors.IsNotFound(err) {
+			log.FromContext(ctx).Error(err, "error deleting ClusterRole", "clusterRole", trb.GetRBACName(), "cluster", cluster.GetName())
+			return err
+		}
+	} else {
 		log.FromContext(ctx).Info("deleted ClusterRole successfully", "clusterRole", trb.GetRBACName(), "cluster", cluster.GetName())
 	}
 	return nil

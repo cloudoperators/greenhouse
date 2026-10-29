@@ -770,9 +770,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		By("deleting the Plugin and ensuring it is reconciled")
 		originalUID := expPlugin.UID
-		result, err := clientutil.Delete(test.Ctx, test.K8sClient, expPlugin)
-		Expect(err).ToNot(HaveOccurred(), "there should be no error deleting the Plugin")
-		Expect(result).To(Equal(clientutil.DeletionResultDeleted), "the Plugin should be deleted")
+		Expect(test.K8sClient.Delete(test.Ctx, expPlugin)).To(Succeed(), "there should be no error deleting the Plugin")
 
 		By("ensuring the Plugin is recreated with HelmRelease")
 		Eventually(func(g Gomega) {
