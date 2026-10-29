@@ -2639,6 +2639,20 @@ If this Plugin is newly created, the releaseName is defaulted to the PluginDefin
 </tr>
 <tr>
 <td>
+<code>timeout</code><br>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<p>Timeout is the timeout for individual Helm operations, including waiting for resources to become ready.
+Defaults to 5m when not set. The value must be a duration of at least 1ms, using ms, s, m, or h units.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>deletionPolicy</code><br>
 <em>
 string
@@ -3555,6 +3569,20 @@ If this Plugin is newly created, the releaseName is defaulted to the PluginDefin
 </tr>
 <tr>
 <td>
+<code>timeout</code><br>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<p>Timeout is the timeout for individual Helm operations, including waiting for resources to become ready.
+Defaults to 5m when not set. The value must be a duration of at least 1ms, using ms, s, m, or h units.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>deletionPolicy</code><br>
 <em>
 string
@@ -3939,6 +3967,20 @@ string
 <p>ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
 If the Plugin was already deployed, the Plugin&rsquo;s name is used as the release name.
 If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>timeout</code><br>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<p>Timeout is the timeout for individual Helm operations, including waiting for resources to become ready.
+Defaults to 5m when not set. The value must be a duration of at least 1ms, using ms, s, m, or h units.</p>
 </td>
 </tr>
 <tr>

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"slices"
+	"time"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	. "github.com/onsi/ginkgo/v2"
@@ -640,6 +641,43 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		By("removing plugin preset")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
+	})
+
+	It("should propagate Helm release timeout changes and removal from PluginPreset to Plugin", func() {
+		preset := test.NewPluginPreset("timeout-propagation", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(pluginPresetPluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"cluster": clusterA}}))
+		preset.Spec.Plugin.Timeout = &metav1.Duration{Duration: 15 * time.Minute}
+		Expect(test.K8sClient.Create(test.Ctx, preset)).To(Succeed())
+		DeferCleanup(test.EventuallyDeleted, test.Ctx, test.K8sClient, preset)
+		pluginKey := types.NamespacedName{Name: preset.Name + "-" + clusterA, Namespace: preset.Namespace}
+		assertTimeout := func(timeout *metav1.Duration, expected time.Duration) {
+			GinkgoHelper()
+			Eventually(func(g Gomega) {
+				plugin := &greenhousev1alpha1.Plugin{}
+				g.Expect(test.K8sClient.Get(test.Ctx, pluginKey, plugin)).To(Succeed())
+				g.Expect(plugin.Spec.Timeout).To(Equal(timeout))
+				release := &helmv2.HelmRelease{}
+				g.Expect(test.K8sClient.Get(test.Ctx, pluginKey, release)).To(Succeed())
+				g.Expect(release.GetTimeout().Duration).To(Equal(expected))
+			}).Should(Succeed())
+		}
+		assertTimeout(&metav1.Duration{Duration: 15 * time.Minute}, 15*time.Minute)
+		Eventually(func(g Gomega) {
+			g.Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(preset), preset)).To(Succeed())
+			preset.Spec.Plugin.Timeout = &metav1.Duration{Duration: 20 * time.Minute}
+			g.Expect(test.K8sClient.Update(test.Ctx, preset)).To(Succeed())
+		}).Should(Succeed())
+		Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(preset), preset)).To(Succeed())
+		Expect(preset.Spec.Plugin.Timeout).To(Equal(&metav1.Duration{Duration: 20 * time.Minute}))
+		assertTimeout(&metav1.Duration{Duration: 20 * time.Minute}, 20*time.Minute)
+		Eventually(func(g Gomega) {
+			g.Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(preset), preset)).To(Succeed())
+			preset.Spec.Plugin.Timeout = nil
+			g.Expect(test.K8sClient.Update(test.Ctx, preset)).To(Succeed())
+		}).Should(Succeed())
+		assertTimeout(nil, 5*time.Minute)
 	})
 
 	It("should successfully resolve and set plugin dependencies from PluginPreset to Plugin", func() {

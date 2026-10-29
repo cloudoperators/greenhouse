@@ -5,6 +5,7 @@ package plugin
 
 import (
 	"encoding/json"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -233,6 +234,35 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 		Eventually(func(g Gomega) {
 			err := test.K8sClient.Get(test.Ctx, releaseKey, release)
 			g.Expect(err).ToNot(HaveOccurred(), "failed to get HelmRelease")
+		}).Should(Succeed())
+
+		By("using the default Helm release timeout")
+		Expect(release.GetTimeout().Duration).To(Equal(5 * time.Minute))
+
+		By("applying changes to only spec.timeout")
+		for _, expected := range []time.Duration{15 * time.Minute, 20 * time.Minute} {
+			Eventually(func(g Gomega) {
+				g.Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)).To(Succeed())
+				testPlugin.Spec.Timeout = &metav1.Duration{Duration: expected}
+				g.Expect(test.K8sClient.Update(test.Ctx, testPlugin)).To(Succeed())
+			}).Should(Succeed())
+			Eventually(func(g Gomega) {
+				g.Expect(test.K8sClient.Get(test.Ctx, releaseKey, release)).To(Succeed())
+				g.Expect(release.GetTimeout().Duration).To(Equal(expected))
+				g.Expect(release.GetInstall().GetTimeout(release.GetTimeout()).Duration).To(Equal(expected))
+				g.Expect(release.GetUpgrade().GetTimeout(release.GetTimeout()).Duration).To(Equal(expected))
+			}).Should(Succeed())
+		}
+
+		By("restoring the default when spec.timeout is removed")
+		Eventually(func(g Gomega) {
+			g.Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)).To(Succeed())
+			testPlugin.Spec.Timeout = nil
+			g.Expect(test.K8sClient.Update(test.Ctx, testPlugin)).To(Succeed())
+		}).Should(Succeed())
+		Eventually(func(g Gomega) {
+			g.Expect(test.K8sClient.Get(test.Ctx, releaseKey, release)).To(Succeed())
+			g.Expect(release.GetTimeout().Duration).To(Equal(5 * time.Minute))
 		}).Should(Succeed())
 
 		By("ensuring Plugin dependencies has been resolved and set on the HelmRelease")

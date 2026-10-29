@@ -453,6 +453,7 @@ func WithPluginPresetPluginSpec(pluginSpec greenhousev1alpha1.PluginSpec) func(*
 		pp.Spec.Plugin.OptionValues = util.ConvertToPresetOptionValues(pluginSpec.OptionValues)
 		pp.Spec.Plugin.ReleaseNamespace = pluginSpec.ReleaseNamespace
 		pp.Spec.Plugin.ReleaseName = pluginSpec.ReleaseName
+		pp.Spec.Plugin.Timeout = pluginSpec.Timeout.DeepCopy()
 		pp.Spec.Plugin.DeletionPolicy = pluginSpec.DeletionPolicy
 		pp.Spec.Plugin.IgnoreDifferences = pluginSpec.IgnoreDifferences
 	}

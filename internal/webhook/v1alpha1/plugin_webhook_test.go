@@ -6,6 +6,7 @@ package v1alpha1
 import (
 	"context"
 	"errors"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -13,8 +14,11 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
@@ -247,6 +251,44 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testCentralPluginDefinition)
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testUIAppClusterPluginDefinition)
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginDefinition)
+	})
+
+	It("should validate the Helm release timeout on create and update", func() {
+		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(),
+			test.WithClusterPluginDefinition(testClusterPluginDefinition.Name),
+			test.WithCluster(testCluster.Name),
+			test.WithReleaseName("test-release"),
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
+
+		object, err := runtime.DefaultUnstructuredConverter.ToUnstructured(testPlugin)
+		Expect(err).NotTo(HaveOccurred())
+		raw := &unstructured.Unstructured{Object: object}
+		raw.SetGroupVersionKind(greenhousev1alpha1.GroupVersion.WithKind("Plugin"))
+		invalidTimeouts := []string{"", "invalid", "15", "0s", "-1m", "1us", "0.5ms", "999999999999h"}
+		for _, value := range invalidTimeouts {
+			Expect(unstructured.SetNestedField(raw.Object, value, "spec", "timeout")).To(Succeed())
+			Expect(test.K8sClient.Create(test.Ctx, raw)).NotTo(Succeed(), "timeout %q must be rejected on create", value)
+		}
+
+		testPlugin.Spec.Timeout = &metav1.Duration{Duration: 15 * time.Minute}
+		Expect(test.K8sClient.Create(test.Ctx, testPlugin)).To(Succeed())
+		Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), raw)).To(Succeed())
+		for _, value := range invalidTimeouts {
+			Expect(unstructured.SetNestedField(raw.Object, value, "spec", "timeout")).To(Succeed())
+			Expect(test.K8sClient.Update(test.Ctx, raw)).NotTo(Succeed(), "timeout %q must be rejected on update", value)
+		}
+		for _, value := range []string{"20m", "1h30m", "1.5s", "1ms"} {
+			Expect(unstructured.SetNestedField(raw.Object, value, "spec", "timeout")).To(Succeed())
+			Expect(test.K8sClient.Update(test.Ctx, raw)).To(Succeed())
+			Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)).To(Succeed())
+			expected, err := time.ParseDuration(value)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(testPlugin.Spec.Timeout).To(Equal(&metav1.Duration{Duration: expected}))
+		}
+		testPlugin.Spec.Timeout = nil
+		Expect(test.K8sClient.Update(test.Ctx, testPlugin)).To(Succeed())
+		Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)).To(Succeed())
+		Expect(testPlugin.Spec.Timeout).To(BeNil())
 	})
 
 	It("should not accept a plugin without a clusterName", func() {

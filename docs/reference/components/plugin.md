@@ -103,6 +103,21 @@ The defaulting webhook adds a set of `global.greenhouse.*` OptionValues to every
 
 ## Working with Plugins
 
+### Configuring the Helm release timeout
+
+Set `spec.timeout` on a Plugin to override the default five-minute timeout for its Flux HelmRelease:
+
+```yaml
+spec:
+  timeout: 15m
+```
+
+The optional value must be a duration such as `15m` or `1h30m`, using `ms`, `s`, `m`, or `h` units, and must be at least `1ms` to be compatible with the Flux HelmRelease schema. Empty, malformed, zero, negative, and overflowing values are rejected. Omitting or removing the field uses the five-minute default.
+
+This configures the [Flux Helm action timeout](https://fluxcd.io/flux/components/helm/helmreleases/#timeout), including installation, upgrade, rollback, and uninstallation. It does not disable readiness checks or change the retry policy; multiple attempts can take longer than the configured timeout.
+
+For Plugins managed by a PluginPreset, configure `spec.plugin.timeout` on the [PluginPreset](./../pluginpreset/#configuring-the-helm-release-timeout).
+
 ### Suspending the Plugin's reconciliation
 
 The annotation `greenhouse.sap/suspend` can be added to a Plugin resource to temporarily suspend the reconciliation of the Plugin. This results in no changes on the Plugin or referenced resources being applied until the annotation is removed. This also includes upgrades of the Helm release on the target cluster. This also blocks the deletion of the Plugin resource until the annotation is removed.
