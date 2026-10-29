@@ -2,7 +2,7 @@ groups:
 - name: greenhouse-catalog.rules
   rules:
   - alert: GreenhouseCatalogNotReady
-    expr: max by (catalog, organization, owned_by, reason) (last_over_time(greenhouse_catalog_ready[15m])) == 0
+    expr: max by (catalog, organization, owned_by, reason) (last_over_time(greenhouse_catalog_ready[15m])) == 0 unless on (catalog, organization) greenhouse_catalog_ready == 1
     for: 15m
     labels:
       severity: warning

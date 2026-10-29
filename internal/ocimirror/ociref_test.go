@@ -193,4 +193,18 @@ spec:
 		})
 	})
 
+	DescribeTable("trimTagAndDigest",
+		func(imageRef, expected string) {
+			Expect(trimTagAndDigest(imageRef)).To(Equal(expected))
+		},
+		Entry("bare name", "busybox", "busybox"),
+		Entry("bare name with tag", "busybox:latest", "busybox"),
+		Entry("docker.io without library", "docker.io/busybox:latest", "docker.io/busybox"),
+		Entry("fully qualified", "docker.io/library/busybox:1.36", "docker.io/library/busybox"),
+		Entry("namespaced without registry", "opensearchproject/opensearch-operator:2.8.0", "opensearchproject/opensearch-operator"),
+		Entry("digest", "ghcr.io/org/app@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "ghcr.io/org/app"),
+		Entry("tag and digest", "ghcr.io/org/app:v1@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "ghcr.io/org/app"),
+		Entry("registry with port", "registry:5000/org/app", "registry:5000/org/app"),
+		Entry("registry with port and tag", "registry:5000/org/app:v1", "registry:5000/org/app"),
+	)
 })

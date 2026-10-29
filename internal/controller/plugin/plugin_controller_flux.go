@@ -318,6 +318,16 @@ func (r *PluginReconciler) computeReadyConditionFlux(ctx context.Context, plugin
 	// If the Helm reconcile failed, the Plugin is not up to date / ready
 	helmReleaseDeployed := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseDeployedCondition)
 	switch {
+	case helmReleaseDeployed.IsFalse() && helmReleaseDeployed.Reason == greenhousev1alpha1.FluxHelmReleaseStalledReason:
+		readyCondition.Status = metav1.ConditionFalse
+		readyCondition.Reason = helmReleaseDeployed.Reason
+		readyCondition.Message = helmReleaseDeployed.Message
+		helmRelease := &helmv2.HelmRelease{}
+		if err := r.Get(ctx, types.NamespacedName{Name: plugin.Name, Namespace: plugin.Namespace}, helmRelease); err == nil {
+			if releasedCondition := meta.FindStatusCondition(helmRelease.Status.Conditions, helmv2.ReleasedCondition); releasedCondition != nil && releasedCondition.Status == metav1.ConditionFalse && releasedCondition.Message != "" {
+				readyCondition.Message = releasedCondition.Message
+			}
+		}
 	case helmReleaseDeployed.IsFalse() || helmReleaseDeployed.IsUnknown():
 		readyCondition.Status = metav1.ConditionFalse
 		readyCondition.Message = helmReleaseDeployed.Message
@@ -457,12 +467,8 @@ func (r *PluginReconciler) fetchReleaseStatus(ctx context.Context,
 	case isReadyCurrent && ready.Status == metav1.ConditionFalse:
 		stalledCondition := meta.FindStatusCondition(helmRelease.Status.Conditions, string(fluxstatus.ConditionStalled))
 		if stalledCondition != nil && stalledCondition.Status == metav1.ConditionTrue {
-			message := stalledCondition.Message
-			if releasedCondition := meta.FindStatusCondition(helmRelease.Status.Conditions, helmv2.ReleasedCondition); releasedCondition != nil && releasedCondition.Status == metav1.ConditionFalse && releasedCondition.Message != "" {
-				message = releasedCondition.Message
-			}
 			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
-				greenhousev1alpha1.HelmReleaseDeployedCondition, greenhousev1alpha1.FluxHelmReleaseStalledReason, message))
+				greenhousev1alpha1.HelmReleaseDeployedCondition, greenhousev1alpha1.FluxHelmReleaseStalledReason, stalledCondition.Message))
 		}
 		releaseStatus.Status = "failed"
 	default:

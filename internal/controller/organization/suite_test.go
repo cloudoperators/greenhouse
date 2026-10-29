@@ -43,7 +43,7 @@ var _ = BeforeSuite(func() {
 	test.RegisterController("clusterPluginDefinition", (&defpkg.ClusterPluginDefinitionReconciler{}).SetupWithManager)
 	test.RegisterWebhook("orgWebhook", webhookv1alpha1.SetupOrganizationWebhookWithManager)
 	test.RegisterWebhook("teamWebhook", webhookv1alpha1.SetupTeamWebhookWithManager)
-	test.RegisterWebhook("clusterPluginDefinitionWebhook", webhookv1alpha1.SetupClusterPluginDefinitionWebhookWithManager)
+	test.RegisterWebhook("pluginDefinitionWebhook", webhookv1alpha1.SetupPluginDefinitionWebhookWithManager)
 	test.RegisterWebhook("pluginWebhook", webhookv1alpha1.SetupPluginWebhookWithManager)
 	test.RegisterWebhook("teamRoleWebhook", webhookv1alpha1.SetupTeamRoleWebhookWithManager)
 	test.RegisterWebhook("serviceAccountWebhook", webhookv1alpha1.SetupServiceAccountWebhookWithManager)

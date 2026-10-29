@@ -78,6 +78,16 @@ func podSpecOf(obj runtime.Object) *corev1.PodSpec {
 	return nil
 }
 
+// trimTagAndDigest returns the image ref without tag and digest, keeping it otherwise as written.
+// A registry port ("host:5000/repo") is preserved since only a colon after the last slash starts a tag.
+func trimTagAndDigest(imageRef string) string {
+	imageRef, _, _ = strings.Cut(imageRef, "@")
+	if i := strings.LastIndex(imageRef, ":"); i > strings.LastIndex(imageRef, "/") {
+		imageRef = imageRef[:i]
+	}
+	return imageRef
+}
+
 // SplitOCIRef breaks an OCI reference into registry, repository, and tag/digest.
 func SplitOCIRef(imageRef string) (registry, repository, tagOrDigest string) {
 	ref, err := name.ParseReference(imageRef)

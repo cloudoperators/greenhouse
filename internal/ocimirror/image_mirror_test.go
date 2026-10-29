@@ -226,6 +226,63 @@ var _ = Describe("BuildImageTransformations", func() {
 		Expect(transforms).To(HaveLen(1))
 		Expect(transforms[0].Original).To(Equal("ghcr.io/cloudoperators/greenhouse"))
 	})
+
+	DescribeTable("should use the image name as written in the manifest",
+		func(image string, expected ImageTransform) {
+			mirror := newTestImageMirror(mirrorConfig, nil)
+
+			transforms := mirror.BuildImageTransformations(fixture.PodManifest(image))
+			Expect(transforms).To(ConsistOf(expected))
+		},
+		Entry("bare Docker Hub official image", "busybox:latest", ImageTransform{
+			Original: "busybox",
+			Mirrored: "global.registry.com/dockerhub-mirror/library/busybox",
+		}),
+		Entry("Docker Hub official image without library/", "docker.io/busybox:latest", ImageTransform{
+			Original: "docker.io/busybox",
+			Mirrored: "global.registry.com/dockerhub-mirror/library/busybox",
+		}),
+		Entry("index.docker.io registry", "index.docker.io/busybox:latest", ImageTransform{
+			Original: "index.docker.io/busybox",
+			Mirrored: "global.registry.com/dockerhub-mirror/library/busybox",
+		}),
+		Entry("namespaced Docker Hub image without registry", "opensearchproject/opensearch-operator:2.8.0", ImageTransform{
+			Original: "opensearchproject/opensearch-operator",
+			Mirrored: "global.registry.com/dockerhub-mirror/opensearchproject/opensearch-operator",
+		}),
+		Entry("fully qualified Docker Hub official image", "docker.io/library/busybox:1.36", ImageTransform{
+			Original: "docker.io/library/busybox",
+			Mirrored: "global.registry.com/dockerhub-mirror/library/busybox",
+		}),
+		Entry("digest", "ghcr.io/cloudoperators/greenhouse@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", ImageTransform{
+			Original: "ghcr.io/cloudoperators/greenhouse",
+			Mirrored: "global.registry.com/ghcr-mirror/cloudoperators/greenhouse",
+		}),
+	)
+
+	It("should deduplicate the same image with different tags", func() {
+		mirror := newTestImageMirror(mirrorConfig, nil)
+
+		transforms := mirror.BuildImageTransformations(fixture.PodManifest("busybox:1.36", "busybox:latest"))
+		Expect(transforms).To(ConsistOf(ImageTransform{
+			Original: "busybox",
+			Mirrored: "global.registry.com/dockerhub-mirror/library/busybox",
+		}))
+	})
+
+	It("should return a transform for each spelling of the same image", func() {
+		mirror := newTestImageMirror(mirrorConfig, nil)
+
+		transforms := mirror.BuildImageTransformations(
+			fixture.PodManifest("busybox:latest", "docker.io/library/busybox:1.36"),
+			fixture.PodManifest("docker.io/busybox:latest"),
+		)
+		Expect(transforms).To(ConsistOf(
+			ImageTransform{Original: "busybox", Mirrored: "global.registry.com/dockerhub-mirror/library/busybox"},
+			ImageTransform{Original: "docker.io/library/busybox", Mirrored: "global.registry.com/dockerhub-mirror/library/busybox"},
+			ImageTransform{Original: "docker.io/busybox", Mirrored: "global.registry.com/dockerhub-mirror/library/busybox"},
+		))
+	})
 })
 
 var _ = Describe("ReplicateOCIArtifacts", func() {
