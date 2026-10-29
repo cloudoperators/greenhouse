@@ -21,6 +21,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	clusterutils "github.com/cloudoperators/greenhouse/internal/controller/cluster/utils"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 var _ = Describe("KubeConfig controller", func() {
@@ -80,7 +81,7 @@ var _ = Describe("KubeConfig controller", func() {
 				}).Should(BeTrue(), "eventually the secret should have an owner reference to the cluster")
 
 				By("Checking namespace has been created in remote cluster")
-				remoteClient, err := clientutil.NewK8sClientFromCluster(test.Ctx, test.K8sClient, &cluster)
+				remoteClient, err := lifecycle.NewRemoteClient(test.Ctx, test.K8sClient, &cluster, lifecycle.KnownSchemes...)
 				Expect(err).ToNot(HaveOccurred(), "there should be no error creating a new k8s client from the cluster")
 
 				Eventually(func() error {

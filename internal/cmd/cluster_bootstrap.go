@@ -204,18 +204,18 @@ func (o *newClusterBootstrapOptions) run() error {
 func createNameSpaceInRemoteCluster(ctx context.Context, k8sClient client.Client, orgName string) error {
 	var namespace = new(corev1.Namespace)
 	namespace.Name = orgName
-	result, err := clientutil.CreateOrPatch(ctx, k8sClient, namespace, func() error {
+	result, err := controllerutil.CreateOrPatch(ctx, k8sClient, namespace, func() error {
 		return nil
 	})
 	if err != nil {
 		return err
 	}
 	switch result {
-	case clientutil.OperationResultNone:
+	case controllerutil.OperationResultNone:
 		setupLog.Info("namespace already exists", "name", namespace.Name)
-	case clientutil.OperationResultCreated:
+	case controllerutil.OperationResultCreated:
 		setupLog.Info("created namespace", "name", namespace.Name)
-	case clientutil.OperationResultUpdated:
+	case controllerutil.OperationResultUpdated:
 		setupLog.Info("updated namespace", "name", namespace.Name)
 	}
 	return nil
@@ -225,18 +225,18 @@ func createServiceAccountInRemoteCluster(ctx context.Context, k8sClient client.C
 	var serviceAccount = new(corev1.ServiceAccount)
 	serviceAccount.Name = svAccName
 	serviceAccount.Namespace = orgName
-	result, err := clientutil.CreateOrPatch(ctx, k8sClient, serviceAccount, func() error {
+	result, err := controllerutil.CreateOrPatch(ctx, k8sClient, serviceAccount, func() error {
 		return nil
 	})
 	if err != nil {
 		return err
 	}
 	switch result {
-	case clientutil.OperationResultNone:
+	case controllerutil.OperationResultNone:
 		setupLog.Info("serviceAccount already exists", "name", serviceAccount.Name)
-	case clientutil.OperationResultCreated:
+	case controllerutil.OperationResultCreated:
 		setupLog.Info("created serviceAccount", "name", serviceAccount.Name)
-	case clientutil.OperationResultUpdated:
+	case controllerutil.OperationResultUpdated:
 		setupLog.Info("updated serviceAccount", "name", serviceAccount.Name)
 	}
 
@@ -252,7 +252,7 @@ func createClusterRoleBindingInRemoteCluster(ctx context.Context, k8sClient clie
 		return err
 	}
 
-	result, err := clientutil.CreateOrPatch(ctx, k8sClient, clusterRoleBinding, func() error {
+	result, err := controllerutil.CreateOrPatch(ctx, k8sClient, clusterRoleBinding, func() error {
 		clusterRoleBinding.Subjects = []rbacv1.Subject{
 			{
 				Kind:      rbacv1.ServiceAccountKind,
@@ -267,16 +267,15 @@ func createClusterRoleBindingInRemoteCluster(ctx context.Context, k8sClient clie
 		}
 		return controllerutil.SetOwnerReference(namespace, clusterRoleBinding, k8sClient.Scheme())
 	})
-
 	if err != nil {
 		return err
 	}
 	switch result {
-	case clientutil.OperationResultNone:
+	case controllerutil.OperationResultNone:
 		setupLog.Info("clusterRoleBinding already exists", "name", clusterRoleBinding.Name)
-	case clientutil.OperationResultCreated:
+	case controllerutil.OperationResultCreated:
 		setupLog.Info("created clusterRoleBinding", "name", clusterRoleBinding.Name)
-	case clientutil.OperationResultUpdated:
+	case controllerutil.OperationResultUpdated:
 		setupLog.Info("updated clusterRoleBinding", "name", clusterRoleBinding.Name)
 	}
 	return nil

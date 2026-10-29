@@ -10,10 +10,12 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
-	"github.com/cloudoperators/greenhouse/internal/clientutil"
+
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
@@ -70,7 +72,7 @@ var _ = Describe("Validate Role Admission", func() {
 	It("should not allow to add Rules to a TeamRole with AggregationRule set", func() {
 		teamRole = setup.CreateTeamRole(test.Ctx, "test-role", test.WithAggregationRule(aggregationRule), test.WithRules(nil))
 
-		_, err := clientutil.CreateOrPatch(test.Ctx, test.K8sClient, teamRole, func() error {
+		_, err := controllerutil.CreateOrPatch(test.Ctx, test.K8sClient, teamRole, func() error {
 			teamRole.Spec.Rules = rules
 			return nil
 		})
@@ -81,7 +83,7 @@ var _ = Describe("Validate Role Admission", func() {
 	It("should not allow to add an AggregationRule to a TeamRole with Rules set", func() {
 		teamRole = setup.CreateTeamRole(test.Ctx, "test-role", test.WithRules(rules))
 
-		_, err := clientutil.CreateOrPatch(test.Ctx, test.K8sClient, teamRole, func() error {
+		_, err := controllerutil.CreateOrPatch(test.Ctx, test.K8sClient, teamRole, func() error {
 			teamRole.Spec.AggregationRule = aggregationRule
 			return nil
 		})

@@ -10,46 +10,19 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// OperationResult is the action result of a CreateOrUpdate call
+// OperationResult is the action result of a Patch call
 type OperationResult string
 
-const ( // They should complete the sentence "Deployment default/foo has been ..."
+const (
 	// OperationResultNone means that the resource has not been changed
 	OperationResultNone OperationResult = "unchanged"
-	// OperationResultCreated means that a new resource is created
-	OperationResultCreated OperationResult = "created"
 	// OperationResultUpdated means that an existing resource is updated
 	OperationResultUpdated OperationResult = "updated"
 )
-
-// CreateOrPatch creates or patches the given object using the mutate function. Returns the result and an error.
-func CreateOrPatch(ctx context.Context, c client.Client, obj client.Object, mutate func() error) (OperationResult, error) {
-	if err := c.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return OperationResultNone, err
-		}
-		if err := mutate(); err != nil {
-			return OperationResultNone, errors.Wrap(err, "mutating object failed")
-		}
-		if err := c.Create(ctx, obj); err != nil {
-			return OperationResultNone, IgnoreAlreadyExists(err)
-		}
-		return OperationResultCreated, nil
-	}
-	if o, err := meta.Accessor(obj); err == nil {
-		if o.GetDeletionTimestamp() != nil {
-			return OperationResultNone, fmt.Errorf("the resource %s/%s already exists but is marked for deletion", o.GetNamespace(), o.GetName())
-		}
-	}
-
-	return patch(ctx, c, obj, mutate, false)
-}
 
 // Patch uses a PATCH operation on an object. Returns the Result or an error.
 func Patch(ctx context.Context, c client.Client, obj client.Object, mutate func() error) (OperationResult, error) {

@@ -9,9 +9,10 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/local/utils"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
@@ -208,21 +209,21 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		Expect(test.K8sClient.Create(test.Ctx, cut)).
 			To(Succeed(), "there must be no error creating the PluginPreset")
 
-		_, err := clientutil.CreateOrPatch(test.Ctx, test.K8sClient, cut, func() error {
+		_, err := controllerutil.CreateOrPatch(test.Ctx, test.K8sClient, cut, func() error {
 			cut.Spec.ClusterSelector.MatchLabels["foo"] = "baz"
 			return nil
 		})
 		Expect(err).
 			NotTo(HaveOccurred(), "there must be no error updating the PluginPreset clusterSelector")
 
-		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, cut, func() error {
+		_, err = controllerutil.CreateOrPatch(test.Ctx, test.K8sClient, cut, func() error {
 			cut.Spec.Plugin.PluginDefinitionRef.Name = "new-definition"
 			return nil
 		})
 		Expect(err).
 			NotTo(HaveOccurred(), "there must be no error updating the PluginPreset pluginDefinition name")
 
-		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, cut, func() error {
+		_, err = controllerutil.CreateOrPatch(test.Ctx, test.K8sClient, cut, func() error {
 			cut.Spec.Plugin.PluginDefinitionRef.Kind = greenhousev1alpha1.PluginDefinitionKind
 			return nil
 		})

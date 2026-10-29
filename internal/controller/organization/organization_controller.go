@@ -25,7 +25,6 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	dexstore "github.com/cloudoperators/greenhouse/internal/dex"
 	dexapi "github.com/cloudoperators/greenhouse/internal/dex/api"
 	"github.com/cloudoperators/greenhouse/internal/scim"
@@ -218,17 +217,17 @@ func (r *OrganizationReconciler) reconcileNamespace(ctx context.Context, org *gr
 	var namespace = new(corev1.Namespace)
 	namespace.Name = org.Name
 
-	result, err := clientutil.CreateOrPatch(ctx, r.Client, namespace, func() error {
+	result, err := controllerutil.CreateOrPatch(ctx, r.Client, namespace, func() error {
 		return controllerutil.SetControllerReference(org, namespace, r.Scheme())
 	})
 	if err != nil {
 		return err
 	}
 	switch result {
-	case clientutil.OperationResultCreated:
+	case controllerutil.OperationResultCreated:
 		log.FromContext(ctx).Info("created namespace", "name", namespace.Name)
 		r.recorder.Eventf(org, namespace, corev1.EventTypeNormal, "CreatedNamespace", "reconciling namespace", "Created namespace %s", namespace.Name)
-	case clientutil.OperationResultUpdated:
+	case controllerutil.OperationResultUpdated:
 		log.FromContext(ctx).Info("updated namespace", "name", namespace.Name)
 		r.recorder.Eventf(org, namespace, corev1.EventTypeNormal, "UpdatedNamespace", "reconciling namespace", "Updated namespace %s", namespace.Name)
 	}
@@ -242,7 +241,7 @@ func (r *OrganizationReconciler) reconcileAdminTeam(ctx context.Context, org *gr
 	team.Name = org.Name + "-admin"
 	team.Namespace = namespace
 
-	result, err := clientutil.CreateOrPatch(ctx, r.Client, team, func() error {
+	result, err := controllerutil.CreateOrPatch(ctx, r.Client, team, func() error {
 		team.Spec.Description = "Admin team for the organization"
 		team.Spec.MappedIDPGroup = org.Spec.MappedOrgAdminIDPGroup
 		team.SetLabels(map[string]string{greenhouseapis.LabelKeySupportGroup: "true"})
@@ -252,10 +251,10 @@ func (r *OrganizationReconciler) reconcileAdminTeam(ctx context.Context, org *gr
 		return err
 	}
 	switch result {
-	case clientutil.OperationResultCreated:
+	case controllerutil.OperationResultCreated:
 		log.FromContext(ctx).Info("created org admin team", "name", team.Name, "teamNamespace", namespace)
 		r.recorder.Eventf(org, team, corev1.EventTypeNormal, "CreatedTeam", "reconciling admin team", "Created Team %s in namespace %s", team.Name, namespace)
-	case clientutil.OperationResultUpdated:
+	case controllerutil.OperationResultUpdated:
 		log.FromContext(ctx).Info("updated org admin team", "name", team.Name, "teamNamespace", namespace)
 		r.recorder.Eventf(org, team, corev1.EventTypeNormal, "UpdatedTeam", "reconciling admin team", "Updated Team %s in namespace %s", team.Name, namespace)
 	}

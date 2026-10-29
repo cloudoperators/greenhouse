@@ -10,14 +10,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cloudoperators/greenhouse/internal/clientutil"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/cloudoperators/greenhouse/internal/local/utils"
 )
@@ -46,7 +45,7 @@ func createServiceAccount(ctx context.Context, cl client.Client, name, namespace
 			Namespace: namespace,
 		},
 	}
-	_, err := clientutil.CreateOrPatch(ctx, cl, sa, func() error {
+	_, err := controllerutil.CreateOrPatch(ctx, cl, sa, func() error {
 		return nil
 	})
 	if err != nil {
@@ -66,7 +65,7 @@ func createServiceAccountSecret(ctx context.Context, cl client.Client, name, ser
 		},
 		Type: corev1.SecretTypeServiceAccountToken,
 	}
-	_, err := clientutil.CreateOrPatch(ctx, cl, secret, func() error {
+	_, err := controllerutil.CreateOrPatch(ctx, cl, secret, func() error {
 		return nil
 	})
 	if err != nil {
@@ -87,7 +86,7 @@ func assignClusterAdminRole(ctx context.Context, cl client.Client, serviceAccoun
 			Name:     "cluster-admin",
 		},
 	}
-	_, err := clientutil.CreateOrPatch(ctx, cl, binding, func() error {
+	_, err := controllerutil.CreateOrPatch(ctx, cl, binding, func() error {
 		return nil
 	})
 	if err != nil {

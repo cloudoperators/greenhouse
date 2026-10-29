@@ -12,9 +12,9 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
-	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
@@ -45,7 +45,7 @@ func (s *scenario) ExecuteTeamRefsMutationScenario(ctx context.Context) {
 	}).Should(Succeed(), "initial subjects should only contain teamAlpha")
 
 	By("adding teamBeta to teamRefs")
-	_, err := clientutil.CreateOrPatch(ctx, s.adminClient, trb, func() error {
+	_, err := controllerutil.CreateOrPatch(ctx, s.adminClient, trb, func() error {
 		trb.Spec.TeamRefs = []string{s.teamAlpha.Name, s.teamBeta.Name}
 		return nil
 	})
@@ -63,7 +63,7 @@ func (s *scenario) ExecuteTeamRefsMutationScenario(ctx context.Context) {
 	}).Should(Succeed(), "subjects should contain both teams after adding teamBeta")
 
 	By("removing teamAlpha from teamRefs")
-	_, err = clientutil.CreateOrPatch(ctx, s.adminClient, trb, func() error {
+	_, err = controllerutil.CreateOrPatch(ctx, s.adminClient, trb, func() error {
 		trb.Spec.TeamRefs = []string{s.teamBeta.Name}
 		return nil
 	})
