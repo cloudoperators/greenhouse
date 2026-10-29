@@ -238,7 +238,7 @@ func (r *TeamRoleBindingReconciler) doReconcile(ctx context.Context, teamRole *g
 	cr := initRBACClusterRole(teamRole)
 
 	for _, cluster := range clusters.Items {
-		remoteRestClient, err := lifecycle.ClientForCluster(ctx, r.Client, &cluster, clientutil.KnownSchemes...)
+		remoteRestClient, err := lifecycle.NewRemoteClient(ctx, r.Client, &cluster, clientutil.KnownSchemes...)
 		if err != nil {
 			r.recorder.Eventf(trb, &cluster, corev1.EventTypeWarning, greenhousemetav1alpha1.FailedEvent, "reconciling TeamRoleBinding", "Error getting client for cluster %s to replicate %s", cluster.GetName(), trb.GetName())
 			trb.SetPropagationStatus(cluster.GetName(), metav1.ConditionFalse, greenhousev1alpha2.ClusterConnectionFailed, err.Error())
@@ -369,7 +369,7 @@ func (r *TeamRoleBindingReconciler) cleanupClusterNamespaces(ctx context.Context
 		return nil
 	}
 
-	cl, err := lifecycle.ClientForCluster(ctx, r.Client, cluster, clientutil.KnownSchemes...)
+	cl, err := lifecycle.NewRemoteClient(ctx, r.Client, cluster, clientutil.KnownSchemes...)
 	if err != nil {
 		log.FromContext(ctx).Error(err, "Error getting client for cluster", "cluster", cluster.GetName())
 		return err
@@ -411,7 +411,7 @@ func (r *TeamRoleBindingReconciler) cleanupClusterNamespaces(ctx context.Context
 // This will remove the rbacv1.ClusterRoleBinding if the TeamRoleBinding is not namespaced, otherwise it will remove all rbacv1.RoleBindings
 // If the rbacv1.ClusterRole is no longer referenced, it will be removed as well
 func (r *TeamRoleBindingReconciler) cleanupCluster(ctx context.Context, trb *greenhousev1alpha2.TeamRoleBinding, cluster *greenhousev1alpha1.Cluster) error {
-	cl, err := lifecycle.ClientForCluster(ctx, r.Client, cluster, clientutil.KnownSchemes...)
+	cl, err := lifecycle.NewRemoteClient(ctx, r.Client, cluster, clientutil.KnownSchemes...)
 	if err != nil {
 		log.FromContext(ctx).Error(err, "Error getting client for cluster", "cluster", cluster.GetName())
 		return err

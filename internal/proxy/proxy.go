@@ -162,7 +162,7 @@ func isWorkloadIdentity(cluster *greenhousev1alpha1.Cluster) bool {
 }
 
 func (pm *PmManager) kubeConfigTransport(ctx context.Context, cluster *greenhousev1alpha1.Cluster) (http.RoundTripper, string, error) {
-	restCfg, err := lifecycle.RestConfigForCluster(ctx, pm.reader, cluster)
+	restCfg, err := lifecycle.NewRemoteKubeCfg(ctx, pm.reader, cluster)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to build rest config: %w", err)
 	}

@@ -81,7 +81,7 @@ var _ = Describe("KubeConfig controller", func() {
 				}).Should(BeTrue(), "eventually the secret should have an owner reference to the cluster")
 
 				By("Checking namespace has been created in remote cluster")
-				remoteClient, err := lifecycle.ClientForCluster(test.Ctx, test.K8sClient, &cluster, clientutil.KnownSchemes...)
+				remoteClient, err := lifecycle.NewRemoteClient(test.Ctx, test.K8sClient, &cluster, clientutil.KnownSchemes...)
 				Expect(err).ToNot(HaveOccurred(), "there should be no error creating a new k8s client from the cluster")
 
 				Eventually(func() error {
