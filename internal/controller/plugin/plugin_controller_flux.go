@@ -171,6 +171,11 @@ func (r *PluginReconciler) ensureHelmRelease(
 	optionValues []greenhousev1alpha1.PluginOptionValue,
 ) error {
 
+	timeout := flux.DefaultTimeout
+	if plugin.Spec.Timeout != nil {
+		timeout = plugin.Spec.Timeout.Duration
+	}
+
 	release := &helmv2.HelmRelease{}
 	release.SetName(plugin.Name)
 	release.SetNamespace(plugin.Namespace)
@@ -202,7 +207,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 				Namespace: helmChart.Namespace,
 			}).
 			WithInterval(flux.DefaultInterval).
-			WithTimeout(flux.DefaultTimeout).
+			WithTimeout(timeout).
 			WithMaxHistory(maxHistory).
 			WithReleaseName(plugin.GetReleaseName()).
 			WithInstall(&helmv2.Install{

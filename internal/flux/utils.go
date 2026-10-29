@@ -21,8 +21,8 @@ const (
 
 const (
 	DefaultInterval = 5 * time.Minute
-	DefaultTimeout  = 5 * time.Minute // TODO: make this configurable via annotations on plugin / environment variable (Test scenarios)
-	DefaultRetry    = 3               // TODO: make this also configurable via annotations on plugin
+	DefaultTimeout  = 5 * time.Minute
+	DefaultRetry    = 3 // TODO: make this also configurable via annotations on plugin
 )
 
 func GetSourceRepositoryType(repositoryURL string) string {

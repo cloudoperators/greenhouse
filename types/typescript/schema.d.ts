@@ -1072,6 +1072,11 @@ export interface components {
                      *     Defaults to the Greenhouse managed namespace if not set.
                      */
                     releaseNamespace?: string;
+                    /**
+                     * @description Timeout is the timeout for individual Helm operations, including waiting for resources to become ready.
+                     *     Defaults to 5m when not set. The value must be a duration of at least 1ms, using ms, s, m, or h units.
+                     */
+                    timeout?: string;
                 };
                 /** @description WaitFor defines other Plugins to wait for before creating the Plugin. */
                 waitFor?: {
@@ -1239,6 +1244,11 @@ export interface components {
                  *     Defaults to the Greenhouse managed namespace if not set.
                  */
                 releaseNamespace?: string;
+                /**
+                 * @description Timeout is the timeout for individual Helm operations, including waiting for resources to become ready.
+                 *     Defaults to 5m when not set. The value must be a duration of at least 1ms, using ms, s, m, or h units.
+                 */
+                timeout?: string;
                 /** @description WaitFor defines other Plugins to wait for before installing this Plugin. */
                 waitFor?: {
                     /** @description PluginRef defines a reference to the Plugin. */
