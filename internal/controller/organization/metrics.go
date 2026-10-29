@@ -44,10 +44,14 @@ func updateOrganizationMetrics(organization *greenhousev1alpha1.Organization) {
 		organizationReadyGauge.With(organizationLabels).Set(float64(0))
 	}
 
-	if organization.Status.GetConditionByType(greenhousev1alpha1.SCIMAPIAvailableCondition).IsTrue() {
+	scimCondition := organization.Status.GetConditionByType(greenhousev1alpha1.SCIMAPIAvailableCondition)
+	switch {
+	case scimCondition.IsTrue():
 		scimAccessReadyGauge.With(organizationLabels).Set(float64(1))
-	} else {
+	case scimCondition.IsFalse():
 		scimAccessReadyGauge.With(organizationLabels).Set(float64(0))
+	default:
+		scimAccessReadyGauge.Delete(organizationLabels)
 	}
 }
 

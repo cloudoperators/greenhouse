@@ -25,7 +25,7 @@ Alerts that page the Greenhouse platform team (`greenhouse-admin`). These cover 
 - [`GreenhouseWebhookLatencyHigh`](https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/operator/webhook-latency-high/)  
   Greenhouse Operator webhook - &lcub;&lcub; $labels.webhook }}'s latency is high.
 - [`GreenhouseWebhookErrorsHigh`](https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/operator/webhook-errors-high/)  
-  Errors while reconciling &lcub;&lcub; $labels.webhook }}
+  Errors while reconciling &lcub;&lcub; $labels.name }}
 - [`GreenhouseProxyRequestErrorsHigh`](https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/proxy/proxy-request-errors-high/)  
   HTTP 5xx errors high for proxy &lcub;&lcub;$labels.service}}
 - [`GreenhouseProxyRequestDurationHigh`](https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/proxy/proxy-request-duration-high/)  
