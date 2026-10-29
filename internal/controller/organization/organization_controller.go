@@ -100,10 +100,10 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 		Owns(&rbacv1.ClusterRole{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
 		Watches(&corev1.Secret{},
-			handler.EnqueueRequestsFromMapFunc(r.enqueueOrganizationForReferencedSecret),
+			handler.EnqueueRequestsFromMapFunc(r.enqueueOrganizationForReferencedObject),
 			builder.WithPredicates(predicates.PredicateFilterBySecretTypes(greenhouseapis.SecretTypeOrganization))).
-		Watches(&greenhousev1alpha1.ClusterPluginDefinition{},
-			handler.EnqueueRequestsFromMapFunc(r.enqueueAllOrganizationsForServiceProxyPluginDefinition),
+		Watches(&greenhousev1alpha1.PluginDefinition{},
+			handler.EnqueueRequestsFromMapFunc(r.enqueueOrganizationForReferencedObject),
 			builder.WithPredicates(predicate.And(
 				predicates.PredicateByName(serviceProxyName),
 				predicate.GenerationChangedPredicate{},
@@ -379,7 +379,7 @@ func (r *OrganizationReconciler) setStatus() lifecycle.Conditioner {
 	}
 }
 
-func (r *OrganizationReconciler) enqueueOrganizationForReferencedSecret(_ context.Context, o client.Object) []ctrl.Request {
+func (r *OrganizationReconciler) enqueueOrganizationForReferencedObject(_ context.Context, o client.Object) []ctrl.Request {
 	var org = new(greenhousev1alpha1.Organization)
 	if err := r.Get(context.Background(), types.NamespacedName{Namespace: "", Name: o.GetNamespace()}, org); err != nil {
 		return nil
