@@ -6,7 +6,9 @@ package cluster
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -277,6 +279,7 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// collect oidc data and update kubeconfig — overrides applied inside the same patch.
 	// All controller-managed fields are reset on every reconcile so that removing the
 	// configOverrides spec field fully restores the baseline values.
+	var overrideErr error
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
 		kubeconfig.Spec.Kubeconfig.Kind = "Config"
 		kubeconfig.Spec.Kubeconfig.APIVersion = "v1"
@@ -315,10 +318,27 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			},
 		}
 		if resolvedOverrides != nil {
-			applyResolvedOverrides(&kubeconfig.Spec.Kubeconfig, resolvedOverrides)
+			if err := applyResolvedOverrides(&kubeconfig.Spec.Kubeconfig, resolvedOverrides); err != nil {
+				overrideErr = err
+				return err
+			}
 		}
 		return nil
 	})
+
+	if overrideErr != nil {
+		kubeconfig.Status.Conditions.SetConditions(
+			greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "OverrideValidationError", overrideErr.Error()),
+		)
+		_, perr := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
+			kubeconfig.Status = calculateKubeconfigStatus(&kubeconfig)
+			return nil
+		})
+		if perr != nil {
+			log.FromContext(ctx).Error(perr, "error setting status")
+		}
+		return ctrl.Result{}, overrideErr
+	}
 
 	if err != nil {
 		// When overrides participated in the desired spec, classify the patch failure accordingly.
@@ -367,7 +387,9 @@ type OIDCInfo struct {
 }
 
 // getOIDCInfo fetches OIDC configuration from the Organization.
-func (r *KubeconfigReconciler) getOIDCInfo(ctx context.Context, orgName string, _ *v1alpha1.Cluster) (OIDCInfo, error) {
+// If the Cluster carries a greenhouse.sap/oidc-override annotation, those secret references
+// take precedence over the organization defaults for backward compatibility.
+func (r *KubeconfigReconciler) getOIDCInfo(ctx context.Context, orgName string, cluster *v1alpha1.Cluster) (OIDCInfo, error) {
 	var org v1alpha1.Organization
 	if err := r.Get(ctx, client.ObjectKey{Name: orgName}, &org); err != nil {
 		return OIDCInfo{}, err
@@ -398,11 +420,44 @@ func (r *KubeconfigReconciler) getOIDCInfo(ctx context.Context, orgName string, 
 	if err != nil {
 		return OIDCInfo{}, err
 	}
-	return OIDCInfo{
+	oidc := OIDCInfo{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 		IssuerURL:    org.Spec.Authentication.OIDCConfig.Issuer,
-	}, nil
+	}
+
+	// Cluster-level overrides via annotation greenhouse.sap/oidc-override (backward compat).
+	// Prefer configOverrides in Spec for new clusters; this annotation path is kept so that
+	// existing clusters using it are not silently broken on upgrade.
+	if cluster != nil && cluster.Annotations != nil {
+		const annKey = "greenhouse.sap/oidc-override"
+		if raw, ok := cluster.Annotations[annKey]; ok && raw != "" {
+			type overrideSpec struct {
+				ClientIDReference     *v1alpha1.SecretKeyReference `json:"clientIDReference"`
+				ClientSecretReference *v1alpha1.SecretKeyReference `json:"clientSecretReference"`
+			}
+			var spec overrideSpec
+			if err := json.Unmarshal([]byte(raw), &spec); err != nil {
+				return OIDCInfo{}, fmt.Errorf("oidc-override: %w", err)
+			}
+			if spec.ClientIDReference != nil && spec.ClientIDReference.Name != "" && spec.ClientIDReference.Key != "" {
+				val, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, orgName, *spec.ClientIDReference)
+				if err != nil {
+					return OIDCInfo{}, err
+				}
+				oidc.ClientID = val
+			}
+			if spec.ClientSecretReference != nil && spec.ClientSecretReference.Name != "" && spec.ClientSecretReference.Key != "" {
+				val, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, orgName, *spec.ClientSecretReference)
+				if err != nil {
+					return OIDCInfo{}, err
+				}
+				oidc.ClientSecret = val
+			}
+		}
+	}
+
+	return oidc, nil
 }
 
 // resolvedSpecOverrides holds the fully-resolved (secretRef → plaintext) values from
@@ -456,9 +511,10 @@ func resolveSpecOverrides(ctx context.Context, c client.Client, namespace string
 			out.users = append(out.users, r)
 			continue
 		}
+		// Inline values take precedence; secretRef is only resolved when the inline field is empty.
 		r.clientID = uo.OIDC.ClientID
 		r.issuerURL = uo.OIDC.IssuerURL
-		if uo.OIDC.ClientIDRef != nil {
+		if r.clientID == "" && uo.OIDC.ClientIDRef != nil {
 			val, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, c, namespace, *uo.OIDC.ClientIDRef)
 			if err != nil {
 				return nil, err
@@ -480,20 +536,34 @@ func resolveSpecOverrides(ctx context.Context, c client.Client, namespace string
 
 // applyResolvedOverrides merges the resolved overrides into data by matching on name.
 // Fields left empty in an override are not written, preserving the baseline value.
-func applyResolvedOverrides(data *v1alpha1.ClusterKubeconfigData, overrides *resolvedSpecOverrides) {
+// Returns an error if an override references a name that does not exist in data, or if
+// currentContext points to a non-existent context.
+func applyResolvedOverrides(data *v1alpha1.ClusterKubeconfigData, overrides *resolvedSpecOverrides) error {
 	if overrides == nil {
-		return
+		return nil
 	}
 
 	if overrides.currentContext != "" {
+		found := false
+		for _, ctx := range data.Contexts {
+			if ctx.Name == overrides.currentContext {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return fmt.Errorf("configOverrides.currentContext %q does not match any existing context", overrides.currentContext)
+		}
 		data.CurrentContext = overrides.currentContext
 	}
 
 	for _, co := range overrides.clusters {
+		found := false
 		for i := range data.Clusters {
 			if data.Clusters[i].Name != co.name {
 				continue
 			}
+			found = true
 			if co.server != "" {
 				data.Clusters[i].Cluster.Server = co.server
 			}
@@ -501,13 +571,18 @@ func applyResolvedOverrides(data *v1alpha1.ClusterKubeconfigData, overrides *res
 				data.Clusters[i].Cluster.CertificateAuthorityData = co.certificateAuthorityData
 			}
 		}
+		if !found {
+			return fmt.Errorf("configOverrides.clusters: name %q does not match any existing cluster entry", co.name)
+		}
 	}
 
 	for _, uo := range overrides.users {
+		found := false
 		for i := range data.AuthInfo {
 			if data.AuthInfo[i].Name != uo.name {
 				continue
 			}
+			found = true
 			cfg := data.AuthInfo[i].AuthInfo.AuthProvider.Config
 			if cfg == nil {
 				cfg = make(map[string]string)
@@ -523,24 +598,56 @@ func applyResolvedOverrides(data *v1alpha1.ClusterKubeconfigData, overrides *res
 				cfg["idp-issuer-url"] = uo.issuerURL
 			}
 		}
+		if !found {
+			return fmt.Errorf("configOverrides.users: name %q does not match any existing user entry", uo.name)
+		}
 	}
 
 	for _, co := range overrides.contexts {
+		found := false
 		for i := range data.Contexts {
 			if data.Contexts[i].Name != co.Name {
 				continue
 			}
+			found = true
 			if co.Cluster != "" {
+				// Validate that the referenced cluster entry exists.
+				clusterFound := false
+				for _, cl := range data.Clusters {
+					if cl.Name == co.Cluster {
+						clusterFound = true
+						break
+					}
+				}
+				if !clusterFound {
+					return fmt.Errorf("configOverrides.contexts[%q].cluster %q does not match any existing cluster entry", co.Name, co.Cluster)
+				}
 				data.Contexts[i].Context.Cluster = co.Cluster
 			}
 			if co.User != "" {
+				// Validate that the referenced user entry exists.
+				userFound := false
+				for _, u := range data.AuthInfo {
+					if u.Name == co.User {
+						userFound = true
+						break
+					}
+				}
+				if !userFound {
+					return fmt.Errorf("configOverrides.contexts[%q].user %q does not match any existing user entry", co.Name, co.User)
+				}
 				data.Contexts[i].Context.AuthInfo = co.User
 			}
 			if co.Namespace != "" {
 				data.Contexts[i].Context.Namespace = co.Namespace
 			}
 		}
+		if !found {
+			return fmt.Errorf("configOverrides.contexts: name %q does not match any existing context entry", co.Name)
+		}
 	}
+
+	return nil
 }
 
 func sameNameResource(_ context.Context, o client.Object) []ctrl.Request {

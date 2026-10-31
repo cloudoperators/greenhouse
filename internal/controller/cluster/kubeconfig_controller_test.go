@@ -503,6 +503,95 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 			return fresh.Status.Conditions.IsReadyTrue()
 		}).Should(BeTrue(), "ClusterKubeconfig should be Ready after clearing configOverrides")
 	})
+
+	It("should honor legacy oidc-override annotation on Cluster for backward compatibility", func() {
+		const (
+			legacyClientID     = "legacy-oidc-client-id"
+			legacyClientSecret = "legacy-oidc-client-secret" //nolint:gosec
+		)
+
+		legacySecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "legacy-oidc-secret",
+				Namespace: setup.Namespace(),
+			},
+			Data: map[string][]byte{
+				oidcClientIDKey:     []byte(legacyClientID),
+				oidcClientSecretKey: []byte(legacyClientSecret),
+			},
+		}
+		Expect(test.K8sClient.Create(test.Ctx, legacySecret)).To(Succeed())
+		DeferCleanup(func() {
+			Expect(test.K8sClient.Delete(test.Ctx, legacySecret)).To(Succeed())
+		})
+
+		Eventually(func(g Gomega) {
+			cl := v1alpha1.Cluster{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &cl)).To(Succeed())
+			if cl.Annotations == nil {
+				cl.Annotations = make(map[string]string)
+			}
+			cl.Annotations["greenhouse.sap/oidc-override"] = fmt.Sprintf(`{
+				"clientIDReference": {"name": "%s", "key": "%s"},
+				"clientSecretReference": {"name": "%s", "key": "%s"}
+			}`, legacySecret.Name, oidcClientIDKey, legacySecret.Name, oidcClientSecretKey)
+			g.Expect(test.K8sClient.Update(test.Ctx, &cl)).To(Succeed())
+		}).Should(Succeed(), "cluster should be updated with legacy oidc-override annotation")
+
+		Eventually(func(g Gomega) string {
+			fresh := v1alpha1.ClusterKubeconfig{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &fresh)).ShouldNot(HaveOccurred())
+			return fresh.Spec.Kubeconfig.AuthInfo[0].AuthInfo.AuthProvider.Config["client-id"]
+		}).Should(Equal(legacyClientID))
+
+		Eventually(func(g Gomega) string {
+			fresh := v1alpha1.ClusterKubeconfig{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &fresh)).ShouldNot(HaveOccurred())
+			return fresh.Spec.Kubeconfig.AuthInfo[0].AuthInfo.AuthProvider.Config["client-secret"]
+		}).Should(Equal(legacyClientSecret))
+
+		// Clean up annotation
+		Eventually(func(g Gomega) {
+			cl := v1alpha1.Cluster{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &cl)).To(Succeed())
+			delete(cl.Annotations, "greenhouse.sap/oidc-override")
+			g.Expect(test.K8sClient.Update(test.Ctx, &cl)).To(Succeed())
+		}).Should(Succeed())
+	})
+
+	It("should set ReconcileFailedCondition when configOverrides references a non-existent name", func() {
+		Eventually(func(g Gomega) {
+			ck := v1alpha1.ClusterKubeconfig{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &ck)).To(Succeed())
+			ck.Spec.ConfigOverrides = &v1alpha1.ClusterKubeconfigOverrides{
+				Clusters: []v1alpha1.ClusterItemOverride{
+					{Name: "does-not-exist", Server: "https://bad.example.com"},
+				},
+			}
+			g.Expect(test.K8sClient.Update(test.Ctx, &ck)).To(Succeed())
+		}).Should(Succeed(), "ClusterKubeconfig should be updated with dangling cluster override")
+
+		Eventually(func(g Gomega) bool {
+			fresh := v1alpha1.ClusterKubeconfig{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &fresh)).ShouldNot(HaveOccurred())
+			cond := fresh.Status.Conditions.GetConditionByType(v1alpha1.KubeconfigReconcileFailedCondition)
+			return cond != nil && cond.Status == metav1.ConditionTrue
+		}).Should(BeTrue(), "ReconcileFailedCondition should be set for dangling cluster reference")
+
+		// Restore healthy state
+		Eventually(func(g Gomega) {
+			ck := v1alpha1.ClusterKubeconfig{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &ck)).To(Succeed())
+			ck.Spec.ConfigOverrides = nil
+			g.Expect(test.K8sClient.Update(test.Ctx, &ck)).To(Succeed())
+		}).Should(Succeed())
+
+		Eventually(func(g Gomega) bool {
+			fresh := v1alpha1.ClusterKubeconfig{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &fresh)).ShouldNot(HaveOccurred())
+			return fresh.Status.Conditions.IsReadyTrue()
+		}).Should(BeTrue())
+	})
 })
 
 var _ = Describe("ClusterKubeconfig controller with workload identity", func() {
