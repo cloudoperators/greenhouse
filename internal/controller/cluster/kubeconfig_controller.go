@@ -367,7 +367,7 @@ type OIDCInfo struct {
 }
 
 // getOIDCInfo fetches OIDC configuration from the Organization.
-func (r *KubeconfigReconciler) getOIDCInfo(ctx context.Context, orgName string, cluster *v1alpha1.Cluster) (OIDCInfo, error) {
+func (r *KubeconfigReconciler) getOIDCInfo(ctx context.Context, orgName string, _ *v1alpha1.Cluster) (OIDCInfo, error) {
 	var org v1alpha1.Organization
 	if err := r.Get(ctx, client.ObjectKey{Name: orgName}, &org); err != nil {
 		return OIDCInfo{}, err
@@ -415,16 +415,16 @@ type resolvedSpecOverrides struct {
 }
 
 type resolvedClusterOverride struct {
-	name                    string
-	server                  string
+	name                     string
+	server                   string
 	certificateAuthorityData []byte
 }
 
 type resolvedUserOverride struct {
-	name            string
-	clientID        string
-	clientSecret    string
-	issuerURL       string
+	name         string
+	clientID     string
+	clientSecret string
+	issuerURL    string
 }
 
 // resolveSpecOverrides reads a ClusterKubeconfigOverrides and resolves any secretRef fields
