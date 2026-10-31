@@ -16,6 +16,49 @@ description: Technical reference documentation for Greenhouse API resources
 <h2 id="greenhouse.sap/v1alpha1">greenhouse.sap/v1alpha1</h2>
 Resource Types:
 <ul class="simple"></ul>
+<h3 id="greenhouse.sap/v1alpha1.AuthInfoOverride">AuthInfoOverride
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigOverrides">ClusterKubeconfigOverrides</a>)
+</p>
+<p>AuthInfoOverride overrides fields of a named user entry in the kubeconfig.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>oidc</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.OIDCConfigOverride">
+OIDCConfigOverride
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="greenhouse.sap/v1alpha1.AuthType">AuthType
 (<code>string</code> alias)</h3>
 <p>
@@ -526,6 +569,59 @@ ClusterStatus
 <h3 id="greenhouse.sap/v1alpha1.ClusterConditionType">ClusterConditionType
 (<code>string</code> alias)</h3>
 <p>ClusterConditionType is a valid condition of a cluster.</p>
+<h3 id="greenhouse.sap/v1alpha1.ClusterItemOverride">ClusterItemOverride
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigOverrides">ClusterKubeconfigOverrides</a>)
+</p>
+<p>ClusterItemOverride overrides fields of a named cluster entry in the kubeconfig.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>server</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>certificateAuthorityDataRef</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.SecretKeyReference">
+SecretKeyReference
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="greenhouse.sap/v1alpha1.ClusterKubeConfig">ClusterKubeConfig
 </h3>
 <p>
@@ -607,6 +703,18 @@ ClusterKubeconfigSpec
 <em>
 <a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigData">
 ClusterKubeconfigData
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>configOverrides</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigOverrides">
+ClusterKubeconfigOverrides
 </a>
 </em>
 </td>
@@ -1000,6 +1108,74 @@ ClusterKubeconfigPreferences
 </table>
 </div>
 </div>
+<h3 id="greenhouse.sap/v1alpha1.ClusterKubeconfigOverrides">ClusterKubeconfigOverrides
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigSpec">ClusterKubeconfigSpec</a>)
+</p>
+<p>ClusterKubeconfigOverrides allows per-cluster overrides of the generated kubeconfig by name-matching
+against existing clusters, users, and contexts. Fields left empty are not overridden.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>clusters</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ClusterItemOverride">
+[]ClusterItemOverride
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>users</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.AuthInfoOverride">
+[]AuthInfoOverride
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>contexts</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ContextItemOverride">
+[]ContextItemOverride
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>currentContext</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="greenhouse.sap/v1alpha1.ClusterKubeconfigPreferences">ClusterKubeconfigPreferences
 </h3>
 <p>
@@ -1031,6 +1207,18 @@ kubectl get cluster-kubeconfig $NAME -o yaml | yq -y .spec.kubeconfig</p>
 <em>
 <a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigData">
 ClusterKubeconfigData
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>configOverrides</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigOverrides">
+ClusterKubeconfigOverrides
 </a>
 </em>
 </td>
@@ -1492,6 +1680,67 @@ DiscoveryCache
 </td>
 <td>
 <p>DiscoveryCache holds the discovered API groups of the remote cluster and a hash for change detection.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.ContextItemOverride">ContextItemOverride
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigOverrides">ClusterKubeconfigOverrides</a>)
+</p>
+<p>ContextItemOverride overrides fields of a named context entry in the kubeconfig.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>cluster</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>user</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespace</code><br>
+<em>
+string
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>
@@ -2195,6 +2444,72 @@ OIDCExtraConfig
 </td>
 <td>
 <p>ExtraConfig contains additional OIDC configuration for claim mapping and token validation behavior.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.OIDCConfigOverride">OIDCConfigOverride
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.AuthInfoOverride">AuthInfoOverride</a>)
+</p>
+<p>OIDCConfigOverride overrides OIDC auth-provider fields. Inline values take precedence over Ref fields
+when both are set; Ref fields are resolved from the referenced Secret at reconcile time.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>clientID</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>issuerURL</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientIDRef</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.SecretKeyReference">
+SecretKeyReference
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientSecretRef</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.SecretKeyReference">
+SecretKeyReference
+</a>
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>
@@ -4278,7 +4593,9 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterItemOverride">ClusterItemOverride</a>, 
 <a href="#greenhouse.sap/v1alpha1.OIDCConfig">OIDCConfig</a>, 
+<a href="#greenhouse.sap/v1alpha1.OIDCConfigOverride">OIDCConfigOverride</a>, 
 <a href="#greenhouse.sap/v1alpha1.PluginPresetPluginValueFromSource">PluginPresetPluginValueFromSource</a>, 
 <a href="#greenhouse.sap/v1alpha1.PluginValueFromSource">PluginValueFromSource</a>, 
 <a href="#greenhouse.sap/v1alpha1.ValueFromSource">ValueFromSource</a>)
