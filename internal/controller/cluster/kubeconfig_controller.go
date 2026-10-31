@@ -6,11 +6,8 @@ package cluster
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -255,13 +252,13 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, nil
 	}
 
-	// Resolve annotation overrides before writing so they can be applied atomically in the
+	// Resolve spec-level overrides before writing so they can be applied atomically in the
 	// single CreateOrPatch below — two separate patches would re-enqueue the resource on every
 	// reconcile because the controller watches ClusterKubeconfig via For(...).
-	var resolvedOverrides map[string]string
-	if raw, ok := cluster.Annotations[greenhouseapis.AnnotationKeyKubeconfigOverrides]; ok && raw != "" {
+	var resolvedOverrides *resolvedSpecOverrides
+	if kubeconfig.Spec.ConfigOverrides != nil {
 		var oErr error
-		resolvedOverrides, oErr = resolveKubeconfigOverrides(ctx, r.Client, cluster.Namespace, raw)
+		resolvedOverrides, oErr = resolveSpecOverrides(ctx, r.Client, cluster.Namespace, kubeconfig.Spec.ConfigOverrides)
 		if oErr != nil {
 			kubeconfig.Status.Conditions.SetConditions(
 				greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "OverrideResolveError", oErr.Error()),
@@ -279,8 +276,7 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// collect oidc data and update kubeconfig — overrides applied inside the same patch.
 	// All controller-managed fields are reset on every reconcile so that removing the
-	// kubeconfig-overrides annotation fully restores the baseline values.
-	var applyErr error
+	// configOverrides spec field fully restores the baseline values.
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
 		kubeconfig.Spec.Kubeconfig.Kind = "Config"
 		kubeconfig.Spec.Kubeconfig.APIVersion = "v1"
@@ -319,29 +315,10 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			},
 		}
 		if resolvedOverrides != nil {
-			patched, oErr := applyKubeconfigOverrides(kubeconfig.Spec.Kubeconfig, resolvedOverrides)
-			if oErr != nil {
-				applyErr = oErr
-				return oErr
-			}
-			kubeconfig.Spec.Kubeconfig = patched
+			applyResolvedOverrides(&kubeconfig.Spec.Kubeconfig, resolvedOverrides)
 		}
 		return nil
 	})
-
-	if applyErr != nil {
-		kubeconfig.Status.Conditions.SetConditions(
-			greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "OverrideError", applyErr.Error()),
-		)
-		_, perr := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
-			kubeconfig.Status = calculateKubeconfigStatus(&kubeconfig)
-			return nil
-		})
-		if perr != nil {
-			log.FromContext(ctx).Error(perr, "error setting status")
-		}
-		return ctrl.Result{}, applyErr
-	}
 
 	if err != nil {
 		// When overrides participated in the desired spec, classify the patch failure accordingly.
@@ -364,7 +341,7 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 	if resolvedOverrides != nil {
-		l.Info("kubeconfig overrides applied")
+		l.Info("kubeconfig spec overrides applied")
 	}
 	l.Info("kubeconfig updated", "result", result)
 
@@ -389,13 +366,7 @@ type OIDCInfo struct {
 	IssuerURL    string
 }
 
-// getOIDCInfo fetches OIDC configuration from the Organization and allows Cluster-level overrides via annotation-based secret references.
-// Clusters can set annotation greenhouse.sap/oidc-override with JSON:
-//
-//	{
-//	  "clientIDReference": {"name": "<secret-name>", "key": "<secret-key>"},
-//	  "clientSecretReference": {"name": "<secret-name>", "key": "<secret-key>"}
-//	}
+// getOIDCInfo fetches OIDC configuration from the Organization.
 func (r *KubeconfigReconciler) getOIDCInfo(ctx context.Context, orgName string, cluster *v1alpha1.Cluster) (OIDCInfo, error) {
 	var org v1alpha1.Organization
 	if err := r.Get(ctx, client.ObjectKey{Name: orgName}, &org); err != nil {
@@ -427,161 +398,149 @@ func (r *KubeconfigReconciler) getOIDCInfo(ctx context.Context, orgName string, 
 	if err != nil {
 		return OIDCInfo{}, err
 	}
-	oidc := OIDCInfo{
+	return OIDCInfo{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 		IssuerURL:    org.Spec.Authentication.OIDCConfig.Issuer,
-	}
-
-	// Cluster-level overrides via annotation greenhouse.sap/oidc-override
-	if cluster != nil && cluster.Annotations != nil {
-		const annKey = "greenhouse.sap/oidc-override"
-		if raw, ok := cluster.Annotations[annKey]; ok && raw != "" {
-			// Define struct to deserialize annotation
-			type overrideSpec struct {
-				ClientIDReference     *v1alpha1.SecretKeyReference `json:"clientIDReference"`
-				ClientSecretReference *v1alpha1.SecretKeyReference `json:"clientSecretReference"`
-			}
-			var spec overrideSpec
-			if err := json.Unmarshal([]byte(raw), &spec); err != nil {
-				return OIDCInfo{}, err
-			}
-			// Apply overrides from referenced secrets if provided
-			if spec.ClientIDReference != nil && spec.ClientIDReference.Name != "" && spec.ClientIDReference.Key != "" {
-				val, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, orgName, *spec.ClientIDReference)
-				if err != nil {
-					return OIDCInfo{}, err
-				}
-				oidc.ClientID = val
-			}
-			if spec.ClientSecretReference != nil && spec.ClientSecretReference.Name != "" && spec.ClientSecretReference.Key != "" {
-				val, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, orgName, *spec.ClientSecretReference)
-				if err != nil {
-					return OIDCInfo{}, err
-				}
-				oidc.ClientSecret = val
-			}
-		}
-	}
-
-	return oidc, nil
+	}, nil
 }
 
-// indexedSegment matches a path segment with an array index, e.g. "clusters[0]".
-var indexedSegment = regexp.MustCompile(`^([\w][\w-]*)\[(\d+)\]$`)
-
-// secretRefValue is a helper struct used only for unmarshalling secretRef values in the override map.
-type secretRefValue struct {
-	SecretRef *v1alpha1.SecretKeyReference `json:"secretRef"`
+// resolvedSpecOverrides holds the fully-resolved (secretRef → plaintext) values from
+// a ClusterKubeconfigOverrides struct, ready to be applied to the kubeconfig data.
+type resolvedSpecOverrides struct {
+	clusters       []resolvedClusterOverride
+	users          []resolvedUserOverride
+	contexts       []v1alpha1.ContextItemOverride
+	currentContext string
 }
 
-// resolveKubeconfigOverrides unmarshals the raw annotation value and resolves any secretRef entries
-// by reading the referenced secret. Plain string values are returned as-is.
-func resolveKubeconfigOverrides(ctx context.Context, c client.Client, namespace, raw string) (map[string]string, error) {
-	var rawMap map[string]json.RawMessage
-	if err := json.Unmarshal([]byte(raw), &rawMap); err != nil {
-		return nil, fmt.Errorf("kubeconfig-overrides: invalid JSON: %w", err)
+type resolvedClusterOverride struct {
+	name                    string
+	server                  string
+	certificateAuthorityData []byte
+}
+
+type resolvedUserOverride struct {
+	name            string
+	clientID        string
+	clientSecret    string
+	issuerURL       string
+}
+
+// resolveSpecOverrides reads a ClusterKubeconfigOverrides and resolves any secretRef fields
+// by fetching the referenced secrets. Plain string values are passed through as-is.
+func resolveSpecOverrides(ctx context.Context, c client.Client, namespace string, overrides *v1alpha1.ClusterKubeconfigOverrides) (*resolvedSpecOverrides, error) {
+	if overrides == nil {
+		return nil, nil
 	}
-	resolved := make(map[string]string, len(rawMap))
-	for path, rawVal := range rawMap {
-		var ref secretRefValue
-		if err := json.Unmarshal(rawVal, &ref); err == nil && ref.SecretRef != nil {
-			val, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, c, namespace, *ref.SecretRef)
+	out := &resolvedSpecOverrides{
+		currentContext: overrides.CurrentContext,
+		contexts:       overrides.Contexts,
+	}
+
+	for _, co := range overrides.Clusters {
+		r := resolvedClusterOverride{name: co.Name, server: co.Server}
+		if co.CertificateAuthorityDataRef != nil {
+			val, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, c, namespace, *co.CertificateAuthorityDataRef)
 			if err != nil {
-				return nil, fmt.Errorf("kubeconfig-overrides: path %q: %w", path, err)
+				return nil, err
 			}
-			resolved[path] = val
+			r.certificateAuthorityData = []byte(val)
+		}
+		out.clusters = append(out.clusters, r)
+	}
+
+	for _, uo := range overrides.Users {
+		r := resolvedUserOverride{name: uo.Name}
+		if uo.OIDC == nil {
+			out.users = append(out.users, r)
 			continue
 		}
-		var s string
-		if err := json.Unmarshal(rawVal, &s); err != nil {
-			return nil, fmt.Errorf("kubeconfig-overrides: path %q: value must be a string or secretRef object", path)
-		}
-		resolved[path] = s
-	}
-	return resolved, nil
-}
-
-// applyKubeconfigOverrides applies a flat map of dot-path → string value overrides onto data.
-// Keys use dot-separated JSON field names with optional [n] array indexing, e.g.:
-//
-//	"clusters[0].cluster.server"
-//	"users[0].user.auth-provider.config.client-id"
-//	"contexts[0].context.namespace"
-func applyKubeconfigOverrides(data v1alpha1.ClusterKubeconfigData, overrides map[string]string) (v1alpha1.ClusterKubeconfigData, error) {
-	// Round-trip through map[string]any so we can apply arbitrary dot-path writes.
-	b, err := json.Marshal(data)
-	if err != nil {
-		return data, err
-	}
-	var m map[string]any
-	if err := json.Unmarshal(b, &m); err != nil {
-		return data, err
-	}
-
-	for path, val := range overrides {
-		if err := setDotPath(m, path, val); err != nil {
-			return data, fmt.Errorf("kubeconfig-overrides: path %q: %w", path, err)
-		}
-	}
-
-	patched, err := json.Marshal(m)
-	if err != nil {
-		return data, err
-	}
-	var result v1alpha1.ClusterKubeconfigData
-	if err := json.Unmarshal(patched, &result); err != nil {
-		return data, err
-	}
-	return result, nil
-}
-
-// setDotPath sets val at the dot-separated path inside m, creating intermediate maps as needed.
-// Array elements (e.g. "clusters[0]") must already exist — the function sets inside them, not appends.
-func setDotPath(m map[string]any, path, val string) error {
-	segments := strings.Split(path, ".")
-	var cur any = m
-	for i, seg := range segments {
-		isLast := i == len(segments)-1
-
-		if match := indexedSegment.FindStringSubmatch(seg); match != nil {
-			key := match[1]
-			idx, err := strconv.Atoi(match[2])
+		r.clientID = uo.OIDC.ClientID
+		r.issuerURL = uo.OIDC.IssuerURL
+		if uo.OIDC.ClientIDRef != nil {
+			val, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, c, namespace, *uo.OIDC.ClientIDRef)
 			if err != nil {
-				return fmt.Errorf("invalid array index in segment %q: %w", seg, err)
+				return nil, err
 			}
+			r.clientID = val
+		}
+		if uo.OIDC.ClientSecretRef != nil {
+			val, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, c, namespace, *uo.OIDC.ClientSecretRef)
+			if err != nil {
+				return nil, err
+			}
+			r.clientSecret = val
+		}
+		out.users = append(out.users, r)
+	}
 
-			node, ok := cur.(map[string]any)
-			if !ok {
-				return fmt.Errorf("expected object at %q", strings.Join(segments[:i], "."))
+	return out, nil
+}
+
+// applyResolvedOverrides merges the resolved overrides into data by matching on name.
+// Fields left empty in an override are not written, preserving the baseline value.
+func applyResolvedOverrides(data *v1alpha1.ClusterKubeconfigData, overrides *resolvedSpecOverrides) {
+	if overrides == nil {
+		return
+	}
+
+	if overrides.currentContext != "" {
+		data.CurrentContext = overrides.currentContext
+	}
+
+	for _, co := range overrides.clusters {
+		for i := range data.Clusters {
+			if data.Clusters[i].Name != co.name {
+				continue
 			}
-			arr, ok := node[key].([]any)
-			if !ok || idx >= len(arr) {
-				return fmt.Errorf("array %q index %d out of range", key, idx)
+			if co.server != "" {
+				data.Clusters[i].Cluster.Server = co.server
 			}
-			if isLast {
-				arr[idx] = val
-				return nil
+			if len(co.certificateAuthorityData) > 0 {
+				data.Clusters[i].Cluster.CertificateAuthorityData = co.certificateAuthorityData
 			}
-			cur = arr[idx]
-		} else {
-			node, ok := cur.(map[string]any)
-			if !ok {
-				return fmt.Errorf("expected object at %q", strings.Join(segments[:i], "."))
-			}
-			if isLast {
-				node[seg] = val
-				return nil
-			}
-			next, exists := node[seg]
-			if !exists {
-				next = map[string]any{}
-				node[seg] = next
-			}
-			cur = next
 		}
 	}
-	return nil
+
+	for _, uo := range overrides.users {
+		for i := range data.AuthInfo {
+			if data.AuthInfo[i].Name != uo.name {
+				continue
+			}
+			cfg := data.AuthInfo[i].AuthInfo.AuthProvider.Config
+			if cfg == nil {
+				cfg = make(map[string]string)
+				data.AuthInfo[i].AuthInfo.AuthProvider.Config = cfg
+			}
+			if uo.clientID != "" {
+				cfg["client-id"] = uo.clientID
+			}
+			if uo.clientSecret != "" {
+				cfg["client-secret"] = uo.clientSecret
+			}
+			if uo.issuerURL != "" {
+				cfg["idp-issuer-url"] = uo.issuerURL
+			}
+		}
+	}
+
+	for _, co := range overrides.contexts {
+		for i := range data.Contexts {
+			if data.Contexts[i].Name != co.Name {
+				continue
+			}
+			if co.Cluster != "" {
+				data.Contexts[i].Context.Cluster = co.Cluster
+			}
+			if co.User != "" {
+				data.Contexts[i].Context.AuthInfo = co.User
+			}
+			if co.Namespace != "" {
+				data.Contexts[i].Context.Namespace = co.Namespace
+			}
+		}
+	}
 }
 
 func sameNameResource(_ context.Context, o client.Object) []ctrl.Request {
