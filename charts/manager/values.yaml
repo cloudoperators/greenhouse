@@ -55,6 +55,8 @@ controllerManager:
 
 webhook:
   replicas: 2
+  certManager:
+    enabled: false
   service:
     type: ClusterIP
     ports:

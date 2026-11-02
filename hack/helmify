@@ -37,15 +37,18 @@ PREFIX="greenhouse" rename "mutating-webhook-configuration"
 PREFIX="greenhouse" rename "validating-webhook-configuration"
 PREFIX="greenhouse" rename "webhook-service"
 
-# Add cert-manager CA injection annotation to webhook configurations
 yq -i '
   (. | select(.kind == "MutatingWebhookConfiguration" or .kind == "ValidatingWebhookConfiguration")
-     | .metadata.annotations["cert-manager.io/inject-ca-from"]) = "greenhouse/greenhouse-client-cert"
+     | .metadata.HELMSUBST_WEBHOOK_ANNOTATIONS) = ""
 ' "$TEMPLATES_DIR/webhook/webhooks.yaml"
 
 yq -i '(.webhooks[] | select(.name == "*secret.kb.io") | .namespaceSelector) |= {"matchExpressions": [{"key":"kubernetes.io/metadata.name", "operator": "NotIn", "values":["kube-system"]}]}' "$TEMPLATES_DIR/webhook/webhooks.yaml"
 yq -i '(.webhooks[] | select(.name == "*serviceaccount.kb.io") | .namespaceSelector) |= {"matchExpressions": [{"key":"kubernetes.io/metadata.name", "operator": "NotIn", "values":["kube-system"]}]}' "$TEMPLATES_DIR/webhook/webhooks.yaml"
-yq -i '(.metadata.annotations += {"cert-manager.io/inject-ca-from": "greenhouse/greenhouse-client-cert"})' "$TEMPLATES_DIR/webhook/webhooks.yaml"
+
+$SED_CMD 's#  HELMSUBST_WEBHOOK_ANNOTATIONS: ""#  {{- if and .Values.webhook.certManager .Values.webhook.certManager.enabled }}\
+  annotations:\
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/greenhouse-client-cert\
+  {{- end }}#g' "$TEMPLATES_DIR/webhook/webhooks.yaml"
 
 # Helmify RBAC.
 rename-file-if-exists "$TEMPLATES_DIR/role.yaml" "$TEMPLATES_DIR/rbac/manager-role.yaml"
