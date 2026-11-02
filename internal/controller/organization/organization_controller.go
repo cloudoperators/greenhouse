@@ -137,7 +137,7 @@ func (r *OrganizationReconciler) EnsureDeleted(ctx context.Context, obj lifecycl
 		if err := r.deleteDexConnector(ctx, org); err != nil {
 			return ctrl.Result{}, lifecycle.Failed, err
 		}
-		if err := r.deleteOAuth2Client(ctx, org); err != nil {
+		if err := r.deleteOAuth2Client(ctx, org.Name); err != nil {
 			return ctrl.Result{}, lifecycle.Failed, err
 		}
 	}
