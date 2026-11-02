@@ -16,7 +16,6 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
@@ -48,7 +47,7 @@ func reconcileSupportGroupServiceAccount(ctx context.Context, c client.Client, r
 		},
 	}
 
-	result, err := clientutil.CreateOrPatch(ctx, c, serviceAccount, func() error {
+	result, err := controllerutil.CreateOrPatch(ctx, c, serviceAccount, func() error {
 		if serviceAccount.Labels == nil {
 			serviceAccount.Labels = make(map[string]string)
 		}
@@ -60,10 +59,10 @@ func reconcileSupportGroupServiceAccount(ctx context.Context, c client.Client, r
 	}
 
 	switch result {
-	case clientutil.OperationResultCreated:
+	case controllerutil.OperationResultCreated:
 		log.FromContext(ctx).Info("created support group service account", "name", serviceAccount.Name, "namespace", serviceAccount.Namespace)
 		recorder.Eventf(team, serviceAccount, corev1.EventTypeNormal, "CreatedServiceAccount", "reconciling support group service account", "Created ServiceAccount %s/%s", serviceAccount.Namespace, serviceAccount.Name)
-	case clientutil.OperationResultUpdated:
+	case controllerutil.OperationResultUpdated:
 		log.FromContext(ctx).Info("updated support group service account", "name", serviceAccount.Name, "namespace", serviceAccount.Namespace)
 		recorder.Eventf(team, serviceAccount, corev1.EventTypeNormal, "UpdatedServiceAccount", "reconciling support group service account", "Updated ServiceAccount %s/%s", serviceAccount.Namespace, serviceAccount.Name)
 	}
@@ -79,7 +78,7 @@ func reconcileSupportGroupRole(ctx context.Context, c client.Client, recorder ev
 		},
 	}
 
-	result, err := clientutil.CreateOrPatch(ctx, c, role, func() error {
+	result, err := controllerutil.CreateOrPatch(ctx, c, role, func() error {
 		role.Rules = []rbacv1.PolicyRule{
 			{
 				APIGroups:     []string{""},
@@ -95,10 +94,10 @@ func reconcileSupportGroupRole(ctx context.Context, c client.Client, recorder ev
 	}
 
 	switch result {
-	case clientutil.OperationResultCreated:
+	case controllerutil.OperationResultCreated:
 		log.FromContext(ctx).Info("created support group role", "name", role.Name, "namespace", role.Namespace)
 		recorder.Eventf(team, role, corev1.EventTypeNormal, "CreatedRole", "reconciling support group role", "Created Role %s/%s", role.Namespace, role.Name)
-	case clientutil.OperationResultUpdated:
+	case controllerutil.OperationResultUpdated:
 		log.FromContext(ctx).Info("updated support group role", "name", role.Name, "namespace", role.Namespace)
 		recorder.Eventf(team, role, corev1.EventTypeNormal, "UpdatedRole", "reconciling support group role", "Updated Role %s/%s", role.Namespace, role.Name)
 	}
@@ -115,7 +114,7 @@ func reconcileSupportGroupRoleBinding(ctx context.Context, c client.Client, reco
 		},
 	}
 
-	result, err := clientutil.CreateOrPatch(ctx, c, roleBinding, func() error {
+	result, err := controllerutil.CreateOrPatch(ctx, c, roleBinding, func() error {
 		roleBinding.RoleRef = rbacv1.RoleRef{
 			APIGroup: rbacv1.GroupName,
 			Kind:     "Role",
@@ -140,10 +139,10 @@ func reconcileSupportGroupRoleBinding(ctx context.Context, c client.Client, reco
 	}
 
 	switch result {
-	case clientutil.OperationResultCreated:
+	case controllerutil.OperationResultCreated:
 		log.FromContext(ctx).Info("created support group role binding", "name", roleBinding.Name, "namespace", roleBinding.Namespace)
 		recorder.Eventf(team, roleBinding, corev1.EventTypeNormal, "CreatedRoleBinding", "reconciling support group role binding", "Created RoleBinding %s/%s", roleBinding.Namespace, roleBinding.Name)
-	case clientutil.OperationResultUpdated:
+	case controllerutil.OperationResultUpdated:
 		log.FromContext(ctx).Info("updated support group role binding", "name", roleBinding.Name, "namespace", roleBinding.Namespace)
 		recorder.Eventf(team, roleBinding, corev1.EventTypeNormal, "UpdatedRoleBinding", "reconciling support group role binding", "Updated RoleBinding %s/%s", roleBinding.Namespace, roleBinding.Name)
 	}
