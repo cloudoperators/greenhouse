@@ -23,6 +23,7 @@ import (
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 // exposedConditions are the conditions that are exposed in the StatusConditions of the Plugin.
@@ -125,17 +126,14 @@ func initClientGetter(
 		return nil, nil, err
 	}
 	var restClientGetter genericclioptions.RESTClientGetter
-	if workloadIdentityEnabled && cluster.Annotations[greenhouseapis.ClusterConnectivityAnnotation] == greenhouseapis.ClusterConnectivityOIDC {
-		restClientGetter, err = clientutil.NewRestClientGetterForWI(ctx, k8sClient, &secret, plugin.Spec.ReleaseNamespace, kubeClientOpts...)
-	} else {
-		restClientGetter, err = clientutil.NewRestClientGetterFromSecret(&secret, plugin.Spec.ReleaseNamespace, kubeClientOpts...)
-	}
+	cfg, err := lifecycle.RestConfigFromSecret(ctx, k8sClient, &secret)
 	if err != nil {
 		err = fmt.Errorf("cannot access cluster %s: %w", plugin.Spec.ClusterName, err)
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.ClusterAccessFailedReason, err.Error()))
 		return nil, nil, err
 	}
+	restClientGetter = clientutil.NewRestClientGetterFromRestConfig(cfg, plugin.Spec.ReleaseNamespace, kubeClientOpts...)
 	c := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
 	if c != nil && c.Reason == greenhousev1alpha1.ClusterAccessFailedReason {
 		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(

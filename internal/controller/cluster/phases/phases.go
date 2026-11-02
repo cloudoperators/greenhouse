@@ -39,30 +39,15 @@ func breakInvalidKubeConfig(cluster *greenhousev1alpha1.Cluster, err error) (lif
 }
 
 func (p *Phase) createRemoteClient(cluster *greenhousev1alpha1.Cluster) lifecycle.SubRoutine {
-	return func(_ context.Context) (lifecycle.Result, error) {
-		rcg, err := clientutil.NewRestClientGetterFromSecret(p.ClusterSecret, cluster.GetNamespace())
+	return func(ctx context.Context) (lifecycle.Result, error) {
+		cfg, err := lifecycle.RestConfigFromSecret(ctx, p.Client, p.ClusterSecret)
 		if err != nil {
-			return breakInvalidKubeConfig(cluster, fmt.Errorf("error building rest client getter: %w", err))
+			return breakInvalidKubeConfig(cluster, fmt.Errorf("error building rest config: %w", err))
 		}
+		rcg := clientutil.NewRestClientGetterFromRestConfig(cfg, cluster.GetNamespace())
 		rc, err := clientutil.NewK8sClientFromRestClientGetter(rcg)
 		if err != nil {
 			return breakInvalidKubeConfig(cluster, fmt.Errorf("error building remote k8s client: %w", err))
-		}
-		p.RestClientGetter = rcg
-		p.RemoteClient = rc
-		return lifecycle.Continue(), nil
-	}
-}
-
-func (p *Phase) createWorkloadIdentityClient(cluster *greenhousev1alpha1.Cluster) lifecycle.SubRoutine {
-	return func(ctx context.Context) (lifecycle.Result, error) {
-		rcg, err := clientutil.NewRestClientGetterForWI(ctx, p.Client, p.ClusterSecret, cluster.GetNamespace())
-		if err != nil {
-			return breakInvalidKubeConfig(cluster, fmt.Errorf("error building workload identity rest client getter: %w", err))
-		}
-		rc, err := clientutil.NewK8sClientFromRestClientGetter(rcg)
-		if err != nil {
-			return breakInvalidKubeConfig(cluster, fmt.Errorf("error building workload identity remote k8s client: %w", err))
 		}
 		p.RestClientGetter = rcg
 		p.RemoteClient = rc
@@ -85,7 +70,7 @@ func (p *Phase) EnsureCreatePhases(cluster *greenhousev1alpha1.Cluster) []lifecy
 		phases := make([]lifecycle.SubRoutine, 0, 6)
 		// if workload identity feature gate is enabled there is no need to write SA token to cluster secret
 		if p.WorkloadIdentityEnabled {
-			phases = append(phases, p.createWorkloadIdentityClient(cluster))
+			phases = append(phases, p.createRemoteClient(cluster))
 		} else {
 			phases = append(phases, p.createRemoteClient(cluster), p.ensureServiceAccountToken(cluster))
 		}

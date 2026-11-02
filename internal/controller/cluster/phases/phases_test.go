@@ -172,6 +172,6 @@ func TestCreateWorkloadIdentityClientReportsInvalidKubeConfig(t *testing.T) {
 	cluster := healthyCluster()
 	p := &Phase{ClusterSecret: secret}
 
-	result, err := p.createWorkloadIdentityClient(cluster)(context.Background())
+	result, err := p.createRemoteClient(cluster)(context.Background())
 	requireInvalidKubeConfig(t, cluster, result, err)
 }
