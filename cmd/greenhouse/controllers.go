@@ -193,7 +193,7 @@ func runControllers(mgr ctrl.Manager) {
 	managerConfig, err = greenhouseconfig.NewManagerConfig(
 		context.TODO(),
 		k8sClient,
-		clientutil.GetEnvOrDefault(managerConfigEnv, "greenhouse-cm"),
+		clientutil.GetEnvOrDefault(managerConfigEnv, defaultManagerConfigName),
 		clientutil.GetEnvOrDefault(podNamespaceEnv, defaultPodNamespace),
 	)
 	if err != nil {
