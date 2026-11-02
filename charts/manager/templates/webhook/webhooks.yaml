@@ -3,10 +3,8 @@ apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   name: greenhouse-mutating-webhook-configuration
-  {{- if and .Values.webhook.certManager .Values.webhook.certManager.enabled }}
   annotations:
-    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/greenhouse-client-cert
-  {{- end }}
+    cert-manager.io/inject-ca-from: greenhouse/greenhouse-client-cert
 webhooks:
   - admissionReviewVersions:
       - v1
@@ -220,10 +218,8 @@ apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   name: greenhouse-validating-webhook-configuration
-  {{- if and .Values.webhook.certManager .Values.webhook.certManager.enabled }}
   annotations:
-    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/greenhouse-client-cert
-  {{- end }}
+    cert-manager.io/inject-ca-from: greenhouse/greenhouse-client-cert
 webhooks:
   - admissionReviewVersions:
       - v1

@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -79,7 +80,7 @@ func webhookTLSChecker(certDir string, port int) func(*http.Request) error {
 	// disable keep-alive so a connection isn't reused across a cert rotation.
 	tr.DisableKeepAlives = true
 	insecureClient := &http.Client{Transport: tr}
-	probeURL := fmt.Sprintf("https://%s", net.JoinHostPort("127.0.0.1", strconv.Itoa(port)))
+	probeURL := "https://%s" + net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
 
 	return func(r *http.Request) error {
 		ctx := context.Background()
@@ -107,11 +108,14 @@ func probeTLSURL(ctx context.Context, insecureClient *http.Client, probeURL stri
 	if err != nil {
 		return fmt.Errorf("unable to connect to server: %w", err)
 	}
-	defer resp.Body.Close()
-	_, _ = io.Copy(io.Discard, resp.Body)
 
+	defer resp.Body.Close()
+
+	if _, err := io.Copy(io.Discard, resp.Body); err != nil {
+		return fmt.Errorf("unable to read probe response: %w", err)
+	}
 	if resp.TLS == nil || len(resp.TLS.PeerCertificates) == 0 {
-		return fmt.Errorf("webhook does not serve TLS certificate")
+		return errors.New("webhook does not serve TLS certificate")
 	}
 
 	serverCerts := resp.TLS.PeerCertificates
