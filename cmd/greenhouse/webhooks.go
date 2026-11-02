@@ -80,7 +80,7 @@ func webhookTLSChecker(certDir string, port int) func(*http.Request) error {
 	// disable keep-alive so a connection isn't reused across a cert rotation.
 	tr.DisableKeepAlives = true
 	insecureClient := &http.Client{Transport: tr}
-	probeURL := "https://%s" + net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
+	probeURL := "https://" + net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
 
 	return func(r *http.Request) error {
 		ctx := context.Background()
