@@ -381,7 +381,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 				}).Should(Succeed(), "unexpected status of dex oauth client resource")
 
 				By("deleting the organizations")
-				test.EventuallyDeleted(test.Ctx, test.K8sClient, &greenhousev1alpha1.Organization{ObjectMeta: metav1.ObjectMeta{Name: oidcOrg.Name}})
+				deleteOrganization(oidcOrg.Name)
 				By("checking if the dex resources are deleted")
 				err = setup.List(test.Ctx, oAuthClients)
 				Expect(err).ToNot(HaveOccurred(), "there should be no error listing dex oauth clients")
@@ -443,7 +443,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 				Expect(connectorConfig.InsecureSkipEmailVerified).To(BeTrue(), "InsecureSkipEmailVerified should be true")
 			}
 
-			test.EventuallyDeleted(test.Ctx, test.K8sClient, &greenhousev1alpha1.Organization{ObjectMeta: metav1.ObjectMeta{Name: extraConfigOrg.Name}})
+			deleteOrganization(extraConfigOrg.Name)
 			test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
 		})
 	})

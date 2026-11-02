@@ -9,6 +9,8 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	organizationpkg "github.com/cloudoperators/greenhouse/internal/controller/organization"
 	defpkg "github.com/cloudoperators/greenhouse/internal/controller/plugindefinition"
@@ -16,6 +18,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/scim"
 	"github.com/cloudoperators/greenhouse/internal/test"
 	webhookv1alpha1 "github.com/cloudoperators/greenhouse/internal/webhook/v1alpha1"
+	webhookv1alpha2 "github.com/cloudoperators/greenhouse/internal/webhook/v1alpha2"
 )
 
 var (
@@ -38,7 +41,7 @@ var _ = BeforeSuite(func() {
 	// for postgres we can start a postgres testcontainer
 	DexStorageType = dex.K8s
 
-	test.RegisterController("organizationController", (&organizationpkg.OrganizationReconciler{Namespace: "default", DexStorageType: DexStorageType}).SetupWithManager)
+	test.RegisterController("organizationController", (&organizationpkg.OrganizationReconciler{Namespace: "default", DexStorageType: DexStorageType, ManagerConfigName: "greenhouse-cm"}).SetupWithManager)
 	test.RegisterController("pluginDefinitionController", (&defpkg.PluginDefinitionReconciler{}).SetupWithManager)
 	test.RegisterController("clusterPluginDefinition", (&defpkg.ClusterPluginDefinitionReconciler{}).SetupWithManager)
 	test.RegisterWebhook("orgWebhook", webhookv1alpha1.SetupOrganizationWebhookWithManager)
@@ -47,7 +50,19 @@ var _ = BeforeSuite(func() {
 	test.RegisterWebhook("pluginWebhook", webhookv1alpha1.SetupPluginWebhookWithManager)
 	test.RegisterWebhook("teamRoleWebhook", webhookv1alpha1.SetupTeamRoleWebhookWithManager)
 	test.RegisterWebhook("serviceAccountWebhook", webhookv1alpha1.SetupServiceAccountWebhookWithManager)
+	test.RegisterWebhook("clusterWebhook", webhookv1alpha1.SetupClusterWebhookWithManager)
+	test.RegisterWebhook("pluginPresetWebhook", webhookv1alpha1.SetupPluginPresetWebhookWithManager)
+	test.RegisterWebhook("teamRoleBindingWebhook", webhookv1alpha2.SetupTeamRoleBindingWebhookWithManager)
 	test.TestBeforeSuite()
+
+	By("creating the manager config")
+	Expect(test.K8sClient.Create(test.Ctx, &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: "greenhouse-cm", Namespace: "default"},
+		Data: map[string]string{
+			"organizationcleanup.groups":          foreignGroup,
+			"organizationcleanup.requeueinterval": "500ms",
+		},
+	})).To(Succeed(), "there should be no error creating the manager config")
 })
 
 var _ = AfterSuite(func() {
