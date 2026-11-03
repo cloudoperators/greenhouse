@@ -32,26 +32,23 @@ func (p *Phase) ensureTeamRBACDeleted(cluster *greenhousev1alpha1.Cluster) lifec
 			}
 			return breakInvalidKubeConfig(cluster, err)
 		}
-		roleBindings := &rbacv1.RoleBindingList{}
-		err = remoteClient.List(ctx, roleBindings, client.HasLabels{greenhouseapis.LabelKeyRoleBinding})
-		switch {
-		case apierrors.IsUnauthorized(err), apierrors.IsForbidden(err):
-			return lifecycle.Continue(), nil
-		case err != nil && !errors.As(err, new(apierrors.APIStatus)):
-			return breakInvalidKubeConfig(cluster, err)
-		case err != nil:
-			return lifecycle.Break(), err
-		}
-		if err := deleteTeamRBAC(ctx, remoteClient, roleBindings.Items); err != nil {
-			return lifecycle.Break(), err
-		}
-		return lifecycle.Continue(), nil
+		return deleteTeamRBAC(ctx, cluster, remoteClient)
 	}
 }
 
-func deleteTeamRBAC(ctx context.Context, remoteClient client.Client, roleBindings []rbacv1.RoleBinding) error {
+func deleteTeamRBAC(ctx context.Context, cluster *greenhousev1alpha1.Cluster, remoteClient client.Client) (lifecycle.Result, error) {
+	roleBindings := &rbacv1.RoleBindingList{}
+	err := remoteClient.List(ctx, roleBindings, client.HasLabels{greenhouseapis.LabelKeyRoleBinding})
+	switch {
+	case apierrors.IsUnauthorized(err), apierrors.IsForbidden(err):
+		return lifecycle.Continue(), nil
+	case err != nil && !errors.As(err, new(apierrors.APIStatus)):
+		return breakInvalidKubeConfig(cluster, err)
+	case err != nil:
+		return lifecycle.Break(), err
+	}
 	var errs []error
-	for _, roleBinding := range roleBindings {
+	for _, roleBinding := range roleBindings.Items {
 		if err := remoteClient.Delete(ctx, &roleBinding); client.IgnoreNotFound(err) != nil {
 			errs = append(errs, err)
 		}
@@ -60,5 +57,8 @@ func deleteTeamRBAC(ctx context.Context, remoteClient client.Client, roleBinding
 		remoteClient.DeleteAllOf(ctx, &rbacv1.ClusterRoleBinding{}, client.HasLabels{greenhouseapis.LabelKeyRoleBinding}),
 		remoteClient.DeleteAllOf(ctx, &rbacv1.ClusterRole{}, client.HasLabels{greenhouseapis.LabelKeyRole}),
 	)
-	return errors.Join(errs...)
+	if err := errors.Join(errs...); err != nil {
+		return lifecycle.Break(), err
+	}
+	return lifecycle.Continue(), nil
 }

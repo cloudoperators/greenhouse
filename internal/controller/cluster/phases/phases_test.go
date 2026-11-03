@@ -252,31 +252,78 @@ func TestEnsureTeamRBACDeleted(t *testing.T) {
 	}
 }
 
-func TestDeleteTeamRBACContinuesPastFailedDeletes(t *testing.T) {
-	scheme := testScheme(t)
-	require.NoError(t, rbacv1.AddToScheme(scheme))
+func TestDeleteTeamRBAC(t *testing.T) {
+	forbidden := apierrors.NewForbidden(schema.GroupResource{Group: rbacv1.GroupName}, "team", errors.New("forbidden"))
 	labels := map[string]string{greenhouseapis.LabelKeyRole: "team", greenhouseapis.LabelKeyRoleBinding: "team"}
-	roleBinding := &rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "team", Namespace: "kube-system", Labels: labels}}
-	remoteClient := fake.NewClientBuilder().WithScheme(scheme).
-		WithObjects(
-			roleBinding,
-			&rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "team", Labels: labels}},
-			&rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: "team", Labels: labels}},
-		).
-		WithInterceptorFuncs(interceptor.Funcs{
-			Delete: func(context.Context, client.WithWatch, client.Object, ...client.DeleteOption) error {
-				return apierrors.NewForbidden(schema.GroupResource{Group: rbacv1.GroupName, Resource: "rolebindings"}, "team", errors.New("denied by webhook"))
+	objects := []client.Object{
+		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "team", Namespace: "kube-system", Labels: labels}},
+		&rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "team", Labels: labels}},
+		&rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: "team", Labels: labels}},
+		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "other", Namespace: "kube-system"}},
+		&rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "other"}},
+		&rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: "other"}},
+	}
+
+	tests := []struct {
+		name        string
+		interceptor interceptor.Funcs
+		wantBreak   bool
+		wantKept    []string
+	}{
+		{
+			name:     "removes the team RBAC and keeps the rest",
+			wantKept: []string{"RoleBinding/other", "ClusterRoleBinding/other", "ClusterRole/other"},
+		},
+		{
+			name: "no access to the remote cluster skips the cleanup",
+			interceptor: interceptor.Funcs{
+				List: func(context.Context, client.WithWatch, client.ObjectList, ...client.ListOption) error {
+					return forbidden
+				},
 			},
-		}).
-		Build()
+			wantKept: []string{"RoleBinding/team", "ClusterRoleBinding/team", "ClusterRole/team", "RoleBinding/other", "ClusterRoleBinding/other", "ClusterRole/other"},
+		},
+		{
+			name: "failed delete still removes the other kinds and is retried",
+			interceptor: interceptor.Funcs{
+				Delete: func(context.Context, client.WithWatch, client.Object, ...client.DeleteOption) error {
+					return forbidden
+				},
+			},
+			wantBreak: true,
+			wantKept:  []string{"RoleBinding/team", "RoleBinding/other", "ClusterRoleBinding/other", "ClusterRole/other"},
+		},
+	}
 
-	err := deleteTeamRBAC(context.Background(), remoteClient, []rbacv1.RoleBinding{*roleBinding})
-	require.True(t, apierrors.IsForbidden(err))
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			scheme := testScheme(t)
+			require.NoError(t, rbacv1.AddToScheme(scheme))
+			c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
+			cluster := healthyCluster()
 
-	clusterRoleBindings := &rbacv1.ClusterRoleBindingList{}
-	require.NoError(t, remoteClient.List(context.Background(), clusterRoleBindings))
-	require.Empty(t, clusterRoleBindings.Items)
-	clusterRoles := &rbacv1.ClusterRoleList{}
-	require.NoError(t, remoteClient.List(context.Background(), clusterRoles))
-	require.Empty(t, clusterRoles.Items)
+			result, err := deleteTeamRBAC(context.Background(), cluster, interceptor.NewClient(c, tc.interceptor))
+			require.Equal(t, tc.wantBreak, result.Break)
+			require.Equal(t, tc.wantBreak, err != nil)
+			require.True(t, cluster.Status.GetConditionByType(greenhousev1alpha1.KubeConfigValid).IsTrue())
+
+			roleBindings := &rbacv1.RoleBindingList{}
+			clusterRoleBindings := &rbacv1.ClusterRoleBindingList{}
+			clusterRoles := &rbacv1.ClusterRoleList{}
+			require.NoError(t, c.List(context.Background(), roleBindings))
+			require.NoError(t, c.List(context.Background(), clusterRoleBindings))
+			require.NoError(t, c.List(context.Background(), clusterRoles))
+			var kept []string
+			for _, roleBinding := range roleBindings.Items {
+				kept = append(kept, "RoleBinding/"+roleBinding.Name)
+			}
+			for _, clusterRoleBinding := range clusterRoleBindings.Items {
+				kept = append(kept, "ClusterRoleBinding/"+clusterRoleBinding.Name)
+			}
+			for _, clusterRole := range clusterRoles.Items {
+				kept = append(kept, "ClusterRole/"+clusterRole.Name)
+			}
+			require.ElementsMatch(t, tc.wantKept, kept)
+		})
+	}
 }

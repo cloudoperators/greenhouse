@@ -133,5 +133,8 @@ var _ = Describe("TeamRoleBinding E2E", Ordered, func() {
 		Entry("Cluster selector",
 			func(s scenarios.ITRBScenario, c context.Context) { s.ExecuteClusterSelectorScenario(c) },
 		),
+		Entry("Cluster offboarding removes RBAC",
+			func(s scenarios.ITRBScenario, c context.Context) { s.ExecuteClusterOffboardingScenario(c) },
+		),
 	)
 })
