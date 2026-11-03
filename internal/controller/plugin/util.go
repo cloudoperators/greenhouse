@@ -71,7 +71,6 @@ func initClientGetter(
 	k8sClient client.Client,
 	kubeClientOpts []clientutil.KubeClientOption,
 	plugin *greenhousev1alpha1.Plugin,
-	workloadIdentityEnabled bool,
 ) (genericclioptions.RESTClientGetter, *greenhousev1alpha1.Cluster, error) {
 
 	// early return if spec.clusterName is not set
