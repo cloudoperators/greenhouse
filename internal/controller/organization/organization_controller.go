@@ -26,6 +26,7 @@ import (
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	greenhouseconfig "github.com/cloudoperators/greenhouse/internal/config"
 	dexstore "github.com/cloudoperators/greenhouse/internal/dex"
 	dexapi "github.com/cloudoperators/greenhouse/internal/dex/api"
 	"github.com/cloudoperators/greenhouse/internal/scim"
@@ -56,10 +57,12 @@ const (
 // OrganizationReconciler reconciles an Organization object
 type OrganizationReconciler struct {
 	client.Client
-	recorder       events.EventRecorder
-	DexStorageType string
-	dex            storage.Storage
-	Namespace      string
+	apiReader         client.Reader
+	recorder          events.EventRecorder
+	DexStorageType    string
+	dex               storage.Storage
+	Namespace         string
+	ManagerConfigName string
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get;list;watch;create;update;patch;delete
@@ -80,6 +83,7 @@ type OrganizationReconciler struct {
 // SetupWithManager sets up the controller with the Manager.
 func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
+	r.apiReader = mgr.GetAPIReader()
 	r.recorder = mgr.GetEventRecorder(name)
 	l := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	dexter, err := dexstore.NewDexStorage(l.With("component", "storage"), r.DexStorageType)
@@ -128,20 +132,21 @@ func (r *OrganizationReconciler) EnsureDeleted(ctx context.Context, obj lifecycl
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 
-	if org.Spec.Authentication != nil && org.Spec.Authentication.OIDCConfig != nil {
-		// delete org oauth redirects from default connector
-		if err := r.removeAuthRedirectFromDefaultConnector(ctx, org); err != nil {
-			return ctrl.Result{}, lifecycle.Failed, err
-		}
-		if err := r.deleteDexConnector(ctx, org); err != nil {
-			return ctrl.Result{}, lifecycle.Failed, err
-		}
-		if err := r.deleteOAuth2Client(ctx, org); err != nil {
-			return ctrl.Result{}, lifecycle.Failed, err
-		}
+	cfg, err := greenhouseconfig.NewManagerConfig(ctx, r.apiReader, r.ManagerConfigName, r.Namespace)
+	if err != nil {
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	deleteOrganizationMetrics(org)
-	return ctrl.Result{}, lifecycle.Success, nil
+	p := &offboardingPhase{
+		OrganizationReconciler: r,
+		org:                    org,
+		groups:                 cfg.GetOrganizationCleanupGroups(),
+		requeueInterval:        cfg.GetOrganizationCleanupRequeueInterval(defaultCleanupRequeueInterval),
+	}
+	result, reconcileResult, err := lifecycle.ExecuteSubRoutine(ctx, p.ensureDeletePhases())
+	if reconcileResult == lifecycle.Success {
+		deleteOrganizationMetrics(org)
+	}
+	return result, reconcileResult, err
 }
 
 func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
