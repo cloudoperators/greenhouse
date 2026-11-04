@@ -271,7 +271,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 func (r *PluginReconciler) computeReadyConditionFlux(ctx context.Context, plugin *greenhousev1alpha1.Plugin) greenhousemetav1alpha1.Condition {
 	readyCondition := *plugin.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 
-	restClientGetter, cluster, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, plugin)
+	restClientGetter, cluster, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, plugin, r.workloadIdentityEnabled.Load())
 	if err != nil {
 		readyCondition.Status = metav1.ConditionFalse
 		readyCondition.Message = "cluster access not ready"
