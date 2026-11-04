@@ -682,7 +682,7 @@ var _ = Describe("Validation and defaulting of releaseName", func() {
 	})
 })
 
-var _ = Describe("Validation and defaulting of a Plugin without its PluginDefinition", func() {
+var _ = Describe("Validation and defaulting of a Plugin created before its PluginDefinition", func() {
 	var (
 		testPlugin  *greenhousev1alpha1.Plugin
 		testCluster *greenhousev1alpha1.Cluster
@@ -691,14 +691,14 @@ var _ = Describe("Validation and defaulting of a Plugin without its PluginDefini
 	BeforeEach(func() {
 		testCluster = test.NewCluster(test.Ctx, "test-cluster", "testing")
 		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", "testing",
-			test.WithClusterPluginDefinition("non-existing"),
+			test.WithClusterPluginDefinition("late-definition"),
 			test.WithCluster(testCluster.Name))
 	})
 
 	It("should default the labels and the releaseName to the Plugin name", func() {
 		fakeClient := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithObjects(testCluster).Build()
 		Expect(DefaultPlugin(test.Ctx, fakeClient, testPlugin)).To(Succeed(), "there should be no error defaulting the plugin")
-		Expect(testPlugin.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyClusterPluginDefinition, "non-existing"),
+		Expect(testPlugin.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyClusterPluginDefinition, "late-definition"),
 			"the plugin should have the clusterplugindefinition label set")
 		Expect(testPlugin.Spec.ReleaseName).To(Equal(testPlugin.Name), "releaseName should be defaulted to the Plugin name")
 	})
@@ -714,5 +714,16 @@ var _ = Describe("Validation and defaulting of a Plugin without its PluginDefini
 		testPlugin.Spec.ClusterName = ""
 		_, err := ValidateCreatePlugin(test.Ctx, fakeClient, testPlugin)
 		Expect(err).To(MatchError(ContainSubstring("the clusterName must be set")), "the plugin should require a clusterName")
+	})
+
+	It("should accept an update of a deleted plugin with option values its PluginDefinition rejects", func() {
+		pluginDefinition := test.NewClusterPluginDefinition(test.Ctx, "late-definition",
+			test.AppendPluginOption(greenhousev1alpha1.PluginOption{Name: "replicaCount", Type: greenhousev1alpha1.PluginOptionTypeInt}))
+		fakeClient := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithObjects(testCluster, pluginDefinition).Build()
+		testPlugin.Spec.OptionValues = []greenhousev1alpha1.PluginOptionValue{{Name: "replicaCount", Value: test.MustReturnJSONFor("x")}}
+		deletionTimestamp := metav1.Now()
+		testPlugin.DeletionTimestamp = &deletionTimestamp
+		_, err := ValidateUpdatePlugin(test.Ctx, fakeClient, testPlugin.DeepCopy(), testPlugin)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error updating the deleted plugin")
 	})
 })

@@ -205,6 +205,10 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, plugin *greenhou
 }
 
 func ValidateUpdatePlugin(ctx context.Context, c client.Client, oldPlugin, plugin *greenhousev1alpha1.Plugin) (admission.Warnings, error) {
+	if plugin.DeletionTimestamp != nil {
+		return nil, nil
+	}
+
 	var allErrs field.ErrorList
 	var allWarns admission.Warnings
 
