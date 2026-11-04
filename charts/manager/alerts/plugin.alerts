@@ -32,12 +32,12 @@ groups:
         description: "Plugin {{ $labels.plugin }} in organization {{ $labels.organization }} keeps failing."
       expr: |
         (
-          sum by (organization, clusterName, plugin, owned_by) (rate(greenhouse_plugin_reconcile_total{result="error"}[15m]))
+          sum by (organization, clusterName, plugin, owned_by) (rate(greenhouse_plugin_reconcile_total{result="error"}[1h]))
         /
-          sum by (organization, clusterName, plugin, owned_by) (rate(greenhouse_plugin_reconcile_total[15m]))
+          sum by (organization, clusterName, plugin, owned_by) (rate(greenhouse_plugin_reconcile_total[1h]))
         ) > 0.5
         and
-        sum by (organization, clusterName, plugin, owned_by) (increase(greenhouse_plugin_reconcile_total{result="error"}[15m])) > 3
+        sum by (organization, clusterName, plugin, owned_by) (increase(greenhouse_plugin_reconcile_total{result="error"}[1h])) > 3
       for: 15m
       labels:
         severity: warning

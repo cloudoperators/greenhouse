@@ -4,6 +4,8 @@
 package organization
 
 var (
-	ExportDefaultTeamRoles         = defaultTeamRoles
-	ExportIncrementResourceVersion = incrementResourceVersion
+	ExportDefaultTeamRoles          = defaultTeamRoles
+	ExportIncrementResourceVersion  = incrementResourceVersion
+	ExportUpdateOrganizationMetrics = updateOrganizationMetrics
+	ExportSCIMAccessReadyGauge      = scimAccessReadyGauge
 )
