@@ -60,7 +60,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 		}
 
 		optionsFieldPath := field.NewPath("spec").Child("optionValues")
-		errList := validatePluginOptionValues(optionValues, pluginDefinition.Name, pluginDefinition.Spec, true, optionsFieldPath)
+		errList := ValidatePluginOptionValues(optionValues, pluginDefinition.Name, pluginDefinition.Spec, true, optionsFieldPath)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -99,7 +99,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 		}
 
 		optionsFieldPath := field.NewPath("spec").Child("optionValues")
-		errList := validatePluginOptionValues(optionValues, pluginDefinition.Name, pluginDefinition.Spec, true, optionsFieldPath)
+		errList := ValidatePluginOptionValues(optionValues, pluginDefinition.Name, pluginDefinition.Spec, true, optionsFieldPath)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -145,7 +145,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 		}
 
 		optionsFieldPath := field.NewPath("spec").Child("optionValues")
-		errList := validatePluginOptionValues(optionValues, pluginDefinition.Name, pluginDefinition.Spec, true, optionsFieldPath)
+		errList := ValidatePluginOptionValues(optionValues, pluginDefinition.Name, pluginDefinition.Spec, true, optionsFieldPath)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -179,7 +179,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 		}
 
 		optionsFieldPath := field.NewPath("spec").Child("optionValues")
-		errList := validatePluginOptionValues(optionValues, pluginDefinition.Name, pluginDefinition.Spec, true, optionsFieldPath)
+		errList := ValidatePluginOptionValues(optionValues, pluginDefinition.Name, pluginDefinition.Spec, true, optionsFieldPath)
 		switch expErr {
 		case true:
 			Expect(errList).NotTo(BeEmpty(), "expected an error, got nil")

@@ -193,7 +193,7 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, plugin *greenhou
 
 	// validate OptionValues defined by the Plugin
 	optionsFieldPath := field.NewPath("spec").Child("optionValues")
-	if errList := validatePluginOptionValues(plugin.Spec.OptionValues, plugin.Spec.PluginDefinitionRef.Name, pluginDefinitionSpec, true, optionsFieldPath); len(errList) > 0 {
+	if errList := ValidatePluginOptionValues(plugin.Spec.OptionValues, plugin.Spec.PluginDefinitionRef.Name, pluginDefinitionSpec, true, optionsFieldPath); len(errList) > 0 {
 		return allWarns, apierrors.NewInvalid(plugin.GroupVersionKind().GroupKind(), plugin.Name, errList)
 	}
 
@@ -244,7 +244,7 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, oldPlugin, plugi
 
 	// validate OptionValues defined by the Plugin
 	optionsFieldPath := field.NewPath("spec").Child("optionValues")
-	if errList := validatePluginOptionValues(plugin.Spec.OptionValues, plugin.Spec.PluginDefinitionRef.Name, pluginDefinitionSpec, true, optionsFieldPath); len(errList) > 0 {
+	if errList := ValidatePluginOptionValues(plugin.Spec.OptionValues, plugin.Spec.PluginDefinitionRef.Name, pluginDefinitionSpec, true, optionsFieldPath); len(errList) > 0 {
 		return allWarns, apierrors.NewInvalid(plugin.GroupVersionKind().GroupKind(), plugin.Name, errList)
 	}
 
@@ -274,7 +274,7 @@ func validateOwnerReference(plugin *greenhousev1alpha1.Plugin) admission.Warning
 	return nil
 }
 
-func validatePluginOptionValues(
+func ValidatePluginOptionValues(
 	optionValues []greenhousev1alpha1.PluginOptionValue,
 	pluginDefinitionName string,
 	pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec,

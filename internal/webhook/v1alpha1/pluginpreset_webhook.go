@@ -119,12 +119,12 @@ func validatePluginOptionValuesForPreset(pluginPreset *greenhousev1alpha1.Plugin
 	var allErrs field.ErrorList
 
 	optionValuesPath := field.NewPath("spec").Child("plugin").Child("optionValues")
-	errors := validatePluginOptionValues(convertPresetToPluginOptionValues(pluginPreset.Spec.Plugin.OptionValues), pluginDefinitionName, pluginDefinitionSpec, false, optionValuesPath)
+	errors := ValidatePluginOptionValues(convertPresetToPluginOptionValues(pluginPreset.Spec.Plugin.OptionValues), pluginDefinitionName, pluginDefinitionSpec, false, optionValuesPath)
 	allErrs = append(allErrs, errors...)
 
 	for idx, overridesForSingleCluster := range pluginPreset.Spec.ClusterOptionOverrides {
 		optionOverridesPath := field.NewPath("spec").Child("clusterOptionOverrides").Index(idx).Child("overrides")
-		errors = validatePluginOptionValues(convertPresetToPluginOptionValues(overridesForSingleCluster.Overrides), pluginDefinitionName, pluginDefinitionSpec, false, optionOverridesPath)
+		errors = ValidatePluginOptionValues(convertPresetToPluginOptionValues(overridesForSingleCluster.Overrides), pluginDefinitionName, pluginDefinitionSpec, false, optionOverridesPath)
 		allErrs = append(allErrs, errors...)
 	}
 	return allErrs

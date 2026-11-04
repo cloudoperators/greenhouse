@@ -619,4 +619,71 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 		}).Should(Succeed())
 		Expect(test.K8sClient.Delete(test.Ctx, helmRelease)).To(Or(Succeed(), MatchError(ContainSubstring("not found"))))
 	})
+
+	It("should not create a HelmRelease for invalid option values of a Plugin created before its ClusterPluginDefinition", func() {
+		latePluginDefinition := test.NewClusterPluginDefinition(test.Ctx, "test-flux-late-plugindefinition",
+			test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
+				Name:       "dummy",
+				Repository: "oci://greenhouse/helm-charts",
+				Version:    "1.0.0",
+			}),
+			test.AppendPluginOption(greenhousev1alpha1.PluginOption{
+				Name: "intOption",
+				Type: greenhousev1alpha1.PluginOptionTypeInt,
+			}),
+		)
+		latePlugin := test.NewPlugin(test.Ctx, "test-flux-late-plugin", test.TestNamespace,
+			test.WithCluster(testCluster.Name),
+			test.WithClusterPluginDefinition(latePluginDefinition.Name),
+			test.WithReleaseNamespace(test.TestNamespace),
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testPluginTeam.Name),
+			test.WithPluginOptionValue("intOption", test.MustReturnJSONFor("one")),
+		)
+
+		By("creating the Plugin before its ClusterPluginDefinition")
+		Expect(test.K8sClient.Create(test.Ctx, latePlugin)).To(Succeed(), "failed to create Plugin")
+
+		By("ensuring the Plugin waits for its ClusterPluginDefinition")
+		Eventually(func(g Gomega) {
+			g.Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(latePlugin), latePlugin)).To(Succeed())
+			helmReleaseCreated := latePlugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
+			g.Expect(helmReleaseCreated).ToNot(BeNil(), "HelmReleaseCreated condition should be set")
+			g.Expect(helmReleaseCreated.Reason).To(Equal(greenhousev1alpha1.PluginDefinitionNotAvailableReason),
+				"HelmReleaseCreated reason should be PluginDefinitionNotAvailable")
+		}).Should(Succeed())
+
+		By("creating the ClusterPluginDefinition")
+		Expect(test.K8sClient.Create(test.Ctx, latePluginDefinition)).To(Succeed(), "failed to create ClusterPluginDefinition")
+		test.MockHelmChartReady(test.Ctx, test.K8sClient, latePluginDefinition, flux.HelmRepositoryDefaultNamespace)
+
+		By("ensuring the invalid option value is reported instead of creating the HelmRelease")
+		Eventually(func(g Gomega) {
+			g.Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(latePlugin), latePlugin)).To(Succeed())
+			helmReleaseCreated := latePlugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
+			g.Expect(helmReleaseCreated).ToNot(BeNil(), "HelmReleaseCreated condition should be set")
+			g.Expect(helmReleaseCreated.IsFalse()).To(BeTrue(), "HelmReleaseCreated condition should be false")
+			g.Expect(helmReleaseCreated.Reason).To(Equal(greenhousev1alpha1.PluginOptionValueInvalidReason),
+				"HelmReleaseCreated reason should be PluginOptionValueInvalid")
+		}).Should(Succeed())
+		err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(latePlugin), &helmv2.HelmRelease{})
+		Expect(apierrors.IsNotFound(err)).To(BeTrue(), "there should be no HelmRelease for the Plugin")
+
+		By("fixing the option value")
+		Eventually(func(g Gomega) {
+			g.Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(latePlugin), latePlugin)).To(Succeed())
+			latePlugin.Spec.OptionValues = []greenhousev1alpha1.PluginOptionValue{{Name: "intOption", Value: test.MustReturnJSONFor(1)}}
+			g.Expect(test.K8sClient.Update(test.Ctx, latePlugin)).To(Succeed())
+		}).Should(Succeed())
+
+		By("ensuring the HelmRelease is created")
+		Eventually(func(g Gomega) {
+			g.Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(latePlugin), latePlugin)).To(Succeed())
+			helmReleaseCreated := latePlugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
+			g.Expect(helmReleaseCreated).ToNot(BeNil(), "HelmReleaseCreated condition should be set")
+			g.Expect(helmReleaseCreated.IsTrue()).To(BeTrue(), "HelmReleaseCreated condition should be true")
+		}).Should(Succeed())
+
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, latePlugin)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, latePluginDefinition)
+	})
 })

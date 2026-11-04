@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,6 +31,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/helm"
+	webhookv1alpha1 "github.com/cloudoperators/greenhouse/internal/webhook/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
@@ -111,6 +113,12 @@ func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, plugin *greenh
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.OptionValueResolutionFailedReason, err.Error()))
 		return ctrl.Result{}, lifecycle.Failed, err
+	}
+
+	if errList := webhookv1alpha1.ValidatePluginOptionValues(optionValues, plugin.Spec.PluginDefinitionRef.Name, *pluginDefinitionSpec, true, field.NewPath("spec", "optionValues")); len(errList) > 0 {
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
+			greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.PluginOptionValueInvalidReason, errList.ToAggregate().Error()))
+		return ctrl.Result{}, lifecycle.Failed, errList.ToAggregate()
 	}
 
 	if err := r.ensureHelmRelease(ctx, plugin, *pluginDefinitionSpec, helmChart, optionValues); err != nil {
