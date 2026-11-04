@@ -1,15 +1,16 @@
 # SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
 
+{{- if and .Values.webhook.certManager .Values.webhook.certManager.enabled }}
 kind: Certificate
 apiVersion: cert-manager.io/v1
 metadata:
-  name: {{ include "manager.fullname" . }}-client-cert
+  name: greenhouse-client-cert
 spec:
   issuerRef:
     name: {{ include "manager.fullname" . }}-selfsigned
     kind: Issuer
-  secretName: {{ include "manager.fullname" . }}-webhook-cert
+  secretName: greenhouse-webhook-cert
   duration: 2160h
   renewBefore: 360h
   dnsNames:
@@ -19,3 +20,4 @@ spec:
   privateKey:
     algorithm: RSA
     size: 2048
+{{- end }}
