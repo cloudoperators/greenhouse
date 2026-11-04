@@ -316,6 +316,47 @@ func FluxControllerUIOnlyPlugin(ctx context.Context, adminClient client.Client, 
 	}).Should(Succeed())
 }
 
+func FluxControllerPluginBeforePluginDefinition(ctx context.Context, adminClient client.Client, env *shared.TestEnv, remoteClusterName string) {
+	pluginDefinition := fixtures.PreparePodInfoClusterPluginDefinition(env.TestNamespace, "6.9.0")
+	pluginDefinition.SetName("podinfo-late")
+
+	By("Creating the plugin before its plugin definition")
+	plugin := fixtures.PreparePlugin("test-late-definition-plugin", env.TestNamespace,
+		test.WithClusterPluginDefinition(pluginDefinition.Name),
+		test.WithCluster(remoteClusterName),
+		test.WithReleaseName("test-late-definition-plugin"),
+		test.WithReleaseNamespace(env.TestNamespace),
+	)
+	Expect(adminClient.Create(ctx, plugin)).To(Succeed(), "there should be no error creating the plugin without its plugin definition")
+
+	DeferCleanup(func() {
+		By("Deleting the plugin and the plugin definition")
+		test.EventuallyDeleted(ctx, adminClient, plugin)
+		test.EventuallyDeleted(ctx, adminClient, pluginDefinition)
+	})
+
+	By("Checking the plugin reports the missing plugin definition")
+	Eventually(func(g Gomega) {
+		g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(plugin), plugin)).To(Succeed())
+		helmReleaseCreated := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
+		g.Expect(helmReleaseCreated).ToNot(BeNil(), "Plugin HelmReleaseCreated condition must be set")
+		g.Expect(helmReleaseCreated.Status).To(Equal(metav1.ConditionFalse), "Plugin HelmReleaseCreated condition must be false")
+		g.Expect(helmReleaseCreated.Reason).To(Equal(greenhousev1alpha1.PluginDefinitionNotAvailableReason),
+			"Plugin HelmReleaseCreated reason must be PluginDefinitionNotAvailable")
+		g.Expect(helmReleaseCreated.Message).To(ContainSubstring(pluginDefinition.Name),
+			"Plugin HelmReleaseCreated message must name the missing plugin definition")
+	}).Should(Succeed(), "the plugin should report the missing plugin definition")
+
+	By("Creating the plugin definition")
+	Expect(adminClient.Create(ctx, pluginDefinition)).To(Succeed(), "there should be no error creating the plugin definition")
+
+	By("Checking the plugin is deployed")
+	Eventually(func(g Gomega) {
+		g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(plugin), plugin)).To(Succeed())
+		g.Expect(plugin.Status.IsReadyTrue()).To(BeTrue(), "the plugin should be ready")
+	}).Should(Succeed(), "the plugin should be deployed once its plugin definition exists")
+}
+
 // FluxControllerPluginDependencies is a scenario in which leafPreset depends on both midPreset and globalPlugin, and midPreset depends on globalPlugin.
 func FluxControllerPluginDependencies(ctx context.Context, adminClient client.Client, env *shared.TestEnv, remoteClusterName, teamName string) {
 	By("Creating plugin definition")

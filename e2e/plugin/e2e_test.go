@@ -101,6 +101,10 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		scenarios.FluxControllerUIOnlyPlugin(ctx, adminClient, env, remoteClusterName)
 	})
 
+	It("should deploy a plugin created before its plugin definition", func() {
+		scenarios.FluxControllerPluginBeforePluginDefinition(ctx, adminClient, env, remoteClusterName)
+	})
+
 	It("should deploy plugin with dependency via flux", func() {
 		scenarios.FluxControllerPluginDependencies(ctx, adminClient, env, remoteClusterName, team.Name)
 	})
