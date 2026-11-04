@@ -275,6 +275,17 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
 		Expect(testPlugin.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyClusterPluginDefinition, "non-existing"),
 			"the plugin should have the clusterplugindefinition label set")
+		Expect(testPlugin.Spec.ReleaseName).To(Equal(testPlugin.Name), "the releaseName should default to the plugin name")
+	})
+
+	It("should not accept a plugin with a name too long for a release name referencing a non-existing ClusterPluginDefinition", func() {
+		testPlugin = test.NewPlugin(test.Ctx, "test-plugin-with-a-name-that-does-not-fit-into-a-helm-release", setup.Namespace(),
+			test.WithClusterPluginDefinition("non-existing"),
+			test.WithCluster(testCluster.Name),
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
+		err := test.K8sClient.Create(test.Ctx, testPlugin)
+		Expect(err).To(HaveOccurred(), "there should be an error creating the plugin")
+		Expect(err.Error()).To(ContainSubstring("spec.releaseName"), "the error should point to the releaseName")
 	})
 
 	It("should not accept a plugin without a clusterName referencing a non-existing ClusterPluginDefinition", func() {

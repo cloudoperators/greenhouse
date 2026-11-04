@@ -131,16 +131,19 @@ func DefaultPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alp
 
 	// Default the ReleaseName.
 	if plugin.Spec.ReleaseName == "" {
-		if plugin.Status.HelmReleaseStatus != nil {
+		switch {
+		case plugin.Status.HelmReleaseStatus != nil:
 			// The Plugin was already deployed, use the Plugin's name as the release name.
 			// This is the legacy behavior and needs to be honored to not break existing deployments.
 			plugin.Spec.ReleaseName = plugin.Name
-		} else if pluginDefinitionExists {
+		case pluginDefinitionExists:
 			// The Plugin is newly created, use the PluginDefinition's HelmChart name as the release name.
 			if pluginDefinitionSpec.HelmChart == nil {
 				return field.InternalError(field.NewPath("spec", "pluginDefinitionRef", "name"), fmt.Errorf("PluginDefinition %s does not have a HelmChart", plugin.Spec.PluginDefinitionRef.Name))
 			}
 			plugin.Spec.ReleaseName = pluginDefinitionSpec.HelmChart.Name
+		default:
+			plugin.Spec.ReleaseName = plugin.Name
 		}
 	}
 	return nil
