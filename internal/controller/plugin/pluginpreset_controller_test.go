@@ -677,7 +677,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			preset.Spec.Plugin.Timeout = nil
 			g.Expect(test.K8sClient.Update(test.Ctx, preset)).To(Succeed())
 		}).Should(Succeed())
-		assertTimeout(nil, 5*time.Minute)
+		assertTimeout(&metav1.Duration{Duration: 5 * time.Minute}, 5*time.Minute)
 	})
 
 	It("should successfully resolve and set plugin dependencies from PluginPreset to Plugin", func() {

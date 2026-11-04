@@ -46,6 +46,7 @@ type PluginSpec struct {
 	// Timeout is the timeout for individual Helm operations, including waiting for resources to become ready.
 	// Defaults to 5m when not set. The value must be a duration of at least 1ms, using ms, s, m, or h units.
 	// +Optional
+	// +kubebuilder:default="5m"
 	// +kubebuilder:validation:Type=string
 	// +kubebuilder:validation:Pattern="^([0-9]+(\\.[0-9]+)?(ms|s|m|h))+$"
 	// +kubebuilder:validation:XValidation:rule="duration(self) >= duration('1ms')",message="timeout must be at least 1ms"

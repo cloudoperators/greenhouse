@@ -57,7 +57,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, teamWithSupportGroupTrue)
 	})
 
-	It("should validate the Helm release timeout on create and update", func() {
+	It("should default and validate the Helm release timeout on create and update", func() {
 		cut := test.NewPluginPreset("timeout-preset", test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
 			test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}}),
@@ -77,15 +77,16 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 			Expect(test.K8sClient.Create(test.Ctx, raw)).NotTo(Succeed(), "timeout %q must be rejected on create", value)
 		}
 
-		cut.Spec.Plugin.Timeout = &metav1.Duration{Duration: 15 * time.Minute}
 		Expect(test.K8sClient.Create(test.Ctx, cut)).To(Succeed())
 		DeferCleanup(test.EventuallyDeleted, test.Ctx, test.K8sClient, cut)
+		Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(cut), cut)).To(Succeed())
+		Expect(cut.Spec.Plugin.Timeout).To(Equal(&metav1.Duration{Duration: 5 * time.Minute}))
 		Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(cut), raw)).To(Succeed())
 		for _, value := range invalidTimeouts {
 			Expect(unstructured.SetNestedField(raw.Object, value, "spec", "plugin", "timeout")).To(Succeed())
 			Expect(test.K8sClient.Update(test.Ctx, raw)).NotTo(Succeed(), "timeout %q must be rejected on update", value)
 		}
-		for _, value := range []string{"20m", "1h30m", "1.5s", "1ms"} {
+		for _, value := range []string{"15m", "20m", "1h30m", "1.5s", "1ms"} {
 			Expect(unstructured.SetNestedField(raw.Object, value, "spec", "plugin", "timeout")).To(Succeed())
 			Expect(test.K8sClient.Update(test.Ctx, raw)).To(Succeed())
 			Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(cut), cut)).To(Succeed())
@@ -96,7 +97,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		cut.Spec.Plugin.Timeout = nil
 		Expect(test.K8sClient.Update(test.Ctx, cut)).To(Succeed())
 		Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(cut), cut)).To(Succeed())
-		Expect(cut.Spec.Plugin.Timeout).To(BeNil())
+		Expect(cut.Spec.Plugin.Timeout).To(Equal(&metav1.Duration{Duration: 5 * time.Minute}))
 	})
 
 	It("should reject PluginPreset without PluginDefinition", func() {

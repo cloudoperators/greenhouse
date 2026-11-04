@@ -253,7 +253,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginDefinition)
 	})
 
-	It("should validate the Helm release timeout on create and update", func() {
+	It("should default and validate the Helm release timeout on create and update", func() {
 		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(),
 			test.WithClusterPluginDefinition(testClusterPluginDefinition.Name),
 			test.WithCluster(testCluster.Name),
@@ -270,14 +270,15 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 			Expect(test.K8sClient.Create(test.Ctx, raw)).NotTo(Succeed(), "timeout %q must be rejected on create", value)
 		}
 
-		testPlugin.Spec.Timeout = &metav1.Duration{Duration: 15 * time.Minute}
 		Expect(test.K8sClient.Create(test.Ctx, testPlugin)).To(Succeed())
+		Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)).To(Succeed())
+		Expect(testPlugin.Spec.Timeout).To(Equal(&metav1.Duration{Duration: 5 * time.Minute}))
 		Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), raw)).To(Succeed())
 		for _, value := range invalidTimeouts {
 			Expect(unstructured.SetNestedField(raw.Object, value, "spec", "timeout")).To(Succeed())
 			Expect(test.K8sClient.Update(test.Ctx, raw)).NotTo(Succeed(), "timeout %q must be rejected on update", value)
 		}
-		for _, value := range []string{"20m", "1h30m", "1.5s", "1ms"} {
+		for _, value := range []string{"15m", "20m", "1h30m", "1.5s", "1ms"} {
 			Expect(unstructured.SetNestedField(raw.Object, value, "spec", "timeout")).To(Succeed())
 			Expect(test.K8sClient.Update(test.Ctx, raw)).To(Succeed())
 			Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)).To(Succeed())
@@ -288,7 +289,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		testPlugin.Spec.Timeout = nil
 		Expect(test.K8sClient.Update(test.Ctx, testPlugin)).To(Succeed())
 		Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)).To(Succeed())
-		Expect(testPlugin.Spec.Timeout).To(BeNil())
+		Expect(testPlugin.Spec.Timeout).To(Equal(&metav1.Duration{Duration: 5 * time.Minute}))
 	})
 
 	It("should not accept a plugin without a clusterName", func() {

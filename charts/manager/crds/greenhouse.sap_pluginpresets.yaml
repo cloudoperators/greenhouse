@@ -456,6 +456,7 @@ spec:
                       Defaults to the Greenhouse managed namespace if not set.
                     type: string
                   timeout:
+                    default: 5m
                     description: |-
                       Timeout is the timeout for individual Helm operations, including waiting for resources to become ready.
                       Defaults to 5m when not set. The value must be a duration of at least 1ms, using ms, s, m, or h units.

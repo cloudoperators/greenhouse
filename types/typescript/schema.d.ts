@@ -1075,8 +1075,9 @@ export interface components {
                     /**
                      * @description Timeout is the timeout for individual Helm operations, including waiting for resources to become ready.
                      *     Defaults to 5m when not set. The value must be a duration of at least 1ms, using ms, s, m, or h units.
+                     * @default 5m
                      */
-                    timeout?: string;
+                    timeout: string;
                 };
                 /** @description WaitFor defines other Plugins to wait for before creating the Plugin. */
                 waitFor?: {
@@ -1247,8 +1248,9 @@ export interface components {
                 /**
                  * @description Timeout is the timeout for individual Helm operations, including waiting for resources to become ready.
                  *     Defaults to 5m when not set. The value must be a duration of at least 1ms, using ms, s, m, or h units.
+                 * @default 5m
                  */
-                timeout?: string;
+                timeout: string;
                 /** @description WaitFor defines other Plugins to wait for before installing this Plugin. */
                 waitFor?: {
                     /** @description PluginRef defines a reference to the Plugin. */
