@@ -319,6 +319,10 @@ func FluxControllerUIOnlyPlugin(ctx context.Context, adminClient client.Client, 
 func FluxControllerPluginBeforePluginDefinition(ctx context.Context, adminClient client.Client, env *shared.TestEnv, remoteClusterName string) {
 	pluginDefinition := fixtures.PreparePodInfoClusterPluginDefinition(env.TestNamespace, "6.9.0")
 	pluginDefinition.SetName("podinfo-late")
+	pluginDefinition.Spec.Options = append(pluginDefinition.Spec.Options, greenhousev1alpha1.PluginOption{
+		Name: "replicaCount",
+		Type: greenhousev1alpha1.PluginOptionTypeInt,
+	})
 
 	By("Creating the plugin before its plugin definition")
 	plugin := fixtures.PreparePlugin("test-late-definition-plugin", env.TestNamespace,
@@ -326,6 +330,7 @@ func FluxControllerPluginBeforePluginDefinition(ctx context.Context, adminClient
 		test.WithCluster(remoteClusterName),
 		test.WithReleaseName("test-late-definition-plugin"),
 		test.WithReleaseNamespace(env.TestNamespace),
+		test.WithPluginOptionValue("replicaCount", test.MustReturnJSONFor("x")),
 	)
 	Expect(adminClient.Create(ctx, plugin)).To(Succeed(), "there should be no error creating the plugin without its plugin definition")
 
@@ -349,6 +354,22 @@ func FluxControllerPluginBeforePluginDefinition(ctx context.Context, adminClient
 
 	By("Creating the plugin definition")
 	Expect(adminClient.Create(ctx, pluginDefinition)).To(Succeed(), "there should be no error creating the plugin definition")
+
+	By("Checking the plugin reports the invalid option value")
+	Eventually(func(g Gomega) {
+		g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(plugin), plugin)).To(Succeed())
+		helmReleaseCreated := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
+		g.Expect(helmReleaseCreated).ToNot(BeNil(), "Plugin HelmReleaseCreated condition must be set")
+		g.Expect(helmReleaseCreated.Reason).To(Equal(greenhousev1alpha1.PluginOptionValueInvalidReason),
+			"Plugin HelmReleaseCreated reason must be PluginOptionValueInvalid")
+	}).Should(Succeed(), "the plugin should report the invalid option value")
+
+	By("Fixing the option value")
+	Eventually(func(g Gomega) {
+		g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(plugin), plugin)).To(Succeed())
+		plugin.Spec.OptionValues = []greenhousev1alpha1.PluginOptionValue{{Name: "replicaCount", Value: test.MustReturnJSONFor(1)}}
+		g.Expect(adminClient.Update(ctx, plugin)).To(Succeed())
+	}).Should(Succeed(), "there should be no error fixing the option value")
 
 	By("Checking the plugin is deployed")
 	Eventually(func(g Gomega) {
