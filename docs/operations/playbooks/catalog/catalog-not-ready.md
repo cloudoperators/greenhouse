@@ -15,7 +15,7 @@ This alert fires when a Catalog has not been ready for more than 15 minutes.
 
 A Catalog fetches PluginDefinitions from Git repositories and applies them to the Organization. For each entry in `.spec.sources` Greenhouse creates a chain of Flux resources: a GitRepository, an ArtifactGenerator, an ExternalArtifact and a Kustomization. The Catalog is ready only when every object of every source is ready.
 
-When the Catalog is not ready, PluginDefinitions from its sources are not updated. Already applied PluginDefinitions stay as they are.
+When the Catalog is not ready, changes from the failing source may not reach the Organization. A failure in one source does not block the other sources, and already applied PluginDefinitions stay as they are.
 
 The `reason` label on the alert gives a first hint:
 
@@ -37,9 +37,9 @@ kubectl describe catalog <catalog-name> -n <organization-namespace>
 Look at the `Ready` condition in `.status.statusConditions`. Its reason tells where the reconciliation stopped:
 
 - `CatalogEmptySources`: `.spec.sources` is empty
-- `CatalogSourceValidationFail`: a source repository URL cannot be parsed, or the same repository and ref are listed twice
+- `CatalogSourceValidationFail`: a source repository URL is not of the form `https://<host>/<owner>/<repo>`, or the same repository and ref are listed twice
 - `OrphanedObjectCleanUpFail`: Flux objects of a removed source could not be deleted
-- `CatalogNotReady`: at least one Flux object of a source is not ready, the message lists the failing objects
+- `CatalogNotReady`: at least one Flux object of a source is not ready, or Greenhouse could not create or update it. A missing Secret or an option override that names an option the PluginDefinition does not have is reported only in this message, the Flux object keeps its previous state and can still be ready
 
 ### Check the Inventory
 
@@ -48,7 +48,7 @@ Look at the `Ready` condition in `.status.statusConditions`. Its reason tells wh
 - **GitRepository**: the repository could not be cloned. Common causes are a wrong URL, a branch, tag or SHA that does not exist, or invalid credentials in the referenced Secret.
 - **ArtifactGenerator**: the files in `.spec.sources[].resources` could not be collected, for example a path that does not exist in the repository.
 - **ExternalArtifact**: the artifact was not generated yet, this follows from a failing ArtifactGenerator.
-- **Kustomization**: the PluginDefinitions could not be applied. Common causes are an invalid PluginDefinition manifest, an option override that names an option the PluginDefinition does not have, or missing permissions.
+- **Kustomization**: the PluginDefinitions could not be applied. Common causes are an invalid PluginDefinition manifest or missing permissions.
 
 Inspect the failing object for its full status and events:
 
