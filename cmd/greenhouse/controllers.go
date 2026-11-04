@@ -10,8 +10,10 @@ import (
 
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	greenhouseconfig "github.com/cloudoperators/greenhouse/internal/config"
 	"github.com/cloudoperators/greenhouse/internal/controller/catalog"
 	clustercontrollers "github.com/cloudoperators/greenhouse/internal/controller/cluster"
 	organizationcontrollers "github.com/cloudoperators/greenhouse/internal/controller/organization"
@@ -20,6 +22,7 @@ import (
 	teamcontrollers "github.com/cloudoperators/greenhouse/internal/controller/team"
 	teamrbaccontrollers "github.com/cloudoperators/greenhouse/internal/controller/teamrbac"
 	dexstore "github.com/cloudoperators/greenhouse/internal/dex"
+	"github.com/cloudoperators/greenhouse/internal/features"
 )
 
 // knownControllers contains all controllers to be registered when starting the operator.
@@ -163,4 +166,44 @@ func startCatalogReconciler(name string, mgr ctrl.Manager) error {
 		HTTPRetry:               artifactRetries,
 		MaxConcurrentReconciles: managerConfig.GetMaxConcurrentReconciles(name, 5),
 	}).SetupWithManager(name, mgr)
+}
+
+// setupFeatureFlags initializes the feature gates from the feature-flags config map.
+func setupFeatureFlags(k8sClient client.Reader) {
+	var err error
+	featureFlags, err = features.NewFeatures(
+		context.TODO(),
+		k8sClient,
+		clientutil.GetEnvOrDefault(featureFlagsEnv, defaultFeatureFlagConfigMapName),
+		clientutil.GetEnvOrDefault(podNamespaceEnv, defaultPodNamespace),
+	)
+	handleError(err, "unable to get features")
+}
+
+// runControllers initializes feature flags and the manager config, then registers all enabled controllers.
+func runControllers(mgr ctrl.Manager) {
+	// extract the manager API Client Reader
+	// Note: mgr.GetClient() will fail here because the cache is not ready yet
+	k8sClient := mgr.GetAPIReader()
+
+	setupFeatureFlags(k8sClient)
+
+	var err error
+	managerConfig, err = greenhouseconfig.NewManagerConfig(
+		context.TODO(),
+		k8sClient,
+		clientutil.GetEnvOrDefault(managerConfigEnv, "greenhouse-cm"),
+		clientutil.GetEnvOrDefault(podNamespaceEnv, defaultPodNamespace),
+	)
+	if err != nil {
+		handleError(err, "unable to get manager config")
+	}
+	for controllerName, hookFunc := range knownControllers {
+		if !isControllerEnabled(controllerName) {
+			setupLog.Info("skipping controller", "name", controllerName)
+			continue
+		}
+		setupLog.Info("registering controller", "name", controllerName)
+		handleError(hookFunc(controllerName, mgr), "unable to create controller", "name", controllerName)
+	}
 }

@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
 
+{{- if and .Values.webhook.certManager .Values.webhook.certManager.enabled }}
 kind: Issuer
 apiVersion: cert-manager.io/v1
 metadata:
@@ -8,3 +9,4 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   selfSigned: {}
+{{- end }}
