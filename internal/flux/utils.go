@@ -21,7 +21,6 @@ const (
 
 const (
 	DefaultInterval = 5 * time.Minute
-	DefaultTimeout  = 5 * time.Minute
 	DefaultRetry    = 3 // TODO: make this also configurable via annotations on plugin
 )
 

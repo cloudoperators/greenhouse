@@ -1074,7 +1074,7 @@ export interface components {
                     releaseNamespace?: string;
                     /**
                      * @description Timeout is the timeout for individual Helm operations, including waiting for resources to become ready.
-                     *     Defaults to 5m when not set. The value must be a duration of at least 1ms, using ms, s, m, or h units.
+                     *     Defaults to 5m when not set. The value must be a duration greater than 1m, using s, m, or h units.
                      * @default 5m
                      */
                     timeout: string;
@@ -1247,7 +1247,7 @@ export interface components {
                 releaseNamespace?: string;
                 /**
                  * @description Timeout is the timeout for individual Helm operations, including waiting for resources to become ready.
-                 *     Defaults to 5m when not set. The value must be a duration of at least 1ms, using ms, s, m, or h units.
+                 *     Defaults to 5m when not set. The value must be a duration greater than 1m, using s, m, or h units.
                  * @default 5m
                  */
                 timeout: string;

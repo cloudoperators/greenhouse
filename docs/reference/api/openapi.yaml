@@ -1500,12 +1500,12 @@ components:
                   default: 5m
                   description: |-
                     Timeout is the timeout for individual Helm operations, including waiting for resources to become ready.
-                    Defaults to 5m when not set. The value must be a duration of at least 1ms, using ms, s, m, or h units.
-                  pattern: ^([0-9]+(\.[0-9]+)?(ms|s|m|h))+$
+                    Defaults to 5m when not set. The value must be a duration greater than 1m, using s, m, or h units.
+                  pattern: ^([0-9]+(\.[0-9]+)?(s|m|h))+$
                   type: string
                   x-kubernetes-validations:
-                    - message: timeout must be at least 1ms
-                      rule: duration(self) >= duration('1ms')
+                    - message: timeout must be greater than 1m
+                      rule: duration(self) > duration('1m')
               required:
                 - pluginDefinitionRef
               type: object
@@ -1753,12 +1753,12 @@ components:
               default: 5m
               description: |-
                 Timeout is the timeout for individual Helm operations, including waiting for resources to become ready.
-                Defaults to 5m when not set. The value must be a duration of at least 1ms, using ms, s, m, or h units.
-              pattern: ^([0-9]+(\.[0-9]+)?(ms|s|m|h))+$
+                Defaults to 5m when not set. The value must be a duration greater than 1m, using s, m, or h units.
+              pattern: ^([0-9]+(\.[0-9]+)?(s|m|h))+$
               type: string
               x-kubernetes-validations:
-                - message: timeout must be at least 1ms
-                  rule: duration(self) >= duration('1ms')
+                - message: timeout must be greater than 1m
+                  rule: duration(self) > duration('1m')
             waitFor:
               description: WaitFor defines other Plugins to wait for before installing this Plugin.
               items:

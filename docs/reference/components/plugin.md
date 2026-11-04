@@ -112,7 +112,7 @@ spec:
   timeout: 15m
 ```
 
-The optional value must be a duration such as `15m` or `1h30m`, using `ms`, `s`, `m`, or `h` units, and must be at least `1ms` to be compatible with the Flux HelmRelease schema. Empty, malformed, zero, negative, and overflowing values are rejected. Omitting or removing the field uses the five-minute default.
+The optional value must be a duration such as `15m` or `1h30m`, using `s`, `m`, or `h` units, and must be greater than `1m`. Empty, malformed, overflowing values and durations of one minute or less are rejected. Omitting or removing the field uses the five-minute default.
 
 This configures the [Flux Helm action timeout](https://fluxcd.io/flux/components/helm/helmreleases/#timeout), including installation, upgrade, rollback, and uninstallation. It does not disable readiness checks or change the retry policy; multiple attempts can take longer than the configured timeout.
 
