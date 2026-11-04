@@ -1488,6 +1488,11 @@ func (in *PluginPresetPluginSpec) DeepCopyInto(out *PluginPresetPluginSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.Timeout != nil {
+		in, out := &in.Timeout, &out.Timeout
+		*out = new(v1.Duration)
+		**out = **in
+	}
 	if in.IgnoreDifferences != nil {
 		in, out := &in.IgnoreDifferences, &out.IgnoreDifferences
 		*out = make([]IgnoreDifference, len(*in))
@@ -1609,6 +1614,11 @@ func (in *PluginSpec) DeepCopyInto(out *PluginSpec) {
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
+	}
+	if in.Timeout != nil {
+		in, out := &in.Timeout, &out.Timeout
+		*out = new(v1.Duration)
+		**out = **in
 	}
 	if in.WaitFor != nil {
 		in, out := &in.WaitFor, &out.WaitFor

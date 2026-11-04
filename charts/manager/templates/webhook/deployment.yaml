@@ -24,6 +24,9 @@ spec:
         - /greenhouse
         args:
         - --dns-domain={{ required ".Values.global.dnsDomain missing" .Values.global.dnsDomain }}
+        {{- if and .Values.webhook.certManager .Values.webhook.certManager.enabled }}
+        - --cert-rotator-enabled=false
+        {{- end }}
         env:
         - name: WEBHOOK_ONLY
           value: "true"
@@ -79,4 +82,5 @@ spec:
       - name: cert
         secret:
           defaultMode: 420
-          secretName: {{ include "manager.fullname" . }}-webhook-cert
+          secretName: greenhouse-webhook-cert
+          optional: true

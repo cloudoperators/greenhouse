@@ -73,6 +73,15 @@ type PluginPresetPluginSpec struct {
 	// +kubebuilder:validation:MaxLength=53
 	ReleaseName string `json:"releaseName,omitempty"`
 
+	// Timeout is the timeout for individual Helm operations, including waiting for resources to become ready.
+	// Defaults to 5m when not set. The value must be a duration greater than 1m, using s, m, or h units.
+	// +Optional
+	// +kubebuilder:default="5m"
+	// +kubebuilder:validation:Type=string
+	// +kubebuilder:validation:Pattern="^([0-9]+(\\.[0-9]+)?(s|m|h))+$"
+	// +kubebuilder:validation:XValidation:rule="duration(self) > duration('1m')",message="timeout must be greater than 1m"
+	Timeout *metav1.Duration `json:"timeout,omitempty"`
+
 	// DeletionPolicy defines how Helm Releases created by a Plugin are handled upon deletion of the Plugin.
 	// Supported values are "Delete" and "Retain". If not set, defaults to "Delete".
 	// +Optional

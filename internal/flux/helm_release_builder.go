@@ -127,7 +127,6 @@ func (b *HelmReleaseBuilder) WithTargetNamespace(namespace string) *HelmReleaseB
 func (b *HelmReleaseBuilder) WithInstall(install *helmv2.Install) *HelmReleaseBuilder {
 	if install == nil {
 		install = &helmv2.Install{
-			Timeout: &metav1.Duration{Duration: DefaultTimeout},
 			Remediation: &helmv2.InstallRemediation{
 				Retries: DefaultRetry,
 			},
@@ -141,7 +140,6 @@ func (b *HelmReleaseBuilder) WithInstall(install *helmv2.Install) *HelmReleaseBu
 func (b *HelmReleaseBuilder) WithUpgrade(upgrade *helmv2.Upgrade) *HelmReleaseBuilder {
 	if upgrade == nil {
 		upgrade = &helmv2.Upgrade{
-			Timeout: &metav1.Duration{Duration: DefaultTimeout},
 			Remediation: &helmv2.UpgradeRemediation{
 				Retries: DefaultRetry,
 			},
@@ -154,9 +152,7 @@ func (b *HelmReleaseBuilder) WithUpgrade(upgrade *helmv2.Upgrade) *HelmReleaseBu
 // WithRollback sets the rollback configuration for the Helm release.
 func (b *HelmReleaseBuilder) WithRollback(rollback *helmv2.Rollback) *HelmReleaseBuilder {
 	if rollback == nil {
-		rollback = &helmv2.Rollback{
-			Timeout: &metav1.Duration{Duration: DefaultTimeout},
-		}
+		rollback = &helmv2.Rollback{}
 	}
 	b.spec.Rollback = rollback
 	return b
@@ -183,8 +179,7 @@ func (b *HelmReleaseBuilder) WithSuspend(suspend bool) *HelmReleaseBuilder {
 func (b *HelmReleaseBuilder) WithTest(test *helmv2.Test) *HelmReleaseBuilder {
 	if test == nil {
 		test = &helmv2.Test{
-			Enable:  true,
-			Timeout: &metav1.Duration{Duration: DefaultTimeout},
+			Enable: true,
 		}
 	}
 	if !test.Enable {
@@ -197,9 +192,7 @@ func (b *HelmReleaseBuilder) WithTest(test *helmv2.Test) *HelmReleaseBuilder {
 // WithUninstall sets the uninstallation configuration for the Helm release.
 func (b *HelmReleaseBuilder) WithUninstall(uninstall *helmv2.Uninstall) *HelmReleaseBuilder {
 	if uninstall == nil {
-		uninstall = &helmv2.Uninstall{
-			Timeout: &metav1.Duration{Duration: DefaultTimeout},
-		}
+		uninstall = &helmv2.Uninstall{}
 	}
 	b.spec.Uninstall = uninstall
 	return b
