@@ -268,6 +268,22 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		expectPluginDefinitionMustMatchError(err)
 	})
 
+	It("should accept a plugin referencing a non-existing ClusterPluginDefinition", func() {
+		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin",
+			test.WithClusterPluginDefinition("non-existing"),
+			test.WithCluster(testCluster.Name),
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
+		Expect(testPlugin.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyClusterPluginDefinition, "non-existing"),
+			"the plugin should have the clusterplugindefinition label set")
+	})
+
+	It("should not accept a plugin without a clusterName referencing a non-existing ClusterPluginDefinition", func() {
+		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(),
+			test.WithClusterPluginDefinition("non-existing"),
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
+		expectClusterMustBeSetError(test.K8sClient.Create(test.Ctx, testPlugin))
+	})
+
 	It("should not accept a plugin for the central cluster where releaseNamespace and Plugin Namespace do not match", func() {
 		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(),
 			test.WithClusterPluginDefinition(testCentralPluginDefinition.Name),

@@ -917,16 +917,19 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}
 		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).To(Succeed(), "failed to create PluginPreset")
 
-		By("ensuring PluginFailedCondition is set due to missing PluginDefinition")
+		By("ensuring the Plugin is created and reflects the missing PluginDefinition")
 		Eventually(func(g Gomega) {
-			presetKey := types.NamespacedName{Name: pluginPresetName + "-missing-def", Namespace: test.TestNamespace}
-			g.Expect(test.K8sClient.Get(test.Ctx, presetKey, pluginPreset)).To(Succeed())
-			pluginFailedCondition := pluginPreset.Status.GetConditionByType(greenhousev1alpha1.PluginFailedCondition)
-			g.Expect(pluginFailedCondition).ToNot(BeNil(), "PluginFailedCondition should be set")
-			g.Expect(pluginFailedCondition.Status).To(Equal(metav1.ConditionTrue), "PluginFailedCondition should be true")
-			g.Expect(pluginFailedCondition.Message).To(ContainSubstring(nonExistingDefinitionName),
-				"PluginFailedCondition message should reference the non-existing PluginDefinition")
-		}).Should(Succeed(), "PluginPreset should reflect the missing PluginDefinition in its status")
+			plugin := &greenhousev1alpha1.Plugin{}
+			pluginKey := types.NamespacedName{Name: pluginPresetName + "-missing-def-" + clusterA, Namespace: test.TestNamespace}
+			g.Expect(test.K8sClient.Get(test.Ctx, pluginKey, plugin)).To(Succeed())
+			helmReleaseCreated := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
+			g.Expect(helmReleaseCreated).ToNot(BeNil(), "HelmReleaseCreatedCondition should be set")
+			g.Expect(helmReleaseCreated.IsFalse()).To(BeTrue(), "HelmReleaseCreatedCondition should be false")
+			g.Expect(helmReleaseCreated.Reason).To(Equal(greenhousev1alpha1.PluginDefinitionNotAvailableReason),
+				"HelmReleaseCreatedCondition reason should be PluginDefinitionNotAvailable")
+			g.Expect(helmReleaseCreated.Message).To(ContainSubstring(nonExistingDefinitionName),
+				"HelmReleaseCreatedCondition message should reference the non-existing PluginDefinition")
+		}).Should(Succeed(), "Plugin should reflect the missing PluginDefinition in its status")
 
 		By("ensuring PluginDefinitionNotFoundCondition is set due to missing PluginDefinition")
 		Eventually(func(g Gomega) {
