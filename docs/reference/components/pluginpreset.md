@@ -43,6 +43,18 @@ spec:
     releaseNamespace: kube-monitoring
 ```
 
+## Configuring the Helm release timeout
+
+To configure the [Helm release timeout](./../plugin/#configuring-the-helm-release-timeout) for all Plugins managed by a PluginPreset, set `spec.plugin.timeout`:
+
+```yaml
+spec:
+  plugin:
+    timeout: 15m
+```
+
+The field accepts the same durations as `Plugin.spec.timeout`. The PluginPreset controller copies it to each managed Plugin, including subsequent changes. Omitting or removing the field restores the five-minute default for those Plugins.
+
 ## Writing a PluginPreset Spec
 
 `.spec.plugin` is the template for the Plugins that will be created for each matching Cluster. This field has the same structure as the PluginSpec. Only `.spec.clusterName` is not allowed in the PluginPreset's Plugin template, as the Cluster name is determined by the matching Clusters.

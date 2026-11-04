@@ -38,6 +38,31 @@ func TestHelmReleaseBuilder_CreatesValidHelmRelease(t *testing.T) {
 	assert.Equal(t, "target-ns", spec.TargetNamespace)
 }
 
+func TestHelmReleaseBuilder_DefaultActionsInheritTimeout(t *testing.T) {
+	timeout := 15 * time.Minute
+	builder := NewHelmReleaseSpecBuilder().
+		WithHelmChartRef(&helmv2.CrossNamespaceSourceReference{
+			Kind:      "HelmChart",
+			Name:      "nginx",
+			Namespace: "flux-system",
+		}).
+		WithInstall(nil).
+		WithUpgrade(nil).
+		WithRollback(nil).
+		WithTest(nil).
+		WithUninstall(nil).
+		WithTimeout(timeout)
+
+	spec, err := builder.Build()
+	assert.NoError(t, err)
+	release := helmv2.HelmRelease{Spec: spec}
+	assert.Equal(t, timeout, release.GetInstall().GetTimeout(release.GetTimeout()).Duration)
+	assert.Equal(t, timeout, release.GetUpgrade().GetTimeout(release.GetTimeout()).Duration)
+	assert.Equal(t, timeout, release.GetRollback().GetTimeout(release.GetTimeout()).Duration)
+	assert.Equal(t, timeout, release.GetTest().GetTimeout(release.GetTimeout()).Duration)
+	assert.Equal(t, timeout, release.GetUninstall().GetTimeout(release.GetTimeout()).Duration)
+}
+
 func TestHelmReleaseBuilder_ChartRefRequired(t *testing.T) {
 	builder := NewHelmReleaseSpecBuilder()
 
