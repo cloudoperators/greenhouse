@@ -268,33 +268,6 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		expectPluginDefinitionMustMatchError(err)
 	})
 
-	It("should accept a plugin referencing a non-existing ClusterPluginDefinition", func() {
-		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin",
-			test.WithClusterPluginDefinition("non-existing"),
-			test.WithCluster(testCluster.Name),
-			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
-		Expect(testPlugin.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyClusterPluginDefinition, "non-existing"),
-			"the plugin should have the clusterplugindefinition label set")
-		Expect(testPlugin.Spec.ReleaseName).To(Equal(testPlugin.Name), "the releaseName should default to the plugin name")
-	})
-
-	It("should not accept a plugin with a name too long for a release name referencing a non-existing ClusterPluginDefinition", func() {
-		testPlugin = test.NewPlugin(test.Ctx, "test-plugin-with-a-name-that-does-not-fit-into-a-helm-release", setup.Namespace(),
-			test.WithClusterPluginDefinition("non-existing"),
-			test.WithCluster(testCluster.Name),
-			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
-		err := test.K8sClient.Create(test.Ctx, testPlugin)
-		Expect(err).To(HaveOccurred(), "there should be an error creating the plugin")
-		Expect(err.Error()).To(ContainSubstring("spec.releaseName"), "the error should point to the releaseName")
-	})
-
-	It("should not accept a plugin without a clusterName referencing a non-existing ClusterPluginDefinition", func() {
-		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(),
-			test.WithClusterPluginDefinition("non-existing"),
-			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
-		expectClusterMustBeSetError(test.K8sClient.Create(test.Ctx, testPlugin))
-	})
-
 	It("should not accept a plugin for the central cluster where releaseNamespace and Plugin Namespace do not match", func() {
 		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(),
 			test.WithClusterPluginDefinition(testCentralPluginDefinition.Name),
@@ -706,5 +679,40 @@ var _ = Describe("Validation and defaulting of releaseName", func() {
 		cut.Spec.ReleaseName = "arbitrary-release-name"
 		_, err := ValidateUpdatePlugin(test.Ctx, fakeClient, testPlugin, cut)
 		Expect(err).To(HaveOccurred(), "there should be an error updating the plugin")
+	})
+})
+
+var _ = Describe("Validation and defaulting of a Plugin without its PluginDefinition", func() {
+	var (
+		testPlugin  *greenhousev1alpha1.Plugin
+		testCluster *greenhousev1alpha1.Cluster
+	)
+
+	BeforeEach(func() {
+		testCluster = test.NewCluster(test.Ctx, "test-cluster", "testing")
+		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", "testing",
+			test.WithClusterPluginDefinition("non-existing"),
+			test.WithCluster(testCluster.Name))
+	})
+
+	It("should default the labels and the releaseName to the Plugin name", func() {
+		fakeClient := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithObjects(testCluster).Build()
+		Expect(DefaultPlugin(test.Ctx, fakeClient, testPlugin)).To(Succeed(), "there should be no error defaulting the plugin")
+		Expect(testPlugin.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyClusterPluginDefinition, "non-existing"),
+			"the plugin should have the clusterplugindefinition label set")
+		Expect(testPlugin.Spec.ReleaseName).To(Equal(testPlugin.Name), "releaseName should be defaulted to the Plugin name")
+	})
+
+	It("should accept a plugin for a remote cluster", func() {
+		fakeClient := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithObjects(testCluster).Build()
+		_, err := ValidateCreatePlugin(test.Ctx, fakeClient, testPlugin)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error validating the plugin")
+	})
+
+	It("should not accept a plugin without a clusterName", func() {
+		fakeClient := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithObjects(testCluster).Build()
+		testPlugin.Spec.ClusterName = ""
+		_, err := ValidateCreatePlugin(test.Ctx, fakeClient, testPlugin)
+		Expect(err).To(MatchError(ContainSubstring("the clusterName must be set")), "the plugin should require a clusterName")
 	})
 })
