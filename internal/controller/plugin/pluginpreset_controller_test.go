@@ -18,6 +18,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -117,15 +118,17 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		// kubeConfigController ensures the namespace within the remote cluster -- we have to create it
 		By("creating the namespace on the remote cluster")
-		remoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(clusterAKubeConfig, releaseNamespace, clientutil.WithPersistentConfig())
-		remoteK8sClient, err := clientutil.NewK8sClientFromRestClientGetter(remoteRestClientGetter)
+		remoteRestConfig, err := clientcmd.RESTConfigFromKubeConfig(clusterAKubeConfig)
+		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the rest config")
+		remoteK8sClient, err := clientutil.NewK8sClient(remoteRestConfig)
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the k8s client")
 		err = remoteK8sClient.Create(test.Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: releaseNamespace}})
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the namespace")
 
 		By("creating the namespace on the other remote cluster")
-		otherRemoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(clusterBKubeConfig, releaseNamespace, clientutil.WithPersistentConfig())
-		otherRemoteK8sClient, err := clientutil.NewK8sClientFromRestClientGetter(otherRemoteRestClientGetter)
+		otherRemoteRestConfig, err := clientcmd.RESTConfigFromKubeConfig(clusterBKubeConfig)
+		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the rest config")
+		otherRemoteK8sClient, err := clientutil.NewK8sClient(otherRemoteRestConfig)
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the k8s client")
 		err = otherRemoteK8sClient.Create(test.Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: releaseNamespace}})
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the namespace")
@@ -199,7 +202,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		Expect(expPlugin.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyPluginPreset, pluginPresetName), "the Plugin should be labeled as managed by the PluginPreset")
 
 		By("modifying the Plugin and ensuring it is reconciled")
-		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, expPlugin, func() error {
+		_, err = controllerutil.CreateOrPatch(test.Ctx, test.K8sClient, expPlugin, func() error {
 			// add a new option value that is not specified by the PluginPreset
 			opt := greenhousev1alpha1.PluginOptionValue{Name: "option1", Value: test.MustReturnJSONFor("value1")}
 			expPlugin.Spec.OptionValues = append(expPlugin.Spec.OptionValues, opt)
@@ -218,7 +221,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed(), "the Plugin should be reconciled")
 
 		By("removing the preset label from the Plugin")
-		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, expPlugin, func() error {
+		_, err = controllerutil.CreateOrPatch(test.Ctx, test.K8sClient, expPlugin, func() error {
 			delete(expPlugin.Labels, greenhouseapis.LabelKeyPluginPreset)
 			return controllerutil.RemoveControllerReference(testPluginPreset, expPlugin, test.K8sClient.Scheme())
 		})
@@ -231,7 +234,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(BeTrue(), "PluginPreset should have the SkippedCondition set to true")
 
 		By("re-adding the preset label to the Plugin")
-		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, expPlugin, func() error {
+		_, err = controllerutil.CreateOrPatch(test.Ctx, test.K8sClient, expPlugin, func() error {
 			expPlugin.Labels[greenhouseapis.LabelKeyPluginPreset] = testPluginPreset.Name
 			return controllerutil.SetControllerReference(testPluginPreset, expPlugin, test.K8sClient.Scheme())
 		})
@@ -308,7 +311,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 				Namespace: test.TestNamespace,
 			},
 		}
-		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, &cluster, func() error {
+		_, err = controllerutil.CreateOrPatch(test.Ctx, test.K8sClient, &cluster, func() error {
 			cluster.Labels = map[string]string{"cluster": clusterA}
 			return nil
 		})
@@ -367,7 +370,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 				Namespace: test.TestNamespace,
 			},
 		}
-		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, &cluster, func() error {
+		_, err = controllerutil.CreateOrPatch(test.Ctx, test.K8sClient, &cluster, func() error {
 			cluster.Labels = map[string]string{"cluster": clusterA}
 			return nil
 		})
@@ -379,7 +382,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed(), "the PluginPreset should have noticed the ClusterLabel change")
 
 		By("changing clusterB labels to ensure the Plugin is deleted")
-		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, &cluster, func() error {
+		_, err = controllerutil.CreateOrPatch(test.Ctx, test.K8sClient, &cluster, func() error {
 			cluster.Labels = map[string]string{}
 			return nil
 		})
@@ -460,7 +463,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 				Namespace: test.TestNamespace,
 			},
 		}
-		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, &cluster, func() error {
+		_, err = controllerutil.CreateOrPatch(test.Ctx, test.K8sClient, &cluster, func() error {
 			cluster.Labels = map[string]string{"cluster": clusterA}
 			return nil
 		})
@@ -808,9 +811,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		By("deleting the Plugin and ensuring it is reconciled")
 		originalUID := expPlugin.UID
-		result, err := clientutil.Delete(test.Ctx, test.K8sClient, expPlugin)
-		Expect(err).ToNot(HaveOccurred(), "there should be no error deleting the Plugin")
-		Expect(result).To(Equal(clientutil.DeletionResultDeleted), "the Plugin should be deleted")
+		Expect(test.K8sClient.Delete(test.Ctx, expPlugin)).To(Succeed(), "there should be no error deleting the Plugin")
 
 		By("ensuring the Plugin is recreated with HelmRelease")
 		Eventually(func(g Gomega) {
@@ -877,7 +878,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed(), "Plugin should be created with the initial default option")
 
 		By("updating the ClusterPluginDefinition to add a new default option")
-		_, err := clientutil.CreateOrPatch(test.Ctx, test.K8sClient, watchPluginDef, func() error {
+		_, err := controllerutil.CreateOrPatch(test.Ctx, test.K8sClient, watchPluginDef, func() error {
 			watchPluginDef.Spec.Options = append(watchPluginDef.Spec.Options, greenhousev1alpha1.PluginOption{
 				Name:    "newDefault",
 				Type:    greenhousev1alpha1.PluginOptionTypeString,
@@ -1017,7 +1018,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			Name: clusterA, Namespace: test.TestNamespace,
 		}, clusterAObj)).To(Succeed())
 
-		_, err := clientutil.CreateOrPatch(test.Ctx, test.K8sClient, clusterAObj, func() error {
+		_, err := controllerutil.CreateOrPatch(test.Ctx, test.K8sClient, clusterAObj, func() error {
 			clusterAObj.Labels["metadata.greenhouse.sap/region"] = "eu-de-1"
 			return nil
 		})
@@ -1076,7 +1077,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{
 			Name: clusterA, Namespace: test.TestNamespace,
 		}, clusterAObj)).To(Succeed())
-		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, clusterAObj, func() error {
+		_, err = controllerutil.CreateOrPatch(test.Ctx, test.K8sClient, clusterAObj, func() error {
 			delete(clusterAObj.Labels, "metadata.greenhouse.sap/region")
 			return nil
 		})

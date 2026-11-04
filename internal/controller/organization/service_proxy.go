@@ -23,7 +23,6 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/version"
 )
@@ -162,7 +161,7 @@ func (r *OrganizationReconciler) reconcileServiceProxyPlugin(ctx context.Context
 		},
 	}
 
-	result, err := clientutil.CreateOrPatch(ctx, r.Client, plugin, func() error {
+	result, err := controllerutil.CreateOrPatch(ctx, r.Client, plugin, func() error {
 		plugin.SetLabels(map[string]string{greenhouseapis.LabelKeyOwnedBy: supportGroupTeamName})
 		plugin.Spec.DisplayName = "Remote service proxy"
 		plugin.Spec.OptionValues = []greenhousev1alpha1.PluginOptionValue{
@@ -223,10 +222,10 @@ func (r *OrganizationReconciler) reconcileServiceProxyPlugin(ctx context.Context
 		return err
 	}
 	switch result {
-	case clientutil.OperationResultCreated:
+	case controllerutil.OperationResultCreated:
 		log.FromContext(ctx).Info("created service-proxy Plugin", "name", plugin.Name)
 		r.recorder.Eventf(org, plugin, corev1.EventTypeNormal, "CreatedPlugin", "reconciling Organization", "Created Plugin %s", plugin.Name)
-	case clientutil.OperationResultUpdated:
+	case controllerutil.OperationResultUpdated:
 		log.FromContext(ctx).Info("updated service-proxy Plugin", "name", plugin.Name)
 		r.recorder.Eventf(org, plugin, corev1.EventTypeNormal, "UpdatedPlugin", "reconciling Organization", "Updated Plugin %s", plugin.Name)
 	}
@@ -250,16 +249,16 @@ func (r *OrganizationReconciler) getOrCreateOrgSecret(ctx context.Context, org *
 		return nil, err
 	}
 
-	result, err := clientutil.CreateOrPatch(ctx, r.Client, secret, func() error {
+	result, err := controllerutil.CreateOrPatch(ctx, r.Client, secret, func() error {
 		return controllerutil.SetControllerReference(org, secret, r.Scheme())
 	})
 	if err != nil {
 		return nil, err
 	}
 	switch result {
-	case clientutil.OperationResultCreated:
+	case controllerutil.OperationResultCreated:
 		log.FromContext(ctx).Info("created secret", "name", secret.Name)
-	case clientutil.OperationResultUpdated:
+	case controllerutil.OperationResultUpdated:
 		log.FromContext(ctx).Info("updated secret", "name", secret.Name)
 	}
 	return secret, nil

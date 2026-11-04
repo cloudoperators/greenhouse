@@ -20,6 +20,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -117,7 +118,7 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// Sync labels from cluster on every reconcile, independent of OIDC/secret availability.
-	if _, err := clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
+	if _, err := controllerutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
 		kubeconfig.Labels = cluster.GetLabels()
 		// Always delete the version key first so a stale value from the Cluster's own
 		// metadata labels cannot survive when Status.KubernetesVersion is empty.
@@ -254,7 +255,7 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// collect oidc data and update kubeconfig
-	result, err := clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
+	result, err := controllerutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
 		kubeconfig.Spec.Kubeconfig.Clusters = []v1alpha1.ClusterKubeconfigClusterItem{
 			{
 				Name: cluster.Name,

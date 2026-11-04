@@ -21,6 +21,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	clusterutils "github.com/cloudoperators/greenhouse/internal/controller/cluster/utils"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 var _ = Describe("KubeConfig controller", func() {
@@ -80,7 +81,7 @@ var _ = Describe("KubeConfig controller", func() {
 				}).Should(BeTrue(), "eventually the secret should have an owner reference to the cluster")
 
 				By("Checking namespace has been created in remote cluster")
-				remoteClient, err := clientutil.NewK8sClientFromCluster(test.Ctx, test.K8sClient, &cluster)
+				remoteClient, err := lifecycle.NewRemoteClient(test.Ctx, test.K8sClient, &cluster)
 				Expect(err).ToNot(HaveOccurred(), "there should be no error creating a new k8s client from the cluster")
 
 				Eventually(func() error {
@@ -111,15 +112,13 @@ var _ = Describe("KubeConfig controller", func() {
 					"eventually the secret data should contain the key "+greenhouseapis.GreenHouseKubeConfigKey,
 				)
 
-				greenhouseRestClientGetter, err := clientutil.NewRestClientGetterFromSecret(&greenhouseKubeConfigSecret, setup.Namespace(), clientutil.WithPersistentConfig())
-				Expect(err).NotTo(HaveOccurred(), "there should be no error getting the rest client getter from the secret")
-				greenhouseRemoteConfig, err := greenhouseRestClientGetter.ToRESTConfig()
-				Expect(err).NotTo(HaveOccurred(), "there should be no error creating a restConfig from a kubeConfig")
+				greenhouseRemoteConfig, err := lifecycle.RestConfigFromSecret(test.Ctx, test.K8sClient, &greenhouseKubeConfigSecret)
+				Expect(err).NotTo(HaveOccurred(), "there should be no error getting the rest config from the secret")
 				Expect(greenhouseRemoteConfig).
 					ToNot(BeNil(), "the greenhouse restConfig should not be nil")
 
 				By("Getting the version of the remote cluster")
-				kubeVersion, err := clientutil.GetKubernetesVersion(greenhouseRestClientGetter)
+				kubeVersion, err := clientutil.GetKubernetesVersion(clientutil.NewRestClientGetterFromRestConfig(greenhouseRemoteConfig, setup.Namespace(), clientutil.WithPersistentConfig()))
 				Expect(err).NotTo(HaveOccurred(), "there should be no error getting the kubernetes version")
 				Expect(kubeVersion).
 					ToNot(BeNil(), "the kubernetes version should not be nil")
@@ -168,10 +167,8 @@ var _ = Describe("KubeConfig controller", func() {
 			}).Should(BeTrue(), "eventually the greenhousekubeconfig key should be recreated by the controller")
 
 			By("Verifying the regenerated kubeconfig is valid")
-			greenhouseRestClientGetter, err := clientutil.NewRestClientGetterFromSecret(&greenhouseKubeConfigSecret, setup.Namespace(), clientutil.WithPersistentConfig())
-			Expect(err).NotTo(HaveOccurred(), "there should be no error getting the rest client getter from the secret")
-			greenhouseRemoteConfig, err := greenhouseRestClientGetter.ToRESTConfig()
-			Expect(err).NotTo(HaveOccurred(), "there should be no error creating a restConfig from the regenerated kubeConfig")
+			greenhouseRemoteConfig, err := lifecycle.RestConfigFromSecret(test.Ctx, test.K8sClient, &greenhouseKubeConfigSecret)
+			Expect(err).NotTo(HaveOccurred(), "there should be no error getting the rest config from the regenerated kubeConfig")
 			Expect(greenhouseRemoteConfig).ToNot(BeNil(), "the greenhouse restConfig should not be nil")
 		})
 	})

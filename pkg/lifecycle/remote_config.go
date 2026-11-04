@@ -32,6 +32,16 @@ func NewRemoteKubeCfg(ctx context.Context, kubeClient client.Client, cluster *gr
 	return getKubeCfg(secret)
 }
 
+// RestConfigFromSecret returns a rest.Config from a cluster secret, handling kubeconfig and workload identity secret types.
+func RestConfigFromSecret(ctx context.Context, kubeClient client.Client, secret *corev1.Secret) (*rest.Config, error) {
+	if secret.Type == greenhouseapis.SecretTypeOIDCConfig &&
+		!isSecretContainsKey(secret, greenhouseapis.GreenHouseKubeConfigKey) &&
+		!isSecretContainsKey(secret, greenhouseapis.KubeConfigKey) {
+		return getWorkloadIdentityCfg(ctx, kubeClient, secret)
+	}
+	return getKubeCfg(secret)
+}
+
 func getWorkloadIdentityCfg(ctx context.Context, kubeClient client.Client, secret *corev1.Secret) (*rest.Config, error) {
 	certDecoded, err := base64.StdEncoding.DecodeString(string(secret.Data[greenhouseapis.SecretAPIServerCAKey]))
 	if err != nil {

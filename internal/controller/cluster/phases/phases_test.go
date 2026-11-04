@@ -154,9 +154,8 @@ func requireInvalidKubeConfig(t *testing.T, cluster *greenhousev1alpha1.Cluster,
 }
 
 func TestCreateRemoteClientReportsInvalidKubeConfig(t *testing.T) {
-	// what the workload identity path leaves behind on an OIDC secret
 	secret := oidcSecret()
-	delete(secret.Data, greenhouseapis.GreenHouseKubeConfigKey)
+	secret.Data[greenhouseapis.GreenHouseKubeConfigKey] = []byte("not-a-valid-kubeconfig")
 
 	cluster := healthyCluster()
 	p := &Phase{ClusterSecret: secret}
@@ -172,6 +171,6 @@ func TestCreateWorkloadIdentityClientReportsInvalidKubeConfig(t *testing.T) {
 	cluster := healthyCluster()
 	p := &Phase{ClusterSecret: secret}
 
-	result, err := p.createWorkloadIdentityClient(cluster)(context.Background())
+	result, err := p.createRemoteClient(cluster)(context.Background())
 	requireInvalidKubeConfig(t, cluster, result, err)
 }

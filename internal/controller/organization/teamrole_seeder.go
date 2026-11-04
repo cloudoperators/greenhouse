@@ -13,7 +13,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	"github.com/cloudoperators/greenhouse/internal/clientutil"
 )
 
 var defaultTeamRoles = map[string]greenhousev1alpha1.TeamRoleSpec{
@@ -81,7 +80,7 @@ func (r *OrganizationReconciler) reconcileDefaultTeamRoles(ctx context.Context, 
 		tr.Name = name
 		tr.Namespace = org.GetName()
 
-		result, err := clientutil.CreateOrPatch(ctx, r.Client, tr, func() error {
+		result, err := controllerutil.CreateOrPatch(ctx, r.Client, tr, func() error {
 			tr.Spec = teamRoleSpec
 			return controllerutil.SetOwnerReference(org, tr, r.Scheme())
 		})
@@ -89,10 +88,10 @@ func (r *OrganizationReconciler) reconcileDefaultTeamRoles(ctx context.Context, 
 			return err
 		}
 		switch result {
-		case clientutil.OperationResultCreated:
+		case controllerutil.OperationResultCreated:
 			log.FromContext(ctx).Info("created team role", "namespace", tr.GetNamespace(), "name", tr.GetName())
 			r.recorder.Eventf(org, tr, corev1.EventTypeNormal, "CreatedTeamRole", "reconciling Organization", "Created team role %s/%s", tr.GetNamespace(), tr.GetName())
-		case clientutil.OperationResultUpdated:
+		case controllerutil.OperationResultUpdated:
 			log.FromContext(ctx).Info("updated team role", "namespace", tr.GetNamespace(), "name", tr.GetName())
 			r.recorder.Eventf(org, tr, corev1.EventTypeNormal, "UpdatedTeamRole", "reconciling Organization", "Updated team role %s/%s", tr.GetNamespace(), tr.GetName())
 		}
