@@ -41,7 +41,7 @@ spec:
     name: alerts
 ```
 
-`.spec.releaseName` is the optional and immutable name of the Helm release that will be created when deploying the Plugin to the target cluster. If not provided it defaults to the name of the PluginDefinition's Helm chart.
+`.spec.releaseName` is the optional and immutable name of the Helm release that will be created when deploying the Plugin to the target cluster. If not provided it defaults to the name of the PluginDefinition's Helm chart. If the PluginDefinition does not exist yet when the Plugin is created, it defaults to the name of the Plugin.
 
 `.spec.releaseNamespace` is the optional and immutable Kubernetes namespace in the target cluster where the Helm release will be deployed. If not provided, it defaults to the name of the Organization.
 
