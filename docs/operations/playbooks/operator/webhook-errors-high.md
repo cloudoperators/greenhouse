@@ -27,14 +27,14 @@ This could be due to:
 
 ### Identify the Affected Webhook and Resource
 
-The alert label `webhook` identifies which webhook has high error rates. Extract the resource type from the webhook path (e.g., `Plugin`, `Cluster`, `Organization`) to use in log filtering.
+The alert label `webhook` identifies which webhook has high error rates. Extract the resource type from the webhook name (e.g., `Plugin`, `Cluster`, `Organization`) to use in log filtering.
 
-Common webhook paths:
+Common webhook names:
 
-- `/mutate-greenhouse-sap-v1alpha1-plugin` → Plugin resource
-- `/validate-greenhouse-sap-v1alpha1-plugin` → Plugin resource
-- `/mutate-greenhouse-sap-v1alpha1-cluster` → Cluster resource
-- `/validate-greenhouse-sap-v1alpha1-cluster` → Cluster resource
+- `mplugin.kb.io` → Plugin resource
+- `vplugin.kb.io` → Plugin resource
+- `mcluster.kb.io` → Cluster resource
+- `vcluster.kb.io` → Cluster resource
 
 ### Check Webhook Metrics
 
@@ -42,19 +42,19 @@ Access the Prometheus instance monitoring your Greenhouse cluster and query the 
 
 ```promql
 # Total webhook requests by status code
-controller_runtime_webhook_requests_total{webhook="<webhook-path>"}
+apiserver_admission_webhook_request_total{name="<webhook-name>"}
 
 # Successful requests (200)
-controller_runtime_webhook_requests_total{webhook="<webhook-path>",code="200"}
+apiserver_admission_webhook_request_total{name="<webhook-name>",code="200"}
 
-# Failed requests (non-200)
-controller_runtime_webhook_requests_total{webhook="<webhook-path>",code!="200"}
+# Failed requests (5xx)
+apiserver_admission_webhook_request_total{name="<webhook-name>",code=~"5.."}
 
 # Error rate
-rate(controller_runtime_webhook_requests_total{webhook="<webhook-path>",code!="200"}[5m]) / rate(controller_runtime_webhook_requests_total{webhook="<webhook-path>"}[5m])
+sum(rate(apiserver_admission_webhook_request_total{name="<webhook-name>",code=~"5.."}[5m])) / sum(rate(apiserver_admission_webhook_request_total{name="<webhook-name>"}[5m]))
 ```
 
-Replace `<webhook-path>` with the actual webhook path from the alert.
+Replace `<webhook-name>` with the actual webhook name from the alert.
 
 ### Check Webhook Logs
 

@@ -38,3 +38,5 @@ controllerManager:
   image:
     repository: greenhouse/manager
     tag: local
+webhook:
+  replicas: 1

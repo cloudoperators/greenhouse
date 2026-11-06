@@ -7,7 +7,6 @@ groups:
         summary: Team members count drop detected
       expr: |
         sum by (organization, team) (delta(greenhouse_team_members_count{service="greenhouse-controller-manager-metrics-service"}[5m])) < -5
-      for: 5m
       labels:
         severity: warning
         service: greenhouse

@@ -4,7 +4,6 @@
 package main
 
 import (
-	"context"
 	"errors"
 	goflag "flag"
 	"fmt"
@@ -62,6 +61,7 @@ const (
 	featureFlagsEnv                           = "FEATURE_FLAGS"            // used to read the feature flags configMap name from the environment.
 	defaultFeatureFlagConfigMapName           = "greenhouse-feature-flags" // default feature flags configMap name.
 	managerConfigEnv                          = "MANAGER_CONFIG"           // used to read the manager config configMap name from the environment.
+	leaderElectionIDController                = "operator.greenhouse.sap"
 )
 
 const (
@@ -78,6 +78,7 @@ const (
 	flagRetryPeriod                        = "leader-election-retry-period"
 	flagArtifactStoragePath                = "artifact-storage-path"
 	flagArtifactRetries                    = "artifact-http-retry"
+	flagCertRotatorEnabled                 = "cert-rotator-enabled"
 )
 
 var (
@@ -93,6 +94,7 @@ var (
 	managerConfig       *greenhouseconfig.ManagerConfig
 	artifactStoragePath string
 	artifactRetries     int
+	certRotatorEnabled  bool
 )
 
 func init() {
@@ -133,6 +135,8 @@ func main() {
 	flag.DurationVar(&retryPeriod, flagRetryPeriod, 5*time.Second, "Leader election retry period")
 	flag.StringVar(&artifactStoragePath, flagArtifactStoragePath, "/tmp/data", "The path to store artifacts")
 	flag.IntVar(&artifactRetries, flagArtifactRetries, 5, "Max number of retries to acquire artifact, default: 5 attempts")
+	flag.BoolVar(&certRotatorEnabled, flagCertRotatorEnabled, true,
+		"Enable the in-process webhook cert rotator. Set to false when cert-manager provisions the webhook certificate.")
 
 	opts := zap.Options{
 		Development: true,
@@ -177,7 +181,7 @@ func main() {
 		},
 		HealthProbeBindAddress:        probeAddr,
 		LeaderElection:                isEnableLeaderElection,
-		LeaderElectionID:              "operator.greenhouse.sap",
+		LeaderElectionID:              leaderElectionIDController,
 		LeaderElectionReleaseOnCancel: true,
 		LeaseDuration:                 new(leaseDuration),
 		RenewDeadline:                 new(renewDeadline),
@@ -185,48 +189,14 @@ func main() {
 	})
 	handleError(err, "unable to start manager")
 
-	// extract the manager API Client Reader
-	// Note: mgr.GetClient() will fail here because the cache is not ready yet
-	k8sClient := mgr.GetAPIReader()
-	// Initialize the feature gates from feature-flags config map
-	featureFlags, err = features.NewFeatures(
-		context.TODO(),
-		k8sClient,
-		clientutil.GetEnvOrDefault(featureFlagsEnv, defaultFeatureFlagConfigMapName),
-		clientutil.GetEnvOrDefault(podNamespaceEnv, defaultPodNamespace),
-	)
-	if err != nil {
-		handleError(err, "unable to get features")
-	}
-
 	// Register controllers.
 	if mode != webhookOnlyMode {
-		managerConfig, err = greenhouseconfig.NewManagerConfig(
-			context.TODO(),
-			k8sClient,
-			clientutil.GetEnvOrDefault(managerConfigEnv, "greenhouse-cm"),
-			clientutil.GetEnvOrDefault(podNamespaceEnv, defaultPodNamespace),
-		)
-		if err != nil {
-			handleError(err, "unable to get manager config")
-		}
-		for controllerName, hookFunc := range knownControllers {
-			if !isControllerEnabled(controllerName) {
-				setupLog.Info("skipping controller", "name", controllerName)
-				continue
-			}
-			setupLog.Info("registering controller", "name", controllerName)
-			handleError(hookFunc(controllerName, mgr), "unable to create controller", "name", controllerName)
-			continue
-		}
+		runControllers(mgr)
 	}
 
 	// Register webhooks.
 	if mode != controllerOnlyMode {
-		for webhookName, hookFunc := range knownWebhooks {
-			setupLog.Info("registering webhook", "name", webhookName)
-			handleError(hookFunc(mgr), "unable to create webhook", "name", webhookName)
-		}
+		runWebhooks(mgr)
 	}
 	//+kubebuilder:scaffold:builder
 

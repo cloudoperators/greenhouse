@@ -207,7 +207,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 				Namespace: helmChart.Namespace,
 			}).
 			WithInterval(flux.DefaultInterval).
-			WithTimeout(flux.DefaultTimeout).
+			WithTimeout(plugin.Spec.Timeout.Duration).
 			WithMaxHistory(maxHistory).
 			WithReleaseName(plugin.GetReleaseName()).
 			WithInstall(&helmv2.Install{

@@ -34,7 +34,7 @@ groups:
         description:  The workqueue backlog of Greenhouse Operator controller - {{ $labels.controller }} is not getting drained.
         summary: Greenhouse Operator controller - {{ $labels.name }}'s backlog is not being drained.
       expr: |
-        sum by (name) (rate(workqueue_depth{job="greenhouse-controller-manager-metrics-service"}[5m])) > 0
+        sum by (name, controller) (workqueue_depth{job="greenhouse-controller-manager-metrics-service"}) > 0
       for: 15m
       labels:
         severity: warning
@@ -50,7 +50,7 @@ groups:
         description: The 90th percentile latency of Greenhouse Operator webhook - {{ $labels.webhook }} is {{ $value | humanizeDuration }}
         summary: Greenhouse Operator webhook - {{ $labels.webhook }}'s latency is high.
       expr: |
-        histogram_quantile(0.9, avg(rate(controller_runtime_webhook_latency_seconds_bucket{job="greenhouse-controller-manager-metrics-service"}[5m])) by (webhook, le)) > 0.2 
+        histogram_quantile(0.9, avg(rate(controller_runtime_webhook_latency_seconds_bucket{job="greenhouse-controller-manager-metrics-service"}[5m])) by (webhook, le)) > 1
       for: 15m
       labels:
         severity: warning
@@ -61,15 +61,15 @@ groups:
         playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/operator/webhook-latency-high/
     - alert: GreenhouseWebhookErrorsHigh
       annotations:
-        description: '{{ $value | humanizePercentage }} of webhook operations failed for {{ $labels.webhook }} webhook'
-        summary: 'Errors while reconciling {{ $labels.webhook }}'
+        description: '{{ $value | humanizePercentage }} of webhook operations failed for {{ $labels.name }} webhook'
+        summary: 'Errors while reconciling {{ $labels.name }}'
       expr: |
-        (sum by (webhook) (rate(controller_runtime_webhook_requests_total{code!="200", job="greenhouse-controller-manager-metrics-service"}[5m]))) / (sum by (webhook) (rate(controller_runtime_webhook_requests_total{code="200", job="greenhouse-controller-manager-metrics-service"}[5m]))) > 0.1
+        (sum by (name) (rate(apiserver_admission_webhook_request_total{code=~"5.."}[5m]))) / (sum by (name) (rate(apiserver_admission_webhook_request_total{name=~"[mv](cluster|clusterplugindefinition|organization|plugin|plugindefinition|pluginpreset|rolebinding-v1alpha2|secret|serviceaccount|team|teamrole-v1alpha1)\\.kb\\.io"}[5m]))) > 0.1
       for: 15m
       labels:
         severity: warning
         service: greenhouse
         organization: greenhouse # default greenhouse organization
-        webhook: '{{ $labels.webhook}}'
+        webhook: '{{ $labels.name }}'
         support_group: 'greenhouse-admin'  # routed to the default greenhouse-admin team
         playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/operator/webhook-errors-high/
