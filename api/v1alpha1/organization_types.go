@@ -59,7 +59,8 @@ type OrganizationSpec struct {
 	Description string `json:"description,omitempty"`
 
 	// MappedOrgAdminIDPGroup is the IDP group ID identifying org admins
-	MappedOrgAdminIDPGroup string `json:"mappedOrgAdminIdPGroup,omitempty"`
+	// +kubebuilder:validation:Required
+	MappedOrgAdminIDPGroup string `json:"mappedOrgAdminIdPGroup"`
 
 	// ConfigMapRef allows to reference organizational config map.
 	ConfigMapRef string `json:"configMapRef,omitempty"`
