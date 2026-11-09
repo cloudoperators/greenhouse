@@ -78,12 +78,13 @@ func DefaultPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alp
 	}
 
 	pluginDefinitionSpec, err := getPluginDefinitionSpec(ctx, c, plugin)
-	if err != nil {
+	if client.IgnoreNotFound(err) != nil {
 		if strings.Contains(err.Error(), "unsupported") {
 			return field.Invalid(field.NewPath("spec", "pluginDefinitionRef", "kind"), plugin.Spec.PluginDefinitionRef.Kind, "unsupported PluginDefinition kind")
 		}
 		return err
 	}
+	pluginDefinitionExists := err == nil
 
 	if plugin.Labels == nil {
 		plugin.Labels = make(map[string]string)
@@ -110,11 +111,13 @@ func DefaultPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alp
 	}
 
 	// Default option values and merge with PluginDefinition values.
-	optionValues, err := helm.GetPluginOptionValuesForPlugin(ctx, c, plugin)
-	if err != nil {
-		return err
+	if pluginDefinitionExists {
+		optionValues, err := helm.GetPluginOptionValuesForPlugin(ctx, c, plugin)
+		if err != nil {
+			return err
+		}
+		plugin.Spec.OptionValues = optionValues
 	}
-	plugin.Spec.OptionValues = optionValues
 
 	// Skip releaseName and releaseNamespace defaulting for UIApplications.
 	if pluginDefinitionSpec.UIApplication != nil && pluginDefinitionSpec.HelmChart == nil {
@@ -128,16 +131,19 @@ func DefaultPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alp
 
 	// Default the ReleaseName.
 	if plugin.Spec.ReleaseName == "" {
-		if plugin.Status.HelmReleaseStatus != nil {
+		switch {
+		case plugin.Status.HelmReleaseStatus != nil:
 			// The Plugin was already deployed, use the Plugin's name as the release name.
 			// This is the legacy behavior and needs to be honored to not break existing deployments.
 			plugin.Spec.ReleaseName = plugin.Name
-		} else {
+		case pluginDefinitionExists:
 			// The Plugin is newly created, use the PluginDefinition's HelmChart name as the release name.
 			if pluginDefinitionSpec.HelmChart == nil {
 				return field.InternalError(field.NewPath("spec", "pluginDefinitionRef", "name"), fmt.Errorf("PluginDefinition %s does not have a HelmChart", plugin.Spec.PluginDefinitionRef.Name))
 			}
 			plugin.Spec.ReleaseName = pluginDefinitionSpec.HelmChart.Name
+		default:
+			plugin.Spec.ReleaseName = plugin.Name
 		}
 	}
 	return nil
@@ -177,11 +183,7 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, plugin *greenhou
 	}
 
 	pluginDefinitionSpec, err := getPluginDefinitionSpec(ctx, c, plugin)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return allWarns, field.Invalid(pluginDefinitionRefNamePath, plugin.Spec.PluginDefinitionRef.Name,
-				fmt.Sprintf("PluginDefinition %s does not exist in namespace %s", plugin.Spec.PluginDefinitionRef.Name, plugin.GetNamespace()))
-		}
+	if client.IgnoreNotFound(err) != nil {
 		if strings.Contains(err.Error(), "unsupported") {
 			return allWarns, field.Invalid(field.NewPath("spec", "pluginDefinitionRef", "kind"), plugin.Spec.PluginDefinitionRef.Kind, "unsupported PluginDefinitionKind")
 		}
@@ -191,7 +193,7 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, plugin *greenhou
 
 	// validate OptionValues defined by the Plugin
 	optionsFieldPath := field.NewPath("spec").Child("optionValues")
-	if errList := validatePluginOptionValues(plugin.Spec.OptionValues, plugin.Spec.PluginDefinitionRef.Name, pluginDefinitionSpec, true, optionsFieldPath); len(errList) > 0 {
+	if errList := ValidatePluginOptionValues(plugin.Spec.OptionValues, plugin.Spec.PluginDefinitionRef.Name, pluginDefinitionSpec, true, optionsFieldPath); len(errList) > 0 {
 		return allWarns, apierrors.NewInvalid(plugin.GroupVersionKind().GroupKind(), plugin.Name, errList)
 	}
 
@@ -203,6 +205,10 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, plugin *greenhou
 }
 
 func ValidateUpdatePlugin(ctx context.Context, c client.Client, oldPlugin, plugin *greenhousev1alpha1.Plugin) (admission.Warnings, error) {
+	if plugin.DeletionTimestamp != nil {
+		return nil, nil
+	}
+
 	var allErrs field.ErrorList
 	var allWarns admission.Warnings
 
@@ -221,13 +227,8 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, oldPlugin, plugi
 		allErrs = append(allErrs, errList...)
 	}
 
-	// ensure (Cluster-)PluginDefinition exists
 	pluginDefinitionSpec, err := getPluginDefinitionSpec(ctx, c, plugin)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return allWarns, field.Invalid(pluginDefinitionRefNamePath, plugin.Spec.PluginDefinitionRef.Name,
-				fmt.Sprintf("PluginDefinition %s does not exist in namespace %s", plugin.Spec.PluginDefinitionRef.Name, plugin.GetNamespace()))
-		}
+	if client.IgnoreNotFound(err) != nil {
 		if strings.Contains(err.Error(), "unsupported") {
 			return allWarns, field.Invalid(field.NewPath("spec", "pluginDefinitionRef", "kind"), plugin.Spec.PluginDefinitionRef.Kind, "unsupported PluginDefinitionKind")
 		}
@@ -247,7 +248,7 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, oldPlugin, plugi
 
 	// validate OptionValues defined by the Plugin
 	optionsFieldPath := field.NewPath("spec").Child("optionValues")
-	if errList := validatePluginOptionValues(plugin.Spec.OptionValues, plugin.Spec.PluginDefinitionRef.Name, pluginDefinitionSpec, true, optionsFieldPath); len(errList) > 0 {
+	if errList := ValidatePluginOptionValues(plugin.Spec.OptionValues, plugin.Spec.PluginDefinitionRef.Name, pluginDefinitionSpec, true, optionsFieldPath); len(errList) > 0 {
 		return allWarns, apierrors.NewInvalid(plugin.GroupVersionKind().GroupKind(), plugin.Name, errList)
 	}
 
@@ -277,7 +278,7 @@ func validateOwnerReference(plugin *greenhousev1alpha1.Plugin) admission.Warning
 	return nil
 }
 
-func validatePluginOptionValues(
+func ValidatePluginOptionValues(
 	optionValues []greenhousev1alpha1.PluginOptionValue,
 	pluginDefinitionName string,
 	pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec,
@@ -374,7 +375,7 @@ func validateReleaseName(name string) error {
 
 func validatePluginForCluster(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec) error {
 	// Exclude front-end only Plugins as well as the greenhouse namespace from the below check.
-	if pluginDefinitionSpec.HelmChart == nil || plugin.GetNamespace() == "greenhouse" {
+	if (pluginDefinitionSpec.UIApplication != nil && pluginDefinitionSpec.HelmChart == nil) || plugin.GetNamespace() == "greenhouse" {
 		return nil
 	}
 	// Ensure whitelisted plugins are deployed in the organization namespace

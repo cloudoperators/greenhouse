@@ -2632,7 +2632,8 @@ string
 <td>
 <p>ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
 If the Plugin was already deployed, the Plugin&rsquo;s name is used as the release name.
-If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.</p>
+If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.
+If the PluginDefinition does not exist yet when the Plugin is created, the Plugin&rsquo;s name is used as the release name.</p>
 </td>
 </tr>
 <tr>
@@ -3964,7 +3965,8 @@ string
 <td>
 <p>ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
 If the Plugin was already deployed, the Plugin&rsquo;s name is used as the release name.
-If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.</p>
+If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.
+If the PluginDefinition does not exist yet when the Plugin is created, the Plugin&rsquo;s name is used as the release name.</p>
 </td>
 </tr>
 <tr>
