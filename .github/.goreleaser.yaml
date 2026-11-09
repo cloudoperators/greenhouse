@@ -16,7 +16,10 @@ env:
   - LDFLAGS=-s -w -X github.com/cloudoperators/greenhouse/internal/version.GitBranch=$(GIT_BRANCH) -X github.com/cloudoperators/greenhouse/internal/version.GitCommit=$(GIT_COMMIT) -X github.com/cloudoperators/greenhouse/internal/version.GitState=$(GIT_STATE) -X github.com/cloudoperators/greenhouse/internal/version.BuildDate=$(BUILD_DATE)
 
 git:
-  tag_sort: -version:creatordate
+  tag_sort: -version:refname
+  ignore_tags:
+    - "api/*"
+    - "helm-chart-*"
 
 builds:
   - id: linux-amd64
