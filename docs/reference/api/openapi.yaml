@@ -866,6 +866,7 @@ components:
               type: string
             mappedOrgAdminIdPGroup:
               description: MappedOrgAdminIDPGroup is the IDP group ID identifying org admins
+              minLength: 1
               type: string
           required:
             - mappedOrgAdminIdPGroup
