@@ -39,7 +39,6 @@ var _ = BeforeSuite(func() {
 
 	// orgWebhook is required by cluster-kubeconfig since it uses organization-level resources
 	test.RegisterController("kubeconfig", (&clusterpkg.KubeconfigReconciler{}).SetupWithManager)
-	test.RegisterWebhook("orgWebhook", webhookv1alpha1.SetupOrganizationWebhookWithManager)
 
 	test.TestBeforeSuite()
 })

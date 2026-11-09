@@ -126,6 +126,11 @@ fmt: goimports
 	$(GOIMPORTS) -w -local github.com/cloudoperators/greenhouse .
 	cd api; GOBIN=$(LOCALBIN) go fmt ./...
 
+.PHONY: vet
+vet: ## Run go vet against code.
+	go vet ./...
+	cd api; go vet ./...
+
 .PHONY: lint
 lint: golint
 	$(GOLINT) run -v --timeout 5m

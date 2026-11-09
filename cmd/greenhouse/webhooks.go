@@ -36,7 +36,6 @@ const (
 var knownWebhooks = map[string]func(mgr ctrl.Manager) error{
 	"cluster":                  webhookv1alpha1.SetupClusterWebhookWithManager,
 	"secrets":                  webhookv1alpha1.SetupSecretWebhookWithManager,
-	"organization":             webhookv1alpha1.SetupOrganizationWebhookWithManager,
 	"pluginDefinition":         webhookv1alpha1.SetupPluginDefinitionWebhookWithManager,
 	"plugin":                   webhookv1alpha1.SetupPluginWebhookWithManager,
 	"pluginPreset":             webhookv1alpha1.SetupPluginPresetWebhookWithManager,
