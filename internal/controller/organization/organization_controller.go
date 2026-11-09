@@ -5,11 +5,12 @@ package organization
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 
 	"github.com/dexidp/dex/storage"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -147,7 +148,7 @@ func (r *OrganizationReconciler) EnsureDeleted(ctx context.Context, obj lifecycl
 func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	org, ok := object.(*greenhousev1alpha1.Organization)
 	if !ok {
-		return ctrl.Result{}, lifecycle.Failed, errors.Errorf("RuntimeObject has incompatible type.")
+		return ctrl.Result{}, lifecycle.Failed, errors.New("RuntimeObject has incompatible type")
 	}
 
 	initOrganizationStatus(org)
@@ -314,8 +315,8 @@ func (r *OrganizationReconciler) checkSCIMAPIAvailability(ctx context.Context, o
 		return greenhousemetav1alpha1.UnknownCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, greenhousev1alpha1.SCIMConfigErrorReason, "SCIM Config not provided")
 	}
 
-	if org.Spec.MappedOrgAdminIDPGroup == "" {
-		return greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, greenhousev1alpha1.SCIMRequestFailedReason, ".Spec.MappedOrgAdminIDPGroup is not set in Organization")
+	if err := validateSCIMConfigShape(org.Spec.Authentication.SCIMConfig); err != nil {
+		return greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, greenhousev1alpha1.SCIMConfigErrorReason, err.Error())
 	}
 
 	namespace := org.Name
@@ -391,7 +392,6 @@ func (r *OrganizationReconciler) enqueueOrganizationsForReferencedConfigMap(ctx 
 	return listOrganizationsAsReconcileRequests(ctx, r, client.MatchingFields{greenhouseapis.ConfigMapRefField: o.GetName()})
 }
 
-// reconcileCatalogServiceAccount creates a ServiceAccount and associated RBAC for PluginDefinitionCatalog operations.
 func (r *OrganizationReconciler) reconcileCatalogPermissions(ctx context.Context, org *greenhousev1alpha1.Organization) error {
 	if err := r.reconcileCatalogServiceAccount(ctx, org); err != nil {
 		return err
@@ -417,5 +417,28 @@ func (r *OrganizationReconciler) reconcileCatalogPermissions(ctx context.Context
 		return err
 	}
 
+	return nil
+}
+
+// validateSCIMConfigShape checks that the SCIM auth config has the required fields for its authType.
+func validateSCIMConfigShape(cfg *greenhousev1alpha1.SCIMConfig) error {
+	if cfg.BaseURL == "" {
+		return errors.New("spec.authentication.scim.baseURL is required")
+	}
+	switch cfg.AuthType {
+	case greenhousev1alpha1.AuthTypeBasic:
+		if cfg.BasicAuthUser == nil || cfg.BasicAuthUser.Secret == nil {
+			return errors.New("spec.authentication.scim.basicAuthUser and its secret are required for authType basic")
+		}
+		if cfg.BasicAuthPw == nil || cfg.BasicAuthPw.Secret == nil {
+			return errors.New("spec.authentication.scim.basicAuthPw and its secret are required for authType basic")
+		}
+	case greenhousev1alpha1.AuthTypeBearerToken:
+		if cfg.BearerToken == nil || cfg.BearerToken.Secret == nil {
+			return errors.New("spec.authentication.scim.bearerToken and its secret are required for authType token")
+		}
+	default:
+		return fmt.Errorf("spec.authentication.scim.authType must be either 'basic' or 'token', got: %s", cfg.AuthType)
+	}
 	return nil
 }

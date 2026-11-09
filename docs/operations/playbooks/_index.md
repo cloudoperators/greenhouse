@@ -50,7 +50,7 @@ Alerts that page a tenant organization's admin team (`<org>-admin`). These cover
 
 Alerts that page the team owning the affected resource via its `owned_by` label. These cover tenant-managed resources — Plugins, Clusters, Catalogs, TeamRoleBindings.
 
-- `GreenhouseCatalogNotReady`  
+- [`GreenhouseCatalogNotReady`](https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/catalog/catalog-not-ready/)  
   Catalog not ready for over 15 minutes
 - [`GreenhouseClusterNotReady`](https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/cluster/cluster-not-ready/)  
   Cluster not ready
