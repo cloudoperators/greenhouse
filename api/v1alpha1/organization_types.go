@@ -49,7 +49,6 @@ const (
 // OrganizationSpec defines the desired state of Organization
 type OrganizationSpec struct {
 	// DisplayName is an optional name for the organization to be displayed in the Greenhouse UI.
-	// Defaults to a normalized version of metadata.name.
 	DisplayName string `json:"displayName,omitempty"`
 
 	// Authentication configures the organizations authentication mechanism.
