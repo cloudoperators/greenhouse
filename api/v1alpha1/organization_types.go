@@ -60,6 +60,7 @@ type OrganizationSpec struct {
 
 	// MappedOrgAdminIDPGroup is the IDP group ID identifying org admins
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
 	MappedOrgAdminIDPGroup string `json:"mappedOrgAdminIdPGroup"`
 
 	// ConfigMapRef allows to reference organizational config map.
