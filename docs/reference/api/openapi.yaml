@@ -867,6 +867,8 @@ components:
             mappedOrgAdminIdPGroup:
               description: MappedOrgAdminIDPGroup is the IDP group ID identifying org admins
               type: string
+          required:
+            - mappedOrgAdminIdPGroup
           type: object
         status:
           description: OrganizationStatus defines the observed state of an Organization
