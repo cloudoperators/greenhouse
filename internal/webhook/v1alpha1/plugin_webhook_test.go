@@ -60,7 +60,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 		}
 
 		optionsFieldPath := field.NewPath("spec").Child("optionValues")
-		errList := validatePluginOptionValues(optionValues, pluginDefinition.Name, pluginDefinition.Spec, true, optionsFieldPath)
+		errList := ValidatePluginOptionValues(optionValues, pluginDefinition.Name, pluginDefinition.Spec, true, optionsFieldPath)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -99,7 +99,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 		}
 
 		optionsFieldPath := field.NewPath("spec").Child("optionValues")
-		errList := validatePluginOptionValues(optionValues, pluginDefinition.Name, pluginDefinition.Spec, true, optionsFieldPath)
+		errList := ValidatePluginOptionValues(optionValues, pluginDefinition.Name, pluginDefinition.Spec, true, optionsFieldPath)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -145,7 +145,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 		}
 
 		optionsFieldPath := field.NewPath("spec").Child("optionValues")
-		errList := validatePluginOptionValues(optionValues, pluginDefinition.Name, pluginDefinition.Spec, true, optionsFieldPath)
+		errList := ValidatePluginOptionValues(optionValues, pluginDefinition.Name, pluginDefinition.Spec, true, optionsFieldPath)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -179,7 +179,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 		}
 
 		optionsFieldPath := field.NewPath("spec").Child("optionValues")
-		errList := validatePluginOptionValues(optionValues, pluginDefinition.Name, pluginDefinition.Spec, true, optionsFieldPath)
+		errList := ValidatePluginOptionValues(optionValues, pluginDefinition.Name, pluginDefinition.Spec, true, optionsFieldPath)
 		switch expErr {
 		case true:
 			Expect(errList).NotTo(BeEmpty(), "expected an error, got nil")
@@ -679,5 +679,51 @@ var _ = Describe("Validation and defaulting of releaseName", func() {
 		cut.Spec.ReleaseName = "arbitrary-release-name"
 		_, err := ValidateUpdatePlugin(test.Ctx, fakeClient, testPlugin, cut)
 		Expect(err).To(HaveOccurred(), "there should be an error updating the plugin")
+	})
+})
+
+var _ = Describe("Validation and defaulting of a Plugin created before its PluginDefinition", func() {
+	var (
+		testPlugin  *greenhousev1alpha1.Plugin
+		testCluster *greenhousev1alpha1.Cluster
+	)
+
+	BeforeEach(func() {
+		testCluster = test.NewCluster(test.Ctx, "test-cluster", "testing")
+		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", "testing",
+			test.WithClusterPluginDefinition("late-definition"),
+			test.WithCluster(testCluster.Name))
+	})
+
+	It("should default the labels and the releaseName to the Plugin name", func() {
+		fakeClient := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithObjects(testCluster).Build()
+		Expect(DefaultPlugin(test.Ctx, fakeClient, testPlugin)).To(Succeed(), "there should be no error defaulting the plugin")
+		Expect(testPlugin.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyClusterPluginDefinition, "late-definition"),
+			"the plugin should have the clusterplugindefinition label set")
+		Expect(testPlugin.Spec.ReleaseName).To(Equal(testPlugin.Name), "releaseName should be defaulted to the Plugin name")
+	})
+
+	It("should accept a plugin for a remote cluster", func() {
+		fakeClient := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithObjects(testCluster).Build()
+		_, err := ValidateCreatePlugin(test.Ctx, fakeClient, testPlugin)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error validating the plugin")
+	})
+
+	It("should not accept a plugin without a clusterName", func() {
+		fakeClient := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithObjects(testCluster).Build()
+		testPlugin.Spec.ClusterName = ""
+		_, err := ValidateCreatePlugin(test.Ctx, fakeClient, testPlugin)
+		Expect(err).To(MatchError(ContainSubstring("the clusterName must be set")), "the plugin should require a clusterName")
+	})
+
+	It("should accept an update of a deleted plugin with option values its PluginDefinition rejects", func() {
+		pluginDefinition := test.NewClusterPluginDefinition(test.Ctx, "late-definition",
+			test.AppendPluginOption(greenhousev1alpha1.PluginOption{Name: "replicaCount", Type: greenhousev1alpha1.PluginOptionTypeInt}))
+		fakeClient := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithObjects(testCluster, pluginDefinition).Build()
+		testPlugin.Spec.OptionValues = []greenhousev1alpha1.PluginOptionValue{{Name: "replicaCount", Value: test.MustReturnJSONFor("x")}}
+		deletionTimestamp := metav1.Now()
+		testPlugin.DeletionTimestamp = &deletionTimestamp
+		_, err := ValidateUpdatePlugin(test.Ctx, fakeClient, testPlugin.DeepCopy(), testPlugin)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error updating the deleted plugin")
 	})
 })
