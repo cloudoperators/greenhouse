@@ -332,10 +332,6 @@ func (r *OrganizationReconciler) checkSCIMAPIAvailability(ctx context.Context, o
 		return greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, greenhousev1alpha1.SCIMRequestFailedReason, "Failed to create SCIM client")
 	}
 
-	if org.Spec.MappedOrgAdminIDPGroup == "" {
-		return greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, greenhousev1alpha1.SCIMRequestFailedReason, ".Spec.MappedOrgAdminIDPGroup is not set in Organization")
-	}
-
 	// verify that the SCIM API can be accessed
 	opts := &scim.QueryOptions{
 		Filter:             scim.GroupFilterByDisplayName(org.Spec.MappedOrgAdminIDPGroup),

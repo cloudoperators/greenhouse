@@ -21,6 +21,12 @@ func GreenhouseSCIMConfigToSCIMConfig(ctx context.Context, k8sClient client.Clie
 	}
 	switch cfg.AuthType {
 	case greenhousev1alpha1.AuthTypeBasic:
+		if config.BasicAuthUser == nil || config.BasicAuthUser.Secret == nil {
+			return nil, fmt.Errorf("spec.authentication.scim.basicAuthUser and its secret are required for authType basic")
+		}
+		if config.BasicAuthPw == nil || config.BasicAuthPw.Secret == nil {
+			return nil, fmt.Errorf("spec.authentication.scim.basicAuthPw and its secret are required for authType basic")
+		}
 		var err error
 		username, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, k8sClient, namespace, *config.BasicAuthUser.Secret)
 		if err != nil {
@@ -35,6 +41,9 @@ func GreenhouseSCIMConfigToSCIMConfig(ctx context.Context, k8sClient client.Clie
 			Password: password,
 		}
 	case greenhousev1alpha1.AuthTypeBearerToken:
+		if config.BearerToken == nil || config.BearerToken.Secret == nil {
+			return nil, fmt.Errorf("spec.authentication.scim.bearerToken and its secret are required for authType token")
+		}
 		var err error
 		token, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, k8sClient, namespace, *config.BearerToken.Secret)
 		if err != nil {
