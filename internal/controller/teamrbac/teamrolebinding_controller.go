@@ -179,6 +179,7 @@ func (r *TeamRoleBindingReconciler) EnsureCreated(ctx context.Context, resource 
 	}
 	subjects := generateSubjects(trb.Spec.Usernames, mappedIDPGroups)
 
+	clusters = clientutil.FilterClustersBeingDeleted(clusters)
 	err = r.doReconcile(ctx, teamRole, clusters, trb, subjects)
 	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
