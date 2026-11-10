@@ -15,7 +15,47 @@ import (
 // The idea is to use kubeconfig data locally with minimum effort (with local tools or plain kubectl):
 // kubectl get cluster-kubeconfig $NAME -o yaml | yq -y .spec.kubeconfig
 type ClusterKubeconfigSpec struct {
-	Kubeconfig ClusterKubeconfigData `json:"kubeconfig,omitempty"`
+	Kubeconfig      ClusterKubeconfigData       `json:"kubeconfig,omitempty"`
+	ConfigOverrides *ClusterKubeconfigOverrides `json:"configOverrides,omitempty"`
+}
+
+// ClusterKubeconfigOverrides allows per-cluster overrides of the generated kubeconfig by name-matching
+// against existing clusters, users, and contexts. Fields left empty are not overridden.
+type ClusterKubeconfigOverrides struct {
+	Clusters       []ClusterItemOverride `json:"clusters,omitempty"`
+	Users          []AuthInfoOverride    `json:"users,omitempty"`
+	Contexts       []ContextItemOverride `json:"contexts,omitempty"`
+	CurrentContext string                `json:"currentContext,omitempty"`
+}
+
+// ClusterItemOverride overrides fields of a named cluster entry in the kubeconfig.
+type ClusterItemOverride struct {
+	Name                        string              `json:"name"`
+	Server                      string              `json:"server,omitempty"`
+	CertificateAuthorityDataRef *SecretKeyReference `json:"certificateAuthorityDataRef,omitempty"`
+}
+
+// AuthInfoOverride overrides fields of a named user entry in the kubeconfig.
+type AuthInfoOverride struct {
+	Name string              `json:"name"`
+	OIDC *OIDCConfigOverride `json:"oidc,omitempty"`
+}
+
+// OIDCConfigOverride overrides OIDC auth-provider fields. Inline values take precedence over Ref fields
+// when both are set; Ref fields are resolved from the referenced Secret at reconcile time.
+type OIDCConfigOverride struct {
+	ClientID        string              `json:"clientID,omitempty"`
+	IssuerURL       string              `json:"issuerURL,omitempty"`
+	ClientIDRef     *SecretKeyReference `json:"clientIDRef,omitempty"`
+	ClientSecretRef *SecretKeyReference `json:"clientSecretRef,omitempty"`
+}
+
+// ContextItemOverride overrides fields of a named context entry in the kubeconfig.
+type ContextItemOverride struct {
+	Name      string `json:"name"`
+	Cluster   string `json:"cluster,omitempty"`
+	User      string `json:"user,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
 }
 
 // ClusterKubeconfigData stores the kubeconfig data ready to use kubectl or other local tooling
