@@ -35,7 +35,8 @@ type dexFeatures struct {
 }
 
 type pluginFeatures struct {
-	OCIMirroringEnabled bool `yaml:"ociMirroringEnabled"`
+	OCIMirroringEnabled  bool `yaml:"ociMirroringEnabled"`
+	ReleaseEventsEnabled bool `yaml:"releaseEventsEnabled"`
 }
 
 type pluginPresetFeatures struct {
@@ -165,6 +166,22 @@ func (f *Features) IsOCIMirroringEnabled() bool {
 		return false
 	}
 	return f.plugin.OCIMirroringEnabled
+}
+
+// IsReleaseEventsEnabled returns whether release events are enabled.
+func (f *Features) IsReleaseEventsEnabled() bool {
+	if f == nil {
+		return false
+	}
+
+	if f.plugin != nil {
+		return f.plugin.ReleaseEventsEnabled
+	}
+	if err := f.resolvePluginFeatures(); err != nil {
+		ctrl.LoggerFrom(context.Background()).Error(err, "failed to resolve plugin features")
+		return false
+	}
+	return f.plugin.ReleaseEventsEnabled
 }
 
 func (f *Features) resolveWorkloadIdentityFeatures() error {

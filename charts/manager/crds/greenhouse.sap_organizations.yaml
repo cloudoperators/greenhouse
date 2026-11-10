@@ -222,14 +222,16 @@ spec:
                 description: Description provides additional details of the organization.
                 type: string
               displayName:
-                description: |-
-                  DisplayName is an optional name for the organization to be displayed in the Greenhouse UI.
-                  Defaults to a normalized version of metadata.name.
+                description: DisplayName is an optional name for the organization
+                  to be displayed in the Greenhouse UI.
                 type: string
               mappedOrgAdminIdPGroup:
                 description: MappedOrgAdminIDPGroup is the IDP group ID identifying
                   org admins
+                minLength: 1
                 type: string
+            required:
+            - mappedOrgAdminIdPGroup
             type: object
           status:
             description: OrganizationStatus defines the observed state of an Organization

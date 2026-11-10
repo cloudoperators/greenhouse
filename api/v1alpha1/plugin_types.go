@@ -38,6 +38,7 @@ type PluginSpec struct {
 	// ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
 	// If the Plugin was already deployed, the Plugin's name is used as the release name.
 	// If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.
+	// If the PluginDefinition does not exist yet when the Plugin is created, the Plugin's name is used as the release name.
 	// +Optional
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="ReleaseName is immutable"
 	// +kubebuilder:validation:MaxLength=53
@@ -183,6 +184,9 @@ const (
 	// ImageReplicationFailedReason is set on HelmReleaseCreatedCondition when container image
 	// pre-replication to the configured mirror registry has failed.
 	ImageReplicationFailedReason greenhousemetav1alpha1.ConditionReason = "ImageReplicationFailed"
+
+	// ReleaseEventSentCondition reflects whether the latest HelmRelease revision was sent as a release event.
+	ReleaseEventSentCondition greenhousemetav1alpha1.ConditionType = "ReleaseEventSent"
 )
 
 // PluginStatus defines the observed state of Plugin
@@ -222,6 +226,15 @@ type PluginStatus struct {
 	// Used to skip redundant replication on subsequent reconciliations.
 	// +Optional
 	ImageReplication []string `json:"imageReplication,omitempty"`
+
+	// ReleaseEvents tracks the last HelmRelease revision sent as a release event.
+	ReleaseEvents *ReleaseEventsStatus `json:"releaseEvents,omitempty"`
+}
+
+// ReleaseEventsStatus is the release events state of a Plugin.
+type ReleaseEventsStatus struct {
+	// LastReportedDigest is the HelmRelease history digest reported last, or recorded when release events were switched on.
+	LastReportedDigest string `json:"lastReportedDigest,omitempty"`
 }
 
 // ServiceType defines the type of exposed service.

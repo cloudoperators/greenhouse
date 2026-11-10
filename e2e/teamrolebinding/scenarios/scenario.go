@@ -32,6 +32,7 @@ type ITRBScenario interface {
 	ExecuteNamespaceCreationScenario(ctx context.Context)
 	// ExecuteClusterSelectorScenario verifies RBAC is applied only to clusters matching a selector.
 	ExecuteClusterSelectorScenario(ctx context.Context)
+	ExecuteClusterOffboardingScenario(ctx context.Context)
 }
 
 // scenario holds the shared state for all TeamRoleBinding E2E scenarios.

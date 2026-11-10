@@ -860,13 +860,14 @@ components:
               description: Description provides additional details of the organization.
               type: string
             displayName:
-              description: |-
-                DisplayName is an optional name for the organization to be displayed in the Greenhouse UI.
-                Defaults to a normalized version of metadata.name.
+              description: DisplayName is an optional name for the organization to be displayed in the Greenhouse UI.
               type: string
             mappedOrgAdminIdPGroup:
               description: MappedOrgAdminIDPGroup is the IDP group ID identifying org admins
+              minLength: 1
               type: string
+          required:
+            - mappedOrgAdminIdPGroup
           type: object
         status:
           description: OrganizationStatus defines the observed state of an Organization
@@ -1739,6 +1740,7 @@ components:
                 ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
                 If the Plugin was already deployed, the Plugin's name is used as the release name.
                 If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.
+                If the PluginDefinition does not exist yet when the Plugin is created, the Plugin's name is used as the release name.
               maxLength: 53
               type: string
               x-kubernetes-validations:
@@ -1873,6 +1875,13 @@ components:
             lastReconciledAt:
               description: LastReconciledAt contains the value when the reconcile was last triggered via annotation.
               type: string
+            releaseEvents:
+              description: ReleaseEvents tracks the last HelmRelease revision sent as a release event.
+              properties:
+                lastReportedDigest:
+                  description: LastReportedDigest is the HelmRelease history digest reported last, or recorded when release events were switched on.
+                  type: string
+              type: object
             statusConditions:
               description: StatusConditions contain the different conditions that constitute the status of the Plugin.
               properties:

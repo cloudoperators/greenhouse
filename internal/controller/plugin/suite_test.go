@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -36,8 +37,10 @@ func TestHelmController(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
+	releaseEventRetryInterval = time.Second
 	test.RegisterController("plugin", (&PluginReconciler{
-		KubeRuntimeOpts: clientutil.RuntimeOptions{QPS: 5, Burst: 10},
+		KubeRuntimeOpts:      clientutil.RuntimeOptions{QPS: 5, Burst: 10},
+		ReleaseEventsEnabled: true,
 	}).SetupWithManager)
 	test.RegisterController("pluginPreset", (&PluginPresetReconciler{
 		ExpressionEvaluationEnabled: true,
@@ -46,7 +49,6 @@ var _ = BeforeSuite(func() {
 	test.RegisterController("pluginDefinition", (&greenhouseDef.PluginDefinitionReconciler{}).SetupWithManager)
 	test.RegisterController("clusterPluginDefinition", (&greenhouseDef.ClusterPluginDefinitionReconciler{}).SetupWithManager)
 	test.RegisterController("cluster", (&greenhousecluster.RemoteClusterReconciler{}).SetupWithManager)
-	test.RegisterWebhook("organizationWebhook", webhookv1alpha1.SetupOrganizationWebhookWithManager)
 	test.RegisterWebhook("TeamWebhook", webhookv1alpha1.SetupTeamWebhookWithManager)
 	test.RegisterWebhook("clusterPluginDefinitionWebhook", webhookv1alpha1.SetupClusterPluginDefinitionWebhookWithManager)
 	test.RegisterWebhook("pluginWebhook", webhookv1alpha1.SetupPluginWebhookWithManager)

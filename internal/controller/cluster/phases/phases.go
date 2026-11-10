@@ -73,6 +73,7 @@ func (p *Phase) createWorkloadIdentityClient(cluster *greenhousev1alpha1.Cluster
 func (p *Phase) EnsureDeletePhases(cluster *greenhousev1alpha1.Cluster) []lifecycle.SubRoutine {
 	phases := []lifecycle.SubRoutine{
 		p.ensurePluginsDeleted(cluster),
+		p.ensureTeamRBACDeleted(cluster),
 	}
 	if p.ClusterSecret != nil && p.ClusterSecret.Type != greenhouseapis.SecretTypeOIDCConfig {
 		phases = append([]lifecycle.SubRoutine{p.createRemoteClient(cluster)}, append(phases, p.deleteClusterRoleBinding())...)

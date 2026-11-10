@@ -19,6 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
@@ -619,4 +620,28 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 		}).Should(Succeed())
 		Expect(test.K8sClient.Delete(test.Ctx, helmRelease)).To(Or(Succeed(), MatchError(ContainSubstring("not found"))))
 	})
+})
+
+var _ = Describe("EnsureFluxCreated", func() {
+	DescribeTable("should report option values the PluginDefinition rejects",
+		func(opts ...func(*greenhousev1alpha1.ClusterPluginDefinition)) {
+			opts = append(opts, test.AppendPluginOption(greenhousev1alpha1.PluginOption{Name: "replicaCount", Type: greenhousev1alpha1.PluginOptionTypeInt}))
+			pluginDefinition := test.NewClusterPluginDefinition(test.Ctx, "test-definition", opts...)
+			pluginDefinition.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousemetav1alpha1.ReadyCondition, "", ""))
+			plugin := test.NewPlugin(test.Ctx, "test-plugin", test.TestNamespace,
+				test.WithClusterPluginDefinition(pluginDefinition.Name),
+				test.WithPluginOptionValue("replicaCount", test.MustReturnJSONFor("x")))
+			r := &PluginReconciler{Client: fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithObjects(pluginDefinition).Build()}
+
+			_, result, err := r.EnsureFluxCreated(test.Ctx, plugin)
+			Expect(err).To(HaveOccurred(), "there should be an error for the invalid option value")
+			Expect(result).To(Equal(lifecycle.Failed), "the reconcile result should be failed")
+			helmReleaseCreated := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
+			Expect(helmReleaseCreated).ToNot(BeNil(), "HelmReleaseCreated condition should be set")
+			Expect(helmReleaseCreated.Reason).To(Equal(greenhousev1alpha1.PluginOptionValueInvalidReason),
+				"HelmReleaseCreated reason should be PluginOptionValueInvalid")
+		},
+		Entry("backed by a Helm chart"),
+		Entry("UI-only", test.WithoutHelmChart(), test.WithUIApplication(&greenhousev1alpha1.UIApplicationReference{Name: "test-ui-app", Version: "0.0.1"})),
+	)
 })

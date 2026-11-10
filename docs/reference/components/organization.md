@@ -23,7 +23,7 @@ spec:
 
 ### DisplayName
 
-`.spec.displayName` is a human-friendly name for the Organization. This field is optional; if not provided, it defaults to the value of `metadata.name`.
+`.spec.displayName` is a human-friendly name for the Organization. This field is optional.
 
 ### Authentication
 
