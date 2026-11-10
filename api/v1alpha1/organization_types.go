@@ -49,7 +49,6 @@ const (
 // OrganizationSpec defines the desired state of Organization
 type OrganizationSpec struct {
 	// DisplayName is an optional name for the organization to be displayed in the Greenhouse UI.
-	// Defaults to a normalized version of metadata.name.
 	DisplayName string `json:"displayName,omitempty"`
 
 	// Authentication configures the organizations authentication mechanism.
@@ -59,7 +58,9 @@ type OrganizationSpec struct {
 	Description string `json:"description,omitempty"`
 
 	// MappedOrgAdminIDPGroup is the IDP group ID identifying org admins
-	MappedOrgAdminIDPGroup string `json:"mappedOrgAdminIdPGroup,omitempty"`
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	MappedOrgAdminIDPGroup string `json:"mappedOrgAdminIdPGroup"`
 
 	// ConfigMapRef allows to reference organizational config map.
 	ConfigMapRef string `json:"configMapRef,omitempty"`

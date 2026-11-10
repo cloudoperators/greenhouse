@@ -38,6 +38,7 @@ type PluginSpec struct {
 	// ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
 	// If the Plugin was already deployed, the Plugin's name is used as the release name.
 	// If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.
+	// If the PluginDefinition does not exist yet when the Plugin is created, the Plugin's name is used as the release name.
 	// +Optional
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="ReleaseName is immutable"
 	// +kubebuilder:validation:MaxLength=53

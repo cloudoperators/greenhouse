@@ -917,17 +917,6 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}
 		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).To(Succeed(), "failed to create PluginPreset")
 
-		By("ensuring PluginFailedCondition is set due to missing PluginDefinition")
-		Eventually(func(g Gomega) {
-			presetKey := types.NamespacedName{Name: pluginPresetName + "-missing-def", Namespace: test.TestNamespace}
-			g.Expect(test.K8sClient.Get(test.Ctx, presetKey, pluginPreset)).To(Succeed())
-			pluginFailedCondition := pluginPreset.Status.GetConditionByType(greenhousev1alpha1.PluginFailedCondition)
-			g.Expect(pluginFailedCondition).ToNot(BeNil(), "PluginFailedCondition should be set")
-			g.Expect(pluginFailedCondition.Status).To(Equal(metav1.ConditionTrue), "PluginFailedCondition should be true")
-			g.Expect(pluginFailedCondition.Message).To(ContainSubstring(nonExistingDefinitionName),
-				"PluginFailedCondition message should reference the non-existing PluginDefinition")
-		}).Should(Succeed(), "PluginPreset should reflect the missing PluginDefinition in its status")
-
 		By("ensuring PluginDefinitionNotFoundCondition is set due to missing PluginDefinition")
 		Eventually(func(g Gomega) {
 			presetKey := types.NamespacedName{Name: pluginPresetName + "-missing-def", Namespace: test.TestNamespace}

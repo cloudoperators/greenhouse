@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,6 +31,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/helm"
+	webhookv1alpha1 "github.com/cloudoperators/greenhouse/internal/webhook/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
@@ -85,6 +87,19 @@ func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, plugin *greenh
 	}
 	pluginDefinitionSpec := pluginDefinition.GetPluginDefinitionSpec()
 
+	optionValues, err := computeReleaseValues(ctx, r.Client, plugin)
+	if err != nil {
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
+			greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.OptionValueResolutionFailedReason, err.Error()))
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+
+	if errList := webhookv1alpha1.ValidatePluginOptionValues(optionValues, plugin.Spec.PluginDefinitionRef.Name, *pluginDefinitionSpec, true, field.NewPath("spec", "optionValues")); len(errList) > 0 {
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
+			greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.PluginOptionValueInvalidReason, errList.ToAggregate().Error()))
+		return ctrl.Result{}, lifecycle.Failed, errList.ToAggregate()
+	}
+
 	namespace := flux.HelmRepositoryDefaultNamespace
 	if plugin.Spec.PluginDefinitionRef.Kind == greenhousev1alpha1.PluginDefinitionKind {
 		namespace = plugin.GetNamespace()
@@ -104,13 +119,6 @@ func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, plugin *greenh
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.HelmReleaseCreatedCondition, "", fmt.Sprintf("Failed to load helm chart for %s/%s", plugin.Spec.PluginDefinitionRef.Kind, plugin.Spec.PluginDefinitionRef.Name)))
 		return ctrl.Result{}, lifecycle.Failed, errors.New("helm chart not found for " + plugin.Spec.PluginDefinitionRef.Kind + "/" + plugin.Spec.PluginDefinitionRef.Name)
-	}
-
-	optionValues, err := computeReleaseValues(ctx, r.Client, plugin)
-	if err != nil {
-		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
-			greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.OptionValueResolutionFailedReason, err.Error()))
-		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
 	if err := r.ensureHelmRelease(ctx, plugin, *pluginDefinitionSpec, helmChart, optionValues); err != nil {
@@ -305,6 +313,12 @@ func (r *PluginReconciler) computeReadyConditionFlux(ctx context.Context, plugin
 
 	// UI-only Plugins without a Helm chart are considered ready as long as their PluginDefinition is available, since there is no HelmRelease to wait for.
 	if pluginDefinitionSpec.HelmChart == nil {
+		if helmReleaseCreated := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition); helmReleaseCreated.IsFalse() {
+			readyCondition.Status = metav1.ConditionFalse
+			readyCondition.Reason = helmReleaseCreated.Reason
+			readyCondition.Message = helmReleaseCreated.Message
+			return readyCondition
+		}
 		readyCondition.Status = metav1.ConditionTrue
 		readyCondition.Message = "ready"
 		readyCondition.Reason = ""
