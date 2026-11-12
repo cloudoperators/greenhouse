@@ -53,7 +53,7 @@ require (
 	github.com/oklog/run v1.2.0
 	github.com/onsi/ginkgo/v2 v2.32.1
 	github.com/onsi/gomega v1.42.1
-	github.com/open-policy-agent/cert-controller v0.16.1-0.20260608222807-1c492bc2d223
+	github.com/open-policy-agent/cert-controller v0.16.1-0.20261111194542-4427213f635e
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.24.1
 	github.com/spf13/cobra v1.10.2
