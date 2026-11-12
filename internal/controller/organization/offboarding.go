@@ -37,8 +37,8 @@ func (p *offboardingPhase) ensureDeletePhases() []lifecycle.SubRoutine {
 	return []lifecycle.SubRoutine{
 		p.ensureForeignResourcesDeleted(),
 		p.ensureResourcesDeleted(&greenhousev1alpha2.TeamRoleBindingList{}),
-		p.ensureResourcesDeleted(&greenhousev1alpha1.PluginPresetList{}),
 		p.ensureClustersDeleted(),
+		p.ensureResourcesDeleted(&greenhousev1alpha1.PluginPresetList{}),
 		p.ensureResourcesDeleted(&greenhousev1alpha1.PluginList{}),
 		p.ensureDexResourcesDeleted(),
 		p.ensureNamespaceDeleted(),
@@ -62,12 +62,13 @@ func foreignResourceLists(crds *apiextensionsv1.CustomResourceDefinitionList, gr
 			continue
 		}
 		for _, version := range crd.Spec.Versions {
-			if !version.Storage {
+			if !version.Served {
 				continue
 			}
 			list := &unstructured.UnstructuredList{}
 			list.SetGroupVersionKind(schema.GroupVersionKind{Group: crd.Spec.Group, Version: version.Name, Kind: crd.Spec.Names.ListKind})
 			lists = append(lists, list)
+			break
 		}
 	}
 	return lists

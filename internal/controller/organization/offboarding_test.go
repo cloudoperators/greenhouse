@@ -81,7 +81,7 @@ var _ = Describe("Organization offboarding", Ordered, ContinueOnFailure, func() 
 		)
 		widget := createObject(foreignGroup, "Widget", org.Name, "widget")
 
-		ordered := []client.Object{widget, binding, preset, cluster, plugin}
+		ordered := []client.Object{widget, binding, cluster, preset, plugin}
 		for _, obj := range ordered {
 			setFinalizer(obj, controllerutil.AddFinalizer)
 		}
@@ -155,7 +155,7 @@ var _ = Describe("Organization offboarding", Ordered, ContinueOnFailure, func() 
 
 		deleteOrganization(org.Name)
 
-		Eventually(oauthClientIDs).ShouldNot(ContainElements(proxyClient, org.Name))
+		Eventually(oauthClientIDs).ShouldNot(ContainElement(BeElementOf(proxyClient, org.Name)))
 	})
 })
 
@@ -177,8 +177,8 @@ func createCRD(group, kind string, scope apiextensionsv1.ResourceScope) {
 				Singular: singular,
 			},
 			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-				{Name: "v1alpha1", Served: false, Storage: false, Schema: schemaProps},
-				{Name: "v1", Served: true, Storage: true, Schema: schemaProps},
+				{Name: "v1alpha1", Served: false, Storage: true, Schema: schemaProps},
+				{Name: "v1", Served: true, Storage: false, Schema: schemaProps},
 			},
 		},
 	}
