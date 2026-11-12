@@ -23,6 +23,7 @@ groups:
         service: '{{ $labels.pluginPreset }}'
         organization: '{{ $labels.organization }}'
         support_group: '{{ $labels.owned_by }}'
+        playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/plugin/pluginpreset-not-reconciled/
       annotations:
         summary: "PluginPreset cannot reconcile all Plugins for over 15 minutes"
         description: "The PluginPreset {{ $labels.pluginPreset }} in organization {{ $labels.organization }} has not been able to reconcile all Plugins for more than 15 minutes."

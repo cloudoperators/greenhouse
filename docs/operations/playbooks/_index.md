@@ -60,7 +60,7 @@ Alerts that page the team owning the affected resource via its `owned_by` label.
   Kubernetes version out of maintenance
 - [`GreenhousePluginNotReady`](https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/plugin/plugin-not-ready/)  
   Plugin not ready for over 15 minutes
-- `GreenhousePluginPresetNotReconciled`  
+- [`GreenhousePluginPresetNotReconciled`](https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/plugin/pluginpreset-not-reconciled/)  
   PluginPreset cannot reconcile all Plugins for over 15 minutes
 - [`GreenhousePluginConstantlyFailing`](https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/plugin/plugin-constantly-failing/)  
   Plugin reconciliation is constantly failing
