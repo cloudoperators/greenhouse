@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
@@ -41,7 +42,7 @@ func (p *offboardingPhase) ensureDeletePhases() []lifecycle.SubRoutine {
 		p.ensureResourcesDeleted(&greenhousev1alpha1.PluginPresetList{}),
 		p.ensureResourcesDeleted(&greenhousev1alpha1.PluginList{}),
 		p.ensureDexResourcesDeleted(),
-		p.ensureNamespaceDeleted(),
+		p.ensureNamespaceOrphaned(),
 	}
 }
 
@@ -118,7 +119,7 @@ func (p *offboardingPhase) ensureDexResourcesDeleted() lifecycle.SubRoutine {
 	}
 }
 
-func (p *offboardingPhase) ensureNamespaceDeleted() lifecycle.SubRoutine {
+func (p *offboardingPhase) ensureNamespaceOrphaned() lifecycle.SubRoutine {
 	return func(ctx context.Context) (lifecycle.Result, error) {
 		namespace := &corev1.Namespace{}
 		if err := p.Get(ctx, types.NamespacedName{Name: p.org.Name}, namespace); err != nil {
@@ -127,10 +128,16 @@ func (p *offboardingPhase) ensureNamespaceDeleted() lifecycle.SubRoutine {
 			}
 			return lifecycle.Break(), err
 		}
-		if err := p.Delete(ctx, namespace); client.IgnoreNotFound(err) != nil {
+		if !metav1.IsControlledBy(namespace, p.org) {
+			return lifecycle.Continue(), nil
+		}
+		if err := controllerutil.RemoveControllerReference(p.org, namespace, p.Scheme()); err != nil {
 			return lifecycle.Break(), err
 		}
-		return lifecycle.RequeueAfter(p.requeueInterval), nil
+		if err := p.Update(ctx, namespace); err != nil {
+			return lifecycle.Break(), err
+		}
+		return lifecycle.Continue(), nil
 	}
 }
 

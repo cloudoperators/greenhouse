@@ -13,6 +13,7 @@ import (
 	"github.com/dexidp/dex/storage"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -96,7 +97,7 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 	b := ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&greenhousev1alpha1.Organization{}).
-		Owns(&corev1.Namespace{}).
+		Watches(&corev1.Namespace{}, handler.EnqueueRequestsFromMapFunc(enqueueOrganizationForNamespace)).
 		Owns(&greenhousev1alpha1.Team{}).
 		Owns(&greenhousev1alpha1.TeamRole{}).
 		Owns(&greenhousev1alpha1.Plugin{}).
@@ -225,7 +226,8 @@ func (r *OrganizationReconciler) reconcileNamespace(ctx context.Context, org *gr
 	namespace.Name = org.Name
 
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, namespace, func() error {
-		return controllerutil.SetControllerReference(org, namespace, r.Scheme())
+		metav1.SetMetaDataLabel(&namespace.ObjectMeta, greenhouseapis.LabelKeyOrganization, org.Name)
+		return nil
 	})
 	if err != nil {
 		return err
@@ -391,6 +393,14 @@ func (r *OrganizationReconciler) enqueueOrganizationForReferencedObject(_ contex
 		return nil
 	}
 	return []ctrl.Request{{NamespacedName: client.ObjectKeyFromObject(org)}}
+}
+
+func enqueueOrganizationForNamespace(_ context.Context, o client.Object) []ctrl.Request {
+	name, ok := o.GetLabels()[greenhouseapis.LabelKeyOrganization]
+	if !ok {
+		return nil
+	}
+	return []ctrl.Request{{NamespacedName: types.NamespacedName{Name: name}}}
 }
 
 func (r *OrganizationReconciler) enqueueOrganizationsForReferencedConfigMap(ctx context.Context, o client.Object) []ctrl.Request {

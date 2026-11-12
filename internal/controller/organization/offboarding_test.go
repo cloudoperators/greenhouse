@@ -53,7 +53,7 @@ var _ = Describe("Organization offboarding", Ordered, ContinueOnFailure, func() 
 		}).Should(Succeed())
 	})
 
-	It("deletes the resources in order and the namespace last", func() {
+	It("deletes the resources in order", func() {
 		team := setup.CreateTeam(test.Ctx, "team", test.WithMappedIDPGroup("OFFBOARDING_TEAM_GROUP"))
 		teamRole := setup.CreateTeamRole(test.Ctx, "role")
 		cluster := setup.CreateCluster(test.Ctx, "cluster")
@@ -98,23 +98,32 @@ var _ = Describe("Organization offboarding", Ordered, ContinueOnFailure, func() 
 					g.Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(later), later)).To(Succeed())
 					g.Expect(later.GetDeletionTimestamp()).To(BeNil(), later.GetName()+" must wait for "+obj.GetName())
 				}
-				namespace := &corev1.Namespace{}
-				g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: org.Name}, namespace)).To(Succeed())
-				g.Expect(namespace.GetDeletionTimestamp()).To(BeNil(), "the namespace must wait for "+obj.GetName())
 			}).WithTimeout(orderWindow).Should(Succeed())
 			setFinalizer(obj, controllerutil.RemoveFinalizer)
 		}
 
-		By("keeping the Organization until the namespace is gone")
-		Eventually(func(g Gomega) {
-			expectTerminating(g, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: org.Name}})
-		}).Should(Succeed())
-		Consistently(func(g Gomega) {
-			expectTerminating(g, org)
-		}).WithTimeout(orderWindow).Should(Succeed())
-
-		finalizeNamespace(org.Name)
 		expectGone(org)
+	})
+
+	It("labels the namespace and leaves it behind without an owner reference", func() {
+		namespace := &corev1.Namespace{}
+		Eventually(func(g Gomega) {
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: org.Name}, namespace)).To(Succeed())
+			g.Expect(namespace.GetLabels()).To(HaveKeyWithValue(greenhouseapis.LabelKeyOrganization, org.Name))
+		}).Should(Succeed())
+		Expect(namespace.GetOwnerReferences()).To(BeEmpty())
+
+		Eventually(func(g Gomega) {
+			g.Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(namespace), namespace)).To(Succeed())
+			g.Expect(controllerutil.SetControllerReference(org, namespace, test.K8sClient.Scheme())).To(Succeed())
+			g.Expect(test.K8sClient.Update(test.Ctx, namespace)).To(Succeed())
+		}).Should(Succeed())
+
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, org)
+
+		Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(namespace), namespace)).To(Succeed())
+		Expect(namespace.GetOwnerReferences()).To(BeEmpty())
+		Expect(namespace.GetDeletionTimestamp()).To(BeNil())
 	})
 
 	It("deletes the Secret of a Cluster", func() {
@@ -126,7 +135,6 @@ var _ = Describe("Organization offboarding", Ordered, ContinueOnFailure, func() 
 
 		expectGone(secret)
 		setFinalizer(cluster, controllerutil.RemoveFinalizer)
-		finalizeNamespace(org.Name)
 		expectGone(org)
 	})
 
@@ -135,7 +143,7 @@ var _ = Describe("Organization offboarding", Ordered, ContinueOnFailure, func() 
 		unrelated := createObject(unrelatedGroup, "Widget", org.Name, "unrelated")
 		otherNamespace := createObject(foreignGroup, "Widget", test.TestNamespace, org.Name)
 
-		deleteOrganization(org.Name)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, org)
 
 		for _, obj := range []client.Object{gadget, unrelated, otherNamespace} {
 			Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(obj), obj)).To(Succeed())
@@ -153,7 +161,7 @@ var _ = Describe("Organization offboarding", Ordered, ContinueOnFailure, func() 
 		proxyClient := "oauth2-proxy--" + org.Name
 		Eventually(oauthClientIDs).Should(ContainElement(proxyClient))
 
-		deleteOrganization(org.Name)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, org)
 
 		Eventually(oauthClientIDs).ShouldNot(ContainElement(BeElementOf(proxyClient, org.Name)))
 	})
@@ -226,24 +234,6 @@ func expectGone(obj client.Object) {
 	Eventually(func() bool {
 		return apierrors.IsNotFound(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(obj), obj))
 	}).Should(BeTrue(), obj.GetName()+" should be gone")
-}
-
-func finalizeNamespace(name string) {
-	GinkgoHelper()
-	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}}
-	Eventually(func(g Gomega) {
-		expectTerminating(g, namespace)
-	}).Should(Succeed())
-	namespace.Spec.Finalizers = nil
-	Expect(test.K8sClient.SubResource("finalize").Update(test.Ctx, namespace)).To(Succeed())
-}
-
-func deleteOrganization(name string) {
-	GinkgoHelper()
-	org := &greenhousev1alpha1.Organization{ObjectMeta: metav1.ObjectMeta{Name: name}}
-	Expect(test.K8sClient.Delete(test.Ctx, org)).To(Succeed())
-	finalizeNamespace(name)
-	expectGone(org)
 }
 
 func oauthClientIDs() []string {

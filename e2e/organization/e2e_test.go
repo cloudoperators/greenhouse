@@ -144,11 +144,11 @@ var _ = Describe("Organization E2E", Ordered, func() {
 			}).Should(Succeed(), "organization should be fully deleted")
 		})
 
-		It("should have namespace deleted", func() {
-			Eventually(func(g Gomega) {
-				err := adminClient.Get(ctx, client.ObjectKey{Name: org.Name}, &corev1.Namespace{})
-				g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
-			}).Should(Succeed(), "namespace should be fully deleted")
+		It("should keep the namespace", func() {
+			namespace := &corev1.Namespace{}
+			Expect(adminClient.Get(ctx, client.ObjectKey{Name: org.Name}, namespace)).To(Succeed())
+			Expect(namespace.GetDeletionTimestamp()).To(BeNil())
+			Expect(namespace.GetOwnerReferences()).To(BeEmpty())
 		})
 
 		DescribeTable("should have default resources removed",
@@ -258,13 +258,11 @@ var _ = Describe("Organization E2E", Ordered, func() {
 			shared.VerifyRemoteRBACDeleted(ctx, remoteClient, orgName)
 		})
 
-		It("should have the namespace and the Organization CR deleted", func() {
+		It("should have the Organization CR deleted", func() {
 			Eventually(func(g Gomega) {
-				err := adminClient.Get(ctx, client.ObjectKey{Name: orgName}, &corev1.Namespace{})
+				err := adminClient.Get(ctx, client.ObjectKeyFromObject(org), org)
 				g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
-				err = adminClient.Get(ctx, client.ObjectKeyFromObject(org), org)
-				g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
-			}).Should(Succeed(), "namespace and organization should be fully deleted")
+			}).Should(Succeed(), "organization should be fully deleted")
 		})
 	})
 })
