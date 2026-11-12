@@ -13,6 +13,7 @@ import (
 	"github.com/dexidp/dex/storage"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -224,12 +225,24 @@ func (r *OrganizationReconciler) reconcileNamespace(ctx context.Context, org *gr
 		return err
 	}
 
-	err := r.Client.Create(ctx, namespace)
+	var existingNamespace corev1.Namespace
+	err := r.Get(ctx, client.ObjectKeyFromObject(namespace), &existingNamespace)
+	if err == nil {
+		if existingNamespace.GetDeletionTimestamp() != nil {
+			return fmt.Errorf("namespace %s already exist but is marked for deletion", org.Name)
+		}
+		return nil
+	}
+	if !apierrors.IsNotFound(err) {
+		return err
+	}
+
+	err = r.Create(ctx, namespace)
 	if err == nil {
 		log.FromContext(ctx).Info("created namespace", "name", namespace.Name)
 		r.recorder.Eventf(org, namespace, corev1.EventTypeNormal, "CreatedNamespace", "reconciling namespace", "Created namespace %s", namespace.Name)
 	}
-	return client.IgnoreAlreadyExists(err)
+	return err
 }
 
 func (r *OrganizationReconciler) reconcileAdminTeam(ctx context.Context, org *greenhousev1alpha1.Organization) error {
