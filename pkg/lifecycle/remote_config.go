@@ -27,9 +27,9 @@ func NewRemoteKubeCfg(ctx context.Context, kubeClient client.Client, cluster *gr
 		return nil, err
 	}
 	if cluster.Annotations[greenhouseapis.ClusterWorkloadIdentityAnnotation] == greenhouseapis.ClusterWorkloadIdentityEnabled {
-		return getWorkloadIdentityCfg(ctx, kubeClient, secret)
+		return GetWorkloadIdentityCfg(ctx, kubeClient, secret)
 	}
-	return getKubeCfg(secret)
+	return GetKubeCfg(secret)
 }
 
 // RestConfigFromSecret returns a rest.Config from a cluster secret, handling kubeconfig and workload identity secret types.
@@ -37,12 +37,12 @@ func RestConfigFromSecret(ctx context.Context, kubeClient client.Client, secret 
 	if secret.Type == greenhouseapis.SecretTypeOIDCConfig &&
 		!isSecretContainsKey(secret, greenhouseapis.GreenHouseKubeConfigKey) &&
 		!isSecretContainsKey(secret, greenhouseapis.KubeConfigKey) {
-		return getWorkloadIdentityCfg(ctx, kubeClient, secret)
+		return GetWorkloadIdentityCfg(ctx, kubeClient, secret)
 	}
-	return getKubeCfg(secret)
+	return GetKubeCfg(secret)
 }
 
-func getWorkloadIdentityCfg(ctx context.Context, kubeClient client.Client, secret *corev1.Secret) (*rest.Config, error) {
+func GetWorkloadIdentityCfg(ctx context.Context, kubeClient client.Client, secret *corev1.Secret) (*rest.Config, error) {
 	certDecoded, err := base64.StdEncoding.DecodeString(string(secret.Data[greenhouseapis.SecretAPIServerCAKey]))
 	if err != nil {
 		return nil, fmt.Errorf("failed decoding certificate data: %w", err)
@@ -82,7 +82,7 @@ func MintServiceAccountToken(ctx context.Context, kubeClient client.Client, name
 	return tokenRequest, nil
 }
 
-func getKubeCfg(secret *corev1.Secret) (*rest.Config, error) {
+func GetKubeCfg(secret *corev1.Secret) (*rest.Config, error) {
 	var kubeconfigBytes []byte
 	switch {
 	case secret.Type != greenhouseapis.SecretTypeKubeConfig && secret.Type != greenhouseapis.SecretTypeOIDCConfig:

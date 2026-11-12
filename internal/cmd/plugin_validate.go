@@ -125,7 +125,6 @@ func validateHelmChart(pluginDefinition *greenhousev1alpha1.ClusterPluginDefinit
 	}
 
 	restConfig := ctrl.GetConfigOrDie()
-	restClientGetter := clientutil.NewRestClientGetterFromRestConfig(restConfig, plugin.Namespace)
 
 	local, err := clientutil.NewK8sClient(restConfig)
 	if err != nil {
@@ -133,6 +132,6 @@ func validateHelmChart(pluginDefinition *greenhousev1alpha1.ClusterPluginDefinit
 	}
 
 	fmt.Printf("rendering helm chart %s\n", pluginDefinition.Spec.HelmChart.String())
-	_, err = helm.TemplateHelmChartFromPlugin(context.Background(), local, restClientGetter, pluginDefinition.Spec, plugin)
+	_, err = helm.TemplateHelmChartFromPlugin(context.Background(), local, restConfig, pluginDefinition.Spec, plugin)
 	return err
 }

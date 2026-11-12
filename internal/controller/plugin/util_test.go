@@ -295,7 +295,7 @@ var _ = Describe("validate utility functions", Ordered, func() {
 	})
 })
 
-var _ = Describe("initClientGetter", func() {
+var _ = Describe("initRestConfig", func() {
 	const (
 		namespace   = "greenhouse"
 		clusterName = "test-cluster-payload"
@@ -335,13 +335,12 @@ var _ = Describe("initClientGetter", func() {
 				Build()
 
 			plugin := newPlugin()
-			_, _, err := initClientGetter(test.Ctx, fakeClient, nil, plugin, false)
+			_, _, err := initRestConfig(test.Ctx, fakeClient, nil, plugin, false)
 			Expect(err).To(HaveOccurred())
 			cond := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
 			Expect(cond).ToNot(BeNil())
 			Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-			Expect(cond.Reason).To(Equal(greenhousev1alpha1.ClusterAccessFailedReason))
-		})
+			Expect(cond.Reason).To(Equal(greenhousev1alpha1.ClusterAccessFailedReason))		})
 	})
 
 	Context("when cluster is ready but PayloadSchedulable is False", func() {
@@ -354,7 +353,7 @@ var _ = Describe("initClientGetter", func() {
 				Build()
 
 			plugin := newPlugin()
-			_, _, err := initClientGetter(test.Ctx, fakeClient, nil, plugin, false)
+			_, _, err := initRestConfig(test.Ctx, fakeClient, nil, plugin, false)
 			Expect(err).To(HaveOccurred())
 			cond := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
 			Expect(cond).ToNot(BeNil())
@@ -373,9 +372,9 @@ var _ = Describe("initClientGetter", func() {
 				Build()
 
 			plugin := newPlugin()
-			// initClientGetter will fail trying to build a REST client from the empty secret,
+			// initRestConfig will fail trying to build a rest config from the empty secret,
 			// but the reason must not be ClusterPayloadNotSchedulable
-			_, _, err := initClientGetter(test.Ctx, fakeClient, nil, plugin, false)
+			_, _, err := initRestConfig(test.Ctx, fakeClient, nil, plugin, false)
 			if err != nil {
 				cond := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
 				Expect(cond).NotTo(BeNil())
