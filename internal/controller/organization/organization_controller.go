@@ -219,21 +219,17 @@ func (r *OrganizationReconciler) reconcileNamespace(ctx context.Context, org *gr
 	var namespace = new(corev1.Namespace)
 	namespace.Name = org.Name
 
-	result, err := clientutil.CreateOrPatch(ctx, r.Client, namespace, func() error {
-		return controllerutil.SetControllerReference(org, namespace, r.Scheme())
-	})
-	if err != nil {
+	if err := controllerutil.SetControllerReference(org, namespace, r.Scheme()); err != nil {
+		// That should never happen on freshly initiated object.
 		return err
 	}
-	switch result {
-	case clientutil.OperationResultCreated:
+
+	err := r.Client.Create(ctx, namespace)
+	if err == nil {
 		log.FromContext(ctx).Info("created namespace", "name", namespace.Name)
 		r.recorder.Eventf(org, namespace, corev1.EventTypeNormal, "CreatedNamespace", "reconciling namespace", "Created namespace %s", namespace.Name)
-	case clientutil.OperationResultUpdated:
-		log.FromContext(ctx).Info("updated namespace", "name", namespace.Name)
-		r.recorder.Eventf(org, namespace, corev1.EventTypeNormal, "UpdatedNamespace", "reconciling namespace", "Updated namespace %s", namespace.Name)
 	}
-	return nil
+	return client.IgnoreAlreadyExists(err)
 }
 
 func (r *OrganizationReconciler) reconcileAdminTeam(ctx context.Context, org *greenhousev1alpha1.Organization) error {
