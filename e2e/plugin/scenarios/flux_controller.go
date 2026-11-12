@@ -807,14 +807,18 @@ func FluxControllerPluginDeletePolicyRetain(ctx context.Context, adminClient cli
 		actHelmRelease := &helmv2.HelmRelease{}
 		err = adminClient.Get(ctx, types.NamespacedName{Name: pluginPreset.Name + remoteClusterName, Namespace: env.TestNamespace}, actHelmRelease)
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "there should be a not found error getting the flux HelmRelease in the admin cluster")
-		rel, err := helm.GetReleaseForHelmChartFromPlugin(ctx, env.RemoteRestClientGetter, actPlugin)
+		remoteRestConfig, err := env.RemoteRestClientGetter.ToRESTConfig()
+		g.Expect(err).NotTo(HaveOccurred(), "should be able to get rest config for remote cluster")
+		rel, err := helm.GetReleaseForHelmChartFromPlugin(ctx, remoteRestConfig, actPlugin)
 		g.Expect(err).NotTo(HaveOccurred(), "should be able to get the helm release for the plugin")
 		g.Expect(rel.Info.Status).To(Equal(release.StatusDeployed), "the helm release should still be deployed in the remote cluster")
 	}).Should(Succeed(), "the flux HelmReleases should eventually be deleted but the Helm release retained")
 
 	By("Cleaning up the retained Helm release in the remote cluster")
 	Eventually(func(g Gomega) {
-		_, err := helm.UninstallHelmRelease(ctx, env.RemoteRestClientGetter, actPlugin)
+		remoteRestConfig, err := env.RemoteRestClientGetter.ToRESTConfig()
+		g.Expect(err).NotTo(HaveOccurred(), "should be able to get rest config for remote cluster")
+		_, err = helm.UninstallHelmRelease(ctx, remoteRestConfig, actPlugin)
 		g.Expect(err).NotTo(HaveOccurred(), "should be able to uninstall the helm release for the plugin")
 	}).Should(Succeed(), "the retained Helm release should eventually be uninstalled from the remote cluster")
 }
@@ -889,14 +893,18 @@ func FluxControllerClusterDeletePolicyRetain(ctx context.Context, adminClient cl
 		actHelmRelease := &helmv2.HelmRelease{}
 		err = adminClient.Get(ctx, pluginNamespacedName, actHelmRelease)
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "there should be a not found error getting the flux HelmRelease in the admin cluster")
-		rel, err := helm.GetReleaseForHelmChartFromPlugin(ctx, env.RemoteRestClientGetter, plugin)
+		remoteRestConfig, err := env.RemoteRestClientGetter.ToRESTConfig()
+		g.Expect(err).NotTo(HaveOccurred(), "should be able to get rest config for remote cluster")
+		rel, err := helm.GetReleaseForHelmChartFromPlugin(ctx, remoteRestConfig, plugin)
 		g.Expect(err).NotTo(HaveOccurred(), "should be able to get the helm release for the plugin")
 		g.Expect(rel.Info.Status).To(Equal(release.StatusDeployed), "the helm release should still be deployed in the remote cluster")
 	}).Should(Succeed(), "the flux HelmReleases should eventually be deleted but the Helm release retained")
 
 	By("Cleaning up the retained Helm release in the remote cluster")
 	Eventually(func(g Gomega) {
-		_, err := helm.UninstallHelmRelease(ctx, env.RemoteRestClientGetter, plugin)
+		remoteRestConfig, err := env.RemoteRestClientGetter.ToRESTConfig()
+		g.Expect(err).NotTo(HaveOccurred(), "should be able to get rest config for remote cluster")
+		_, err = helm.UninstallHelmRelease(ctx, remoteRestConfig, plugin)
 		g.Expect(err).NotTo(HaveOccurred(), "should be able to uninstall the helm release for the plugin")
 	}).Should(Succeed(), "the retained Helm release should eventually be uninstalled from the remote cluster")
 }

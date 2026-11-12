@@ -340,7 +340,8 @@ var _ = Describe("initRestConfig", func() {
 			cond := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
 			Expect(cond).ToNot(BeNil())
 			Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-			Expect(cond.Reason).To(Equal(greenhousev1alpha1.ClusterAccessFailedReason))		})
+			Expect(cond.Reason).To(Equal(greenhousev1alpha1.ClusterAccessFailedReason))
+		})
 	})
 
 	Context("when cluster is ready but PayloadSchedulable is False", func() {
