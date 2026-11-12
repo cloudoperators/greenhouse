@@ -364,8 +364,8 @@ github.com/onsi/ginkgo/v2 v2.32.1 h1:6tlvcDm/3sE8lGJbZ4+d4mO3RLy24/tQWOFzVSQNIfw
 github.com/onsi/ginkgo/v2 v2.32.1/go.mod h1:+aXOY+vzZ5mu2iI2HpTZUPmM//oQfsNFX6gU9kNcA44=
 github.com/onsi/gomega v1.42.1 h1:iN1rCUX+44NZ1Dc97MPoeFYbFR0vh8zxoxMFwKdyZ6I=
 github.com/onsi/gomega v1.42.1/go.mod h1:REff/hsDsodHoKlWsP2mAPhu1+5/6hVYNf9rIEBpeSg=
-github.com/open-policy-agent/cert-controller v0.16.1-0.20260608222807-1c492bc2d223 h1:E4L2JO4N4IYcwWzaAEn2UtboCOMNDGj0orkvGI3QwXk=
-github.com/open-policy-agent/cert-controller v0.16.1-0.20260608222807-1c492bc2d223/go.mod h1:/HsSWwT1Cj7nVWSbXYMzXMkOsOS5XvhUTUvsFCQ+8vc=
+github.com/open-policy-agent/cert-controller v0.16.1-0.20261111194542-4427213f635e h1:ipVTOJKqBS98YH6ZANyTC3nEu4SUgiz/cyhZoJYRESg=
+github.com/open-policy-agent/cert-controller v0.16.1-0.20261111194542-4427213f635e/go.mod h1:/HsSWwT1Cj7nVWSbXYMzXMkOsOS5XvhUTUvsFCQ+8vc=
 github.com/open-policy-agent/frameworks/constraint v0.0.0-20241101234656-e78c8abd754a h1:gQtOJ50XFyL2Xh3lDD9zP4KQ2PY4mZKQ9hDcWc81Sp8=
 github.com/open-policy-agent/frameworks/constraint v0.0.0-20241101234656-e78c8abd754a/go.mod h1:tI7nc6H6os2UYZRvSm9Y7bq4oMoXqhwA0WfnqKpoAgc=
 github.com/openbao/openbao/api/v2 v2.5.1 h1:Br79D6L20SbAa5P7xqENxmvv8LyI4HoKosPy7klhn4o=
