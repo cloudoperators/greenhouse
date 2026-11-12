@@ -424,7 +424,7 @@ func (r *PluginReconciler) fetchReleaseStatus(ctx context.Context,
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.ExposedServicesSyncedCondition, "", "failed to fetch Helm release from remote cluster: "+err.Error()))
 	} else {
-		serviceList, err := getAllExposedServicesForPlugin(restClientGetter, helmSDKRelease, plugin, exposeServices)
+		serviceList, err := getAllExposedServicesForPlugin(helmSDKRelease, plugin, exposeServices)
 		switch {
 		case err != nil:
 			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
