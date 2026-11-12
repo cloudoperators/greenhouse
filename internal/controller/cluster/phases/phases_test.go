@@ -174,14 +174,14 @@ func TestCreateRemoteClientReportsInvalidKubeConfig(t *testing.T) {
 	requireInvalidKubeConfig(t, cluster, result, err)
 }
 
-func TestCreateWorkloadIdentityClientReportsInvalidKubeConfig(t *testing.T) {
+func TestCreateRemoteClientReportsInvalidKubeConfigForOIDC(t *testing.T) {
 	secret := oidcSecret()
 	secret.Data[greenhouseapis.SecretAPIServerCAKey] = []byte("not-base64!")
 
 	cluster := healthyCluster()
 	p := &Phase{ClusterSecret: secret}
 
-	result, err := p.createWorkloadIdentityClient(cluster)(context.Background())
+	result, err := p.createRemoteClient(cluster)(context.Background())
 	requireInvalidKubeConfig(t, cluster, result, err)
 }
 

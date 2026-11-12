@@ -13,6 +13,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
@@ -119,7 +120,9 @@ var _ = Describe("KubeConfig controller", func() {
 					ToNot(BeNil(), "the greenhouse restConfig should not be nil")
 
 				By("Getting the version of the remote cluster")
-				kubeVersion, err := clientutil.GetKubernetesVersion(greenhouseRestClientGetter)
+				dc, err := discovery.NewDiscoveryClientForConfig(greenhouseRemoteConfig)
+				Expect(err).NotTo(HaveOccurred(), "there should be no error creating a discovery client")
+				kubeVersion, err := dc.ServerVersion()
 				Expect(err).NotTo(HaveOccurred(), "there should be no error getting the kubernetes version")
 				Expect(kubeVersion).
 					ToNot(BeNil(), "the kubernetes version should not be nil")

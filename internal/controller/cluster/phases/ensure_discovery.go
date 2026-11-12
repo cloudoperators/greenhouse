@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
@@ -19,7 +20,7 @@ import (
 
 func (p *Phase) ensureDiscoveryCache(cluster *greenhousev1alpha1.Cluster) lifecycle.SubRoutine {
 	return func(ctx context.Context) (lifecycle.Result, error) {
-		dc, err := p.RestClientGetter.ToDiscoveryClient()
+		dc, err := discovery.NewDiscoveryClientForConfig(p.RestConfig)
 		if err != nil {
 			log.FromContext(ctx).Error(err, "failed to get discovery client")
 			cluster.Status.DiscoveryCache = nil
