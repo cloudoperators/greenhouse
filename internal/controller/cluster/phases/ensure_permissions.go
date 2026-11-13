@@ -17,7 +17,7 @@ import (
 
 func (p *Phase) ensurePermissions(cluster *greenhousev1alpha1.Cluster) lifecycle.SubRoutine {
 	return func(ctx context.Context) (lifecycle.Result, error) {
-		remoteClient, err := clientutil.NewK8sClientFromRestClientGetter(p.RestClientGetter)
+		remoteClient, err := clientutil.NewK8sClient(p.RestConfig)
 		if err != nil {
 			cluster.SetCondition(greenhousemetav1alpha1.FalseCondition(
 				greenhousev1alpha1.PermissionsVerified, "", err.Error(),

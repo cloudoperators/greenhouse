@@ -19,7 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -284,7 +284,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 func (r *PluginReconciler) computeReadyConditionFlux(ctx context.Context, plugin *greenhousev1alpha1.Plugin) greenhousemetav1alpha1.Condition {
 	readyCondition := *plugin.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 
-	restClientGetter, cluster, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, plugin, r.workloadIdentityEnabled.Load())
+	restConfig, cluster, err := initRestConfig(ctx, r.Client, r.kubeClientOpts, plugin, r.workloadIdentityEnabled.Load())
 	if err != nil {
 		readyCondition.Status = metav1.ConditionFalse
 		readyCondition.Message = "cluster access not ready"
@@ -305,7 +305,7 @@ func (r *PluginReconciler) computeReadyConditionFlux(ctx context.Context, plugin
 	plugin.Status.Weight = pluginDefinitionSpec.Weight
 	plugin.Status.Description = pluginDefinitionSpec.Description
 
-	r.fetchReleaseStatus(ctx, restClientGetter, plugin, *pluginDefinitionSpec, &plugin.Status, cluster.ExposedServicesEnabled())
+	r.fetchReleaseStatus(ctx, restConfig, plugin, *pluginDefinitionSpec, &plugin.Status, cluster.ExposedServicesEnabled())
 
 	if err := r.reconcileTechnicalLabels(ctx, plugin); err != nil {
 		log.FromContext(ctx).Error(err, "failed to reconcile technical labels")
@@ -365,7 +365,7 @@ func (r *PluginReconciler) computeReadyConditionFlux(ctx context.Context, plugin
 }
 
 func (r *PluginReconciler) fetchReleaseStatus(ctx context.Context,
-	restClientGetter genericclioptions.RESTClientGetter,
+	restConfig *rest.Config,
 	plugin *greenhousev1alpha1.Plugin,
 	pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec,
 	pluginStatus *greenhousev1alpha1.PluginStatus,
@@ -419,12 +419,12 @@ func (r *PluginReconciler) fetchReleaseStatus(ctx context.Context,
 
 	// helm release exists
 	// exposed services are not disabled, attempt to fetch exposed services from the cluster
-	helmSDKRelease, err := helm.GetReleaseForHelmChartFromPlugin(ctx, restClientGetter, plugin)
+	helmSDKRelease, err := helm.GetReleaseForHelmChartFromPlugin(ctx, restConfig, plugin)
 	if err != nil {
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.ExposedServicesSyncedCondition, "", "failed to fetch Helm release from remote cluster: "+err.Error()))
 	} else {
-		serviceList, err := getAllExposedServicesForPlugin(restClientGetter, helmSDKRelease, plugin, exposeServices)
+		serviceList, err := getAllExposedServicesForPlugin(helmSDKRelease, plugin, exposeServices)
 		switch {
 		case err != nil:
 			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(

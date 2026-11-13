@@ -95,8 +95,6 @@ const (
 var (
 	// Cfg is the rest.Config to access the cluster the tests are running against.
 	Cfg *rest.Config
-	// RestClientGetter is the clientutil.RestClientGetter to access the cluster the tests are running against.
-	RestClientGetter *clientutil.RestClientGetter
 	// K8sClient is the client.Client to access the cluster the tests are running against.
 	K8sClient client.Client
 	// K8sManager is the ctrl.Manager the controllers are run by.
@@ -140,9 +138,6 @@ var (
 
 		Cfg, K8sClient, testEnv, KubeConfig = StartControlPlane("", installCRDs, installWebhooks)
 		_ = K8sClient
-		// use the TestNamespace for the ClientGetter to ensure the Helm Actions are executed in the correct namespace
-		RestClientGetter = clientutil.NewRestClientGetterFromRestConfig(Cfg, TestNamespace, clientutil.WithPersistentConfig())
-		Expect(RestClientGetter).ToNot(BeNil(), "the RestClientGetter should not be nil")
 
 		Ctx, cancel = context.WithCancel(context.TODO())
 		// Only start the local manager and webhook server if we are not using an existing cluster

@@ -243,6 +243,14 @@ func (cg *RestClientGetter) ToRESTConfig() (*rest.Config, error) {
 	return cfg, nil
 }
 
+// ApplyToRESTConfig applies the runtime options (QPS/Burst) to an external *rest.Config.
+func (cg *RestClientGetter) ApplyToRESTConfig(cfg *rest.Config) {
+	if cg.runtimeOpts != nil {
+		cfg.QPS = cg.runtimeOpts.QPS
+		cfg.Burst = cg.runtimeOpts.Burst
+	}
+}
+
 func (cg *RestClientGetter) ToDiscoveryClient() (discovery.CachedDiscoveryInterface, error) {
 	if cg.usePersistentConfig {
 		return cg.toPersistentDiscoveryClient()

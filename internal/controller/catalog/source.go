@@ -494,12 +494,12 @@ func (s *source) findPluginDefinition(manifestBytes []byte, name string) (spec *
 	filters := &helm.ManifestMultipleObjectFilter{
 		Filters: []helm.ManifestObjectFilter{
 			{
-				APIVersion: greenhousev1alpha1.GroupVersion.Version,
+				APIVersion: greenhousev1alpha1.GroupVersion.String(),
 				Kind:       greenhousev1alpha1.PluginDefinitionKind,
 				Name:       name,
 			},
 			{
-				APIVersion: greenhousev1alpha1.GroupVersion.Version,
+				APIVersion: greenhousev1alpha1.GroupVersion.String(),
 				Kind:       greenhousev1alpha1.ClusterPluginDefinitionKind,
 				Name:       name,
 			},

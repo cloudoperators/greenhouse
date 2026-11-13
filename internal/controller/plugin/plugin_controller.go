@@ -16,7 +16,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -287,15 +286,15 @@ func ListPluginsAsReconcileRequests(ctx context.Context, c client.Client, listOp
 
 // getExposedServicesForPluginFromHelmRelease returns a map of exposed services for a plugin from a Helm release.
 // The exposed services are collected from Helm release manifest and not from the template to make sure they are deployed.
-func getExposedServicesForPluginFromHelmRelease(restClientGetter genericclioptions.RESTClientGetter, helmRelease *release.Release, plugin *greenhousev1alpha1.Plugin) (map[string]greenhousev1alpha1.Service, error) {
+func getExposedServicesForPluginFromHelmRelease(helmRelease *release.Release, plugin *greenhousev1alpha1.Plugin) (map[string]greenhousev1alpha1.Service, error) {
 	// Collect exposed services from the manifest.
-	exposedServiceList, err := helm.ObjectMapFromRelease(restClientGetter, helmRelease, &helm.ManifestObjectFilter{
+	exposedServiceList, err := helm.ObjectMapFromLocalManifest(&helm.ManifestObjectFilter{
 		APIVersion: "v1",
 		Kind:       "Service",
 		Annotations: map[string]string{
 			greenhouseapis.AnnotationKeyExpose: "true",
 		},
-	})
+	}, helmRelease.Manifest)
 	if err != nil {
 		return nil, err
 	}
@@ -337,14 +336,14 @@ func getExposedServicesForPluginFromHelmRelease(restClientGetter genericclioptio
 // - Returns them as Service entries with type ServiceTypeIngress (port set to 0 as not applicable)
 //
 // The function filters ingresses from the Helm release manifest (not templates) to ensure they are actually deployed.
-func getExposedIngressesForPluginFromHelmRelease(restClientGetter genericclioptions.RESTClientGetter, helmRelease *release.Release) (map[string]greenhousev1alpha1.Service, error) {
-	exposedIngressList, err := helm.ObjectMapFromRelease(restClientGetter, helmRelease, &helm.ManifestObjectFilter{
-		APIVersion: "v1",
+func getExposedIngressesForPluginFromHelmRelease(helmRelease *release.Release) (map[string]greenhousev1alpha1.Service, error) {
+	exposedIngressList, err := helm.ObjectMapFromLocalManifest(&helm.ManifestObjectFilter{
+		APIVersion: "networking.k8s.io/v1",
 		Kind:       "Ingress",
 		Annotations: map[string]string{
 			greenhouseapis.AnnotationKeyExpose: "true",
 		},
-	})
+	}, helmRelease.Manifest)
 	if err != nil {
 		return nil, err
 	}
@@ -383,12 +382,12 @@ func getExposedIngressesForPluginFromHelmRelease(restClientGetter genericcliopti
 //   - Protocol automatically detected from TLS configuration
 //
 // If either service or ingress discovery encounters an error, the entire operation fails.
-func getAllExposedServicesForPlugin(restClientGetter genericclioptions.RESTClientGetter, helmRelease *release.Release, plugin *greenhousev1alpha1.Plugin, exposeServices bool) (map[string]greenhousev1alpha1.Service, error) {
+func getAllExposedServicesForPlugin(helmRelease *release.Release, plugin *greenhousev1alpha1.Plugin, exposeServices bool) (map[string]greenhousev1alpha1.Service, error) {
 	var errorMessages []string
 	exposedServices := make(map[string]greenhousev1alpha1.Service)
 
 	if exposeServices {
-		serviceList, err := getExposedServicesForPluginFromHelmRelease(restClientGetter, helmRelease, plugin)
+		serviceList, err := getExposedServicesForPluginFromHelmRelease(helmRelease, plugin)
 		if err != nil {
 			errorMessages = append(errorMessages, "services: "+err.Error())
 		} else {
@@ -396,7 +395,7 @@ func getAllExposedServicesForPlugin(restClientGetter genericclioptions.RESTClien
 		}
 	}
 
-	ingressList, err := getExposedIngressesForPluginFromHelmRelease(restClientGetter, helmRelease)
+	ingressList, err := getExposedIngressesForPluginFromHelmRelease(helmRelease)
 	if err != nil {
 		errorMessages = append(errorMessages, "ingresses: "+err.Error())
 	} else {

@@ -20,6 +20,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 const (
@@ -80,11 +81,11 @@ func (t *TestSetup) OnboardCluster(ctx context.Context, name string, kubeCfg []b
 	}
 	Expect(t.Create(ctx, testClusterK8sSecret)).Should(Succeed(), "there should be no error creating the kubeconfig secret during onboarding")
 
-	restClientGetter, err := clientutil.NewRestClientGetterFromSecret(testClusterK8sSecret, t.Namespace())
-	Expect(err).NotTo(HaveOccurred(), "there should be no error creating the rest client getter from the kubeconfig secret during onboarding")
+	restConfig, err := lifecycle.RestConfigFromSecret(ctx, t.Client, testClusterK8sSecret)
+	Expect(err).NotTo(HaveOccurred(), "there should be no error creating the rest config from the kubeconfig secret during onboarding")
 
-	k8sClientForRemoteCluster, err := clientutil.NewK8sClientFromRestClientGetter(restClientGetter)
-	Expect(err).NotTo(HaveOccurred(), "there should be no error creating the k8s client from the rest client getter during onboarding")
+	k8sClientForRemoteCluster, err := clientutil.NewK8sClient(restConfig)
+	Expect(err).NotTo(HaveOccurred(), "there should be no error creating the k8s client from the rest config during onboarding")
 
 	var namespace = &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{

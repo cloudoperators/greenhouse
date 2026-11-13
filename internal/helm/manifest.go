@@ -64,7 +64,7 @@ func (o *ManifestObjectFilter) Matches(obj *resource.Info) bool {
 	if o.Kind != "" && o.Kind != gvk.Kind {
 		return false
 	}
-	if o.APIVersion != "" && o.APIVersion != gvk.Version {
+	if o.APIVersion != "" && o.APIVersion != gvk.GroupVersion().String() {
 		return false
 	}
 	if o.Name != "" && o.Name != obj.Name {

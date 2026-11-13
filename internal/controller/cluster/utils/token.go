@@ -6,13 +6,14 @@ package utils
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/go-jose/go-jose/v4"
-	"github.com/pkg/errors"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -85,13 +86,13 @@ func (kubeconfig *KubeConfigHelper) RestConfigToAPIConfig(clusterName string) cl
 }
 
 // GenerateTokenRequest reconciles the service account token for the remote cluster and updates the secret containing the kubeconfig.
-func (t *TokenHelper) GenerateTokenRequest(ctx context.Context, restClientGetter *clientutil.RestClientGetter, cluster *greenhousev1alpha1.Cluster, secret *corev1.Secret) (*authenticationv1.TokenRequest, error) {
+func (t *TokenHelper) GenerateTokenRequest(ctx context.Context, restConfig *rest.Config, cluster *greenhousev1alpha1.Cluster, secret *corev1.Secret) (*authenticationv1.TokenRequest, error) {
 	if !clientutil.IsSecretContainsKey(secret, greenhouseapis.GreenHouseKubeConfigKey) {
 		log.FromContext(ctx).Info("greenhousekubeconfig key missing from secret, regenerating token", "cluster", cluster.Name)
 		return t.createTokenRequest(ctx, cluster)
 	}
 
-	if shouldSkipTokenRenewal(ctx, restClientGetter, cluster, t.RenewRemoteClusterBearerTokenAfter) {
+	if shouldSkipTokenRenewal(ctx, restConfig, cluster, t.RenewRemoteClusterBearerTokenAfter) {
 		return nil, nil
 	}
 
@@ -99,14 +100,9 @@ func (t *TokenHelper) GenerateTokenRequest(ctx context.Context, restClientGetter
 }
 
 // shouldSkipTokenRenewal checks if the bearer token is still valid and doesn't need renewal.
-func shouldSkipTokenRenewal(ctx context.Context, restClientGetter *clientutil.RestClientGetter, cluster *greenhousev1alpha1.Cluster, renewAfter time.Duration) bool {
-	remoteRestConfig, err := restClientGetter.ToRESTConfig()
-	if err != nil {
-		return false
-	}
-
+func shouldSkipTokenRenewal(ctx context.Context, restConfig *rest.Config, cluster *greenhousev1alpha1.Cluster, renewAfter time.Duration) bool {
 	// Try to parse JWT token to get actual expiry.
-	jwt, err := jose.ParseSigned(remoteRestConfig.BearerToken, getAllSignatureAlgorithms())
+	jwt, err := jose.ParseSigned(restConfig.BearerToken, getAllSignatureAlgorithms())
 	if err == nil && jwt != nil {
 		jwtPayload := jwt.UnsafePayloadWithoutVerification()
 		var tokenInfo claims
@@ -173,12 +169,7 @@ func (t *TokenHelper) generateOIDCToken(ctx context.Context, tokenRequest *authe
 }
 
 // GenerateNewClientKubeConfig generates a kubeconfig for the client to access the cluster from REST config coming from the secret
-func GenerateNewClientKubeConfig(restConfigGetter *clientutil.RestClientGetter, bearerToken string, cluster *greenhousev1alpha1.Cluster) ([]byte, error) {
-	restConfig, err := restConfigGetter.ToRawKubeConfigLoader().ClientConfig()
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to load kube clientConfig for cluster %s", cluster.GetName())
-	}
-	// TODO: replace overwrite with https://github.com/kubernetes/kubernetes/pull/119398 after 1.30 upgrade
+func GenerateNewClientKubeConfig(restConfig *rest.Config, bearerToken string, cluster *greenhousev1alpha1.Cluster) ([]byte, error) {
 	kubeConfigGenerator := &KubeConfigHelper{
 		Host:        restConfig.Host,
 		CAData:      restConfig.CAData,
@@ -188,7 +179,7 @@ func GenerateNewClientKubeConfig(restConfigGetter *clientutil.RestClientGetter, 
 	}
 	kubeconfigByte, err := clientcmd.Write(kubeConfigGenerator.RestConfigToAPIConfig(cluster.Name))
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to generate kubeconfig for cluster %s", cluster.GetName())
+		return nil, fmt.Errorf("failed to generate kubeconfig for cluster %s: %w", cluster.GetName(), err)
 	}
 	return kubeconfigByte, nil
 }

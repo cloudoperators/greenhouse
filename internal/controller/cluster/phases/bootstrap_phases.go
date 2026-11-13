@@ -82,7 +82,7 @@ func (p *BootstrapPhase) ensureOIDCKubeConfig() lifecycle.SubRoutine {
 			return lifecycle.Continue(), nil
 		}
 
-		equality, err := compareCAWithKubeConfigCA(p.Secret)
+		equality, err := p.compareCAWithKubeConfigCA(ctx)
 		if err != nil {
 			return lifecycle.Break(), errors.Wrap(err, "failed to create rest client from secret")
 		}
@@ -293,16 +293,12 @@ func (p *BootstrapPhase) getCluster(ctx context.Context) (*greenhousev1alpha1.Cl
 	return cluster, client.IgnoreNotFound(err)
 }
 
-func compareCAWithKubeConfigCA(secret *corev1.Secret) (bool, error) {
-	restClient, err := clientutil.NewRestClientGetterFromSecret(secret, secret.GetNamespace())
+func (p *BootstrapPhase) compareCAWithKubeConfigCA(ctx context.Context) (bool, error) {
+	restConfig, err := lifecycle.RestConfigFromSecret(ctx, p.Client, p.Secret)
 	if err != nil {
 		return false, err
 	}
-	restConfig, err := restClient.ToRESTConfig()
-	if err != nil {
-		return false, err
-	}
-	secretCertBytes, err := base64.StdEncoding.DecodeString(string(secret.Data[greenhouseapis.SecretAPIServerCAKey]))
+	secretCertBytes, err := base64.StdEncoding.DecodeString(string(p.Secret.Data[greenhouseapis.SecretAPIServerCAKey]))
 	if err != nil {
 		return false, errors.Wrap(err, "failed decoding certificate data from secret")
 	}
