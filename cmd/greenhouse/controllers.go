@@ -93,8 +93,9 @@ func startOrganizationReconciler(name string, mgr ctrl.Manager) error {
 		backend = featureFlags.GetDexStorageType(context.Background())
 	}
 	return (&organizationcontrollers.OrganizationReconciler{
-		Namespace:      namespace,
-		DexStorageType: *backend,
+		Namespace:         namespace,
+		DexStorageType:    *backend,
+		ManagerConfigName: clientutil.GetEnvOrDefault(managerConfigEnv, defaultManagerConfigName),
 	}).SetupWithManager(name, mgr)
 }
 
@@ -193,7 +194,7 @@ func runControllers(mgr ctrl.Manager) {
 	managerConfig, err = greenhouseconfig.NewManagerConfig(
 		context.TODO(),
 		k8sClient,
-		clientutil.GetEnvOrDefault(managerConfigEnv, "greenhouse-cm"),
+		clientutil.GetEnvOrDefault(managerConfigEnv, defaultManagerConfigName),
 		clientutil.GetEnvOrDefault(podNamespaceEnv, defaultPodNamespace),
 	)
 	if err != nil {

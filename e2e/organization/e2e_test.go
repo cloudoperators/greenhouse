@@ -15,6 +15,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -23,8 +24,10 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/e2e/plugin/fixtures"
 	"github.com/cloudoperators/greenhouse/e2e/shared"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	testutil "github.com/cloudoperators/greenhouse/internal/test"
@@ -141,11 +144,12 @@ var _ = Describe("Organization E2E", Ordered, func() {
 			}).Should(Succeed(), "organization should be fully deleted")
 		})
 
-		It("should have namespace deleted", func() {
-			Eventually(func(g Gomega) {
-				err := adminClient.Get(ctx, client.ObjectKey{Name: org.Name}, &corev1.Namespace{})
-				g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
-			}).Should(Succeed(), "namespace should be fully deleted")
+		It("should keep the namespace", func() {
+			namespace := &corev1.Namespace{}
+			Expect(adminClient.Get(ctx, client.ObjectKey{Name: org.Name}, namespace)).To(Succeed())
+			Expect(namespace.GetDeletionTimestamp()).To(BeNil())
+			Expect(namespace.GetOwnerReferences()).To(BeEmpty())
+			Expect(namespace.GetLabels()).NotTo(HaveKey(greenhouseapis.LabelKeyOrganization))
 		})
 
 		DescribeTable("should have default resources removed",
@@ -181,5 +185,85 @@ var _ = Describe("Organization E2E", Ordered, func() {
 			Entry("ClusterRole admin", client.ObjectKey{Name: "role:organization-1-e2e:admin", Namespace: ""}, &rbacv1.ClusterRole{}),
 			Entry("ClusterRole member", client.ObjectKey{Name: "organization:organization-1-e2e", Namespace: ""}, &rbacv1.ClusterRole{}),
 		)
+	})
+
+	Context("Deleting an organization with a cluster and a plugin", func() {
+		const (
+			orgName     = "organization-2-e2e"
+			clusterName = "organization-2-e2e-cluster"
+			pluginName  = "organization-2-e2e-plugin"
+		)
+		org := testutil.NewOrganization(ctx, orgName)
+		var remoteClient client.Client
+
+		listRemoteDeployments := func(g Gomega) []appsv1.Deployment {
+			deployments := &appsv1.DeploymentList{}
+			g.Expect(remoteClient.List(ctx, deployments, client.InNamespace(orgName), client.MatchingLabels{"helm.sh/chart": "podinfo-6.9.0"})).To(Succeed())
+			return deployments.Items
+		}
+
+		It("should onboard a cluster and a plugin", func() {
+			var err error
+			remoteClient, err = clientutil.NewK8sClientFromRestClientGetter(env.RemoteRestClientGetter)
+			Expect(err).ToNot(HaveOccurred(), "no error creating the remote client")
+
+			Expect(adminClient.Create(ctx, org)).To(Succeed())
+			Expect(shared.WaitUntilNamespaceCreated(ctx, adminClient, orgName)).To(Succeed())
+
+			team := testutil.NewTeam(ctx, "organization-2-e2e-team", orgName, testutil.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
+			Expect(adminClient.Create(ctx, team)).To(Succeed())
+
+			shared.OnboardRemoteCluster(ctx, adminClient, env.RemoteKubeConfigBytes, clusterName, orgName, team.Name)
+			shared.ClusterIsReady(ctx, adminClient, clusterName, orgName)
+
+			pluginDefinition := fixtures.PreparePodInfoPluginDefinition("podinfo", orgName, "6.9.0")
+			Expect(adminClient.Create(ctx, pluginDefinition)).To(Succeed())
+			Eventually(func(g Gomega) {
+				g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(pluginDefinition), pluginDefinition)).To(Succeed())
+				g.Expect(pluginDefinition.Status.IsReadyTrue()).To(BeTrue())
+			}).Should(Succeed(), "plugin definition should be ready")
+
+			plugin := fixtures.PreparePlugin(pluginName, orgName,
+				testutil.WithPluginDefinition(pluginDefinition.Name),
+				testutil.WithCluster(clusterName),
+				testutil.WithReleaseName(pluginName),
+				testutil.WithReleaseNamespace(orgName),
+			)
+			Expect(adminClient.Create(ctx, plugin)).To(Succeed())
+
+			Eventually(func(g Gomega) {
+				g.Expect(listRemoteDeployments(g)).To(HaveLen(1))
+			}).Should(Succeed(), "plugin should be installed on the remote cluster")
+		})
+
+		It("should offboard organization", func() {
+			Expect(adminClient.Delete(ctx, org)).To(Succeed())
+		})
+
+		It("should uninstall the plugin from the remote cluster", func() {
+			Eventually(func(g Gomega) {
+				g.Expect(listRemoteDeployments(g)).To(BeEmpty())
+			}).Should(Succeed(), "plugin should be uninstalled from the remote cluster")
+		})
+
+		It("should have the cluster and its secret deleted", func() {
+			Eventually(func(g Gomega) {
+				err := adminClient.Get(ctx, client.ObjectKey{Name: clusterName, Namespace: orgName}, &greenhousev1alpha1.Cluster{})
+				g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+				err = adminClient.Get(ctx, client.ObjectKey{Name: clusterName, Namespace: orgName}, &corev1.Secret{})
+				g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+			}).Should(Succeed(), "cluster and secret should be deleted")
+		})
+
+		It("should remove the managed resources from the remote cluster", func() {
+			shared.VerifyRemoteRBACDeleted(ctx, remoteClient, orgName)
+		})
+
+		It("should have the Organization CR deleted", func() {
+			Eventually(func(g Gomega) {
+				err := adminClient.Get(ctx, client.ObjectKeyFromObject(org), org)
+				g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+			}).Should(Succeed(), "organization should be fully deleted")
+		})
 	})
 })
