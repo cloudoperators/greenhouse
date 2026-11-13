@@ -20,6 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
@@ -128,11 +129,11 @@ func (p *offboardingPhase) ensureNamespaceOrphaned() lifecycle.SubRoutine {
 			}
 			return lifecycle.Break(), err
 		}
-		if !metav1.IsControlledBy(namespace, p.org) {
-			return lifecycle.Continue(), nil
-		}
-		if err := controllerutil.RemoveControllerReference(p.org, namespace, p.Scheme()); err != nil {
-			return lifecycle.Break(), err
+		delete(namespace.Labels, greenhouseapis.LabelKeyOrganization)
+		if metav1.IsControlledBy(namespace, p.org) {
+			if err := controllerutil.RemoveControllerReference(p.org, namespace, p.Scheme()); err != nil {
+				return lifecycle.Break(), err
+			}
 		}
 		if err := p.Update(ctx, namespace); err != nil {
 			return lifecycle.Break(), err

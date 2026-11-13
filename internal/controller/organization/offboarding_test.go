@@ -105,7 +105,7 @@ var _ = Describe("Organization offboarding", Ordered, ContinueOnFailure, func() 
 		expectGone(org)
 	})
 
-	It("labels the namespace and leaves it behind without an owner reference", func() {
+	It("labels the namespace and leaves it behind without the label or an owner reference", func() {
 		namespace := &corev1.Namespace{}
 		Eventually(func(g Gomega) {
 			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: org.Name}, namespace)).To(Succeed())
@@ -123,6 +123,7 @@ var _ = Describe("Organization offboarding", Ordered, ContinueOnFailure, func() 
 
 		Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(namespace), namespace)).To(Succeed())
 		Expect(namespace.GetOwnerReferences()).To(BeEmpty())
+		Expect(namespace.GetLabels()).NotTo(HaveKey(greenhouseapis.LabelKeyOrganization))
 		Expect(namespace.GetDeletionTimestamp()).To(BeNil())
 	})
 

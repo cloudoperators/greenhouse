@@ -149,6 +149,7 @@ var _ = Describe("Organization E2E", Ordered, func() {
 			Expect(adminClient.Get(ctx, client.ObjectKey{Name: org.Name}, namespace)).To(Succeed())
 			Expect(namespace.GetDeletionTimestamp()).To(BeNil())
 			Expect(namespace.GetOwnerReferences()).To(BeEmpty())
+			Expect(namespace.GetLabels()).NotTo(HaveKey(greenhouseapis.LabelKeyOrganization))
 		})
 
 		DescribeTable("should have default resources removed",
