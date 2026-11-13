@@ -338,7 +338,7 @@ func getExposedServicesForPluginFromHelmRelease(helmRelease *release.Release, pl
 // The function filters ingresses from the Helm release manifest (not templates) to ensure they are actually deployed.
 func getExposedIngressesForPluginFromHelmRelease(helmRelease *release.Release) (map[string]greenhousev1alpha1.Service, error) {
 	exposedIngressList, err := helm.ObjectMapFromLocalManifest(&helm.ManifestObjectFilter{
-		APIVersion: "v1",
+		APIVersion: "networking.k8s.io/v1",
 		Kind:       "Ingress",
 		Annotations: map[string]string{
 			greenhouseapis.AnnotationKeyExpose: "true",

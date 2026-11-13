@@ -41,7 +41,13 @@ func breakInvalidKubeConfig(cluster *greenhousev1alpha1.Cluster, err error) (lif
 
 func (p *Phase) createRemoteClient(cluster *greenhousev1alpha1.Cluster) lifecycle.SubRoutine {
 	return func(ctx context.Context) (lifecycle.Result, error) {
-		cfg, err := lifecycle.RestConfigFromSecret(ctx, p.Client, p.ClusterSecret)
+		var cfg *rest.Config
+		var err error
+		if p.WorkloadIdentityEnabled && p.ClusterSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
+			cfg, err = lifecycle.GetWorkloadIdentityCfg(ctx, p.Client, p.ClusterSecret)
+		} else {
+			cfg, err = lifecycle.RestConfigFromSecret(ctx, p.Client, p.ClusterSecret)
+		}
 		if err != nil {
 			return breakInvalidKubeConfig(cluster, fmt.Errorf("error building rest config: %w", err))
 		}
