@@ -25,7 +25,7 @@ func (p *Phase) ensurePluginsDeleted(cluster *greenhousev1alpha1.Cluster) lifecy
 			return lifecycle.Break(), err
 		}
 
-		if strings.EqualFold(cluster.Annotations[greenhouseapis.AnnotationKeyDeletionPolicy], greenhouseapis.DeletionPolicyRetain) {
+		if !p.RemoteReachable || strings.EqualFold(cluster.Annotations[greenhouseapis.AnnotationKeyDeletionPolicy], greenhouseapis.DeletionPolicyRetain) {
 			updatedCount := 0
 			for _, plugin := range pluginList.Items {
 				if plugin.Annotations[greenhouseapis.AnnotationKeyDeletionPolicy] == greenhouseapis.DeletionPolicyRetain {
