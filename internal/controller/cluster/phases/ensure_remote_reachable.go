@@ -21,11 +21,11 @@ func (p *Phase) checkKubeconfigReachability(cluster *greenhousev1alpha1.Cluster)
 		rcg, err := clientutil.NewRestClientGetterFromSecret(p.ClusterSecret, cluster.GetNamespace())
 		if err != nil {
 			p.RemoteReachable = false
-			return lifecycle.Continue(), nil
+			return lifecycle.Continue(), nil //nolint:nilerr // unreachable cluster is not an error, cleanup phases still run
 		}
 		if _, err := clientutil.GetKubernetesVersion(rcg); err != nil {
 			p.RemoteReachable = false
-			return lifecycle.Continue(), nil
+			return lifecycle.Continue(), nil //nolint:nilerr // unreachable cluster is not an error, cleanup phases still run
 		}
 		p.RemoteReachable = true
 		return lifecycle.Continue(), nil
