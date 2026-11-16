@@ -15,7 +15,7 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
-func (p *Phase) ensurePluginsDeleted(cluster *greenhousev1alpha1.Cluster) lifecycle.SubRoutine {
+func (p *Phase) ensurePluginsDeleted(cluster *greenhousev1alpha1.Cluster, remoteReachable bool) lifecycle.SubRoutine {
 	return func(ctx context.Context) (lifecycle.Result, error) {
 		pluginList := &greenhousev1alpha1.PluginList{}
 		if err := p.Client.List(ctx, pluginList,
@@ -25,7 +25,7 @@ func (p *Phase) ensurePluginsDeleted(cluster *greenhousev1alpha1.Cluster) lifecy
 			return lifecycle.Break(), err
 		}
 
-		if !p.RemoteReachable || strings.EqualFold(cluster.Annotations[greenhouseapis.AnnotationKeyDeletionPolicy], greenhouseapis.DeletionPolicyRetain) {
+		if !remoteReachable || strings.EqualFold(cluster.Annotations[greenhouseapis.AnnotationKeyDeletionPolicy], greenhouseapis.DeletionPolicyRetain) {
 			updatedCount := 0
 			for _, plugin := range pluginList.Items {
 				if plugin.Annotations[greenhouseapis.AnnotationKeyDeletionPolicy] == greenhouseapis.DeletionPolicyRetain {

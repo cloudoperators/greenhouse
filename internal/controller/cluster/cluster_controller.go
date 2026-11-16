@@ -202,12 +202,11 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 	}
 
 	p := &clusterphases.Phase{
-		Client:          r.Client,
-		ClusterSecret:   clusterSecret,
-		RemoteReachable: remoteReachable,
+		Client:        r.Client,
+		ClusterSecret: clusterSecret,
 	}
 
-	result, reconcileResult, err := lifecycle.ExecuteSubRoutine(ctx, p.EnsureDeletePhases(cluster))
+	result, reconcileResult, err := lifecycle.ExecuteSubRoutine(ctx, p.EnsureDeletePhases(cluster, remoteReachable))
 	if reconcileResult == lifecycle.Success {
 		deleteClusterMetrics(cluster)
 	}
