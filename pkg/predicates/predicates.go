@@ -224,7 +224,10 @@ func PredicateFluxHelmReleaseStatus() predicate.Predicate {
 // PredicateResourceIsDeleted fires only when a resource is deleted.
 func PredicateResourceIsDeleted() predicate.Predicate {
 	return predicate.Funcs{
-		DeleteFunc: func(_ event.DeleteEvent) bool { return true },
+		CreateFunc:  func(_ event.CreateEvent) bool { return false },
+		UpdateFunc:  func(_ event.UpdateEvent) bool { return false },
+		DeleteFunc:  func(_ event.DeleteEvent) bool { return true },
+		GenericFunc: func(_ event.GenericEvent) bool { return false },
 	}
 }
 
