@@ -29,6 +29,7 @@ type Phase struct {
 	RestClientGetter                   *clientutil.RestClientGetter
 	RemoteClient                       client.Client
 	WorkloadIdentityEnabled            bool
+	RemoteReachable                    bool
 	crb                                *rbacv1.ClusterRoleBinding
 }
 
@@ -75,7 +76,7 @@ func (p *Phase) EnsureDeletePhases(cluster *greenhousev1alpha1.Cluster) []lifecy
 		p.ensurePluginsDeleted(cluster),
 		p.ensureTeamRBACDeleted(cluster),
 	}
-	if p.ClusterSecret != nil && p.ClusterSecret.Type != greenhouseapis.SecretTypeOIDCConfig {
+	if p.RemoteReachable && p.ClusterSecret != nil && p.ClusterSecret.Type != greenhouseapis.SecretTypeOIDCConfig {
 		phases = append([]lifecycle.SubRoutine{p.createRemoteClient(cluster)}, append(phases, p.deleteClusterRoleBinding())...)
 	}
 	return phases

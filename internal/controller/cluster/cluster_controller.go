@@ -184,24 +184,27 @@ func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource li
 func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	cluster := resource.(*greenhousev1alpha1.Cluster)
 
+	remoteReachable := true
+
 	c := cluster.Status.GetConditionByType(greenhousev1alpha1.KubeConfigValid)
 	if c != nil && c.IsFalse() {
-		deleteClusterMetrics(cluster)
-		return ctrl.Result{}, lifecycle.Success, nil
+		remoteReachable = false
 	}
 
 	clusterSecret := &corev1.Secret{}
 	if err := r.Get(ctx, types.NamespacedName{Namespace: cluster.GetNamespace(), Name: cluster.GetSecretName()}, clusterSecret); err != nil {
 		if client.IgnoreNotFound(err) == nil {
-			deleteClusterMetrics(cluster)
-			return ctrl.Result{}, lifecycle.Success, nil
+			clusterSecret = nil
+			remoteReachable = false
+		} else {
+			return ctrl.Result{}, lifecycle.Failed, err
 		}
-		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
 	p := &clusterphases.Phase{
-		Client:        r.Client,
-		ClusterSecret: clusterSecret,
+		Client:          r.Client,
+		ClusterSecret:   clusterSecret,
+		RemoteReachable: remoteReachable,
 	}
 
 	result, reconcileResult, err := lifecycle.ExecuteSubRoutine(ctx, p.EnsureDeletePhases(cluster))
