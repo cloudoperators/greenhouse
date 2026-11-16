@@ -246,9 +246,9 @@ func TestEnsureTeamRBACDeleted(t *testing.T) {
 			if tc.workloadIdentity {
 				cluster.Annotations[greenhouseapis.ClusterWorkloadIdentityAnnotation] = greenhouseapis.ClusterWorkloadIdentityEnabled
 			}
-			p := &Phase{Client: fake.NewClientBuilder().WithScheme(testScheme(t)).WithObjects(tc.objects...).WithInterceptorFuncs(tc.interceptor).Build()}
+			p := &Phase{Client: fake.NewClientBuilder().WithScheme(testScheme(t)).WithObjects(tc.objects...).WithInterceptorFuncs(tc.interceptor).Build(), RemoteReachable: tc.remoteReachable}
 
-			result, err := p.ensureTeamRBACDeleted(cluster, tc.remoteReachable)(context.Background())
+			result, err := p.ensureTeamRBACDeleted(cluster)(context.Background())
 			require.Equal(t, tc.wantBreak, result.Break)
 			require.Equal(t, tc.wantBreak, err != nil)
 			require.Equal(t, tc.wantKubeConfigValid, cluster.Status.GetConditionByType(greenhousev1alpha1.KubeConfigValid).Status)
