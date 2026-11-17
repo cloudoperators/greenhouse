@@ -99,6 +99,75 @@ The following roles are seeded for each Organization:
 | `organization:<org-name>`        | A member of a Greenhouse `Organization`                    | `greenhouse.sap/v1alpha1` | \*                                                                                                   | `get`, `list`, `watch`      | - |
 | `organization:<org-name>`       | A member of a Greenhouse `Organization`                    | `greenhouse.sap/v1alpha1` | `organizations`, `clusterplugindefinitions`                                                                 | `get`, `list`, `watch`      | x |
 
+## Release Events
+
+An Organization can report every new Helm release of its Plugins to an HTTP endpoint. It is configured in the Organization ConfigMap set in `spec.configMapRef` and a Secret in the Organization namespace. See [Reporting Plugin Releases](./../../../user-guides/organization/release-events) for a walkthrough.
+
+### ConfigMap keys
+
+| Key | Description |
+|-----|-------------|
+| `releaseEventsConfig` | The payload template. Release events are on for the Organization when this key is set. |
+| `releaseEventsSecretName` | The name of the Secret with the endpoint and the credentials. Required when `releaseEventsConfig` is set. |
+
+### Secret keys
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `authType` | yes | `BASIC` or `OAUTH2`. |
+| `endpoint` | yes | The URL the events are sent to. |
+| `username` | yes | The basic auth user, or the client ID with `OAUTH2`. |
+| `password` | yes | The basic auth password, or the client secret with `OAUTH2`. |
+| `tokenURL` | with `OAUTH2` | The token endpoint for the OAuth2 client credentials flow. |
+| `tokenHeader` | no | The header the OAuth2 token is sent in, as the plain token. Without it the token is sent as `Authorization: Bearer <token>`. |
+
+### What the template gets
+
+The payload template is a Go template with the [Sprig](https://masterminds.github.io/sprig/) functions except `env` and `expandenv`. It has to render valid JSON or nothing. When it renders nothing, the release is skipped.
+
+| Field | Description |
+|-------|-------------|
+| `.Organization` | The name of the Organization. |
+| `.Plugin` | The Plugin, with `metadata`, `spec` and `status`, for example `.Plugin.Name`, `.Plugin.Labels` or `.Plugin.Spec.PluginDefinitionRef.Name`. |
+| `.Cluster` | The Cluster the Plugin is deployed to, for example `.Cluster.Name` or `.Cluster.Labels`. Empty for a Plugin without `spec.clusterName`. |
+| `.Release` | The Helm release as recorded by Flux in the HelmRelease history. |
+
+The fields of `.Release`:
+
+| Field | Description |
+|-------|-------------|
+| `.Release.Name` | The name of the Helm release. |
+| `.Release.Namespace` | The namespace the release is deployed to. |
+| `.Release.Version` | The revision of the release, starting at 1. |
+| `.Release.Status` | The Helm status of the release, for example `deployed` or `failed`. |
+| `.Release.Action` | The Helm action that created the release, for example `install` or `upgrade`. |
+| `.Release.ChartName` | The name of the chart. |
+| `.Release.ChartVersion` | The version of the chart. |
+| `.Release.AppVersion` | The `appVersion` of the chart. |
+| `.Release.FirstDeployed` | When the release was first deployed. |
+| `.Release.LastDeployed` | When this revision was deployed. |
+| `.Release.Digest` | The checksum of the release, unique for every revision. |
+| `.Release.ConfigDigest` | The checksum of the values of the release. |
+
+### Feature Flags
+
+Release events are behind the feature flag `releaseEventsEnabled` in the `plugin` section of the `greenhouse-feature-flags` ConfigMap. It is `false` when unset or invalid. The flags are read when the Greenhouse controller starts.
+
+```yaml
+# greenhouse-feature-flags ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: greenhouse-feature-flags
+  namespace: greenhouse
+data:
+  plugin: |
+    releaseEventsEnabled: true
+```
+
+While the flag is off, no events are sent and the `ReleaseEventSent` condition is removed from all Plugins.
+
 ## Next Steps
 
 - [Creating an Organization](./../../../user-guides/organization/creation)
+- [Reporting Plugin Releases](./../../../user-guides/organization/release-events)
