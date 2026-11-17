@@ -77,9 +77,15 @@ func (p *Phase) EnsureDeletePhases(cluster *greenhousev1alpha1.Cluster) []lifecy
 		p.ensurePluginsDeleted(cluster),
 		p.ensureTeamRBACDeleted(cluster),
 	}
-	if p.RemoteReachable && p.ClusterSecret != nil && p.ClusterSecret.Type != greenhouseapis.SecretTypeOIDCConfig {
-		phases = append([]lifecycle.SubRoutine{p.createRemoteClient(cluster)}, append(phases, p.deleteClusterRoleBinding())...)
-	}
+	phases = append(phases, func(ctx context.Context) (lifecycle.Result, error) {
+		if !p.RemoteReachable || p.ClusterSecret == nil || p.ClusterSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
+			return lifecycle.Continue(), nil
+		}
+		if result, err := p.createRemoteClient(cluster)(ctx); err != nil || result.Break {
+			return result, err
+		}
+		return p.deleteClusterRoleBinding()(ctx)
+	})
 	return phases
 }
 
