@@ -5,8 +5,6 @@ package v1alpha1
 
 import (
 	"context"
-	"fmt"
-	"strconv"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -15,7 +13,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
@@ -29,7 +26,6 @@ func SetupPluginDefinitionWebhookWithManager(mgr ctrl.Manager) error {
 			DefaultFunc:        DefaultPluginDefinition,
 			ValidateCreateFunc: ValidateCreatePluginDefinition,
 			ValidateUpdateFunc: ValidateUpdatePluginDefinition,
-			ValidateDeleteFunc: ValidateDeletePluginDefinition,
 		},
 	)
 }
@@ -41,7 +37,6 @@ func SetupClusterPluginDefinitionWebhookWithManager(mgr ctrl.Manager) error {
 			DefaultFunc:        DefaultClusterPluginDefinition,
 			ValidateCreateFunc: ValidateCreateClusterPluginDefinition,
 			ValidateUpdateFunc: ValidateUpdateClusterPluginDefinition,
-			ValidateDeleteFunc: ValidateDeleteClusterPluginDefinition,
 		},
 	)
 }
@@ -96,34 +91,6 @@ func validateUpdate(pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec
 		return err
 	}
 	return validatePluginDefinitionOptionValueAndType(pluginDefinitionSpec, gvk, name)
-}
-
-func ValidateDeletePluginDefinition(ctx context.Context, c client.Client, pd *greenhousev1alpha1.PluginDefinition) (admission.Warnings, error) {
-	return validateDelete(ctx, c, greenhouseapis.LabelKeyPluginDefinition, pd.GetName(), pd.GetNamespace())
-}
-
-func ValidateDeleteClusterPluginDefinition(ctx context.Context, c client.Client, cpd *greenhousev1alpha1.ClusterPluginDefinition) (admission.Warnings, error) {
-	return validateDelete(ctx, c, greenhouseapis.LabelKeyClusterPluginDefinition, cpd.GetName(), "")
-}
-
-func validateDelete(ctx context.Context, c client.Client, labelKey, name, namespace string) (admission.Warnings, error) {
-	list := &greenhousev1alpha1.PluginList{}
-	opt := client.MatchingLabels{labelKey: name}
-	ns := client.InNamespace(namespace)
-	if err := c.List(ctx, list, opt, ns); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	if len(list.Items) > 0 {
-		pluginName := list.Items[0].GetName()
-		if len(list.Items) > 1 {
-			pluginName += " and " + strconv.Itoa(len(list.Items)-1) + " more"
-		}
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("PluginDefinition %s is still in use by Plugin %s", name, pluginName))
-	}
-	return nil, nil
 }
 
 func validatePluginDefinitionMustSpecifyVersion(pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec) error {
