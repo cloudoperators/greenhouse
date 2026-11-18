@@ -26,7 +26,7 @@ groups:
         playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/plugin/pluginpreset-not-reconciled/
       annotations:
         summary: "PluginPreset cannot reconcile all Plugins for over 15 minutes"
-        description: "The PluginPreset {{ $labels.pluginPreset }} in organization {{ $labels.organization }} has not been able to reconcile all Plugins for more than 15 minutes."
+        description: "The PluginPreset {{ $labels.pluginPreset }} in organization {{ $labels.organization }} has not been able to reconcile all Plugins for more than 15 minutes. <https://{{ $labels.organization }}.dashboard.__DNS_DOMAIN__/admin/plugin-presets/{{ $labels.pluginPreset }}|Open in Greenhouse>"
     - alert: GreenhousePluginConstantlyFailing
       annotations:
         summary: "Plugin reconciliation is constantly failing"
