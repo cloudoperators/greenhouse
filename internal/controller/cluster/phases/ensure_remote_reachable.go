@@ -6,23 +6,35 @@ package phases
 import (
 	"context"
 
-	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
-// checkKubeconfigReachability probes the remote cluster using the kubeconfig secret.
+// checkKubeconfigReachability probes the remote cluster to determine if it is reachable.
 func (p *Phase) checkKubeconfigReachability(cluster *greenhousev1alpha1.Cluster) lifecycle.SubRoutine {
-	return func(_ context.Context) (lifecycle.Result, error) {
-		if p.ClusterSecret == nil || p.ClusterSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
+	return func(ctx context.Context) (lifecycle.Result, error) {
+		if p.ClusterSecret == nil {
 			return lifecycle.Continue(), nil
 		}
-		rcg, err := clientutil.NewRestClientGetterFromSecret(p.ClusterSecret, cluster.GetNamespace())
-		if err != nil {
-			p.RemoteReachable = false
-			return lifecycle.Continue(), nil //nolint:nilerr // unreachable cluster is not an error, cleanup phases still run
+
+		var rcg *clientutil.RestClientGetter
+		if p.WorkloadIdentityEnabled {
+			var err error
+			rcg, err = clientutil.NewRestClientGetterForWI(ctx, p.Client, p.ClusterSecret, cluster.GetNamespace())
+			if err != nil {
+				// token minting failure is transient — don't change RemoteReachable
+				return lifecycle.Continue(), nil //nolint:nilerr
+			}
+		} else {
+			var err error
+			rcg, err = clientutil.NewRestClientGetterFromSecret(p.ClusterSecret, cluster.GetNamespace())
+			if err != nil {
+				p.RemoteReachable = false
+				return lifecycle.Continue(), nil //nolint:nilerr // unreachable cluster is not an error, cleanup phases still run
+			}
 		}
+
 		if _, err := clientutil.GetKubernetesVersion(rcg); err != nil {
 			p.RemoteReachable = false
 			return lifecycle.Continue(), nil //nolint:nilerr // unreachable cluster is not an error, cleanup phases still run
