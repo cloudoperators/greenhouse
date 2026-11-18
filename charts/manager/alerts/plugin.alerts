@@ -2,7 +2,7 @@ groups:
   - name: greenhouse-plugin.rules
     rules:
     - alert: GreenhousePluginNotReady
-      expr: max by (organization, clusterName, plugin, owned_by) (last_over_time(greenhouse_plugin_ready[15m])) == 0
+      expr: max by (organization, clusterName, plugin, owned_by, pluginPreset) (last_over_time(greenhouse_plugin_ready[15m])) == 0
       for: 15m
       labels:
         severity: warning
@@ -14,7 +14,7 @@ groups:
         playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/plugin/plugin-not-ready/
       annotations:
         summary: "Plugin not ready for over 15 minutes"
-        description: "The plugin {{ $labels.plugin }} in organization {{ $labels.organization }} on cluster {{ $labels.clusterName }} has not been ready for more than 15 minutes."
+        description: "The plugin {{ $labels.plugin }} in organization {{ $labels.organization }} on cluster {{ $labels.clusterName }} has not been ready for more than 15 minutes.{{ if $labels.pluginPreset }} <https://{{ $labels.organization }}.dashboard.__DNS_DOMAIN__/admin/plugin-presets/{{ $labels.pluginPreset }}/plugin-instances/{{ $labels.plugin }}|Open in Greenhouse>{{ end }}"
     - alert: GreenhousePluginPresetNotReconciled
       expr: max by (organization, pluginPreset, owned_by) (last_over_time(greenhouse_pluginpreset_plugins_reconciled[15m])) == 0
       for: 15m
@@ -30,15 +30,15 @@ groups:
     - alert: GreenhousePluginConstantlyFailing
       annotations:
         summary: "Plugin reconciliation is constantly failing"
-        description: "Plugin {{ $labels.plugin }} in organization {{ $labels.organization }} keeps failing."
+        description: "Plugin {{ $labels.plugin }} in organization {{ $labels.organization }} keeps failing.{{ if $labels.pluginPreset }} <https://{{ $labels.organization }}.dashboard.__DNS_DOMAIN__/admin/plugin-presets/{{ $labels.pluginPreset }}/plugin-instances/{{ $labels.plugin }}|Open in Greenhouse>{{ end }}"
       expr: |
         (
-          sum by (organization, clusterName, plugin, owned_by) (rate(greenhouse_plugin_reconcile_total{result="error"}[1h]))
+          sum by (organization, clusterName, plugin, owned_by, pluginPreset) (rate(greenhouse_plugin_reconcile_total{result="error"}[1h]))
         /
-          sum by (organization, clusterName, plugin, owned_by) (rate(greenhouse_plugin_reconcile_total[1h]))
+          sum by (organization, clusterName, plugin, owned_by, pluginPreset) (rate(greenhouse_plugin_reconcile_total[1h]))
         ) > 0.5
         and
-        sum by (organization, clusterName, plugin, owned_by) (increase(greenhouse_plugin_reconcile_total{result="error"}[1h])) > 3
+        sum by (organization, clusterName, plugin, owned_by, pluginPreset) (increase(greenhouse_plugin_reconcile_total{result="error"}[1h])) > 3
       for: 15m
       labels:
         severity: warning

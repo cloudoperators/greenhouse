@@ -17,7 +17,7 @@ var (
 			Name: "greenhouse_plugin_ready",
 			Help: "Indicates whether the plugin is ready",
 		},
-		[]string{"pluginDefinition", "clusterName", "plugin", "organization", "owned_by"})
+		[]string{"pluginDefinition", "clusterName", "plugin", "organization", "owned_by", "pluginPreset"})
 )
 
 func init() {
@@ -31,6 +31,7 @@ func updatePluginReadyMetric(plugin *greenhousev1alpha1.Plugin, ready bool) {
 		"plugin":           plugin.Name,
 		"organization":     plugin.Namespace,
 		"owned_by":         plugin.Labels[greenhouseapis.LabelKeyOwnedBy],
+		"pluginPreset":     plugin.Labels[greenhouseapis.LabelKeyPluginPreset],
 	}
 	if ready {
 		pluginReady.With(pluginReadyLabels).Set(1)

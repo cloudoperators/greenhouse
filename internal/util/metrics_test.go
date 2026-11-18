@@ -81,7 +81,7 @@ var _ = Describe("Shared Plugin metrics", Ordered, func() {
 			`
         	# HELP greenhouse_plugin_reconcile_total 
       		# TYPE greenhouse_plugin_reconcile_total counter
-      		greenhouse_plugin_reconcile_total{clusterName="",organization="",owned_by="",plugin="",pluginDefinition="",result="success"} 1
+      		greenhouse_plugin_reconcile_total{clusterName="",organization="",owned_by="",plugin="",pluginDefinition="",pluginPreset="",result="success"} 1
     		`,
 			util.MetricResultSuccess),
 		Entry("success plugin with data",
@@ -90,7 +90,8 @@ var _ = Describe("Shared Plugin metrics", Ordered, func() {
 					Name:      "test_success_plugin",
 					Namespace: "test_organization",
 					Labels: map[string]string{
-						greenhouseapis.LabelKeyOwnedBy: "test_owner",
+						greenhouseapis.LabelKeyOwnedBy:      "test_owner",
+						greenhouseapis.LabelKeyPluginPreset: "test-preset",
 					},
 				},
 				Spec: greenhousev1alpha1.PluginSpec{
@@ -104,7 +105,7 @@ var _ = Describe("Shared Plugin metrics", Ordered, func() {
 			`
         	# HELP greenhouse_plugin_reconcile_total 
       		# TYPE greenhouse_plugin_reconcile_total counter
-      		greenhouse_plugin_reconcile_total{clusterName="cluster-a",organization="test_organization",owned_by="test_owner",plugin="test_success_plugin",pluginDefinition="test-plugin-definition",result="success"} 1
+      		greenhouse_plugin_reconcile_total{clusterName="cluster-a",organization="test_organization",owned_by="test_owner",plugin="test_success_plugin",pluginDefinition="test-plugin-definition",pluginPreset="test-preset",result="success"} 1
     		`,
 			util.MetricResultSuccess),
 		Entry("error plugin with reconcile conditions",
@@ -120,7 +121,7 @@ var _ = Describe("Shared Plugin metrics", Ordered, func() {
 			`
         	# HELP greenhouse_plugin_reconcile_total 
       		# TYPE greenhouse_plugin_reconcile_total counter
-      		greenhouse_plugin_reconcile_total{clusterName="cluster-a",organization="test_organization",owned_by="",plugin="test_error_plugin",pluginDefinition="",result="error"} 1
+      		greenhouse_plugin_reconcile_total{clusterName="cluster-a",organization="test_organization",owned_by="",plugin="test_error_plugin",pluginDefinition="",pluginPreset="",result="error"} 1
     		`,
 			util.MetricResultError),
 		Entry("error plugin with drift conditions",
@@ -136,7 +137,7 @@ var _ = Describe("Shared Plugin metrics", Ordered, func() {
 			`
         	# HELP greenhouse_plugin_reconcile_total 
       		# TYPE greenhouse_plugin_reconcile_total counter
-      		greenhouse_plugin_reconcile_total{clusterName="cluster-a",organization="test_organization",owned_by="",plugin="test_error_plugin",pluginDefinition="",result="error"} 1
+      		greenhouse_plugin_reconcile_total{clusterName="cluster-a",organization="test_organization",owned_by="",plugin="test_error_plugin",pluginDefinition="",pluginPreset="",result="error"} 1
     		`,
 			util.MetricResultError),
 	)
@@ -148,6 +149,6 @@ func registerPluginMetrics() {
 		prometheus.CounterOpts{
 			Name: "greenhouse_plugin_reconcile_total",
 		},
-		[]string{"pluginDefinition", "clusterName", "plugin", "organization", "result", "owned_by"})
+		[]string{"pluginDefinition", "clusterName", "plugin", "organization", "result", "owned_by", "pluginPreset"})
 	crmetrics.Registry.MustRegister(util.PluginReconcileTotal)
 }
