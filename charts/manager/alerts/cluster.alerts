@@ -4,7 +4,7 @@ groups:
     - alert: GreenhouseClusterNotReady
       annotations:
         summary: "Cluster not ready"
-        description: "Cluster {{ $labels.clusterName }} in organization {{ $labels.organization }} has not been ready for more than 15 minutes."
+        description: "Cluster {{ $labels.clusterName }} in organization {{ $labels.organization }} has not been ready for more than 15 minutes. <https://{{ $labels.organization }}.dashboard.__DNS_DOMAIN__/admin/clusters/{{ $labels.clusterName }}|Open in Greenhouse>"
       expr: max by (organization, clusterName, owned_by) (last_over_time(greenhouse_cluster_ready[15m])) == 0
       for: 15m
       labels:
@@ -16,7 +16,7 @@ groups:
         playbook: https://cloudoperators.github.io/greenhouse/docs/operations/playbooks/cluster/cluster-not-ready/
     - alert: GreenhouseClusterTokenExpiry
       annotations:
-        description: The kubeconfig token for {{ $labels.clusterName }} in {{ $labels.organization }} will expire less than 20 hours.
+        description: The kubeconfig token for {{ $labels.clusterName }} in {{ $labels.organization }} will expire less than 20 hours. <https://{{ $labels.organization }}.dashboard.__DNS_DOMAIN__/admin/clusters/{{ $labels.clusterName }}|Open in Greenhouse>
         summary: The kubeconfig token is not refreshed.
       expr: max by (organization, clusterName, owned_by) (last_over_time(greenhouse_cluster_kubeconfig_validity_seconds[15m])) < 3600 * 20
       for: 30m
@@ -30,7 +30,7 @@ groups:
     - alert: GreenhouseClusterKubernetesVersionOutOfMaintenance
       annotations:
         summary: "Kubernetes version out of maintenance"
-        description: "Cluster {{ $labels.clusterName }} in organization {{ $labels.organization }} is running Kubernetes version {{ $labels.version }} which is out of maintenance."
+        description: "Cluster {{ $labels.clusterName }} in organization {{ $labels.organization }} is running Kubernetes version {{ $labels.version }} which is out of maintenance. <https://{{ $labels.organization }}.dashboard.__DNS_DOMAIN__/admin/clusters/{{ $labels.clusterName }}|Open in Greenhouse>"
       expr: max by (organization, clusterName, version, owned_by) (last_over_time(greenhouse_cluster_k8s_versions_total{version=~"v1\\.(1[0-9]|2[0-9]|3[0-3])\\..*"}[15m])) == 1
       labels:
         severity: warning
