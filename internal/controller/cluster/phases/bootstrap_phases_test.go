@@ -21,6 +21,7 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/controller/cluster/utils"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	"github.com/cloudoperators/greenhouse/pkg/mocks"
@@ -36,6 +37,7 @@ func testScheme(t *testing.T) *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	require.NoError(t, corev1.AddToScheme(scheme))
 	require.NoError(t, greenhousev1alpha1.AddToScheme(scheme))
+	require.NoError(t, greenhousev1alpha2.AddToScheme(scheme))
 	return scheme
 }
 
