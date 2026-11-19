@@ -28,7 +28,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/yaml"
@@ -45,12 +45,12 @@ var (
 )
 
 // UninstallHelmRelease removes the Helm release for the given Plugin.
-func UninstallHelmRelease(ctx context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) (releaseNotFound bool, err error) {
-	cfg, err := newHelmAction(restClientGetter, plugin.Spec.ReleaseNamespace)
+func UninstallHelmRelease(ctx context.Context, restConfig *rest.Config, plugin *greenhousev1alpha1.Plugin) (releaseNotFound bool, err error) {
+	cfg, err := newHelmAction(restConfig, plugin.Spec.ReleaseNamespace)
 	if err != nil {
 		return false, err
 	}
-	_, isReleaseExists, err := isReleaseExistsForPlugin(ctx, restClientGetter, plugin)
+	_, isReleaseExists, err := isReleaseExistsForPlugin(ctx, restConfig, plugin)
 	if err != nil {
 		return false, err
 	}
@@ -64,8 +64,8 @@ func UninstallHelmRelease(ctx context.Context, restClientGetter genericclioption
 }
 
 // isReleaseExistsForPlugin checks whether a Helm release exists for the given Plugin.
-func isReleaseExistsForPlugin(ctx context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) (*release.Release, bool, error) {
-	helmRelease, err := GetReleaseForHelmChartFromPlugin(ctx, restClientGetter, plugin)
+func isReleaseExistsForPlugin(ctx context.Context, restConfig *rest.Config, plugin *greenhousev1alpha1.Plugin) (*release.Release, bool, error) {
+	helmRelease, err := GetReleaseForHelmChartFromPlugin(ctx, restConfig, plugin)
 	if err != nil {
 		switch errors.Is(err, driver.ErrReleaseNotFound) {
 		case true:
@@ -78,8 +78,8 @@ func isReleaseExistsForPlugin(ctx context.Context, restClientGetter genericcliop
 }
 
 // GetReleaseForHelmChartFromPlugin returns the Helm release for the given Plugin or an error.
-func GetReleaseForHelmChartFromPlugin(_ context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) (*release.Release, error) {
-	cfg, err := newHelmAction(restClientGetter, plugin.Spec.ReleaseNamespace)
+func GetReleaseForHelmChartFromPlugin(_ context.Context, restConfig *rest.Config, plugin *greenhousev1alpha1.Plugin) (*release.Release, error) {
+	cfg, err := newHelmAction(restConfig, plugin.Spec.ReleaseNamespace)
 	if err != nil {
 		return nil, err
 	}
@@ -87,8 +87,8 @@ func GetReleaseForHelmChartFromPlugin(_ context.Context, restClientGetter generi
 }
 
 // TemplateHelmChartFromPlugin returns the rendered manifest or an error.
-func TemplateHelmChartFromPlugin(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec, plugin *greenhousev1alpha1.Plugin) (*release.Release, error) {
-	helmRelease, err := installRelease(ctx, local, restClientGetter, pluginDefinitionSpec, plugin, true)
+func TemplateHelmChartFromPlugin(ctx context.Context, local client.Client, restConfig *rest.Config, pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec, plugin *greenhousev1alpha1.Plugin) (*release.Release, error) {
+	helmRelease, err := installRelease(ctx, local, restConfig, pluginDefinitionSpec, plugin, true)
 	if err != nil {
 		return nil, err
 	}
@@ -98,8 +98,8 @@ func TemplateHelmChartFromPlugin(ctx context.Context, local client.Client, restC
 // TemplateHelmChartFromPluginOptionValues returns the rendered manifest or an error.
 // The chart is loaded from chartPath (typically a .tgz fetched from a Flux HelmChart
 // artifact and persisted on disk by flux.IArtifactory) — no upstream registry pull.
-func TemplateHelmChartFromPluginOptionValues(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinitionSpec *greenhousev1alpha1.PluginDefinitionSpec, plugin *greenhousev1alpha1.Plugin, optionValues []greenhousev1alpha1.PluginOptionValue, chartPath string) (*release.Release, error) {
-	installAction, _, err := newHelmInstallAction(restClientGetter, plugin.Spec.ReleaseName, plugin.Spec.ReleaseNamespace, pluginDefinitionSpec.Version, true)
+func TemplateHelmChartFromPluginOptionValues(ctx context.Context, local client.Client, restConfig *rest.Config, pluginDefinitionSpec *greenhousev1alpha1.PluginDefinitionSpec, plugin *greenhousev1alpha1.Plugin, optionValues []greenhousev1alpha1.PluginOptionValue, chartPath string) (*release.Release, error) {
+	installAction, _, err := newHelmInstallAction(restConfig, plugin.Spec.ReleaseName, plugin.Spec.ReleaseNamespace, pluginDefinitionSpec.Version, true)
 	if err != nil {
 		return nil, err
 	}
@@ -139,8 +139,8 @@ func configureChartPathOptions(cpo *action.ChartPathOptions, c *greenhousev1alph
 	return chartName
 }
 
-func installRelease(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec, plugin *greenhousev1alpha1.Plugin, isDryRun bool) (*release.Release, error) {
-	installAction, capabilities, err := newHelmInstallAction(restClientGetter, plugin.GetReleaseName(), plugin.Spec.ReleaseNamespace, pluginDefinitionSpec.Version, isDryRun)
+func installRelease(ctx context.Context, local client.Client, restConfig *rest.Config, pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec, plugin *greenhousev1alpha1.Plugin, isDryRun bool) (*release.Release, error) {
+	installAction, capabilities, err := newHelmInstallAction(restConfig, plugin.GetReleaseName(), plugin.Spec.ReleaseNamespace, pluginDefinitionSpec.Version, isDryRun)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +150,7 @@ func installRelease(ctx context.Context, local client.Client, restClientGetter g
 		return nil, err
 	}
 
-	c, err := clientutil.NewK8sClientFromRestClientGetter(restClientGetter)
+	c, err := clientutil.NewK8sClient(restConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +186,8 @@ func loadHelmChart(chartPathOptions *action.ChartPathOptions, reference *greenho
 	return ChartLoader(chartPath)
 }
 
-func newHelmAction(restClientGetter genericclioptions.RESTClientGetter, namespace string) (*action.Configuration, error) {
+func newHelmAction(restConfig *rest.Config, namespace string) (*action.Configuration, error) {
+	restClientGetter := clientutil.NewRestClientGetterFromRestConfig(restConfig, namespace)
 	cfg := &action.Configuration{}
 	settings.SetNamespace(namespace)
 	if err := cfg.Init(restClientGetter, namespace, "secrets", debug); err != nil {
@@ -203,7 +204,7 @@ func newHelmAction(restClientGetter genericclioptions.RESTClientGetter, namespac
 		return nil, err
 	}
 	cfg.RegistryClient = registryClient
-	caps, err := getCapabilities(cfg)
+	caps, err := getCapabilities(restConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -211,8 +212,8 @@ func newHelmAction(restClientGetter genericclioptions.RESTClientGetter, namespac
 	return cfg, nil
 }
 
-func newHelmInstallAction(restClientGetter genericclioptions.RESTClientGetter, releaseName, releaseNamespace, pluginDefinitionVersion string, isDryRun bool) (*action.Install, *chartutil.Capabilities, error) {
-	cfg, err := newHelmAction(restClientGetter, releaseNamespace)
+func newHelmInstallAction(restConfig *rest.Config, releaseName, releaseNamespace, pluginDefinitionVersion string, isDryRun bool) (*action.Install, *chartutil.Capabilities, error) {
+	cfg, err := newHelmAction(restConfig, releaseNamespace)
 	if err != nil {
 		return nil, nil, err
 	}
