@@ -51,7 +51,7 @@ func retainedTRBSets(ctx context.Context, c client.Client, cluster *greenhousev1
 	retainedTRBNames = make(map[string]struct{})
 	retainedTeamRoleNames = make(map[string]struct{})
 	for _, trb := range trbList.Items {
-		if !strings.EqualFold(trb.Annotations[greenhouseapis.AnnotationKeyDeletionPolicy], greenhouseapis.DeletionPolicyRetain) {
+		if !strings.EqualFold(trb.Annotations[greenhouseapis.AnnotationKeyTRBDeletionPolicy], greenhouseapis.DeletionPolicyRetain) {
 			continue
 		}
 		retainedTRBNames[trb.GetName()] = struct{}{}

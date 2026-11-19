@@ -212,7 +212,7 @@ func (r *TeamRoleBindingReconciler) EnsureDeleted(ctx context.Context, resource 
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	trbRetain := strings.EqualFold(trb.Annotations[greenhouseapis.AnnotationKeyDeletionPolicy], greenhouseapis.DeletionPolicyRetain)
+	trbRetain := strings.EqualFold(trb.Annotations[greenhouseapis.AnnotationKeyTRBDeletionPolicy], greenhouseapis.DeletionPolicyRetain)
 	for _, cluster := range clusters.Items {
 		if trbRetain || strings.EqualFold(cluster.Annotations[greenhouseapis.AnnotationKeyDeletionPolicy], greenhouseapis.DeletionPolicyRetain) {
 			trb.RemovePropagationStatus(cluster.GetName())
