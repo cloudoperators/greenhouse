@@ -62,6 +62,12 @@ services:
   verification:
     google: "EuDrBPoZWZZ-tS7AufK5O81gdUp-rzFZ34TtDRsdgrs"
 
+security:
+  allowContent:
+    - '^text/html$'
+    - '^text/markdown$'
+    - '^text/x-markdown$'
+
 outputs:
   section:
     - HTML
