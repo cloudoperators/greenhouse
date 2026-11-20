@@ -212,7 +212,12 @@ func (r *TeamRoleBindingReconciler) EnsureDeleted(ctx context.Context, resource 
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
+	trbRetain := strings.EqualFold(trb.Annotations[greenhouseapis.AnnotationKeyTRBDeletionPolicy], greenhouseapis.DeletionPolicyRetain)
 	for _, cluster := range clusters.Items {
+		if trbRetain || strings.EqualFold(cluster.Annotations[greenhouseapis.AnnotationKeyDeletionPolicy], greenhouseapis.DeletionPolicyRetain) {
+			trb.RemovePropagationStatus(cluster.GetName())
+			continue
+		}
 		if err := r.cleanupCluster(ctx, trb, &cluster); err != nil {
 			r.recorder.Eventf(trb, &cluster, corev1.EventTypeWarning, greenhousemetav1alpha1.FailedDeleteEvent, "deleting TeamRoleBinding", "Failed to remove resources for %s from cluster %s", trb.GetName(), cluster.GetName())
 			continue
