@@ -4,12 +4,26 @@
 package organization_test
 
 import (
+	"log/slog"
+
+	"github.com/dexidp/dex/storage/memory"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/controller/organization"
 	dexstore "github.com/cloudoperators/greenhouse/internal/dex"
+	"github.com/cloudoperators/greenhouse/internal/test"
 )
+
+var _ = Describe("removeAuthRedirectFromDefaultConnector", func() {
+	It("should ignore a missing default client", func() {
+		org := &greenhousev1alpha1.Organization{ObjectMeta: metav1.ObjectMeta{Name: "greenhouse"}}
+		dex := memory.New(slog.New(slog.DiscardHandler))
+		Expect(organization.ExportRemoveAuthRedirectFromDefaultConnector(test.Ctx, dex, org)).To(Succeed())
+	})
+})
 
 var _ = Describe("incrementResourceVersion", func() {
 	DescribeTable("should correctly increment the resource version for postgres storage",

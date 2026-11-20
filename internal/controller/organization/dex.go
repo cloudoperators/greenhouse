@@ -54,6 +54,10 @@ func (r *OrganizationReconciler) discoverOIDCRedirectURL(ctx context.Context, or
 func (r *OrganizationReconciler) removeAuthRedirectFromDefaultConnector(ctx context.Context, org *greenhousev1alpha1.Organization) error {
 	defaultClient, err := r.dex.GetClient(ctx, defaultGreenhouseConnectorID)
 	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			log.FromContext(ctx).Info("default oauth2client not found", "name", defaultGreenhouseConnectorID)
+			return nil
+		}
 		log.FromContext(ctx).Error(err, "failed to get default oauth2client", "name", defaultGreenhouseConnectorID)
 		return err
 	}
@@ -86,16 +90,16 @@ func (r *OrganizationReconciler) deleteDexConnector(ctx context.Context, org *gr
 	return nil
 }
 
-func (r *OrganizationReconciler) deleteOAuth2Client(ctx context.Context, org *greenhousev1alpha1.Organization) error {
-	if err := r.dex.DeleteClient(ctx, org.Name); err != nil {
+func (r *OrganizationReconciler) deleteOAuth2Client(ctx context.Context, name string) error {
+	if err := r.dex.DeleteClient(ctx, name); err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
-			log.FromContext(ctx).Info("oauth2client not found", "name", org.Name)
+			log.FromContext(ctx).Info("oauth2client not found", "name", name)
 			return nil
 		}
-		log.FromContext(ctx).Error(err, "failed to delete oauth2client", "name", org.Name)
+		log.FromContext(ctx).Error(err, "failed to delete oauth2client", "name", name)
 		return err
 	}
-	log.FromContext(ctx).Info("successfully deleted oauth2client", "name", org.Name)
+	log.FromContext(ctx).Info("successfully deleted oauth2client", "name", name)
 	return nil
 }
 

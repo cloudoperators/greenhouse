@@ -6,6 +6,7 @@ package config
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/spf13/viper"
 	corev1 "k8s.io/api/core/v1"
@@ -16,12 +17,18 @@ import (
 // ManagerConfig is the operational configuration for the greenhouse controller manager,
 // loaded from the greenhouse-cm ConfigMap.
 type ManagerConfig struct {
-	Controller map[string]ConcurrencyConfig
+	Controller          map[string]ConcurrencyConfig
+	OrganizationCleanup OrganizationCleanupConfig
 }
 
 // ConcurrencyConfig holds concurrency settings for a single controller.
 type ConcurrencyConfig struct {
 	MaxConcurrentReconciles int
+}
+
+type OrganizationCleanupConfig struct {
+	Groups          []string
+	RequeueInterval time.Duration
 }
 
 // NewManagerConfig loads ManagerConfig from the named ConfigMap.
@@ -60,4 +67,18 @@ func (c *ManagerConfig) GetMaxConcurrentReconciles(controllerName string, defaul
 		return cfg.MaxConcurrentReconciles
 	}
 	return defaultVal
+}
+
+func (c *ManagerConfig) GetOrganizationCleanupGroups() []string {
+	if c == nil {
+		return nil
+	}
+	return c.OrganizationCleanup.Groups
+}
+
+func (c *ManagerConfig) GetOrganizationCleanupRequeueInterval(defaultVal time.Duration) time.Duration {
+	if c == nil || c.OrganizationCleanup.RequeueInterval <= 0 {
+		return defaultVal
+	}
+	return c.OrganizationCleanup.RequeueInterval
 }

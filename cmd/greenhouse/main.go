@@ -61,6 +61,7 @@ const (
 	featureFlagsEnv                           = "FEATURE_FLAGS"            // used to read the feature flags configMap name from the environment.
 	defaultFeatureFlagConfigMapName           = "greenhouse-feature-flags" // default feature flags configMap name.
 	managerConfigEnv                          = "MANAGER_CONFIG"           // used to read the manager config configMap name from the environment.
+	defaultManagerConfigName                  = "greenhouse-cm"
 	leaderElectionIDController                = "operator.greenhouse.sap"
 )
 

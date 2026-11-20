@@ -52,6 +52,12 @@ controllerManager:
       maxConcurrentReconciles: 10
     clusterPluginDefinition:
       maxConcurrentReconciles: 5
+  organizationCleanup:
+    groups:
+      - shoot-grafter.cloudoperators.dev
+      - permission-manager.cloudoperators.dev
+      - repo-guard.cloudoperators.dev
+    requeueInterval: 60s
 
 webhook:
   replicas: 2
