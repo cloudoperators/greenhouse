@@ -200,6 +200,7 @@ func TestEnsureTeamRBACDeleted(t *testing.T) {
 		objects             []client.Object
 		deletionPolicy      string
 		workloadIdentity    bool
+		remoteReachable     bool
 		interceptor         interceptor.Funcs
 		wantBreak           bool
 		wantKubeConfigValid metav1.ConditionStatus
@@ -207,12 +208,14 @@ func TestEnsureTeamRBACDeleted(t *testing.T) {
 		{
 			name:                "secret without a kubeconfig marks the kubeconfig invalid",
 			objects:             []client.Object{oidcSecret()},
+			remoteReachable:     true,
 			wantBreak:           true,
 			wantKubeConfigValid: metav1.ConditionFalse,
 		},
 		{
 			name:                "unreachable remote cluster marks the kubeconfig invalid",
 			objects:             []client.Object{unreachableSecret},
+			remoteReachable:     true,
 			wantBreak:           true,
 			wantKubeConfigValid: metav1.ConditionFalse,
 		},
@@ -220,6 +223,7 @@ func TestEnsureTeamRBACDeleted(t *testing.T) {
 			name:             "failed token request on a workload identity cluster is retried",
 			objects:          []client.Object{oidcSecret()},
 			workloadIdentity: true,
+			remoteReachable:  true,
 			interceptor: interceptor.Funcs{
 				SubResourceCreate: func(context.Context, client.Client, string, client.Object, client.Object, ...client.SubResourceCreateOption) error {
 					return apierrors.NewServiceUnavailable("unavailable")
@@ -242,7 +246,7 @@ func TestEnsureTeamRBACDeleted(t *testing.T) {
 			if tc.workloadIdentity {
 				cluster.Annotations[greenhouseapis.ClusterWorkloadIdentityAnnotation] = greenhouseapis.ClusterWorkloadIdentityEnabled
 			}
-			p := &Phase{Client: fake.NewClientBuilder().WithScheme(testScheme(t)).WithObjects(tc.objects...).WithInterceptorFuncs(tc.interceptor).Build()}
+			p := &Phase{Client: fake.NewClientBuilder().WithScheme(testScheme(t)).WithObjects(tc.objects...).WithInterceptorFuncs(tc.interceptor).Build(), RemoteReachable: tc.remoteReachable}
 
 			result, err := p.ensureTeamRBACDeleted(cluster)(context.Background())
 			require.Equal(t, tc.wantBreak, result.Break)

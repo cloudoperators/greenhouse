@@ -21,7 +21,7 @@ import (
 
 func (p *Phase) ensureTeamRBACDeleted(cluster *greenhousev1alpha1.Cluster) lifecycle.SubRoutine {
 	return func(ctx context.Context) (lifecycle.Result, error) {
-		if strings.EqualFold(cluster.Annotations[greenhouseapis.AnnotationKeyDeletionPolicy], greenhouseapis.DeletionPolicyRetain) {
+		if !p.RemoteReachable || strings.EqualFold(cluster.Annotations[greenhouseapis.AnnotationKeyDeletionPolicy], greenhouseapis.DeletionPolicyRetain) {
 			return lifecycle.Continue(), nil
 		}
 		remoteClient, err := clientutil.NewK8sClientFromCluster(ctx, p.Client, cluster)
