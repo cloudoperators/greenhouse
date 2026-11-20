@@ -13,7 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
@@ -226,113 +225,5 @@ var _ = Describe("Validate (Cluster-)PluginDefinition Update", func() {
 
 		Expect(err).To(HaveOccurred(), "there should be an error updating the PluginDefinition")
 		Expect(err.Error()).To(ContainSubstring("PluginDefinition without spec.version is invalid."))
-	})
-})
-
-var _ = Describe("Validate (Cluster-)PluginDefinition Deletion", func() {
-	It("should allow deletion of ClusterPluginDefinition without Plugin", func() {
-		clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "test",
-			},
-		}
-		pluginList := &greenhousev1alpha1.PluginList{}
-
-		c := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithLists(pluginList).Build()
-
-		_, err := ValidateDeleteClusterPluginDefinition(context.TODO(), c, clusterPluginDefinition)
-		Expect(err).ToNot(HaveOccurred(), "there should be no error deleting the ClusterPluginDefinition")
-	})
-	It("should prevent deletion of ClusterPluginDefinition with Plugin", func() {
-		clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "test",
-			},
-		}
-		pluginList := &greenhousev1alpha1.PluginList{
-			Items: []greenhousev1alpha1.Plugin{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-plugin",
-						Namespace: "default",
-						Labels: map[string]string{
-							greenhouseapis.LabelKeyClusterPluginDefinition: "test",
-						},
-					},
-				},
-			},
-		}
-
-		c := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithLists(pluginList).Build()
-
-		_, err := ValidateDeleteClusterPluginDefinition(context.TODO(), c, clusterPluginDefinition)
-		Expect(err).To(HaveOccurred(), "there should be an error deleting the ClusterPluginDefinition when Plugins still exist")
-	})
-
-	It("should allow deletion of PluginDefinition without Plugin", func() {
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test",
-				Namespace: "default",
-			},
-		}
-		pluginList := &greenhousev1alpha1.PluginList{}
-
-		c := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithLists(pluginList).Build()
-
-		_, err := ValidateDeletePluginDefinition(context.TODO(), c, pluginDefinition)
-		Expect(err).ToNot(HaveOccurred(), "there should be no error deleting the PluginDefinition")
-	})
-	It("should allow deletion of PluginDefinition with Plugin in a different namespace", func() {
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test",
-				Namespace: "testns",
-			},
-		}
-		pluginList := &greenhousev1alpha1.PluginList{
-			Items: []greenhousev1alpha1.Plugin{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-plugin",
-						Namespace: "default",
-						Labels: map[string]string{
-							greenhouseapis.LabelKeyPluginDefinition: "test",
-						},
-					},
-				},
-			},
-		}
-
-		c := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithLists(pluginList).Build()
-
-		_, err := ValidateDeletePluginDefinition(context.TODO(), c, pluginDefinition)
-		Expect(err).ToNot(HaveOccurred(), "there should be no error deleting the PluginDefinition")
-	})
-	It("should prevent deletion of PluginDefinition with Plugin in the same namespace", func() {
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test",
-				Namespace: "default",
-			},
-		}
-		pluginList := &greenhousev1alpha1.PluginList{
-			Items: []greenhousev1alpha1.Plugin{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-plugin",
-						Namespace: "default",
-						Labels: map[string]string{
-							greenhouseapis.LabelKeyPluginDefinition: "test",
-						},
-					},
-				},
-			},
-		}
-
-		c := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithLists(pluginList).Build()
-
-		_, err := ValidateDeletePluginDefinition(context.TODO(), c, pluginDefinition)
-		Expect(err).To(HaveOccurred(), "there should be an error deleting the PluginDefinition when Plugins still exist")
 	})
 })

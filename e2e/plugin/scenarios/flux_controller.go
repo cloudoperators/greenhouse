@@ -378,6 +378,55 @@ func FluxControllerPluginBeforePluginDefinition(ctx context.Context, adminClient
 	}).Should(Succeed(), "the plugin should be deployed once its plugin definition exists")
 }
 
+func FluxControllerPluginDefinitionDeletedBeforePlugin(ctx context.Context, adminClient client.Client, env *shared.TestEnv, remoteClusterName string) {
+	pluginDefinition := fixtures.PreparePodInfoClusterPluginDefinition(env.TestNamespace, "6.9.0")
+	pluginDefinition.SetName("podinfo-deleted")
+
+	By("Creating the plugin definition and the plugin")
+	Expect(adminClient.Create(ctx, pluginDefinition)).To(Succeed(), "there should be no error creating the plugin definition")
+	plugin := fixtures.PreparePlugin("test-deleted-definition-plugin", env.TestNamespace,
+		test.WithClusterPluginDefinition(pluginDefinition.Name),
+		test.WithCluster(remoteClusterName),
+		test.WithReleaseName("test-deleted-definition-plugin"),
+		test.WithReleaseNamespace(env.TestNamespace),
+	)
+	Expect(adminClient.Create(ctx, plugin)).To(Succeed(), "there should be no error creating the plugin")
+
+	DeferCleanup(func() {
+		By("Deleting the plugin and the plugin definition")
+		test.EventuallyDeleted(ctx, adminClient, plugin)
+		test.EventuallyDeleted(ctx, adminClient, pluginDefinition)
+	})
+
+	By("Checking the plugin is deployed")
+	Eventually(func(g Gomega) {
+		g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(plugin), plugin)).To(Succeed())
+		g.Expect(plugin.Status.IsReadyTrue()).To(BeTrue(), "the plugin should be ready")
+	}).Should(Succeed(), "the plugin should be deployed")
+
+	By("Deleting the plugin definition while the plugin still uses it")
+	Expect(adminClient.Delete(ctx, pluginDefinition)).To(Succeed(), "there should be no error deleting the plugin definition while the plugin uses it")
+
+	By("Checking the plugin reports the missing plugin definition")
+	Eventually(func(g Gomega) {
+		g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(plugin), plugin)).To(Succeed())
+		helmReleaseCreated := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
+		g.Expect(helmReleaseCreated).ToNot(BeNil(), "Plugin HelmReleaseCreated condition must be set")
+		g.Expect(helmReleaseCreated.Reason).To(Equal(greenhousev1alpha1.PluginDefinitionNotAvailableReason),
+			"Plugin HelmReleaseCreated reason must be PluginDefinitionNotAvailable")
+	}).Should(Succeed(), "the plugin should report the missing plugin definition")
+
+	By("Checking the helm release is still deployed in the remote cluster")
+	Eventually(func(g Gomega) {
+		rel, err := helm.GetReleaseForHelmChartFromPlugin(ctx, env.RemoteRestClientGetter, plugin)
+		g.Expect(err).NotTo(HaveOccurred(), "should be able to get the helm release for the plugin")
+		g.Expect(rel.Info.Status).To(Equal(release.StatusDeployed), "the helm release should still be deployed in the remote cluster")
+	}).Should(Succeed(), "the helm release should stay deployed without its plugin definition")
+
+	By("Deleting the plugin")
+	test.EventuallyDeleted(ctx, adminClient, plugin)
+}
+
 // FluxControllerPluginDependencies is a scenario in which leafPreset depends on both midPreset and globalPlugin, and midPreset depends on globalPlugin.
 func FluxControllerPluginDependencies(ctx context.Context, adminClient client.Client, env *shared.TestEnv, remoteClusterName, teamName string) {
 	By("Creating plugin definition")

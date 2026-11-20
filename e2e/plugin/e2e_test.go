@@ -105,6 +105,10 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		scenarios.FluxControllerPluginBeforePluginDefinition(ctx, adminClient, env, remoteClusterName)
 	})
 
+	It("should keep a plugin deployed when its plugin definition is deleted", func() {
+		scenarios.FluxControllerPluginDefinitionDeletedBeforePlugin(ctx, adminClient, env, remoteClusterName)
+	})
+
 	It("should deploy plugin with dependency via flux", func() {
 		scenarios.FluxControllerPluginDependencies(ctx, adminClient, env, remoteClusterName, team.Name)
 	})
