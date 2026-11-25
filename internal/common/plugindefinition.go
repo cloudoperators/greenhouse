@@ -31,6 +31,27 @@ type GenericPluginDefinition interface {
 	SetLastSyncedArtifact(artifact *greenhousev1alpha1.LastSyncedArtifact)
 }
 
+type resolvedPluginDefinition struct {
+	*greenhousev1alpha1.PluginDefinition
+	Status resolvedStatus `json:"status"`
+}
+
+type resolvedStatus struct {
+	Flux *fluxResources `json:"flux,omitempty"`
+}
+
+type fluxResources struct {
+	HelmChart      string `json:"helmChart"`
+	HelmRepository string `json:"helmRepository"`
+}
+
+func (res *resolvedPluginDefinition) FluxHelmChartResourceName() string {
+	if res.Status.Flux == nil {
+		return ""
+	}
+	return res.Status.Flux.HelmChart
+}
+
 func getPluginDefinitionFromPromotionService(ctx context.Context, name, namespace string) (GenericPluginDefinition, error) {
 	source := fmt.Sprintf("http://%s/apis/promotion.cloudoperators.dev/v1alpha1/namespaces/%s/revisions/%s/resolve", PromotionService, namespace, name)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, source, http.NoBody)
@@ -53,12 +74,12 @@ func getPluginDefinitionFromPromotionService(ctx context.Context, name, namespac
 		return nil, fmt.Errorf("failed to get PluginDefinition from %s/%s - response status code: %d", namespace, name, resp.StatusCode)
 	}
 
-	pluginDefinition := greenhousev1alpha1.PluginDefinition{}
-	if err := json.NewDecoder(resp.Body).Decode(&pluginDefinition); err != nil {
+	res := resolvedPluginDefinition{}
+	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
 		return nil, fmt.Errorf("failed to decode PluginDefinition: %w", err)
 	}
 
-	return &pluginDefinition, nil
+	return &res, nil
 }
 
 func GetPluginDefinitionFromPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) (GenericPluginDefinition, error) {
