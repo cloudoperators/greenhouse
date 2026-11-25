@@ -79,7 +79,7 @@ func (r *PluginReconciler) EnsureFluxDeleted(ctx context.Context, plugin *greenh
 }
 
 func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, plugin *greenhousev1alpha1.Plugin) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	pluginDefinition, err := common.GetPluginDefinitionFromPlugin(ctx, r.Client, plugin.Spec.PluginDefinitionRef, plugin.GetNamespace())
+	pluginDefinition, err := common.GetPluginDefinitionFromPlugin(ctx, r.Client, plugin)
 	if err != nil {
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.PluginDefinitionNotAvailableReason, err.Error()))
@@ -291,7 +291,7 @@ func (r *PluginReconciler) computeReadyConditionFlux(ctx context.Context, plugin
 		return readyCondition
 	}
 
-	pluginDefinitionSpec, err := common.GetPluginDefinitionSpec(ctx, r.Client, plugin.Spec.PluginDefinitionRef, plugin.GetNamespace())
+	pluginDefinition, err := common.GetPluginDefinitionFromPlugin(ctx, r.Client, plugin)
 	if err != nil {
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.PluginDefinitionNotAvailableReason, err.Error()))
@@ -300,6 +300,7 @@ func (r *PluginReconciler) computeReadyConditionFlux(ctx context.Context, plugin
 		readyCondition.Message = "PluginDefinition not available"
 		return readyCondition
 	}
+	pluginDefinitionSpec := pluginDefinition.GetPluginDefinitionSpec()
 
 	plugin.Status.UIApplication = pluginDefinitionSpec.UIApplication
 	plugin.Status.Weight = pluginDefinitionSpec.Weight

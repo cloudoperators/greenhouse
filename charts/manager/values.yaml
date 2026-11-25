@@ -23,7 +23,8 @@ controllerManager:
       cpu: 10m
       memory: 128Mi
 
-  args: []
+  args:
+    - --promotion-service=greenhouse-promotions-server.greenhouse-promotions-system.svc
   env: []
   replicas: 3
   serviceAccount:

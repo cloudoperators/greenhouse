@@ -85,6 +85,8 @@ const (
 	LabelValuePluginIntegration = "true"
 
 	FluxReconcileRequestAnnotation = "reconcile.fluxcd.io/requestedAt"
+
+	AnnotationKeyPromotion = "promotion.cloudoperators.dev/revision"
 )
 
 // TeamRole and TeamRoleBinding constants
