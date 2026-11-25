@@ -24,10 +24,11 @@ var excludedGreenhouseValues = []string{
 }
 
 func GetPluginOptionValuesForPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
-	pluginDefinitionSpec, err := common.GetPluginDefinitionSpec(ctx, c, plugin.Spec.PluginDefinitionRef, plugin.GetNamespace())
+	pluginDefinition, err := common.GetPluginDefinitionFromPlugin(ctx, c, plugin)
 	if err != nil {
 		return nil, err
 	}
+	pluginDefinitionSpec := pluginDefinition.GetPluginDefinitionSpec()
 
 	// Clone, as the merge writes through to its input when the PluginDefinition declares no options.
 	values := MergePluginAndPluginOptionValueSlice(pluginDefinitionSpec.Options, slices.Clone(plugin.Spec.OptionValues))

@@ -79,6 +79,7 @@ const (
 	flagArtifactStoragePath                = "artifact-storage-path"
 	flagArtifactRetries                    = "artifact-http-retry"
 	flagCertRotatorEnabled                 = "cert-rotator-enabled"
+	flagPromotionService                   = "promotion-service"
 )
 
 var (
@@ -137,6 +138,8 @@ func main() {
 	flag.IntVar(&artifactRetries, flagArtifactRetries, 5, "Max number of retries to acquire artifact, default: 5 attempts")
 	flag.BoolVar(&certRotatorEnabled, flagCertRotatorEnabled, true,
 		"Enable the in-process webhook cert rotator. Set to false when cert-manager provisions the webhook certificate.")
+	flag.StringVar(&common.PromotionService, flagPromotionService, "",
+		"The address of promotion service.")
 
 	opts := zap.Options{
 		Development: true,
