@@ -119,6 +119,8 @@ const (
 // Deletion Policies
 const (
 	AnnotationKeyDeletionPolicy = "greenhouse.sap/plugin-deletion"
+	// AnnotationKeyTRBDeletionPolicy is the annotation key for the deletion policy on TeamRoleBindings.
+	AnnotationKeyTRBDeletionPolicy = "greenhouse.sap/deletionPolicy"
 
 	// DeletionPolicyRetain means owned resources will be retained on deletion.
 	DeletionPolicyRetain = "Retain"

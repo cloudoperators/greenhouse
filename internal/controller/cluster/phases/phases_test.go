@@ -255,24 +255,42 @@ func TestEnsureTeamRBACDeleted(t *testing.T) {
 func TestDeleteTeamRBAC(t *testing.T) {
 	forbidden := apierrors.NewForbidden(schema.GroupResource{Group: rbacv1.GroupName}, "team", errors.New("forbidden"))
 	labels := map[string]string{greenhouseapis.LabelKeyRole: "team", greenhouseapis.LabelKeyRoleBinding: "team"}
+	retainedLabels := map[string]string{greenhouseapis.LabelKeyRole: "retained-role", greenhouseapis.LabelKeyRoleBinding: "retained"}
 	objects := []client.Object{
 		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "team", Namespace: "kube-system", Labels: labels}},
 		&rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "team", Labels: labels}},
 		&rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: "team", Labels: labels}},
+		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "retained", Namespace: "kube-system", Labels: retainedLabels}},
+		&rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "retained", Labels: retainedLabels}},
+		&rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: "retained", Labels: retainedLabels}},
 		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "other", Namespace: "kube-system"}},
 		&rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "other"}},
 		&rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: "other"}},
 	}
 
 	tests := []struct {
-		name        string
-		interceptor interceptor.Funcs
-		wantBreak   bool
-		wantKept    []string
+		name                  string
+		interceptor           interceptor.Funcs
+		retainedTRBNames      map[string]struct{}
+		retainedTeamRoleNames map[string]struct{}
+		wantBreak             bool
+		wantKept              []string
 	}{
 		{
 			name:     "removes the team RBAC and keeps the rest",
 			wantKept: []string{"RoleBinding/other", "ClusterRoleBinding/other", "ClusterRole/other"},
+		},
+		{
+			name:                  "retained TRB keeps its RBAC on the remote cluster",
+			retainedTRBNames:      map[string]struct{}{"team": {}},
+			retainedTeamRoleNames: map[string]struct{}{"team": {}},
+			wantKept:              []string{"RoleBinding/team", "ClusterRoleBinding/team", "ClusterRole/team", "RoleBinding/other", "ClusterRoleBinding/other", "ClusterRole/other"},
+		},
+		{
+			name:                  "only retained TRB RBAC is kept, non-retained is deleted",
+			retainedTRBNames:      map[string]struct{}{"retained": {}},
+			retainedTeamRoleNames: map[string]struct{}{"retained-role": {}},
+			wantKept:              []string{"RoleBinding/retained", "ClusterRoleBinding/retained", "ClusterRole/retained", "RoleBinding/other", "ClusterRoleBinding/other", "ClusterRole/other"},
 		},
 		{
 			name: "no access to the remote cluster skips the cleanup",
@@ -281,17 +299,17 @@ func TestDeleteTeamRBAC(t *testing.T) {
 					return forbidden
 				},
 			},
-			wantKept: []string{"RoleBinding/team", "ClusterRoleBinding/team", "ClusterRole/team", "RoleBinding/other", "ClusterRoleBinding/other", "ClusterRole/other"},
+			wantKept: []string{"RoleBinding/team", "ClusterRoleBinding/team", "ClusterRole/team", "RoleBinding/retained", "ClusterRoleBinding/retained", "ClusterRole/retained", "RoleBinding/other", "ClusterRoleBinding/other", "ClusterRole/other"},
 		},
 		{
-			name: "failed delete still removes the other kinds and is retried",
+			name: "failed delete is retried",
 			interceptor: interceptor.Funcs{
 				Delete: func(context.Context, client.WithWatch, client.Object, ...client.DeleteOption) error {
 					return forbidden
 				},
 			},
 			wantBreak: true,
-			wantKept:  []string{"RoleBinding/team", "RoleBinding/other", "ClusterRoleBinding/other", "ClusterRole/other"},
+			wantKept:  []string{"RoleBinding/team", "ClusterRoleBinding/team", "ClusterRole/team", "RoleBinding/retained", "ClusterRoleBinding/retained", "ClusterRole/retained", "RoleBinding/other", "ClusterRoleBinding/other", "ClusterRole/other"},
 		},
 	}
 
@@ -302,7 +320,7 @@ func TestDeleteTeamRBAC(t *testing.T) {
 			c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
 			cluster := healthyCluster()
 
-			result, err := deleteTeamRBAC(context.Background(), cluster, interceptor.NewClient(c, tc.interceptor))
+			result, err := deleteTeamRBAC(context.Background(), cluster, interceptor.NewClient(c, tc.interceptor), tc.retainedTRBNames, tc.retainedTeamRoleNames)
 			require.Equal(t, tc.wantBreak, result.Break)
 			require.Equal(t, tc.wantBreak, err != nil)
 			require.True(t, cluster.Status.GetConditionByType(greenhousev1alpha1.KubeConfigValid).IsTrue())

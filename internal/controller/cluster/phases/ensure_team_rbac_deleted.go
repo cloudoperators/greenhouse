@@ -15,6 +15,7 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
@@ -32,11 +33,36 @@ func (p *Phase) ensureTeamRBACDeleted(cluster *greenhousev1alpha1.Cluster) lifec
 			}
 			return breakInvalidKubeConfig(cluster, err)
 		}
-		return deleteTeamRBAC(ctx, cluster, remoteClient)
+		retainedTRBNames, retainedTeamRoleNames, err := retainedTRBSets(ctx, p.Client, cluster)
+		if err != nil {
+			return lifecycle.Break(), err
+		}
+		return deleteTeamRBAC(ctx, cluster, remoteClient, retainedTRBNames, retainedTeamRoleNames)
 	}
 }
 
-func deleteTeamRBAC(ctx context.Context, cluster *greenhousev1alpha1.Cluster, remoteClient client.Client) (lifecycle.Result, error) {
+// retainedTRBSets returns the sets of TRB names and TeamRole names that should not have their RBAC deleted,
+// because the TRB itself is annotated with DeletionPolicyRetain.
+func retainedTRBSets(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster) (retainedTRBNames, retainedTeamRoleNames map[string]struct{}, err error) {
+	trbList := &greenhousev1alpha2.TeamRoleBindingList{}
+	if err := c.List(ctx, trbList, client.InNamespace(cluster.GetNamespace())); err != nil {
+		return nil, nil, err
+	}
+	retainedTRBNames = make(map[string]struct{})
+	retainedTeamRoleNames = make(map[string]struct{})
+	for _, trb := range trbList.Items {
+		if !strings.EqualFold(trb.Annotations[greenhouseapis.AnnotationKeyTRBDeletionPolicy], greenhouseapis.DeletionPolicyRetain) {
+			continue
+		}
+		retainedTRBNames[trb.GetName()] = struct{}{}
+		if trb.Spec.TeamRoleRef != "" {
+			retainedTeamRoleNames[trb.Spec.TeamRoleRef] = struct{}{}
+		}
+	}
+	return retainedTRBNames, retainedTeamRoleNames, nil
+}
+
+func deleteTeamRBAC(ctx context.Context, cluster *greenhousev1alpha1.Cluster, remoteClient client.Client, retainedTRBNames, retainedTeamRoleNames map[string]struct{}) (lifecycle.Result, error) {
 	roleBindings := &rbacv1.RoleBindingList{}
 	err := remoteClient.List(ctx, roleBindings, client.HasLabels{greenhouseapis.LabelKeyRoleBinding})
 	switch {
@@ -49,14 +75,46 @@ func deleteTeamRBAC(ctx context.Context, cluster *greenhousev1alpha1.Cluster, re
 	}
 	var errs []error
 	for _, roleBinding := range roleBindings.Items {
+		if _, retain := retainedTRBNames[roleBinding.Labels[greenhouseapis.LabelKeyRoleBinding]]; retain {
+			continue
+		}
 		if err := remoteClient.Delete(ctx, &roleBinding); client.IgnoreNotFound(err) != nil {
 			errs = append(errs, err)
 		}
 	}
-	errs = append(errs,
-		remoteClient.DeleteAllOf(ctx, &rbacv1.ClusterRoleBinding{}, client.HasLabels{greenhouseapis.LabelKeyRoleBinding}),
-		remoteClient.DeleteAllOf(ctx, &rbacv1.ClusterRole{}, client.HasLabels{greenhouseapis.LabelKeyRole}),
-	)
+
+	clusterRoleBindings := &rbacv1.ClusterRoleBindingList{}
+	if err := remoteClient.List(ctx, clusterRoleBindings, client.HasLabels{greenhouseapis.LabelKeyRoleBinding}); err != nil {
+		if !apierrors.IsUnauthorized(err) && !apierrors.IsForbidden(err) {
+			errs = append(errs, err)
+		}
+	} else {
+		for _, crb := range clusterRoleBindings.Items {
+			if _, retain := retainedTRBNames[crb.Labels[greenhouseapis.LabelKeyRoleBinding]]; retain {
+				continue
+			}
+			if err := remoteClient.Delete(ctx, &crb); client.IgnoreNotFound(err) != nil {
+				errs = append(errs, err)
+			}
+		}
+	}
+
+	clusterRoles := &rbacv1.ClusterRoleList{}
+	if err := remoteClient.List(ctx, clusterRoles, client.HasLabels{greenhouseapis.LabelKeyRole}); err != nil {
+		if !apierrors.IsUnauthorized(err) && !apierrors.IsForbidden(err) {
+			errs = append(errs, err)
+		}
+	} else {
+		for _, cr := range clusterRoles.Items {
+			if _, retain := retainedTeamRoleNames[cr.Labels[greenhouseapis.LabelKeyRole]]; retain {
+				continue
+			}
+			if err := remoteClient.Delete(ctx, &cr); client.IgnoreNotFound(err) != nil {
+				errs = append(errs, err)
+			}
+		}
+	}
+
 	if err := errors.Join(errs...); err != nil {
 		return lifecycle.Break(), err
 	}

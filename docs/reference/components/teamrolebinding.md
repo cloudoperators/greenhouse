@@ -128,6 +128,20 @@ spec:
   createNamespaces: true
 ```
 
+## Deletion Policy
+
+By default, when a TeamRoleBinding is deleted or a cluster is offboarded, Greenhouse removes the RBAC resources it created on the remote cluster. To keep those resources in place instead, annotate the TeamRoleBinding with:
+
+```yaml
+metadata:
+  annotations:
+    greenhouse.sap/deletionPolicy: Retain
+```
+
+When set, the controller skips remote RBAC cleanup for that TeamRoleBinding — both when the TRB itself is deleted and when its target cluster is offboarded.
+
+If the cluster is annotated with `greenhouse.sap/plugin-deletion: Retain`, all RBAC on that cluster is preserved regardless of individual TeamRoleBinding annotations.
+
 ## Status
 
 ### `.status.statusConditions`
