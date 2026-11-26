@@ -221,6 +221,16 @@ func PredicateFluxHelmReleaseStatus() predicate.Predicate {
 	}
 }
 
+// PredicateResourceIsDeleted fires only when a resource is deleted.
+func PredicateResourceIsDeleted() predicate.Predicate {
+	return predicate.Funcs{
+		CreateFunc:  func(_ event.CreateEvent) bool { return false },
+		UpdateFunc:  func(_ event.UpdateEvent) bool { return false },
+		DeleteFunc:  func(_ event.DeleteEvent) bool { return true },
+		GenericFunc: func(_ event.GenericEvent) bool { return false },
+	}
+}
+
 func fluxConditionChanged(oldConditions, newConditions []metav1.Condition, condType string) bool {
 	o := meta.FindStatusCondition(oldConditions, condType)
 	n := meta.FindStatusCondition(newConditions, condType)
