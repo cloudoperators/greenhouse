@@ -8,18 +8,18 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chartutil"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/rest"
 )
 
 // Override the default capabilities with the detected ones of the current cluster.
 // FIXME: This is required as Helm detects a wrong kubernetes version.
 func init() {
-	cfg, err := newHelmAction(settings.RESTClientGetter(), corev1.NamespaceAll)
+	restConfig, err := settings.RESTClientGetter().ToRESTConfig()
 	if err != nil {
 		return
 	}
-	caps, err := getCapabilities(cfg)
+	caps, err := getCapabilities(restConfig)
 	if err != nil {
 		return
 	}
@@ -35,16 +35,11 @@ func verifyKubeVersionIsCompatible(helmChart *chart.Chart, caps *chartutil.Capab
 	return nil
 }
 
-func getCapabilities(cfg *action.Configuration) (*chartutil.Capabilities, error) {
-	if cfg.Capabilities != nil {
-		return cfg.Capabilities, nil
-	}
-	dc, err := cfg.RESTClientGetter.ToDiscoveryClient()
+func getCapabilities(restConfig *rest.Config) (*chartutil.Capabilities, error) {
+	dc, err := discovery.NewDiscoveryClientForConfig(restConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not get Kubernetes discovery client")
 	}
-	// force a discovery cache invalidation to always fetch the latest server version/capabilities.
-	dc.Invalidate()
 	kubeVersion, err := dc.ServerVersion()
 	if err != nil {
 		return nil, errors.Wrap(err, "could not get server version from Kubernetes")
@@ -57,14 +52,14 @@ func getCapabilities(cfg *action.Configuration) (*chartutil.Capabilities, error)
 	apiVersions, err := action.GetVersionSet(dc)
 	if err != nil {
 		if discovery.IsGroupDiscoveryFailedError(err) {
-			cfg.Log("WARNING: The Kubernetes server has an orphaned API service. Server reports: %s", err)
-			cfg.Log("WARNING: To fix this, kubectl delete apiservice <service-name>")
+			debug("WARNING: The Kubernetes server has an orphaned API service. Server reports: %s", err)
+			debug("WARNING: To fix this, kubectl delete apiservice <service-name>")
 		} else {
 			return nil, errors.Wrap(err, "could not get apiVersions from Kubernetes")
 		}
 	}
 
-	cfg.Capabilities = &chartutil.Capabilities{
+	return &chartutil.Capabilities{
 		APIVersions: apiVersions,
 		KubeVersion: chartutil.KubeVersion{
 			Version: kubeVersion.GitVersion,
@@ -72,6 +67,5 @@ func getCapabilities(cfg *action.Configuration) (*chartutil.Capabilities, error)
 			Minor:   kubeVersion.Minor,
 		},
 		HelmVersion: chartutil.DefaultCapabilities.HelmVersion,
-	}
-	return cfg.Capabilities, nil
+	}, nil
 }

@@ -162,26 +162,14 @@ func requireInvalidKubeConfig(t *testing.T, cluster *greenhousev1alpha1.Cluster,
 	require.NotEmpty(t, condition.Message)
 }
 
-func TestCreateRemoteClientReportsInvalidKubeConfig(t *testing.T) {
-	// what the workload identity path leaves behind on an OIDC secret
-	secret := oidcSecret()
-	delete(secret.Data, greenhouseapis.GreenHouseKubeConfigKey)
-
-	cluster := healthyCluster()
-	p := &Phase{ClusterSecret: secret}
-
-	result, err := p.createRemoteClient(cluster)(context.Background())
-	requireInvalidKubeConfig(t, cluster, result, err)
-}
-
-func TestCreateWorkloadIdentityClientReportsInvalidKubeConfig(t *testing.T) {
+func TestCreateRemoteClientReportsInvalidKubeConfigForOIDC(t *testing.T) {
 	secret := oidcSecret()
 	secret.Data[greenhouseapis.SecretAPIServerCAKey] = []byte("not-base64!")
 
 	cluster := healthyCluster()
 	p := &Phase{ClusterSecret: secret}
 
-	result, err := p.createWorkloadIdentityClient(cluster)(context.Background())
+	result, err := p.createRemoteClient(cluster)(context.Background())
 	requireInvalidKubeConfig(t, cluster, result, err)
 }
 

@@ -16,13 +16,15 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/rest"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 // exposedConditions are the conditions that are exposed in the StatusConditions of the Plugin.
@@ -62,35 +64,40 @@ func InitPluginStatus(plugin *greenhousev1alpha1.Plugin) greenhousev1alpha1.Plug
 	return plugin.Status
 }
 
-// initClientGetter returns a RestClientGetter & Cluster for the given Plugin.
-// If the Plugin has a clusterName set, the RestClientGetter is initialized from the cluster secret.
-// Otherwise, the RestClientGetter is initialized with in-cluster config
-func initClientGetter(
+// initRestConfig returns a *rest.Config & Cluster for the given Plugin.
+// If the Plugin has a clusterName set, the rest.Config is initialized from the cluster secret.
+// Otherwise, the rest.Config is initialized with in-cluster config.
+func initRestConfig(
 	ctx context.Context,
 	k8sClient client.Client,
 	kubeClientOpts []clientutil.KubeClientOption,
 	plugin *greenhousev1alpha1.Plugin,
 	workloadIdentityEnabled bool,
-) (genericclioptions.RESTClientGetter, *greenhousev1alpha1.Cluster, error) {
+) (*rest.Config, *greenhousev1alpha1.Cluster, error) {
 
 	// early return if spec.clusterName is not set
 	if plugin.Spec.ClusterName == "" {
-		restClientGetter, err := clientutil.NewRestClientGetterForInCluster(plugin.Spec.ReleaseNamespace, kubeClientOpts...)
+		restConfig, err := ctrl.GetConfig()
 		if err != nil {
 			err = fmt.Errorf("cannot access greenhouse cluster: %w", err)
 			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 				greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.ClusterAccessFailedReason, err.Error()))
 			return nil, nil, err
 		}
+		g := &clientutil.RestClientGetter{}
+		for _, opt := range kubeClientOpts {
+			opt(g)
+		}
+		g.ApplyToRESTConfig(restConfig)
 		c := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReleaseCreatedCondition)
 		if c != nil && c.Reason == greenhousev1alpha1.ClusterAccessFailedReason {
 			plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
 				greenhousev1alpha1.HelmReleaseCreatedCondition, "", ""))
 		}
-		return restClientGetter, nil, nil
+		return restConfig, nil, nil
 	}
 
-	// get restClientGetter from cluster if clusterName is set
+	// get rest.Config from cluster if clusterName is set
 	cluster := new(greenhousev1alpha1.Cluster)
 	err := k8sClient.Get(ctx, types.NamespacedName{Namespace: plugin.Namespace, Name: plugin.Spec.ClusterName}, cluster)
 	if err != nil {
@@ -124,11 +131,11 @@ func initClientGetter(
 			greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.ClusterAccessFailedReason, err.Error()))
 		return nil, nil, err
 	}
-	var restClientGetter genericclioptions.RESTClientGetter
+	var restConfig *rest.Config
 	if workloadIdentityEnabled && cluster.Annotations[greenhouseapis.ClusterConnectivityAnnotation] == greenhouseapis.ClusterConnectivityOIDC {
-		restClientGetter, err = clientutil.NewRestClientGetterForWI(ctx, k8sClient, &secret, plugin.Spec.ReleaseNamespace, kubeClientOpts...)
+		restConfig, err = lifecycle.GetWorkloadIdentityCfg(ctx, k8sClient, &secret)
 	} else {
-		restClientGetter, err = clientutil.NewRestClientGetterFromSecret(&secret, plugin.Spec.ReleaseNamespace, kubeClientOpts...)
+		restConfig, err = lifecycle.GetKubeCfg(&secret)
 	}
 	if err != nil {
 		err = fmt.Errorf("cannot access cluster %s: %w", plugin.Spec.ClusterName, err)
@@ -141,7 +148,12 @@ func initClientGetter(
 		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
 			greenhousev1alpha1.HelmReleaseCreatedCondition, "", ""))
 	}
-	return restClientGetter, cluster, nil
+	g := &clientutil.RestClientGetter{}
+	for _, opt := range kubeClientOpts {
+		opt(g)
+	}
+	g.ApplyToRESTConfig(restConfig)
+	return restConfig, cluster, nil
 }
 
 func getPortForExposedService(o runtime.Object) (*corev1.ServicePort, error) {

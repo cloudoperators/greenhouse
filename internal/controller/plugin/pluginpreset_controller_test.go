@@ -18,6 +18,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -117,15 +118,17 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		// kubeConfigController ensures the namespace within the remote cluster -- we have to create it
 		By("creating the namespace on the remote cluster")
-		remoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(clusterAKubeConfig, releaseNamespace, clientutil.WithPersistentConfig())
-		remoteK8sClient, err := clientutil.NewK8sClientFromRestClientGetter(remoteRestClientGetter)
+		remoteRestConfig, err := clientcmd.RESTConfigFromKubeConfig(clusterAKubeConfig)
+		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the rest config")
+		remoteK8sClient, err := clientutil.NewK8sClient(remoteRestConfig)
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the k8s client")
 		err = remoteK8sClient.Create(test.Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: releaseNamespace}})
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the namespace")
 
 		By("creating the namespace on the other remote cluster")
-		otherRemoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(clusterBKubeConfig, releaseNamespace, clientutil.WithPersistentConfig())
-		otherRemoteK8sClient, err := clientutil.NewK8sClientFromRestClientGetter(otherRemoteRestClientGetter)
+		otherRemoteRestConfig, err := clientcmd.RESTConfigFromKubeConfig(clusterBKubeConfig)
+		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the rest config")
+		otherRemoteK8sClient, err := clientutil.NewK8sClient(otherRemoteRestConfig)
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the k8s client")
 		err = otherRemoteK8sClient.Create(test.Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: releaseNamespace}})
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the namespace")

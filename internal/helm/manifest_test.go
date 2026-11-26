@@ -10,9 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
-	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/helm"
-	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
 var _ = Describe("validate the manifest functions", Ordered, func() {
@@ -45,13 +43,13 @@ spec:
 `,
 		}
 
-		manifestObjectMap, err := helm.ObjectMapFromRelease(clientutil.NewRestClientGetterFromRestConfig(test.Cfg, "greenhouse", clientutil.WithPersistentConfig()), helmReleaseWithManifest, &helm.ManifestObjectFilter{
+		manifestObjectMap, err := helm.ObjectMapFromLocalManifest(&helm.ManifestObjectFilter{
 			APIVersion: "v1",
 			Kind:       "Service",
 			Annotations: map[string]string{
 				greenhouseapis.AnnotationKeyExpose: "true",
 			},
-		})
+		}, helmReleaseWithManifest.Manifest)
 		Ω(err).
 			ShouldNot(HaveOccurred(), "there should be no error getting the objects from the helm release")
 		Ω(manifestObjectMap).
@@ -65,7 +63,7 @@ spec:
 			ShouldNot(BeNil(), "the object should not be nil")
 	})
 
-	It("should not throw any error for missing CRDs", func() {
+	It("should not throw any error for unknown resource types", func() {
 		helmReleaseWithManifest := &release.Release{
 			Manifest: `
 ---
@@ -94,12 +92,12 @@ spec:
 `,
 		}
 
-		manifestObjectMap, err := helm.ObjectMapFromRelease(clientutil.NewRestClientGetterFromRestConfig(test.Cfg, "greenhouse", clientutil.WithPersistentConfig()), helmReleaseWithManifest, nil)
+		manifestObjectMap, err := helm.ObjectMapFromLocalManifest(nil, helmReleaseWithManifest.Manifest)
 		Ω(err).
 			ShouldNot(HaveOccurred(), "there should be no error getting the objects from the helm release")
 		Ω(manifestObjectMap).
 			ShouldNot(BeNil(), "the manifest object list should not be nil")
 		Ω(manifestObjectMap).
-			Should(HaveLen(1), "there should be one object in the manifest object list ignoring the missing CRD")
+			Should(HaveLen(2), "local manifest loading includes all objects regardless of whether the type is registered")
 	})
 })

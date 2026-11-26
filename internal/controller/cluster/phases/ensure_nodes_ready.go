@@ -25,7 +25,7 @@ func (p *Phase) ensureNodesReady(cluster *greenhousev1alpha1.Cluster) lifecycle.
 			return lifecycle.Continue(), nil
 		}
 
-		remoteClient, err := clientutil.NewK8sClientFromRestClientGetter(p.RestClientGetter)
+		remoteClient, err := clientutil.NewK8sClient(p.RestConfig)
 		if err != nil {
 			cluster.SetCondition(greenhousemetav1alpha1.FalseCondition(
 				greenhousev1alpha1.AllNodesReady, "", err.Error(),

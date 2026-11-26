@@ -53,7 +53,7 @@ func (r *PluginReconciler) createRegistryMirrorPostRenderer(
 		return nil, nil
 	}
 
-	restClientGetter, _, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, plugin, r.workloadIdentityEnabled.Load())
+	restConfig, _, err := initRestConfig(ctx, r.Client, r.kubeClientOpts, plugin, r.workloadIdentityEnabled.Load())
 	if err != nil {
 		return nil, fmt.Errorf("failed to init client getter for Plugin %s: %w", plugin.Name, err)
 	}
@@ -65,7 +65,7 @@ func (r *PluginReconciler) createRegistryMirrorPostRenderer(
 		return nil, fmt.Errorf("failed to fetch chart artifact for Plugin %s: %w", plugin.Name, err)
 	}
 
-	helmRelease, err := helm.TemplateHelmChartFromPluginOptionValues(ctx, r.Client, restClientGetter, &pluginDefinitionSpec, plugin, optionValues, chartPath)
+	helmRelease, err := helm.TemplateHelmChartFromPluginOptionValues(ctx, r.Client, restConfig, &pluginDefinitionSpec, plugin, optionValues, chartPath)
 	if err != nil {
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReleaseCreatedCondition, greenhousev1alpha1.PluginHelmTemplateFailedReason, err.Error()))
 		return nil, fmt.Errorf("failed to template helm chart for Plugin %s: %w", plugin.Name, err)

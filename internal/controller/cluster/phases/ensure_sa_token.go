@@ -32,7 +32,7 @@ func (p *Phase) ensureServiceAccountToken(cluster *greenhousev1alpha1.Cluster) l
 			SecretType:                         p.ClusterSecret.Type,
 		}
 
-		tokenRequest, err := t.GenerateTokenRequest(ctx, p.RestClientGetter, cluster, p.ClusterSecret)
+		tokenRequest, err := t.GenerateTokenRequest(ctx, p.RestConfig, cluster, p.ClusterSecret)
 		if err != nil {
 			log.FromContext(ctx).Error(err, "failed to generate token", "cluster", cluster.Name)
 			return lifecycle.Break(), err
@@ -42,7 +42,7 @@ func (p *Phase) ensureServiceAccountToken(cluster *greenhousev1alpha1.Cluster) l
 			return lifecycle.Continue(), nil
 		}
 
-		generatedKubeConfig, err := utils.GenerateNewClientKubeConfig(p.RestClientGetter, tokenRequest.Status.Token, cluster)
+		generatedKubeConfig, err := utils.GenerateNewClientKubeConfig(p.RestConfig, tokenRequest.Status.Token, cluster)
 		if err != nil {
 			return lifecycle.Break(), err
 		}
