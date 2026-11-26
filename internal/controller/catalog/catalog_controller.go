@@ -393,7 +393,6 @@ func (r *CatalogReconciler) deleteOrphanedResource(ctx context.Context, obj clie
 	return nil
 }
 
-//nolint:unparam
 func (r *CatalogReconciler) verifyStatus(ctx context.Context, catalog *greenhousev1alpha1.Catalog, allErrors []catalogError) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	existingNotReady := catalog.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 	if existingNotReady != nil && existingNotReady.Status == metav1.ConditionFalse {

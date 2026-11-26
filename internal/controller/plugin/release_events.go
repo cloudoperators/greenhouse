@@ -86,8 +86,7 @@ func recordBaseline(plugin *greenhousev1alpha1.Plugin, latest *helmv2.Snapshot) 
 // Transport errors get a fixed message, because they carry addresses that change on every attempt and each new message triggers another reconcile.
 func releaseEventFailed(plugin *greenhousev1alpha1.Plugin, err error) error {
 	message := err.Error()
-	var urlErr *url.Error
-	if errors.As(err, &urlErr) {
+	if _, ok := errors.AsType[*url.Error](err); ok {
 		message = "failed to send the release event, see the controller logs"
 	}
 	plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ReleaseEventSentCondition, "", message))
