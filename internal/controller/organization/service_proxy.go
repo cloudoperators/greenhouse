@@ -87,7 +87,7 @@ func (r *OrganizationReconciler) reconcileOAuth2ProxySecret(ctx context.Context,
 		}
 		secret.Data[cookieSecretKey] = []byte(cookieData)
 	}
-	oAuthProxyClientName := fmt.Sprintf("%s-%s", dexOAuth2ProxyClientPrefix, org.Name)
+	oAuthProxyClientName := oauth2ProxyClientName(org.Name)
 	secret.Data[dexOAuth2ProxyClientIDKey] = []byte(oAuthProxyClientName)
 	_, exists := secret.Data[dexOAuth2ProxyClientSecretKey]
 	if !exists {
@@ -137,6 +137,10 @@ func (r *OrganizationReconciler) reconcileOAuth2ProxySecret(ctx context.Context,
 		return err
 	}
 	return nil
+}
+
+func oauth2ProxyClientName(orgName string) string {
+	return fmt.Sprintf("%s-%s", dexOAuth2ProxyClientPrefix, orgName)
 }
 
 func (r *OrganizationReconciler) reconcileServiceProxyPlugin(ctx context.Context, org *greenhousev1alpha1.Organization, supportGroupTeamName string) error {

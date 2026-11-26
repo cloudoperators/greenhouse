@@ -9,3 +9,5 @@ data:
   {{- range $controller, $cfg := .Values.controllerManager.config }}
   controller.{{ $controller }}.maxconcurrentreconciles: {{ $cfg.maxConcurrentReconciles | quote }}
   {{- end }}
+  organizationcleanup.groups: {{ join "," .Values.controllerManager.organizationCleanup.groups | quote }}
+  organizationcleanup.requeueinterval: {{ .Values.controllerManager.organizationCleanup.requeueInterval | quote }}

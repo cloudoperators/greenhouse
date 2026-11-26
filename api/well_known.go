@@ -23,6 +23,8 @@ const (
 	// LabelKeyOrgConfigMap is used to identify organizational config map.
 	LabelKeyOrgConfigMap = "greenhouse.sap/orgconfigmap"
 
+	LabelKeyOrganization = "greenhouse.sap/organization"
+
 	// KubeConfigKey is the key for the user-provided kubeconfig in the secret of type greenhouse.sap/kubeconfig.
 	KubeConfigKey = "kubeconfig"
 
