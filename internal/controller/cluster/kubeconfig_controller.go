@@ -656,7 +656,7 @@ func sameNameResource(_ context.Context, o client.Object) []ctrl.Request {
 
 func clusterSecretToCluster(_ context.Context, o client.Object) []ctrl.Request {
 	secret, ok := o.(*corev1.Secret)
-	if ok && secret.Type == greenhouseapis.SecretTypeKubeConfig {
+	if ok && (secret.Type == greenhouseapis.SecretTypeKubeConfig || secret.Type == greenhouseapis.SecretTypeOIDCConfig) {
 		return []ctrl.Request{{NamespacedName: types.NamespacedName{Namespace: o.GetNamespace(), Name: o.GetName()}}}
 	}
 	return nil
